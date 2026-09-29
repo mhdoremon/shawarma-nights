@@ -66,11 +66,11 @@ public class SmsGatewayService extends Service {
 
     private static SmsGatewayService instance = null;
     private static final String GATEWAY_SECRET = "sn_dev_gateway_secret_local";
-    public static final String DEFAULT_SERVER_IP = "remained-school-rrp-terrain.trycloudflare.com";
+    public static final String DEFAULT_SERVER_IP = "churuone-backend.onrender.com";
 
     public static String resolveHttpBase(String hostOrIp) {
         if (hostOrIp == null || hostOrIp.trim().isEmpty()) {
-            return "https://remained-school-rrp-terrain.trycloudflare.com";
+            return "https://churuone-backend.onrender.com";
         }
         String clean = hostOrIp.trim().replaceAll("^https?://", "").replaceAll("^wss?://", "").replaceAll("/.*$", "");
         if (clean.contains("trycloudflare.com") || clean.endsWith(".com") || clean.endsWith(".in") || clean.endsWith(".org") || clean.endsWith(".net") || clean.endsWith(".app")) {
@@ -84,7 +84,7 @@ public class SmsGatewayService extends Service {
 
     public static String resolveWsUrl(String hostOrIp) {
         if (hostOrIp == null || hostOrIp.trim().isEmpty()) {
-            return "wss://remained-school-rrp-terrain.trycloudflare.com/gateway";
+            return "wss://churuone-backend.onrender.com/gateway";
         }
         String clean = hostOrIp.trim().replaceAll("^https?://", "").replaceAll("^wss?://", "").replaceAll("/.*$", "");
         if (clean.contains("trycloudflare.com") || clean.endsWith(".com") || clean.endsWith(".in") || clean.endsWith(".org") || clean.endsWith(".net") || clean.endsWith(".app")) {
@@ -121,7 +121,7 @@ public class SmsGatewayService extends Service {
         String configuredIp = instance != null ? getConfiguredServerIp(instance) : DEFAULT_SERVER_IP;
         return new String[] {
             resolveHttpBase(configuredIp),
-            "https://remained-school-rrp-terrain.trycloudflare.com",
+            "https://churuone-backend.onrender.com",
             "http://10.166.13.97:5001",
             "http://127.0.0.1:5001"
         };
@@ -131,7 +131,7 @@ public class SmsGatewayService extends Service {
         String configuredIp = getConfiguredServerIp(this);
         return new String[] {
             resolveWsUrl(configuredIp),
-            "wss://remained-school-rrp-terrain.trycloudflare.com/gateway",
+            "wss://churuone-backend.onrender.com/gateway",
             "ws://10.166.13.97:5001/gateway",
             "ws://127.0.0.1:5001/gateway"
         };
