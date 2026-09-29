@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: shawarma-nights-server
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && node realtimeServer.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GATEWAY_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://shawarma-nights.vercel.app

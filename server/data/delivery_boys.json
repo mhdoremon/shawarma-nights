@@ -1,0 +1,24 @@
+[
+  {
+    "id": "db-1790630023981",
+    "name": "Test Rider",
+    "phone": "9876543210",
+    "password": "testpassword",
+    "vehicle": "Bike RJ-18",
+    "token": "ceae97d6-ca97-4b8d-b3ff-5a4dc3ce419d",
+    "createdAt": "2026-09-28T21:13:43.982Z",
+    "status": "active",
+    "currentLocation": null
+  },
+  {
+    "id": "db-1790630711591",
+    "name": "dore",
+    "phone": "7427050263",
+    "password": "Pvv9yyy8c1",
+    "vehicle": "121212",
+    "token": "79108758-ba64-4d1c-9209-e7df7463b7a4",
+    "createdAt": "2026-09-28T21:25:11.593Z",
+    "status": "active",
+    "currentLocation": null
+  }
+]

@@ -1,0 +1,12 @@
+const { execSync } = require("child_process");
+const path = require("path");
+const sdk = "C:\\Users\\HCI\\AppData\\Local\\Android\\Sdk";
+const buildTools = path.join(sdk, "build-tools\\36.0.0");
+const platformJar = path.join(sdk, "platforms\\android-32\\android.jar");
+const aapt2 = `"${path.join(buildTools, "aapt2.exe")}"`;
+const projectDir = __dirname;
+const resZip = path.join(projectDir, "obj", "res.zip");
+const unalignedApk = path.join(projectDir, "obj", "unaligned.apk");
+execSync(`${aapt2} compile --dir "${path.join(projectDir, "res")}" -o "${resZip}"`, { stdio: "inherit" });
+execSync(`${aapt2} link -o "${unalignedApk}" -I "${platformJar}" --manifest "${path.join(projectDir, "AndroidManifest.xml")}" --java "${path.join(projectDir, "src")}" --auto-add-overlay "${resZip}"`, { stdio: "inherit" });
+console.log("Resources compiled and linked successfully!");
