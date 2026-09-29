@@ -2422,6 +2422,16 @@ app.get('/api/gateway/status', (req, res) => {
   });
 });
 
+// Health check endpoint for Render & uptime monitors
+app.get(['/', '/healthz', '/api/health'], (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'Shawarma Nights Realtime Server',
+    uptime: Math.round(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Ensure any unmatched /api route returns JSON 404, NEVER an HTML error page
 app.use('/api', (req, res) => {
   res.status(404).json({
