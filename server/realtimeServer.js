@@ -1225,9 +1225,11 @@ app.post('/api/upload', (req, res) => {
     const buffer = Buffer.from(base64Data, 'base64');
     fs.writeFileSync(filePath, buffer);
 
-    const fileUrl = `/uploads/${safeName}`;
+    const host = req.get('host');
+    const proto = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+    const fileUrl = `${proto}://${host}/uploads/${safeName}`;
     console.log(`📸 Dukandar Photo Uploaded: ${fileUrl} (${Math.round(buffer.length / 1024)} KB)`);
-    return res.json({ success: true, url: fileUrl });
+    return res.json({ success: true, url: fileUrl, relativeUrl: `/uploads/${safeName}` });
   } catch (err) {
     console.error('Error saving uploaded photo:', err);
     return res.status(500).json({ success: false, error: 'Upload failed: ' + err.message });

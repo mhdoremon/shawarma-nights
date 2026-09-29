@@ -15,9 +15,13 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.util.Base64;
+import java.io.ByteArrayOutputStream;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
@@ -173,6 +177,12 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
     // Navigation Tab Chips
     private TextView[] navChipButtons = new TextView[8];
+
+    // Dish & Hero Photo Upload Selectors
+    private static final int REQ_PICK_DISH_IMAGE = 101;
+    private static final int REQ_PICK_HERO_IMAGE = 102;
+    private EditText activeImageTargetInput = null;
+    private ImageView activeImagePreviewView = null;
 
     private int dp(int val) {
         return (int) (val * getResources().getDisplayMetrics().density + 0.5f);
@@ -413,6 +423,14 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQ_CODE) {
             initLocationTracking();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if ((requestCode == REQ_PICK_DISH_IMAGE || requestCode == REQ_PICK_HERO_IMAGE) && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            uploadImageToServer(data.getData());
         }
     }
 
@@ -1318,6 +1336,242 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         }
     }
 
+    private void loadImageIntoView(ImageView iv, String urlStr) {
+        if (iv == null) return;
+        if (urlStr == null || urlStr.trim().isEmpty()) {
+            iv.setImageResource(R.drawable.ic_menu_line);
+            iv.setBackgroundColor(Color.parseColor("#1F2937"));
+            return;
+        }
+
+        String targetUrl = urlStr.trim();
+        if (targetUrl.startsWith("/uploads")) {
+            String base = (activeApiBase != null && !activeApiBase.isEmpty()) ? activeApiBase : "https://churuone-backend.onrender.com";
+            targetUrl = base + targetUrl;
+        }
+
+        final String finalUrl = targetUrl;
+        iv.setTag(finalUrl);
+
+        new Thread(() -> {
+            try {
+                URL u = new URL(finalUrl);
+                HttpURLConnection conn = (HttpURLConnection) u.openConnection();
+                conn.setConnectTimeout(6000);
+                conn.setReadTimeout(6000);
+                conn.setDoInput(true);
+                conn.connect();
+                InputStream is = conn.getInputStream();
+                final Bitmap bmp = BitmapFactory.decodeStream(is);
+                is.close();
+                if (bmp != null) {
+                    runOnUiThread(() -> {
+                        if (finalUrl.equals(iv.getTag())) {
+                            iv.setImageBitmap(bmp);
+                        }
+                    });
+                }
+            } catch (Exception ignored) {}
+        }).start();
+    }
+
+    private void uploadImageToServer(Uri uri) {
+        if (uri == null) return;
+        Toast.makeText(this, "⏳ Photo upload ho rahi hai...", Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+            try {
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inJustDecodeBounds = true;
+                InputStream is1 = getContentResolver().openInputStream(uri);
+                BitmapFactory.decodeStream(is1, null, opts);
+                if (is1 != null) is1.close();
+
+                int maxDim = Math.max(opts.outWidth, opts.outHeight);
+                int sampleSize = 1;
+                while (maxDim / sampleSize > 800) {
+                    sampleSize *= 2;
+                }
+
+                opts.inJustDecodeBounds = false;
+                opts.inSampleSize = sampleSize;
+                InputStream is2 = getContentResolver().openInputStream(uri);
+                final Bitmap bmp = BitmapFactory.decodeStream(is2, null, opts);
+                if (is2 != null) is2.close();
+
+                if (bmp == null) {
+                    throw new Exception("Photo decode nahi ho payi");
+                }
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bmp.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                byte[] bytes = baos.toByteArray();
+                String base64Data = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP);
+
+                JSONObject payload = new JSONObject();
+                payload.put("image", base64Data);
+                payload.put("filename", "dish_" + System.currentTimeMillis() + ".jpg");
+
+                JSONObject res = sendJsonHttpRequestWithCandidateFallback("/api/upload", "POST", payload);
+                if (res != null && res.optBoolean("success", false)) {
+                    final String uploadedUrl = res.optString("url", "");
+                    runOnUiThread(() -> {
+                        if (activeImageTargetInput != null) {
+                            activeImageTargetInput.setText(uploadedUrl);
+                        }
+                        if (activeImagePreviewView != null) {
+                            activeImagePreviewView.setImageBitmap(bmp);
+                        }
+                        Toast.makeText(MainActivity.this, "✅ Photo Upload Ho Gayi! 📸", Toast.LENGTH_SHORT).show();
+                    });
+                } else {
+                    String err = res != null ? res.optString("error", "Upload failed") : "Upload failed";
+                    throw new Exception(err);
+                }
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "⚠️ Photo upload nahi ho saki: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    private LinearLayout createImagePickerSection(LinearLayout parent, String currentUrl, EditText targetInput, String titleLabel) {
+        LinearLayout section = new LinearLayout(this);
+        section.setOrientation(LinearLayout.VERTICAL);
+        section.setBackgroundResource(theme.resCardBg);
+        section.setPadding(dp(12), dp(12), dp(12), dp(12));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        sp.topMargin = dp(8);
+        sp.bottomMargin = dp(12);
+        section.setLayoutParams(sp);
+
+        TextView title = new TextView(this);
+        title.setText(titleLabel);
+        title.setTextSize(12);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setTextColor(Color.parseColor("#DC2626"));
+        section.addView(title);
+
+        TextView sub = new TextView(this);
+        sub.setText("Phone gallery se upload karein ya ready food photo chunein:");
+        sub.setTextSize(10);
+        sub.setTextColor(theme.colorTextSecondary);
+        sub.setPadding(0, dp(2), 0, dp(8));
+        section.addView(sub);
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        ImageView preview = new ImageView(this);
+        LinearLayout.LayoutParams pmlp = new LinearLayout.LayoutParams(dp(85), dp(85));
+        preview.setLayoutParams(pmlp);
+        preview.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        preview.setBackgroundColor(Color.parseColor("#1E293B"));
+        loadImageIntoView(preview, currentUrl);
+        row.addView(preview);
+
+        LinearLayout btnsCol = new LinearLayout(this);
+        btnsCol.setOrientation(LinearLayout.VERTICAL);
+        btnsCol.setPadding(dp(12), 0, 0, 0);
+        btnsCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button galleryBtn = new Button(this);
+        galleryBtn.setText("📁 Gallery Se Upload Karein");
+        galleryBtn.setTextSize(11);
+        galleryBtn.setTypeface(null, Typeface.BOLD);
+        galleryBtn.setTextColor(Color.WHITE);
+        galleryBtn.setBackgroundResource(R.drawable.bg_button_red);
+        galleryBtn.setPadding(dp(8), dp(8), dp(8), dp(8));
+        galleryBtn.setOnClickListener(v -> {
+            activeImageTargetInput = targetInput;
+            activeImagePreviewView = preview;
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("image/*");
+            startActivityForResult(Intent.createChooser(intent, "Photo Chunein"), REQ_PICK_DISH_IMAGE);
+        });
+        btnsCol.addView(galleryBtn);
+
+        TextView orUrlNote = new TextView(this);
+        orUrlNote.setText("Live Photo URL / Link:");
+        orUrlNote.setTextSize(10);
+        orUrlNote.setTextColor(theme.colorTextSecondary);
+        orUrlNote.setPadding(0, dp(6), 0, dp(2));
+        btnsCol.addView(orUrlNote);
+
+        targetInput.setText(currentUrl != null ? currentUrl : "");
+        targetInput.setHint("https://... image url");
+        targetInput.setTextSize(11);
+        targetInput.setTextColor(theme.colorInputText);
+        targetInput.setHintTextColor(theme.colorInputHint);
+        targetInput.setBackgroundResource(theme.resInputBg);
+        targetInput.setPadding(dp(8), dp(6), dp(8), dp(6));
+        targetInput.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void afterTextChanged(android.text.Editable s) {
+                loadImageIntoView(preview, s.toString().trim());
+            }
+        });
+        btnsCol.addView(targetInput);
+
+        row.addView(btnsCol);
+        section.addView(row);
+
+        TextView presetsTitle = new TextView(this);
+        presetsTitle.setText("⚡ 1-Tap Ready Food Photo Presets (शानदार फूड फोटो):");
+        presetsTitle.setTextSize(11);
+        presetsTitle.setTypeface(null, Typeface.BOLD);
+        presetsTitle.setTextColor(theme.colorTextPrimary);
+        presetsTitle.setPadding(0, dp(10), 0, dp(4));
+        section.addView(presetsTitle);
+
+        HorizontalScrollView hsv = new HorizontalScrollView(this);
+        hsv.setHorizontalScrollBarEnabled(false);
+        LinearLayout presetsRow = new LinearLayout(this);
+        presetsRow.setOrientation(LinearLayout.HORIZONTAL);
+        presetsRow.setPadding(0, dp(2), 0, dp(4));
+
+        String[][] presets = {
+            {"🌯 Classic Roll", "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80"},
+            {"🌶️ Spicy Shawarma", "https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&auto=format&fit=crop&q=80"},
+            {"🍽️ Platter", "https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80"},
+            {"🍟 Loaded Fries", "https://images.unsplash.com/photo-1576107232684-1279f3908594?w=800&auto=format&fit=crop&q=80"},
+            {"🍗 Crispy Wings", "https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=800&auto=format&fit=crop&q=80"},
+            {"🧆 Falafel Roll", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80"},
+            {"🥤 Mint Mojito", "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80"},
+            {"🍫 Cold Shake", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=800&auto=format&fit=crop&q=80"},
+            {"🫓 Rumali Combo", "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80"}
+        };
+
+        for (String[] pr : presets) {
+            final String pName = pr[0];
+            final String pUrl = pr[1];
+            TextView chip = new TextView(this);
+            chip.setText(pName);
+            chip.setTextSize(11);
+            chip.setPadding(dp(10), dp(5), dp(10), dp(5));
+            chip.setBackgroundResource(theme.resOutlineBtn);
+            chip.setTextColor(theme.colorTextPrimary);
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            clp.rightMargin = dp(6);
+            chip.setLayoutParams(clp);
+
+            chip.setOnClickListener(v -> {
+                targetInput.setText(pUrl);
+                loadImageIntoView(preview, pUrl);
+                Toast.makeText(this, pName + " photo selected!", Toast.LENGTH_SHORT).show();
+            });
+            presetsRow.addView(chip);
+        }
+        hsv.addView(presetsRow);
+        section.addView(hsv);
+
+        parent.addView(section);
+        return section;
+    }
+
     private View createMenuItemCard(JSONObject item) {
         String id = item.optString("id", "");
         String name = item.optString("name", "Dish");
@@ -1341,6 +1595,15 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         LinearLayout topRow = new LinearLayout(this);
         topRow.setOrientation(LinearLayout.HORIZONTAL);
         topRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        ImageView itemThumb = new ImageView(this);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(dp(54), dp(54));
+        tlp.rightMargin = dp(12);
+        itemThumb.setLayoutParams(tlp);
+        itemThumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        itemThumb.setBackgroundColor(Color.parseColor("#1E293B"));
+        loadImageIntoView(itemThumb, item.optString("image", ""));
+        topRow.addView(itemThumb);
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
@@ -1459,71 +1722,126 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     private void showAddOrEditDishDialog(JSONObject existing) {
         boolean isEdit = (existing != null);
         AlertDialog.Builder builder = createDialogBuilder();
-        builder.setTitle(isEdit ? "Edit Dish" : "Add New Dish to Menu");
+        builder.setTitle(isEdit ? "✏️ Edit Dish (डिश एडिट करें)" : "➕ Add New Dish (नई डिश जोड़ें)");
 
         ScrollView sv = new ScrollView(this);
         LinearLayout form = new LinearLayout(this);
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(20), dp(10), dp(20), dp(10));
 
-        // Name
-        EditText nameInput = new EditText(this);
-        nameInput.setHint("Dish Name (e.g. Charcoal Chicken Roll)");
-        if (isEdit) nameInput.setText(existing.optString("name", ""));
-        nameInput.setTextColor(theme.colorInputText);
-        nameInput.setHintTextColor(theme.colorInputHint);
-        form.addView(nameInput);
+        // 1. Photo Picker Section
+        EditText imgInput = new EditText(this);
+        String currentImg = isEdit ? existing.optString("image", "") : "";
+        createImagePickerSection(form, currentImg, imgInput, "📸 DISH PHOTO (डिश की फोटो - वेबसाइट पर दिखेगी)");
 
-        // Category
-        EditText catInput = new EditText(this);
-        catInput.setHint("Category (e.g. shawarmas, platters, fries)");
-        if (isEdit) catInput.setText(existing.optString("category", "shawarmas"));
-        catInput.setTextColor(theme.colorInputText);
-        catInput.setHintTextColor(theme.colorInputHint);
-        form.addView(catInput);
+        // 2. Dish Name
+        EditText nameInput = createLabeledInput(form, "DISH NAME (डिश का नाम) *", isEdit ? existing.optString("name", "") : "");
+        nameInput.setHint("e.g. Charcoal Chicken Shawarma Roll");
+        form.addView(createChipGroup(
+            new String[]{"🌯 Classic Roll", "🌶️ Spicy Shawarma", "🍽️ Charcoal Platter", "🍟 Loaded Fries", "🧆 Falafel Roll", "🥤 Mint Mojito", "🍗 Crispy Wings", "Custom"},
+            new String[]{"Classic Chicken Shawarma", "Spicy Garlic Shawarma", "Charcoal Platter Special", "Loaded Cheese Fries", "Falafel Hummus Roll", "Mint Mojito", "Crispy Chicken Wings", nameInput.getText().toString()},
+            nameInput.getText().toString(), nameInput));
 
-        // Price
-        EditText priceInput = new EditText(this);
-        priceInput.setHint("Selling Price ₹ (e.g. 180)");
-        priceInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        if (isEdit) priceInput.setText(String.valueOf((int) existing.optDouble("price", 0)));
-        priceInput.setTextColor(theme.colorInputText);
-        priceInput.setHintTextColor(theme.colorInputHint);
-        form.addView(priceInput);
+        // 3. Category
+        List<String> catOptionsList = new ArrayList<>();
+        List<String> catValuesList = new ArrayList<>();
+        catOptionsList.add("🌯 Shawarmas"); catValuesList.add("shawarmas");
+        catOptionsList.add("🍽️ Platters"); catValuesList.add("platters");
+        catOptionsList.add("🍟 Fries"); catValuesList.add("fries");
+        catOptionsList.add("🥤 Drinks"); catValuesList.add("drinks");
+        catOptionsList.add("🍗 Starters"); catValuesList.add("starters");
 
-        // Original Price
-        EditText origPriceInput = new EditText(this);
-        origPriceInput.setHint("Original / Strike Price ₹ (optional)");
-        origPriceInput.setInputType(InputType.TYPE_CLASS_NUMBER);
-        if (isEdit && existing.has("originalPrice")) {
-            origPriceInput.setText(String.valueOf((int) existing.optDouble("originalPrice", 0)));
+        if (SmsGatewayService.categoriesList != null) {
+            for (JSONObject c : SmsGatewayService.categoriesList) {
+                String cId = c.optString("id", "").toLowerCase(Locale.ROOT);
+                String cName = c.optString("name", cId);
+                if (!catValuesList.contains(cId) && !cId.isEmpty()) {
+                    catOptionsList.add(cName);
+                    catValuesList.add(cId);
+                }
+            }
         }
-        origPriceInput.setTextColor(theme.colorInputText);
-        origPriceInput.setHintTextColor(theme.colorInputHint);
-        form.addView(origPriceInput);
+        catOptionsList.add("Custom");
+        catValuesList.add(isEdit ? existing.optString("category", "shawarmas") : "shawarmas");
 
-        // Veg Checkbox
-        CheckBox vegCb = new CheckBox(this);
-        vegCb.setText("Is Pure Vegetarian?");
-        if (isEdit) vegCb.setChecked(existing.optBoolean("isVeg", false));
-        vegCb.setTextColor(theme.colorTextPrimary);
-        form.addView(vegCb);
+        EditText catInput = createLabeledInput(form, "CATEGORY (कैटेगरी) *", isEdit ? existing.optString("category", "shawarmas") : "shawarmas");
+        form.addView(createChipGroup(
+            catOptionsList.toArray(new String[0]),
+            catValuesList.toArray(new String[0]),
+            catInput.getText().toString().toLowerCase(Locale.ROOT), catInput));
 
-        // Badge
-        EditText badgeInput = new EditText(this);
-        badgeInput.setHint("Badge tag (e.g. Bestseller, Special)");
-        if (isEdit) badgeInput.setText(existing.optString("badge", ""));
-        badgeInput.setTextColor(theme.colorInputText);
-        badgeInput.setHintTextColor(theme.colorInputHint);
-        form.addView(badgeInput);
+        // 4. Food Type (Veg / Non-Veg)
+        TextView vegLbl = new TextView(this);
+        vegLbl.setText("FOOD TYPE (वेज / नॉन-वेज)");
+        vegLbl.setTextSize(11);
+        vegLbl.setTypeface(null, Typeface.BOLD);
+        vegLbl.setTextColor(theme.colorTextSecondary);
+        vegLbl.setPadding(0, dp(8), 0, dp(4));
+        form.addView(vegLbl);
 
-        // Prep Time
-        EditText prepInput = new EditText(this);
-        prepInput.setHint("Prep Time (e.g. 15-20 min)");
-        if (isEdit) prepInput.setText(existing.optString("prepTime", "15-20 min"));
-        prepInput.setTextColor(theme.colorInputText);
-        prepInput.setHintTextColor(theme.colorInputHint);
-        form.addView(prepInput);
+        EditText vegIn = new EditText(this);
+        vegIn.setVisibility(View.GONE);
+        form.addView(vegIn);
+        boolean initialVeg = isEdit ? existing.optBoolean("isVeg", false) : false;
+        vegIn.setText(initialVeg ? "veg" : "nonveg");
+        form.addView(createChipGroup(
+            new String[]{"🔴 Non-Veg (चिकन / मीट)", "🟢 100% Pure Veg (शाकाहारी)"},
+            new String[]{"nonveg", "veg"},
+            initialVeg ? "veg" : "nonveg", vegIn));
+
+        // 5. Price
+        EditText priceInput = createLabeledInput(form, "SELLING PRICE ₹ (विक्रय मूल्य) *", isEdit ? String.valueOf((int) existing.optDouble("price", 179)) : "179");
+        priceInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        form.addView(createChipGroup(
+            new String[]{"₹99", "₹129", "₹149", "₹179", "₹199", "₹249", "₹299", "₹399", "Custom"},
+            new String[]{"99", "129", "149", "179", "199", "249", "299", "399", priceInput.getText().toString()},
+            priceInput.getText().toString(), priceInput));
+
+        // 6. Original / Strike Price
+        EditText origPriceInput = createLabeledInput(form, "ORIGINAL / STRIKE PRICE ₹ (डिस्काउंट दिखाने के लिए - Optional)", isEdit && existing.has("originalPrice") ? String.valueOf((int) existing.optDouble("originalPrice", 0)) : "0");
+        origPriceInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        form.addView(createChipGroup(
+            new String[]{"₹0 (No Strike)", "₹199", "₹249", "₹299", "₹349", "₹399", "₹499", "Custom"},
+            new String[]{"0", "199", "249", "299", "349", "399", "499", origPriceInput.getText().toString()},
+            origPriceInput.getText().toString(), origPriceInput));
+
+        // 7. Badge Tag
+        EditText badgeInput = createLabeledInput(form, "BADGE TAG (स्पेशल टैग - Optional)", isEdit ? existing.optString("badge", "") : "");
+        badgeInput.setHint("e.g. Bestseller, Special");
+        form.addView(createChipGroup(
+            new String[]{"None", "🔥 Bestseller", "⭐ Chef's Special", "🌶️ Extra Spicy", "✨ New Launch", "👑 Must Try"},
+            new String[]{"", "Bestseller", "Chef Special", "Extra Spicy", "New", "Must Try"},
+            badgeInput.getText().toString(), badgeInput));
+
+        // 8. Prep Time
+        EditText prepInput = createLabeledInput(form, "PREP TIME (तैयार होने का समय)", isEdit ? existing.optString("prepTime", "15-20 min") : "15-20 min");
+        form.addView(createChipGroup(
+            new String[]{"10-15 min", "15-20 min", "20-25 min", "25-30 min"},
+            new String[]{"10-15 min", "15-20 min", "20-25 min", "25-30 min"},
+            prepInput.getText().toString(), prepInput));
+
+        // 9. Description
+        EditText descInput = createLabeledInput(form, "DESCRIPTION (डिश की जानकारी / सामग्री)", isEdit ? existing.optString("description", "") : "");
+        descInput.setHint("e.g. Fresh roasted chicken loaded with garlic mayonnaise");
+
+        // 10. Availability Stock
+        TextView stockLbl = new TextView(this);
+        stockLbl.setText("STOCK STATUS (उपलब्धता)");
+        stockLbl.setTextSize(11);
+        stockLbl.setTypeface(null, Typeface.BOLD);
+        stockLbl.setTextColor(theme.colorTextSecondary);
+        stockLbl.setPadding(0, dp(8), 0, dp(4));
+        form.addView(stockLbl);
+
+        EditText stockIn = new EditText(this);
+        stockIn.setVisibility(View.GONE);
+        form.addView(stockIn);
+        boolean initialAvail = !isEdit || existing.optBoolean("available", true);
+        stockIn.setText(initialAvail ? "instock" : "soldout");
+        form.addView(createChipGroup(
+            new String[]{"🟢 In Stock (उपलब्ध है)", "🔴 Sold Out (खत्म)"},
+            new String[]{"instock", "soldout"},
+            initialAvail ? "instock" : "soldout", stockIn));
 
         sv.addView(form);
         builder.setView(sv);
@@ -1541,6 +1859,14 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 return;
             }
 
+            String chosenImg = imgInput.getText().toString().trim();
+            if (chosenImg.isEmpty()) {
+                chosenImg = "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80";
+            }
+
+            boolean isVeg = "veg".equals(vegIn.getText().toString().trim());
+            boolean isAvailable = "instock".equals(stockIn.getText().toString().trim());
+
             try {
                 if (isEdit) {
                     JSONObject updates = new JSONObject();
@@ -1548,11 +1874,14 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                     updates.put("category", cat.isEmpty() ? "shawarmas" : cat);
                     updates.put("price", price);
                     updates.put("originalPrice", origPrice);
-                    updates.put("isVeg", vegCb.isChecked());
+                    updates.put("isVeg", isVeg);
                     updates.put("badge", badgeInput.getText().toString().trim());
                     updates.put("prepTime", prepInput.getText().toString().trim());
+                    updates.put("description", descInput.getText().toString().trim());
+                    updates.put("image", chosenImg);
+                    updates.put("available", isAvailable);
                     SmsGatewayService.sendUpdateMenuItem(existing.optString("id"), updates);
-                    Toast.makeText(this, "Dish updated successfully!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Dish updated successfully! 🚀", Toast.LENGTH_SHORT).show();
                 } else {
                     JSONObject newItem = new JSONObject();
                     newItem.put("id", "dish-" + System.currentTimeMillis());
@@ -1560,12 +1889,16 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                     newItem.put("category", cat.isEmpty() ? "shawarmas" : cat);
                     newItem.put("price", price);
                     newItem.put("originalPrice", origPrice);
-                    newItem.put("isVeg", vegCb.isChecked());
+                    newItem.put("isVeg", isVeg);
                     newItem.put("badge", badgeInput.getText().toString().trim());
                     newItem.put("prepTime", prepInput.getText().toString().trim());
-                    newItem.put("available", true);
+                    newItem.put("description", descInput.getText().toString().trim());
+                    newItem.put("image", chosenImg);
+                    newItem.put("available", isAvailable);
+                    newItem.put("rating", 5);
+                    newItem.put("reviews", 1);
                     SmsGatewayService.sendAddMenuItem(newItem);
-                    Toast.makeText(this, "Dish added to Menu!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Dish added to Menu! 🚀", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception ignored) {}
         });
@@ -1751,7 +2084,11 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         heroCard.setPadding(dp(16), dp(16), dp(16), dp(16));
         container.addView(heroCard);
 
-        JSONObject h = SmsGatewayService.heroBannerObj;
+        JSONObject h = SmsGatewayService.heroBannerObj != null ? SmsGatewayService.heroBannerObj : new JSONObject();
+
+        EditText circleImgInput = new EditText(this);
+        String currentCircleImg = h.optString("circleImage", "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=85");
+        createImagePickerSection(heroCard, currentCircleImg, circleImgInput, "🎯 HERO SHOWCASE DISH PHOTO (वेबसाइट का गोल फोटो)");
 
         EditText badgeIn = createLabeledInput(heroCard, "Badge Tag", h.optString("badgeText", ""));
         EditText t1In = createLabeledInput(heroCard, "Title Line 1", h.optString("titleLine1", ""));
@@ -1774,6 +2111,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         saveHeroBtn.setOnClickListener(v -> {
             try {
                 JSONObject updated = new JSONObject();
+                updated.put("circleImage", circleImgInput.getText().toString().trim());
                 updated.put("badgeText", badgeIn.getText().toString().trim());
                 updated.put("titleLine1", t1In.getText().toString().trim());
                 updated.put("titleLine2", t2In.getText().toString().trim());
