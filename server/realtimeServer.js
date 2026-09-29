@@ -1078,17 +1078,26 @@ app.post('/api/hero', (req, res) => {
 });
 
 // Direct Download Endpoint for Shawarma SMS Gateway APK
-const APK_PATH = path.join(__dirname, '..', 'android-gateway', 'bin', 'ShawarmaSmsGateway.apk');
-app.get('/download/app', (req, res) => {
-  if (fs.existsSync(APK_PATH)) {
-    res.download(APK_PATH, 'ShawarmaSmsGateway.apk');
-  } else {
-    res.status(404).send('APK not found.');
+function resolveApkPath() {
+  const candidates = [
+    path.join(__dirname, '..', 'public', 'app.apk'),
+    path.join(__dirname, '..', 'android-gateway', 'bin', 'ShawarmaSmsGateway.apk'),
+    path.join(__dirname, '..', 'dist', 'app.apk'),
+    path.join(__dirname, 'public', 'app.apk'),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
   }
-});
-app.get('/app.apk', (req, res) => {
-  if (fs.existsSync(APK_PATH)) {
-    res.download(APK_PATH, 'ShawarmaSmsGateway.apk');
+  return null;
+}
+
+app.get(['/download/app', '/app.apk'], (req, res) => {
+  const resolved = resolveApkPath();
+  if (resolved) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.download(resolved, 'ShawarmaSmsGateway.apk');
   } else {
     res.status(404).send('APK not found.');
   }
