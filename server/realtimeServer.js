@@ -320,8 +320,19 @@ function broadcast(type, payload, senderWs = null) {
     }
   });
 
-  // 2. Broadcast to connected phone gateway (Android app)
-  if (phoneGatewayWs && phoneGatewayWs.readyState === WebSocket.OPEN && phoneGatewayWs !== senderWs) {
+  // 2. Broadcast to all connected phone gateway clients (Dukandar & Delivery riders)
+  const sentGatewaySockets = new Set();
+  gatewayWss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN && client !== senderWs) {
+      try {
+        client.send(message);
+        sentGatewaySockets.add(client);
+      } catch (err) {
+        console.error('❌ Error broadcasting to gateway client:', err.message);
+      }
+    }
+  });
+  if (phoneGatewayWs && phoneGatewayWs.readyState === WebSocket.OPEN && phoneGatewayWs !== senderWs && !sentGatewaySockets.has(phoneGatewayWs)) {
     try {
       phoneGatewayWs.send(message);
     } catch (err) {
@@ -708,6 +719,61 @@ app.get('/api/menu', (req, res) => {
   res.json(dukandarDb.menu);
 });
 app.get('/api/orders', (req, res) => res.json(dukandarDb.orders));
+
+// REST order placement endpoint (guaranteed delivery)
+app.post(['/api/orders', '/api/orders/place'], (req, res) => {
+  try {
+    const payload = req.body || {};
+    const orderId = payload.orderId || payload.id || `SN-${Math.floor(100000 + Math.random() * 900000)}`;
+    
+    // Idempotency check: don't duplicate order if already placed
+    const existing = dukandarDb.orders.find(o => o.id === orderId);
+    if (existing) {
+      return res.json({ success: true, order: existing, message: 'Order already exists' });
+    }
+
+    const newOrder = {
+      id: orderId,
+      customerName: payload.customerName || 'Online Customer',
+      customerPhone: payload.customerPhone || '+91 98765-00000',
+      address: payload.address || 'Delivery Address',
+      items: payload.items || [],
+      status: 'new',
+      placedAt: payload.placedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      total: Number(payload.grandTotal || payload.total || 0),
+      note: payload.note || '',
+      paymentMethod: payload.paymentMethod || 'COD',
+      paymentStatus: payload.paymentStatus || (payload.paymentMethod === 'UPI' ? 'paid' : 'pending_cash'),
+      utr: payload.utr || null,
+      couponCode: payload.couponCode || null,
+      discountApplied: Number(payload.discountApplied || 0),
+      deliveryOtp: payload.deliveryOtp || generateDeliveryOtp(),
+      orderGps: payload.orderGps || null,
+    };
+
+    if (newOrder.couponCode) {
+      const code = newOrder.couponCode;
+      const phone = newOrder.customerPhone;
+      const deal = dukandarDb.deals?.find(d => d.code === code);
+      if (deal) {
+        deal.usageCount = (deal.usageCount || 0) + 1;
+        saveDeals();
+      }
+      if (!couponUsage[code]) couponUsage[code] = {};
+      couponUsage[code][phone] = (couponUsage[code][phone] || 0) + 1;
+      saveCouponUsage();
+    }
+
+    dukandarDb.orders.unshift(newOrder);
+    saveOrders();
+    broadcast('ORDER_CREATED', newOrder);
+    console.log(`📦 [REST Orders] New order #${newOrder.id} placed for ₹${newOrder.total}`);
+    res.json({ success: true, order: newOrder });
+  } catch (err) {
+    console.error('❌ Error processing REST order:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 app.get('/api/reviews', (req, res) => {
   res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
   res.json(dukandarDb.reviews || []);

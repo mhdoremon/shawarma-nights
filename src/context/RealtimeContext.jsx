@@ -114,10 +114,14 @@ export function RealtimeProvider({ children }) {
     let reconnectTimeout = null;
 
     function connectWs() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = WS_URL 
-        ? `${WS_URL}/ws`
-        : `${protocol}//${window.location.host}/ws`;
+      let wsUrl = '';
+      if (WS_URL) {
+        const clean = WS_URL.trim().replace(/\/+$/, '');
+        wsUrl = clean.endsWith('/ws') ? clean : `${clean}/ws`;
+      } else {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        wsUrl = `${protocol}//${window.location.host}/ws`;
+      }
 
       try {
         const ws = new WebSocket(wsUrl);
@@ -386,8 +390,31 @@ export function RealtimeProvider({ children }) {
 
   // Unified Action Methods (Automatically routes to Firebase if keys provided!)
   const placeOrder = (orderData) => {
-    if (isFirebaseConfigured) fbPlaceOrder(orderData);
-    else sendEvent('PLACE_ORDER', orderData);
+    if (isFirebaseConfigured) {
+      fbPlaceOrder(orderData);
+      return;
+    }
+
+    // 1. Send via WebSocket for real-time delivery
+    sendEvent('PLACE_ORDER', orderData);
+
+    // 2. Guaranteed REST delivery to server database
+    try {
+      const apiUrl = API_URL ? API_URL.replace(/\/+$/, '') : '';
+      fetch(`${apiUrl}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+      }).then(r => r.json()).then(data => {
+        if (data.success && data.order) {
+          console.log('✅ [REST Order Success] Saved:', data.order.id);
+        }
+      }).catch(err => {
+        console.warn('⚠️ REST order delivery failed:', err);
+      });
+    } catch (err) {
+      console.warn('⚠️ REST order fetch error:', err);
+    }
   };
 
   const updateOrderStatus = (orderId, status, otp = null, boyName = 'Store Admin') => {
