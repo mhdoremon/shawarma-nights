@@ -261,6 +261,9 @@ public class SmsGatewayService extends Service {
 
         // Connect WebSocket
         handler.post(this::connectWebSocket);
+
+        // 24/7 Cloud Keep-Alive: Ping Render server every 7 minutes so it never spins down
+        startCloudKeepAliveTimer();
         return START_STICKY;
     }
 
@@ -286,6 +289,35 @@ public class SmsGatewayService extends Service {
             handlerThread.quitSafely();
         }
         super.onDestroy();
+    }
+
+    /**
+     * 24/7 Cloud Keep-Alive Heartbeat:
+     * Pings Render cloud server every 7 minutes so Render never goes to sleep.
+     */
+    private void startCloudKeepAliveTimer() {
+        if (handler == null) return;
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!isRunning) return;
+                new Thread(() -> {
+                    try {
+                        URL url = new URL("https://churuone-backend.onrender.com/healthz");
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn.setConnectTimeout(5000);
+                        conn.setReadTimeout(5000);
+                        conn.setRequestMethod("GET");
+                        int code = conn.getResponseCode();
+                        conn.disconnect();
+                        Log.d(TAG, "💓 [Cloud Keep-Alive] Pinged Render: HTTP " + code);
+                    } catch (Exception ignored) {}
+                }).start();
+                if (handler != null && isRunning) {
+                    handler.postDelayed(this, 7 * 60 * 1000); // Repeat every 7 minutes
+                }
+            }
+        }, 15 * 1000); // First ping after 15 seconds
     }
 
     /**

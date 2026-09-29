@@ -2558,4 +2558,17 @@ server.listen(PORT, () => {
   console.log(`║  Gateway  : ws://localhost:${PORT}/gateway             ║`);
   console.log('╚══════════════════════════════════════════════════════╝');
   console.log('');
+
+  // 24/7 Keep-Alive Self-Ping: Pings external URL every 8 minutes so Render NEVER spins down
+  const KEEP_ALIVE_URL = process.env.RENDER_EXTERNAL_URL || 'https://churuone-backend.onrender.com';
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${KEEP_ALIVE_URL}/healthz`);
+      if (res.ok) {
+        console.log(`💓 [24/7 Heartbeat] Pinged ${KEEP_ALIVE_URL}/healthz - Server kept awake.`);
+      }
+    } catch (err) {
+      console.warn('⚠️ [24/7 Heartbeat] Ping error:', err.message);
+    }
+  }, 8 * 60 * 1000);
 });

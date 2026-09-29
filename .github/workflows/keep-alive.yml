@@ -1,0 +1,16 @@
+name: 24/7 Render Server Keep-Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes, 24 hours a day, 365 days a year
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Heartbeat to Render Server
+        run: |
+          echo "Sending 24/7 keep-alive heartbeat to Render..."
+          curl -s -S -f --max-time 15 https://churuone-backend.onrender.com/healthz || echo "Heartbeat ping sent"
