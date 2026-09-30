@@ -113,7 +113,9 @@ function writeSync(storeId, collection, data) {
 
   // Write to disk immediately
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
     delete dirtyFlags[`${storeId}/${fileName}`];
   } catch (err) {
     console.error(`❌ [DataLayer] WriteSync error: ${storeId}/${fileName}:`, err.message);
@@ -139,7 +141,9 @@ function flushDirty() {
     const filePath = getFilePath(storeId, fileName);
     try {
       ensureDir(getStorePath(storeId));
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
       delete dirtyFlags[key];
     } catch (err) {
       console.error(`❌ [DataLayer] Flush error: ${key}:`, err.message);
@@ -294,7 +298,9 @@ function writePlatform(fileName, data) {
   ensureDir(config.PLATFORM_DIR);
   const filePath = path.join(config.PLATFORM_DIR, fileName.endsWith('.json') ? fileName : `${fileName}.json`);
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
   } catch (err) {
     console.error(`❌ [DataLayer] Platform write error: ${fileName}:`, err.message);
   }

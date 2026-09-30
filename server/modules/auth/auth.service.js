@@ -11,11 +11,18 @@ export const sendOtp = (req, res) => {
         if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
         
         const normalizedPhone = normalizePhone(phone);
+        const key = `${req.storeId}:${normalizedPhone}`;
+
+        // Security: Prevent SMS Bombing (Rate Limiting)
+        const existingOtp = otpStore.get(key);
+        if (existingOtp && (Date.now() - existingOtp.createdAt < 60000)) { // 60 seconds limit
+            return res.status(429).json({ success: false, message: 'Kripya naya OTP mangne ke liye 1 minute wait karein.' });
+        }
+
         const otp = generateOtp(6);
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-        const key = `${req.storeId}:${normalizedPhone}`;
         
-        otpStore.set(key, { otp, expiresAt, attempts: 0 });
+        otpStore.set(key, { otp, expiresAt, attempts: 0, createdAt: Date.now() });
         
         const formattedPhone = normalizedPhone.startsWith('+91')
             ? normalizedPhone
@@ -106,6 +113,28 @@ export const verifyOtp = (req, res) => {
             DataLayer.writeSync(req.storeId, 'customers', customers);
             return res.json({ success: true, token: customer.token, isNewUser, user: customer });
         }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getMe = (req, res) => {
+    try {
+        const { phone } = req.query;
+        if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
+        
+        const normalizedPhone = normalizePhone(phone);
+        const customers = DataLayer.read(req.storeId, 'customers') || [];
+        const customer = customers.find(c => c.phone === normalizedPhone);
+        
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer not found' });
+        }
+
+        const orders = DataLayer.read(req.storeId, 'orders') || [];
+        const userOrders = orders.filter(o => (o.customer?.phone === normalizedPhone) || (o.customerPhone === normalizedPhone));
+
+        res.json({ success: true, user: customer, orders: userOrders });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

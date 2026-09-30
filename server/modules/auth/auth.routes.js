@@ -11,6 +11,7 @@ router.post('/verify-otp', service.verifyOtp);
 router.post('/register', service.register);
 router.post('/update-profile', service.updateProfile);
 router.post('/delete-account', service.deleteAccount);
+router.get('/me', service.getMe);
 
 // Admin Auth
 router.get('/admin/status', service.getAdminStatus);
