@@ -139,6 +139,42 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       console.log('SMS status update:', data);
       return true;
     }
+    case 'PLACE_ORDER': {
+      const orders = DataLayer.read(storeId, 'orders') || [];
+      const payload = data.payload || data;
+      const orderId = payload.orderId || payload.id || `SN-${Math.floor(100000 + Math.random() * 900000)}`;
+      const deliveryOtp = String(Math.floor(1000 + Math.random() * 9000));
+      
+      const newOrder = {
+        id: orderId,
+        customerName: payload.customerName || (payload.customer?.name) || 'Online Customer',
+        customerPhone: payload.customerPhone || (payload.customer?.phone) || '+91 98765-00000',
+        address: payload.address || 'Delivery Address',
+        items: payload.items || [],
+        status: payload.status || 'new',
+        placedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        total: payload.grandTotal || payload.total || 0,
+        note: payload.note || payload.notes || '',
+        paymentMethod: payload.paymentMethod || 'COD',
+        paymentStatus: payload.paymentStatus || (payload.paymentMethod === 'UPI' ? 'paid' : 'pending_cash'),
+        utr: payload.utr || null,
+        couponCode: payload.couponCode || null,
+        discountApplied: payload.discountApplied || payload.discount || 0,
+        deliveryOtp: payload.deliveryOtp || deliveryOtp,
+        createdAt: now(),
+        updatedAt: now()
+      };
+
+      orders.unshift(newOrder);
+      DataLayer.writeSync(storeId, 'orders', orders);
+
+      // Broadcast to both customer web and Android phone gateway
+      WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_CREATED', type: 'ORDER_CREATED', payload: newOrder, order: newOrder });
+      
+      // Also reply back to sender
+      WebSocketHub.sendTo(ws, { action: 'ORDER_CONFIRMED', type: 'ORDER_CONFIRMED', order: newOrder, payload: newOrder });
+      return true;
+    }
     default:
       return false;
   }
