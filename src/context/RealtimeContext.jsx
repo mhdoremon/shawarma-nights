@@ -122,6 +122,7 @@ export function RealtimeProvider({ children }) {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         wsUrl = `${protocol}//${window.location.host}/ws`;
       }
+      wsUrl = wsUrl.includes('?') ? wsUrl : `${wsUrl}?storeId=shawarma`;
 
       try {
         const ws = new WebSocket(wsUrl);
@@ -136,7 +137,7 @@ export function RealtimeProvider({ children }) {
           if (!isMounted) return;
           try {
             const data = JSON.parse(event.data);
-            handleRealtimeEvent(data.type, data.payload, true);
+            handleRealtimeEvent(data.action || data.type, data.payload, true);
           } catch (e) {
             console.error('Error parsing WS message:', e);
           }
@@ -226,12 +227,18 @@ export function RealtimeProvider({ children }) {
         showToast(`Naya Order Aaya: #${payload.id} (₹${payload.total})`);
         break;
 
-      case 'ORDER_STATUS_CHANGED':
-        setOrders((prev) =>
-          prev.map((o) => (o.id === payload.orderId ? { ...o, status: payload.status } : o))
-        );
-        showToast(`Order Status: #${payload.orderId} ab "${payload.status}" ho gaya!`);
+      case 'ORDER_UPDATED':
+      case 'ORDER_STATUS_CHANGED': {
+        const orderId = payload?.id || payload?.orderId;
+        const status = payload?.status;
+        if (orderId && status) {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === orderId ? { ...o, ...payload, status } : o))
+          );
+          showToast(`Order Status: #${orderId} ab "${status}" ho gaya!`);
+        }
         break;
+      }
 
       case 'PAYMENT_CONFIRMED':
         setLastPaymentConfirmed(payload);

@@ -5285,7 +5285,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                     JSONObject payload = new JSONObject();
                     payload.put("orderId", orderId);
                     payload.put("otp", otp);
-                    payload.put("boyId", getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getString("delivery_boy_id", ""));
+                    payload.put("token", getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getString("delivery_boy_token", ""));
                     payload.put("boyName", getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getString("delivery_boy_name", "Delivery Partner"));
 
                     JSONObject res = sendJsonHttpRequestWithCandidateFallback("/api/delivery/verify-otp", "POST", payload);

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { PROMO_CODES, RESTAURANT_INFO } from '../data/menuData';
 import { sounds } from '../utils/soundEffects';
 import { useRealtimeDB } from './RealtimeContext';
+import { API_URL } from '../config/api';
 
 const CartContext = createContext(null);
 
@@ -219,7 +220,7 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (subtotal > 0) {
       const timer = setTimeout(() => {
-        fetch(`/api/coupon/best?subtotal=${subtotal}&phone=`)
+        fetch(`${API_URL}/api/coupon/best?subtotal=${subtotal}&phone=`)
           .then(res => res.json())
           .then(data => {
             if (data.success && (data.coupon || data.deal)) {
@@ -238,7 +239,7 @@ export function CartProvider({ children }) {
 
     try {
       const itemCategories = [...new Set(cart.map(c => c.category || 'all'))];
-      const res = await fetch('/api/coupon/validate', {
+      const res = await fetch(`${API_URL}/api/coupon/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, subtotal, phone: '', itemCategories })

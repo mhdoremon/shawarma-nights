@@ -24,10 +24,10 @@ export const placeOrder = async (req, res) => {
         const deliveryOtp = payload.deliveryType === 'delivery' ? generateOtp() : null;
 
         const order = {
-            id: generateId('ord'),
+            id: payload.orderId || payload.id || generateId('ord'),
             orderNumber,
             status,
-            customer: payload.customer || { name: "", phone: "", email: "" },
+            customer: payload.customer || { name: payload.customerName || "", phone: payload.customerPhone || "", email: "" },
             items: payload.items || [],
             deliveryType: payload.deliveryType || 'delivery',
             address: payload.address || '',
@@ -42,8 +42,8 @@ export const placeOrder = async (req, res) => {
             tax: safeNum(payload.tax),
             packagingCharge: safeNum(payload.packagingCharge),
             tip: safeNum(payload.tip),
-            total: safeNum(payload.total),
-            notes: payload.notes || '',
+            total: safeNum(payload.total) || safeNum(payload.grandTotal),
+            notes: payload.notes || payload.note || '',
             deliveryBoyId: null,
             deliveryOtp,
             createdAt: now(),
