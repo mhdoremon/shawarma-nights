@@ -222,8 +222,8 @@ export function CartProvider({ children }) {
         fetch(`/api/coupon/best?subtotal=${subtotal}&phone=`)
           .then(res => res.json())
           .then(data => {
-            if (data.success && data.coupon) {
-              setAppliedCoupon(data.coupon);
+            if (data.success && (data.coupon || data.deal)) {
+              setAppliedCoupon(data.coupon || data.deal);
             }
           })
           .catch(() => {});

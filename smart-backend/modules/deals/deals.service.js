@@ -52,7 +52,8 @@ export const deleteDeal = (req, res) => {
 };
 
 const _validateSingleCoupon = (deal, subtotal, phone, itemCategories, storeId) => {
-    if (!deal.isActive) return { valid: false, reason: 'Coupon is not active' };
+    const isActiveDeal = deal.isActive !== undefined ? deal.isActive : (deal.active !== undefined ? deal.active : true);
+    if (!isActiveDeal) return { valid: false, reason: 'Coupon is not active' };
     
     if (deal.minOrder && safeNum(subtotal) < safeNum(deal.minOrder)) {
         return { valid: false, reason: `Minimum order amount is ${deal.minOrder}` };
@@ -119,15 +120,23 @@ export const validateCoupon = (req, res) => {
         const { code, subtotal, phone, itemCategories } = req.body;
         const deals = DataLayer.read(req.storeId, 'deals') || [];
         
-        const deal = deals.find(d => d.code.toLowerCase() === code?.toLowerCase());
+        const deal = deals.find(d => (d.code || '').toLowerCase() === (code || '').toLowerCase());
         if (!deal) {
-            return res.json({ valid: false, reason: 'Invalid coupon code' });
+            return res.json({ success: false, valid: false, reason: 'Invalid coupon code', message: 'Invalid promo code. Kripya valid offer code dalein!' });
         }
         
         const result = _validateSingleCoupon(deal, subtotal, phone, itemCategories, req.storeId);
-        res.json(result);
+        const isValid = Boolean(result.valid);
+        res.json({
+            success: isValid,
+            valid: isValid,
+            coupon: isValid ? deal : null,
+            deal: isValid ? deal : null,
+            message: result.reason || (isValid ? `Coupon "${deal.code}" applied!` : 'Invalid coupon'),
+            reason: result.reason || ''
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, valid: false, message: error.message });
     }
 };
 
@@ -144,7 +153,7 @@ export const getBestCoupon = (req, res) => {
             .map(r => r.deal);
             
         if (validAutoApplyDeals.length === 0) {
-            return res.json({ success: true, deal: null });
+            return res.json({ success: true, deal: null, coupon: null });
         }
         
         let bestDeal = null;
@@ -167,7 +176,7 @@ export const getBestCoupon = (req, res) => {
             }
         });
         
-        res.json({ success: true, deal: bestDeal });
+        res.json({ success: true, deal: bestDeal, coupon: bestDeal });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

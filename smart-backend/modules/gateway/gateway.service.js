@@ -135,8 +135,9 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       return true;
     }
     case 'SMS_SENT_CONFIRMATION':
-    case 'SMS_SEND_FAILED': {
-      console.log('SMS status update:', data);
+    case 'SMS_SEND_FAILED':
+    case 'SMS_RESULT': {
+      console.log(`📱 [SMS ${action}] Store: ${storeId}, Phone: ${data.phone || 'unknown'}, Success: ${data.success}, RequestId: ${data.requestId || 'none'}`);
       return true;
     }
     case 'PLACE_ORDER': {

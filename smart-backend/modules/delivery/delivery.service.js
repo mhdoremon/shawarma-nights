@@ -137,24 +137,29 @@ export function getOrders(req, res) {
 export function verifyOtp(req, res) {
   try {
     const { orderId, otp, token } = req.body;
-    
-    const deliveryBoys = DataLayer.read(req.storeId, 'delivery_boys') || [];
-    const boy = deliveryBoys.find(d => d.token === token);
-    if (!boy) return res.status(404).json({ success: false, message: 'Delivery partner not found' });
+    if (!orderId || !otp) return res.status(400).json({ success: false, message: 'Order ID and OTP are required' });
     
     const orders = DataLayer.read(req.storeId, 'orders') || [];
     const orderIndex = orders.findIndex(o => o.id === orderId);
     if (orderIndex === -1) return res.status(404).json({ success: false, message: 'Order not found' });
     
     const order = orders[orderIndex];
-    if (order.deliveryBoyId !== boy.id) {
-      return res.status(403).json({ success: false, message: 'Order assigned to another partner' });
-    }
     
+    // Verify the delivery OTP
     if (String(order.deliveryOtp) !== String(otp)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
     
+    // If token is provided, verify it's a valid delivery boy
+    if (token) {
+      const deliveryBoys = DataLayer.read(req.storeId, 'delivery_boys') || [];
+      const boy = deliveryBoys.find(d => d.token === token);
+      if (boy && order.deliveryBoyId && order.deliveryBoyId !== boy.id) {
+        return res.status(403).json({ success: false, message: 'Order assigned to another partner' });
+      }
+    }
+    
+    // Mark as delivered
     order.status = 'delivered';
     order.deliveredAt = now();
     
