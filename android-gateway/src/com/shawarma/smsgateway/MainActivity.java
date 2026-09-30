@@ -320,16 +320,47 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         layout.setPadding(dp(20), dp(12), dp(20), dp(12));
 
         TextView msg = new TextView(this);
-        msg.setText("Computer Wi-Fi IP dalein (Current: 10.166.13.97):\n(Make sure mobile aur PC same Wi-Fi par hon)");
+        msg.setText("ChuruOne Live Cloud Server ya Local PC IP select karein:");
         msg.setTextSize(12);
         msg.setTextColor(theme.colorTextSecondary);
         msg.setPadding(0, 0, 0, dp(10));
         layout.addView(msg);
 
+        // 1. One-tap Reset to Render Cloud Button (Recommended)
+        Button cloudBtn = new Button(this);
+        cloudBtn.setText("☁️ Reset to Cloud Server (Render)");
+        cloudBtn.setTextSize(12);
+        cloudBtn.setTypeface(null, Typeface.BOLD);
+        cloudBtn.setTextColor(Color.WHITE);
+        cloudBtn.setBackgroundResource(R.drawable.bg_button_red);
+        cloudBtn.setPadding(0, dp(10), 0, dp(10));
+        layout.addView(cloudBtn);
+
+        // 2. One-tap Local PC Wi-Fi Button
+        Button localBtn = new Button(this);
+        localBtn.setText("💻 Connect to Local Wi-Fi (10.166.13.97)");
+        localBtn.setTextSize(12);
+        localBtn.setTypeface(null, Typeface.BOLD);
+        localBtn.setTextColor(theme.colorTextPrimary);
+        localBtn.setBackgroundResource(theme.resOutlineBtn);
+        localBtn.setPadding(0, dp(10), 0, dp(10));
+        LinearLayout.LayoutParams lbp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lbp.topMargin = dp(8);
+        lbp.bottomMargin = dp(14);
+        localBtn.setLayoutParams(lbp);
+        layout.addView(localBtn);
+
+        TextView customMsg = new TextView(this);
+        customMsg.setText("Ya Custom IP / Domain dalein:");
+        customMsg.setTextSize(12);
+        customMsg.setTextColor(theme.colorTextSecondary);
+        customMsg.setPadding(0, 0, 0, dp(4));
+        layout.addView(customMsg);
+
         EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setText(SmsGatewayService.getConfiguredServerIp(this));
-        input.setHint("10.166.13.97");
+        input.setHint("churuone-backend.onrender.com");
         input.setTextColor(theme.colorInputText);
         input.setBackgroundResource(theme.resInputBg);
         input.setPadding(dp(12), dp(10), dp(12), dp(10));
@@ -337,7 +368,35 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
         b.setView(layout);
 
-        b.setPositiveButton("Connect", (dialog, which) -> {
+        AlertDialog dlg = b.create();
+
+        cloudBtn.setOnClickListener(v -> {
+            SmsGatewayService.setConfiguredServerIp(this, SmsGatewayService.DEFAULT_SERVER_IP);
+            activeApiBase = "https://churuone-backend.onrender.com";
+            Toast.makeText(this, "Reset to Render Cloud Server! Reconnecting...", Toast.LENGTH_SHORT).show();
+            dlg.dismiss();
+            boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
+            if (!isLoggedIn) {
+                loadAuthStatusAndRender();
+            } else {
+                SmsGatewayService.triggerRefresh();
+            }
+        });
+
+        localBtn.setOnClickListener(v -> {
+            SmsGatewayService.setConfiguredServerIp(this, "10.166.13.97");
+            activeApiBase = "http://10.166.13.97:5001";
+            Toast.makeText(this, "Set to Local Wi-Fi (10.166.13.97)! Reconnecting...", Toast.LENGTH_SHORT).show();
+            dlg.dismiss();
+            boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
+            if (!isLoggedIn) {
+                loadAuthStatusAndRender();
+            } else {
+                SmsGatewayService.triggerRefresh();
+            }
+        });
+
+        b.setPositiveButton("Save Custom IP", (dialog, which) -> {
             String newIp = input.getText().toString().trim();
             if (!newIp.isEmpty()) {
                 SmsGatewayService.setConfiguredServerIp(this, newIp);
@@ -345,21 +404,14 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
                 if (!isLoggedIn) {
                     loadAuthStatusAndRender();
+                } else {
+                    SmsGatewayService.triggerRefresh();
                 }
             }
         });
 
-        b.setNeutralButton("Use 10.166.13.97", (dialog, which) -> {
-            SmsGatewayService.setConfiguredServerIp(this, "10.166.13.97");
-            Toast.makeText(this, "Set to 10.166.13.97, reconnecting...", Toast.LENGTH_SHORT).show();
-            boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
-            if (!isLoggedIn) {
-                loadAuthStatusAndRender();
-            }
-        });
-
         b.setNegativeButton("Cancel", null);
-        b.show();
+        dlg.show();
     }
 
     private void startGatewayService() {
@@ -5338,7 +5390,8 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
     private JSONObject sendJsonHttpRequestWithCandidateFallback(String endpointPath, String method, JSONObject jsonBody) throws Exception {
         List<String> basesToTry = new ArrayList<>();
-        if (activeApiBase != null && !activeApiBase.trim().isEmpty()) {
+        basesToTry.add("https://churuone-backend.onrender.com");
+        if (activeApiBase != null && !activeApiBase.trim().isEmpty() && !basesToTry.contains(activeApiBase.trim())) {
             basesToTry.add(activeApiBase.trim());
         }
         String configured = SmsGatewayService.getConfiguredServerIp(this);
