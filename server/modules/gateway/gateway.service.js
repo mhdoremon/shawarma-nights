@@ -50,9 +50,9 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'TOGGLE_AVAILABILITY': {
       const menuData = DataLayer.read(storeId, 'menu') || { menu: [], categories: [] };
-      const idx = menuData.menu.findIndex(item => item.id === data.itemId);
+      const idx = menuData.menu.findIndex(item => item.id === (data.itemId || data.payload?.id));
       if (idx !== -1) {
-        menuData.menu[idx].available = data.available;
+        menuData.menu[idx].available = data.isAvailable !== undefined ? data.isAvailable : data.payload?.available;
         DataLayer.writeSync(storeId, 'menu', menuData);
         WebSocketHub.broadcastToAll(storeId, { action: 'MENU_UPDATED', payload: menuData });
       }
