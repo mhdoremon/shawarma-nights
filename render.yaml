@@ -5,11 +5,11 @@ services:
     region: singapore
     plan: free
     buildCommand: cd server && npm install
-    startCommand: cd server && node realtimeServer.js
+    startCommand: cd server && node smartServer.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: GATEWAY_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://shawarma-nights.vercel.app
+        value: "*"

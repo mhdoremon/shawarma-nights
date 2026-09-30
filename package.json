@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k \"node server/realtimeServer.js\" \"vite\"",
-    "start": "node server/realtimeServer.js",
-    "server": "node server/realtimeServer.js",
+    "dev": "concurrently -k \"node server/smartServer.js\" \"vite\"",
+    "start": "node server/smartServer.js",
+    "server": "node server/smartServer.js",
+    "old-server": "node server/realtimeServer.js",
     "client": "vite",
     "build": "vite build",
     "preview": "vite preview"

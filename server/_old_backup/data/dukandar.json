@@ -1,0 +1,63 @@
+{
+  "adminAccount": {
+    "isRegistered": true,
+    "dukanName": "Shawarma Nights",
+    "username": "Shawarma_Nights",
+    "password": "Pvv9yyy8c1",
+    "ownerPhone": "7023963189",
+    "token": "8b812c4d-56a0-4067-979d-ca52e3a67f49",
+    "setupAt": "2026-09-28T20:31:29.222Z"
+  },
+  "storeInfo": {
+    "timing": "Open Daily: 12:00 PM – 04:00 AM",
+    "deliveryNote": "Midnight express delivery available",
+    "address": "Shop 14, Food Street Avenue, Central Plaza",
+    "locationNote": "Central hub kitchen",
+    "aboutText": "Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.",
+    "halalBadgeText": "100% Halal Certified Fresh",
+    "payment": {
+      "upiId": "test-1790146885269@upi",
+      "payeeName": "Shawarma Nights",
+      "autoSmsVerification": true
+    },
+    "taxesAndCharges": {
+      "enabled": false,
+      "taxPercent": 0,
+      "packagingCharge": 0
+    },
+    "socials": {
+      "whatsapp": "919876574292",
+      "instagram": "https://instagram.com/shawarmanights"
+    },
+    "freeDeliveryThreshold": 0,
+    "name": "Shawarma Nights"
+  },
+  "heroBanner": {
+    "badgeText": "50% OFF — NIGHT5",
+    "titleLine1": "REAL",
+    "titleLine2": "CHARCOAL",
+    "titleHighlight": "SHAWARMA",
+    "subtitle": "Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.",
+    "circleImage": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=85",
+    "priceText": "Starts from",
+    "priceValue": "₹179",
+    "ratingText": "4.9 ★",
+    "reviewsText": "15K+ Reviews",
+    "marqueeText": "★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS"
+  },
+  "reviews": [
+    {
+      "id": "rev-1790616236363",
+      "name": "dore bro",
+      "phone": "0263",
+      "rating": 5,
+      "comment": "10/10",
+      "dish": "wertqer",
+      "dishId": "dish-1789999182129",
+      "type": "dish",
+      "tags": [],
+      "date": "Just now",
+      "createdAt": "2026-09-28T17:23:56.363Z"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+[
+  {
+    "id": "deal-1",
+    "code": "NIGHT50",
+    "title": "50% OFF",
+    "desc": "Midnight shawarma cravings up to ₹150",
+    "discountPercent": 50,
+    "maxDiscount": 150,
+    "minOrder": 199,
+    "bg": "bg-[#DC2626]",
+    "text": "text-white",
+    "tagBg": "bg-white/20",
+    "freeDelivery": false,
+    "flatDiscount": null,
+    "description": "",
+    "discountType": "percentage",
+    "discountValue": 50,
+    "usageLimit": 0,
+    "perUserLimit": 1,
+    "startDate": "",
+    "endDate": "",
+    "happyHourStart": "",
+    "happyHourEnd": "",
+    "firstOrderOnly": false,
+    "autoApply": false,
+    "active": true
+  },
+  {
+    "id": "deal-2",
+    "code": "FEAST100",
+    "title": "₹100 OFF",
+    "desc": "Party feast combos on orders above ₹399",
+    "flatDiscount": 100,
+    "minOrder": 399,
+    "bg": "bg-zinc-900",
+    "text": "text-white",
+    "tagBg": "bg-white/10"
+  }
+]

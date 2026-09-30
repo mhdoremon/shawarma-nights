@@ -1,0 +1,78 @@
+{
+  "menu": [
+    {
+      "name": "wertqer",
+      "category": "fries",
+      "price": 50,
+      "originalPrice": 199,
+      "prepTime": "15-20 min",
+      "isVeg": false,
+      "badge": "special",
+      "spiceLevel": "Spicy",
+      "description": "gfjg",
+      "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+      "rating": 5,
+      "reviews": 1,
+      "id": "dish-1789999182129",
+      "available": true
+    },
+    {
+      "name": "fgsdfgh",
+      "category": "shawarmas",
+      "price": 342,
+      "originalPrice": 3553,
+      "prepTime": "15-20 min",
+      "isVeg": false,
+      "badge": "",
+      "spiceLevel": "Spicy",
+      "description": " awert4",
+      "image": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=80",
+      "rating": 5,
+      "reviews": 1,
+      "id": "dish-1789999165345",
+      "available": true
+    },
+    {
+      "name": "hdjxfgjhd",
+      "category": "shawarmas",
+      "price": 122,
+      "originalPrice": 222,
+      "prepTime": "15-20 min",
+      "isVeg": true,
+      "badge": "",
+      "spiceLevel": "Spicy",
+      "description": "dfgsfg",
+      "image": "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=80",
+      "rating": 5,
+      "reviews": 1,
+      "id": "dish-1789999032815",
+      "available": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "shawarmas",
+      "name": "Signature Shawarmas"
+    },
+    {
+      "id": "platters",
+      "name": "Charcoal Platters"
+    },
+    {
+      "id": "fries",
+      "name": "Loaded Fries"
+    },
+    {
+      "id": "wings",
+      "name": "Crispy Wings"
+    },
+    {
+      "id": "combos",
+      "name": "Midnight Combos"
+    },
+    {
+      "id": "beverages",
+      "name": "Cold Drinks & Shakes"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "name": "Pizza Paradise",
+  "slug": "",
+  "vertical": "food",
+  "status": "active",
+  "owner": {
+    "name": "Rahul",
+    "phone": "9876543210"
+  },
+  "branding": {
+    "logo": "",
+    "primaryColor": "#DC2626",
+    "secondaryColor": "#0F172A",
+    "font": "Inter",
+    "tagline": "",
+    "heroImage": ""
+  },
+  "domain": {
+    "subdomain": "",
+    "customDomain": null
+  },
+  "settings": {
+    "isOpen": false
+  },
+  "payment": {
+    "upiId": "",
+    "payeeName": "",
+    "razorpayKeyId": null,
+    "codEnabled": true,
+    "autoSmsVerification": true
+  },
+  "tax": {
+    "enabled": false,
+    "gstin": "",
+    "defaultTaxRate": 0,
+    "pricesIncludeTax": false
+  },
+  "socials": {
+    "instagram": "",
+    "whatsapp": "",
+    "facebook": "",
+    "youtube": "",
+    "twitter": ""
+  },
+  "smsGateway": {
+    "connected": false,
+    "deviceId": null,
+    "lastSeen": null
+  },
+  "plan": {
+    "type": "free",
+    "monthlyFee": 0,
+    "validUntil": null
+  },
+  "storeId": "pizza",
+  "subdomain": "pizza",
+  "createdAt": "2026-09-30T18:12:45.932Z"
+}

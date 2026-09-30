@@ -1,12 +1,10 @@
 {
-  "name": "churuone-smart-backend",
+  "name": "shawarma-nights-server",
   "private": true,
-  "version": "2.0.0",
+  "version": "1.0.0",
   "type": "module",
-  "description": "ChuruOne Smart Multi-Tenant Backend Engine",
   "scripts": {
-    "start": "node smartServer.js",
-    "old-start": "node realtimeServer.js"
+    "start": "node realtimeServer.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

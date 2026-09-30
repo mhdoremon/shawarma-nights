@@ -1,0 +1,97 @@
+{
+  "name": "Shawarma Nights",
+  "slug": "shawarma-nights",
+  "vertical": "food",
+  "status": "active",
+  "owner": {
+    "name": "Shawarma Nights",
+    "phone": "7023963189",
+    "password": "Pvv9yyy8c1",
+    "token": "8b812c4d-56a0-4067-979d-ca52e3a67f49",
+    "username": "Shawarma_Nights"
+  },
+  "branding": {
+    "logo": "",
+    "primaryColor": "#DC2626",
+    "secondaryColor": "#0F172A",
+    "font": "Inter",
+    "tagline": "",
+    "heroImage": ""
+  },
+  "domain": {
+    "subdomain": "",
+    "customDomain": null
+  },
+  "settings": {
+    "currency": "INR",
+    "timezone": "Asia/Kolkata",
+    "language": "hi",
+    "isOpen": true,
+    "timing": "Open Daily: 12:00 PM – 04:00 AM",
+    "freeDeliveryThreshold": 0,
+    "deliveryRadius": 10,
+    "minOrderAmount": 0,
+    "maxOrdersPerHour": 100,
+    "autoAcceptOrders": false,
+    "enabledModules": [
+      "catalog",
+      "orders",
+      "deals",
+      "reviews",
+      "delivery",
+      "payments",
+      "customers"
+    ],
+    "address": "Shop 14, Food Street Avenue, Central Plaza",
+    "deliveryNote": "Midnight express delivery available",
+    "locationNote": "Central hub kitchen",
+    "aboutText": "Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.",
+    "halalBadgeText": "100% Halal Certified Fresh",
+    "packagingCharge": 0
+  },
+  "payment": {
+    "upiId": "test-1790146885269@upi",
+    "payeeName": "Shawarma Nights",
+    "razorpayKeyId": null,
+    "codEnabled": true,
+    "autoSmsVerification": true
+  },
+  "tax": {
+    "enabled": false,
+    "gstin": "",
+    "defaultTaxRate": 0,
+    "pricesIncludeTax": false
+  },
+  "socials": {
+    "instagram": "https://instagram.com/shawarmanights",
+    "whatsapp": "919876574292",
+    "facebook": "",
+    "youtube": "",
+    "twitter": ""
+  },
+  "smsGateway": {
+    "connected": false,
+    "deviceId": null,
+    "lastSeen": null
+  },
+  "plan": {
+    "type": "free",
+    "monthlyFee": 0,
+    "validUntil": null
+  },
+  "storeId": "shawarma",
+  "heroBanner": {
+    "badgeText": "50% OFF — NIGHT5",
+    "titleLine1": "REAL",
+    "titleLine2": "CHARCOAL",
+    "titleHighlight": "SHAWARMA",
+    "subtitle": "Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.",
+    "circleImage": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=85",
+    "priceText": "Starts from",
+    "priceValue": "₹179",
+    "ratingText": "4.9 ★",
+    "reviewsText": "15K+ Reviews",
+    "marqueeText": "★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS"
+  },
+  "updatedAt": "2026-09-30T18:08:41.679Z"
+}
