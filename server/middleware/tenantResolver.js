@@ -37,15 +37,19 @@ export function tenantResolver(req, res, next) {
     storeId = req.query.storeId.toLowerCase().trim();
   }
 
-  // 3. Subdomain: shawarma.churuone.in
+  // 3. Subdomain: shawarma.churuone.in (ignore cloud hosting platform domains)
   if (!storeId) {
-    const host = req.headers.host || '';
-    const parts = host.split('.');
-    // At least 3 parts: sub.domain.tld
-    if (parts.length >= 3) {
-      const sub = parts[0].toLowerCase();
-      if (sub !== 'www' && sub !== 'api' && sub !== 'admin') {
-        storeId = sub;
+    const host = (req.headers.host || '').toLowerCase();
+    const isHostingPlatform = host.includes('onrender.com') || host.includes('vercel.app') || host.includes('render.com') || host.includes('github.io') || host.includes('ngrok') || host.includes('loca.lt');
+    
+    if (!isHostingPlatform) {
+      const parts = host.split('.');
+      // At least 3 parts: sub.domain.tld
+      if (parts.length >= 3) {
+        const sub = parts[0].toLowerCase();
+        if (sub !== 'www' && sub !== 'api' && sub !== 'admin' && sub !== 'platform') {
+          storeId = sub;
+        }
       }
     }
   }

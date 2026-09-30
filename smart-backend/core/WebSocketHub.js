@@ -32,11 +32,15 @@ function extractStoreId(req) {
   const headerStoreId = req.headers['x-store-id'];
   if (headerStoreId) return headerStoreId;
 
-  // Subdomain
-  const host = req.headers.host || '';
-  const parts = host.split('.');
-  if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'api') {
-    return parts[0];
+  // Subdomain (ignore cloud hosting platform domains)
+  const host = (req.headers.host || '').toLowerCase();
+  const isHostingPlatform = host.includes('onrender.com') || host.includes('vercel.app') || host.includes('render.com') || host.includes('github.io') || host.includes('ngrok') || host.includes('loca.lt');
+  
+  if (!isHostingPlatform) {
+    const parts = host.split('.');
+    if (parts.length >= 3 && parts[0] !== 'www' && parts[0] !== 'api' && parts[0] !== 'admin' && parts[0] !== 'platform') {
+      return parts[0];
+    }
   }
 
   // Default
