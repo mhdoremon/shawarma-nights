@@ -88,8 +88,8 @@ app.use(tenantResolver);
 app.use('/api', catalogRoutes);
 // Orders: routes have /, /place, /update-status → mount at /api/orders
 app.use('/api/orders', ordersRoutes);
-// Auth: routes already have /send-otp, /verify-otp, /admin/* prefixes
-app.use('/api/auth', authRoutes);
+// Auth: support both /api/auth/* (customer OTP) and /api/admin/* (Dukandar portal)
+app.use(['/api/auth', '/api'], authRoutes);
 // Deals & Coupons: routes already have /deals/*, /coupon/* prefixes
 app.use('/api', dealsRoutes);
 // Reviews: routes have /, /:id → mount at /api/reviews
