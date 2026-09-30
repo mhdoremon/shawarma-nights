@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.shawarma.smsgateway"
-    android:versionCode="5"
-    android:versionName="5.0">
+    android:versionCode="6"
+    android:versionName="6.0">
 
     <uses-sdk 
         android:minSdkVersion="26" 
         android:targetSdkVersion="33" />
 
+    <!-- SMS Gateway Permissions (For SIM OTP Dispatch & Bank SMS Payment Verification) -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    
     <!-- Core Networking (Persistent WSS to Cloud Server) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,6 +21,7 @@
     <!-- Background Service & Notifications -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Location Permissions for Delivery Partner Proximity & Navigation -->
@@ -46,10 +53,36 @@
             </intent-filter>
         </activity>
 
-        <!-- WSS Cloud Synchronizer Service -->
+        <!-- WSS Cloud Synchronizer & SIM Gateway Service -->
         <service 
             android:name=".SmsGatewayService"
             android:exported="false" />
+
+        <!-- Auto-start on phone boot -->
+        <receiver 
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Legacy ADB broadcast receiver -->
+        <receiver
+            android:name=".SmsBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.shawarma.SEND_SMS" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Incoming Bank SMS Receiver for automatic UPI payment detection -->
+        <receiver android:name=".IncomingSmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>

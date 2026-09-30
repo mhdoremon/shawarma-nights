@@ -365,6 +365,18 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
     private void checkAndRequestPermissions() {
         List<String> needed = new ArrayList<>();
+        if (checkSelfPermission(android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(android.Manifest.permission.SEND_SMS);
+        }
+        if (checkSelfPermission(android.Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(android.Manifest.permission.RECEIVE_SMS);
+        }
+        if (checkSelfPermission(android.Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(android.Manifest.permission.READ_SMS);
+        }
+        if (checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(android.Manifest.permission.READ_PHONE_STATE);
+        }
         if (Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
                 needed.add("android.permission.POST_NOTIFICATIONS");
