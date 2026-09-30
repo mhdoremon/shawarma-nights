@@ -197,12 +197,35 @@ export const loginAdmin = (req, res) => {
     try {
         const { username, password } = req.body;
         const config = DataLayer.getStoreConfig(req.storeId) || {};
+        const owner = config.owner;
         
-        if (!config.owner || config.owner.username !== username || config.owner.password !== password) {
-            return res.status(401).json({ success: false, message: 'Invalid credentials' });
+        if (!owner) {
+            return res.status(401).json({ success: false, message: 'Master Admin not registered yet' });
+        }
+
+        const uInput = (username || '').trim().toLowerCase();
+        const pInput = (password || '').trim();
+
+        const uMatch = uInput && (
+            uInput === (owner.username || '').trim().toLowerCase() ||
+            uInput === (owner.name || '').trim().toLowerCase() ||
+            uInput === (config.name || '').trim().toLowerCase() ||
+            uInput === (owner.phone || '').trim()
+        );
+        const pMatch = pInput && pInput === (owner.password || '').trim();
+        
+        if (!uMatch || !pMatch) {
+            return res.status(401).json({ success: false, message: 'Galat Username ya Password! Kripya sahi credentials dalein.' });
         }
         
-        res.json({ success: true, token: config.owner.token });
+        res.json({ 
+            success: true, 
+            token: owner.token,
+            username: owner.username,
+            dukanName: config.name || 'Shawarma Nights',
+            ownerPhone: owner.phone,
+            message: 'Login successful!'
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
