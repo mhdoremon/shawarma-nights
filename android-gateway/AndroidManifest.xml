@@ -1,38 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.shawarma.smsgateway"
-    android:versionCode="4"
-    android:versionName="4.0">
+    android:versionCode="5"
+    android:versionName="5.0">
 
     <uses-sdk 
         android:minSdkVersion="26" 
         android:targetSdkVersion="33" />
 
-    <!-- SMS Gateway Permissions -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-    
-    <!-- Foreground Service (keeps gateway alive when phone locked) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    
-    <!-- Internet (WSS connection to cloud server) -->
+    <!-- Core Networking (Persistent WSS to Cloud Server) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     
-    <!-- Auto-start on boot -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    
-    <!-- Keep CPU active for WebSocket -->
+    <!-- Background Service & Notifications -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- Location Permissions for Delivery Boy Live Proximity & Turn-by-Turn Navigation -->
+    <!-- Location Permissions for Delivery Partner Proximity & Navigation -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Storage & Photo Picker Permissions -->
+    <!-- Storage & Dish Image Upload Permissions -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
@@ -57,36 +46,10 @@
             </intent-filter>
         </activity>
 
-        <!-- WSS Gateway Foreground Service -->
+        <!-- WSS Cloud Synchronizer Service -->
         <service 
             android:name=".SmsGatewayService"
             android:exported="false" />
-
-        <!-- Auto-start on phone boot -->
-        <receiver 
-            android:name=".BootReceiver"
-            android:exported="true"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <!-- Legacy ADB broadcast receiver (development fallback) -->
-        <receiver
-            android:name=".SmsBroadcastReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="com.shawarma.SEND_SMS" />
-            </intent-filter>
-        </receiver>
-
-        <!-- Incoming SMS Receiver for payment detection -->
-        <receiver android:name=".IncomingSmsReceiver" android:exported="true" android:permission="android.permission.BROADCAST_SMS">
-            <intent-filter android:priority="999">
-                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
-            </intent-filter>
-        </receiver>
 
     </application>
 </manifest>

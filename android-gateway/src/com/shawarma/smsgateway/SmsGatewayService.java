@@ -118,27 +118,11 @@ public class SmsGatewayService extends Service {
     }
 
     public static String[] getHostBases() {
-        String configuredIp = instance != null ? getConfiguredServerIp(instance) : DEFAULT_SERVER_IP;
-        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
-        set.add("https://churuone-backend.onrender.com");
-        if (configuredIp != null && !configuredIp.trim().isEmpty()) {
-            set.add(resolveHttpBase(configuredIp));
-        }
-        set.add("http://10.166.13.97:5001");
-        set.add("http://127.0.0.1:5001");
-        return set.toArray(new String[0]);
+        return new String[] { "https://churuone-backend.onrender.com" };
     }
 
     private String[] getServerUrls() {
-        String configuredIp = getConfiguredServerIp(this);
-        java.util.LinkedHashSet<String> set = new java.util.LinkedHashSet<>();
-        set.add("wss://churuone-backend.onrender.com/gateway");
-        if (configuredIp != null && !configuredIp.trim().isEmpty()) {
-            set.add(resolveWsUrl(configuredIp));
-        }
-        set.add("ws://10.166.13.97:5001/gateway");
-        set.add("ws://127.0.0.1:5001/gateway");
-        return set.toArray(new String[0]);
+        return new String[] { "wss://churuone-backend.onrender.com/gateway?storeId=shawarma" };
     }
 
     public void reconnectNow() {

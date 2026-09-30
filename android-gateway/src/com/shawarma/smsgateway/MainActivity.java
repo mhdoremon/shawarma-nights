@@ -313,67 +313,34 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
     private void showServerConfigDialog() {
         AlertDialog.Builder b = createDialogBuilder();
-        b.setTitle("Server Connection Settings");
+        b.setTitle("☁️ ChuruOne Cloud Server");
 
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(20), dp(12), dp(20), dp(12));
+        layout.setPadding(dp(20), dp(16), dp(20), dp(16));
 
         TextView msg = new TextView(this);
-        msg.setText("ChuruOne Live Cloud Server ya Local PC IP select karein:");
-        msg.setTextSize(12);
-        msg.setTextColor(theme.colorTextSecondary);
-        msg.setPadding(0, 0, 0, dp(10));
+        msg.setText("Dukandar App direct ChuruOne Smart Cloud Server se connected hai.\n\n🌐 Cloud Host: churuone-backend.onrender.com\n🏪 Store ID: shawarma\n⚡ Live Status: " + (SmsGatewayService.isConnected() ? "🟢 Online Active" : "🟡 Reconnecting..."));
+        msg.setTextSize(13);
+        msg.setTextColor(theme.colorTextPrimary);
+        msg.setPadding(0, 0, 0, dp(14));
         layout.addView(msg);
 
-        // 1. One-tap Reset to Render Cloud Button (Recommended)
-        Button cloudBtn = new Button(this);
-        cloudBtn.setText("☁️ Reset to Cloud Server (Render)");
-        cloudBtn.setTextSize(12);
-        cloudBtn.setTypeface(null, Typeface.BOLD);
-        cloudBtn.setTextColor(Color.WHITE);
-        cloudBtn.setBackgroundResource(R.drawable.bg_button_red);
-        cloudBtn.setPadding(0, dp(10), 0, dp(10));
-        layout.addView(cloudBtn);
-
-        // 2. One-tap Local PC Wi-Fi Button
-        Button localBtn = new Button(this);
-        localBtn.setText("💻 Connect to Local Wi-Fi (10.166.13.97)");
-        localBtn.setTextSize(12);
-        localBtn.setTypeface(null, Typeface.BOLD);
-        localBtn.setTextColor(theme.colorTextPrimary);
-        localBtn.setBackgroundResource(theme.resOutlineBtn);
-        localBtn.setPadding(0, dp(10), 0, dp(10));
-        LinearLayout.LayoutParams lbp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lbp.topMargin = dp(8);
-        lbp.bottomMargin = dp(14);
-        localBtn.setLayoutParams(lbp);
-        layout.addView(localBtn);
-
-        TextView customMsg = new TextView(this);
-        customMsg.setText("Ya Custom IP / Domain dalein:");
-        customMsg.setTextSize(12);
-        customMsg.setTextColor(theme.colorTextSecondary);
-        customMsg.setPadding(0, 0, 0, dp(4));
-        layout.addView(customMsg);
-
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        input.setText(SmsGatewayService.getConfiguredServerIp(this));
-        input.setHint("churuone-backend.onrender.com");
-        input.setTextColor(theme.colorInputText);
-        input.setBackgroundResource(theme.resInputBg);
-        input.setPadding(dp(12), dp(10), dp(12), dp(10));
-        layout.addView(input);
+        Button reconnectBtn = new Button(this);
+        reconnectBtn.setText("🔄 RECONNECT TO CLOUD");
+        reconnectBtn.setTextSize(13);
+        reconnectBtn.setTypeface(null, Typeface.BOLD);
+        reconnectBtn.setTextColor(Color.WHITE);
+        reconnectBtn.setBackgroundResource(R.drawable.bg_button_red);
+        reconnectBtn.setPadding(0, dp(12), 0, dp(12));
+        layout.addView(reconnectBtn);
 
         b.setView(layout);
-
         AlertDialog dlg = b.create();
 
-        cloudBtn.setOnClickListener(v -> {
-            SmsGatewayService.setConfiguredServerIp(this, SmsGatewayService.DEFAULT_SERVER_IP);
+        reconnectBtn.setOnClickListener(v -> {
             activeApiBase = "https://churuone-backend.onrender.com";
-            Toast.makeText(this, "Reset to Render Cloud Server! Reconnecting...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Connecting to Cloud Server...", Toast.LENGTH_SHORT).show();
             dlg.dismiss();
             boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
             if (!isLoggedIn) {
@@ -383,34 +350,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             }
         });
 
-        localBtn.setOnClickListener(v -> {
-            SmsGatewayService.setConfiguredServerIp(this, "10.166.13.97");
-            activeApiBase = "http://10.166.13.97:5001";
-            Toast.makeText(this, "Set to Local Wi-Fi (10.166.13.97)! Reconnecting...", Toast.LENGTH_SHORT).show();
-            dlg.dismiss();
-            boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
-            if (!isLoggedIn) {
-                loadAuthStatusAndRender();
-            } else {
-                SmsGatewayService.triggerRefresh();
-            }
-        });
-
-        b.setPositiveButton("Save Custom IP", (dialog, which) -> {
-            String newIp = input.getText().toString().trim();
-            if (!newIp.isEmpty()) {
-                SmsGatewayService.setConfiguredServerIp(this, newIp);
-                Toast.makeText(this, "Connecting to " + newIp + "...", Toast.LENGTH_SHORT).show();
-                boolean isLoggedIn = getSharedPreferences("dukandar_prefs", MODE_PRIVATE).getBoolean("is_admin_logged_in", false);
-                if (!isLoggedIn) {
-                    loadAuthStatusAndRender();
-                } else {
-                    SmsGatewayService.triggerRefresh();
-                }
-            }
-        });
-
-        b.setNegativeButton("Cancel", null);
+        b.setNegativeButton("Close", null);
         dlg.show();
     }
 
@@ -425,25 +365,12 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
     private void checkAndRequestPermissions() {
         List<String> needed = new ArrayList<>();
-        if (checkSelfPermission(android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(android.Manifest.permission.SEND_SMS);
-        }
-        if (checkSelfPermission(android.Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(android.Manifest.permission.RECEIVE_SMS);
-        }
-        if (checkSelfPermission(android.Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(android.Manifest.permission.READ_SMS);
-        }
-        if (checkSelfPermission(android.Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-            needed.add(android.Manifest.permission.READ_PHONE_STATE);
-        }
         if (Build.VERSION.SDK_INT >= 33) {
             if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
                 needed.add("android.permission.POST_NOTIFICATIONS");
             }
         }
-
-                if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             needed.add(android.Manifest.permission.ACCESS_FINE_LOCATION);
         }
         if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -3844,9 +3771,9 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         if (authContentBox == null) return;
         authContentBox.removeAllViews();
 
-        // 1. Server IP Badge (Tap to change)
+        // 1. Server Cloud Status Badge
         TextView ipBadge = new TextView(this);
-        ipBadge.setText("🌐 Server IP: " + SmsGatewayService.getConfiguredServerIp(this) + " (Tap to change)");
+        ipBadge.setText("☁️ ChuruOne Smart Cloud (Render Live)");
         ipBadge.setTextSize(12);
         ipBadge.setTypeface(null, Typeface.BOLD);
         ipBadge.setTextColor(theme.colorTextSecondary);
@@ -4262,7 +4189,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         authContentBox.removeAllViews();
 
         TextView ipBadge = new TextView(this);
-        ipBadge.setText("🌐 Server IP: " + SmsGatewayService.getConfiguredServerIp(this) + " (Tap to change)");
+        ipBadge.setText("☁️ ChuruOne Smart Cloud (Render Live)");
         ipBadge.setTextSize(12);
         ipBadge.setTypeface(null, Typeface.BOLD);
         ipBadge.setTextColor(theme.colorTextSecondary);
@@ -4320,38 +4247,27 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         card.setLayoutParams(cp);
 
         TextView errHead = new TextView(this);
-        errHead.setText("⚠️ SERVER SE CONNECTION NAHI MIL RAHA");
+        errHead.setText("☁️ CLOUD SE SAMPARK HO RAHA HAI...");
         errHead.setTextSize(14);
         errHead.setTypeface(null, Typeface.BOLD);
         errHead.setTextColor(Color.parseColor("#EF4444"));
         card.addView(errHead);
 
         TextView errSub = new TextView(this);
-        errSub.setText("Server IP " + SmsGatewayService.getConfiguredServerIp(this) + ":5001 par connect nahi ho paya.\n\nKripya check karein:\n1. Server chal raha hai (node server/realtimeServer.js)\n2. Mobile aur Computer same Wi-Fi par connected hain\n3. Upar diye gaye Server IP ko apne computer ke IP se milayein.");
+        errSub.setText("ChuruOne Live Cloud Server (churuone-backend.onrender.com) se connect hone me deri ho rahi hai.\n\nKripya phone ka internet/Wi-Fi check karein aur niche Retry dabayein.");
         errSub.setTextSize(12);
         errSub.setTextColor(theme.colorTextSecondary);
         errSub.setPadding(0, dp(8), 0, dp(16));
         card.addView(errSub);
 
-        Button changeIpBtn = new Button(this);
-        changeIpBtn.setText("🌐 CONFIGURE SERVER IP");
-        changeIpBtn.setTextSize(13);
-        changeIpBtn.setTypeface(null, Typeface.BOLD);
-        changeIpBtn.setTextColor(Color.WHITE);
-        changeIpBtn.setBackgroundResource(R.drawable.bg_button_red);
-        changeIpBtn.setPadding(0, dp(12), 0, dp(12));
-        changeIpBtn.setOnClickListener(v -> showServerConfigDialog());
-        card.addView(changeIpBtn);
-
         Button retryBtn = new Button(this);
-        retryBtn.setText("🔄 RETRY CONNECTION");
+        retryBtn.setText("🔄 RETRY CONNECT TO CLOUD");
         retryBtn.setTextSize(13);
         retryBtn.setTypeface(null, Typeface.BOLD);
-        retryBtn.setTextColor(theme.colorTextPrimary);
-        retryBtn.setBackgroundResource(theme.resOutlineBtn);
+        retryBtn.setTextColor(Color.WHITE);
+        retryBtn.setBackgroundResource(R.drawable.bg_button_red);
         retryBtn.setPadding(0, dp(12), 0, dp(12));
         LinearLayout.LayoutParams rbp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        rbp.topMargin = dp(10);
         retryBtn.setLayoutParams(rbp);
         retryBtn.setOnClickListener(v -> loadAuthStatusAndRender());
         card.addView(retryBtn);
@@ -5389,48 +5305,19 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     }
 
     private JSONObject sendJsonHttpRequestWithCandidateFallback(String endpointPath, String method, JSONObject jsonBody) throws Exception {
-        List<String> basesToTry = new ArrayList<>();
-        basesToTry.add("https://churuone-backend.onrender.com");
-        if (activeApiBase != null && !activeApiBase.trim().isEmpty() && !basesToTry.contains(activeApiBase.trim())) {
-            basesToTry.add(activeApiBase.trim());
-        }
-        String configured = SmsGatewayService.getConfiguredServerIp(this);
-        String confBase = SmsGatewayService.resolveHttpBase(configured);
-        if (!basesToTry.contains(confBase)) basesToTry.add(confBase);
-
-        for (String b : SmsGatewayService.getHostBases()) {
-            if (!basesToTry.contains(b)) basesToTry.add(b);
-        }
-
-        Exception lastException = null;
-        for (String base : basesToTry) {
-            try {
-                JSONObject res = sendJsonHttpRequest(base + endpointPath, method, jsonBody);
-                activeApiBase = base;
-                return res;
-            } catch (Exception e) {
-                lastException = e;
-                // If it was a business validation response from the real server, do not try other bases!
-                String msg = e.getMessage() != null ? e.getMessage() : "";
-                if (msg.contains("Galat") || msg.contains("pehle se registered") || msg.contains("bharna anivarya") || msg.contains("Locked")) {
-                    throw e;
-                }
-            }
-        }
-
-        if (lastException != null) {
-            throw lastException;
-        }
-        throw new Exception("Server se connect nahi ho saka. Kripya IP ya Wi-Fi check karein.");
+        activeApiBase = "https://churuone-backend.onrender.com";
+        return sendJsonHttpRequest(activeApiBase + endpointPath, method, jsonBody);
     }
 
     private JSONObject sendJsonHttpRequest(String urlStr, String method, JSONObject jsonBody) throws Exception {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod(method);
-        conn.setConnectTimeout(4000);
-        conn.setReadTimeout(4000);
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(15000);
         conn.setRequestProperty("Accept", "application/json");
+        conn.setRequestProperty("User-Agent", "ShawarmaDukandar/5.0 (Android)");
+        conn.setRequestProperty("X-Store-Id", "shawarma");
         if (jsonBody != null) {
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
