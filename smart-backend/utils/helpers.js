@@ -17,9 +17,9 @@ export function generateId(prefix = 'id') {
 
 /**
  * Generate a numeric OTP.
- * @param {number} length - OTP length (default 4)
+ * @param {number} length - OTP length (default 6)
  */
-export function generateOtp(length = 4) {
+export function generateOtp(length = 6) {
   const min = Math.pow(10, length - 1);
   const max = Math.pow(10, length) - 1;
   return String(crypto.randomInt(min, max + 1));

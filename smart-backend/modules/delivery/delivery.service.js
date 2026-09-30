@@ -37,6 +37,8 @@ export function register(req, res) {
   }
 }
 
+const deliveryOtpStore = new Map();
+
 export function login(req, res) {
   try {
     const { phone } = req.body;
@@ -48,12 +50,24 @@ export function login(req, res) {
     
     if (!boy) return res.status(404).json({ success: false, message: 'Delivery partner not found' });
     
-    // Simulate OTP sending
-    const otp = generateOtp();
-    // In real app, call comms to send OTP via SMS
+    const otp = generateOtp(6);
+    deliveryOtpStore.set(`${req.storeId}:${normPhone}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+
+    const formattedPhone = normPhone.startsWith('+91') ? normPhone : (normPhone.length === 10 ? `+91${normPhone}` : normPhone);
+    const smsPayload = {
+      action: 'SEND_SMS',
+      requestId: generateUUID(),
+      phone: formattedPhone,
+      message: `Shawarma Nights Delivery Partner Login OTP: ${otp}. Valid for 5 minutes.`
+    };
+    const sent = WebSocketHub.broadcastToGateway(req.storeId, smsPayload);
+    if (!sent) {
+      WebSocketHub.queueGatewaySms(req.storeId, smsPayload);
+    }
+
     console.log(`[DELIVERY LOGIN] Store: ${req.storeId}, Phone: ${normPhone}, OTP: ${otp}`);
     
-    return res.json({ success: true, message: 'OTP sent' });
+    return res.json({ success: true, message: 'OTP sent', devOtp: otp, token: boy.token });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

@@ -35,6 +35,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -371,7 +372,8 @@ public class SmsGatewayService extends Service {
         if (currentUrlIndex >= urls.length) currentUrlIndex = 0;
         String baseUrl = urls[currentUrlIndex];
         try {
-            String urlStr = baseUrl + "?token=" + GATEWAY_SECRET;
+            String sep = baseUrl.contains("?") ? "&" : "?";
+            String urlStr = baseUrl + sep + "token=" + GATEWAY_SECRET;
             Log.i(TAG, "Connecting to: " + baseUrl);
             URI uri = new URI(urlStr);
             String host = uri.getHost();
@@ -745,14 +747,21 @@ public class SmsGatewayService extends Service {
                 smsManager = SmsManager.getDefault();
             }
 
-            smsManager.sendTextMessage(phone, null, message, null, null);
+            String cleanPhone = phone.replaceAll("[\\s\\-\\(\\)]", "");
+
+            ArrayList<String> parts = smsManager.divideMessage(message);
+            if (parts.size() > 1) {
+                smsManager.sendMultipartTextMessage(cleanPhone, null, parts, null, null);
+            } else {
+                smsManager.sendTextMessage(cleanPhone, null, message, null, null);
+            }
             smsSentToday++;
-            Log.i(TAG, "SMS sent to " + phone + " (Count: " + smsSentToday + ")");
-            addSmsLog("OTP Sent to " + phone);
+            Log.i(TAG, "SMS sent to " + cleanPhone + " (Count: " + smsSentToday + ")");
+            addSmsLog("OTP Sent to " + cleanPhone);
             updateNotification("Active — Dispatched SMS: " + smsSentToday);
 
             String result = "{\"action\":\"SMS_RESULT\",\"requestId\":\"" + escapeJson(requestId)
-                    + "\",\"phone\":\"" + escapeJson(phone)
+                    + "\",\"phone\":\"" + escapeJson(cleanPhone)
                     + "\",\"success\":true}";
             sendWsMessage(result);
 

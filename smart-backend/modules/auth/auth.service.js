@@ -11,24 +11,35 @@ export const sendOtp = (req, res) => {
         if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
         
         const normalizedPhone = normalizePhone(phone);
-        const otp = generateOtp(4);
+        const otp = generateOtp(6);
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
         const key = `${req.storeId}:${normalizedPhone}`;
         
         otpStore.set(key, { otp, expiresAt, attempts: 0 });
         
-        if (WebSocketHub.isGatewayConnected(req.storeId)) {
-            WebSocketHub.broadcastToGateway(req.storeId, { 
-                action: 'SEND_SMS', 
-                phone: normalizedPhone, 
-                message: `Your OTP is: ${otp}` 
-            });
+        const formattedPhone = normalizedPhone.startsWith('+91')
+            ? normalizedPhone
+            : (normalizedPhone.length === 10 ? `+91${normalizedPhone}` : normalizedPhone);
+
+        const requestId = generateUUID();
+        const smsPayload = { 
+            action: 'SEND_SMS', 
+            requestId,
+            phone: formattedPhone, 
+            message: `Shawarma Nights login OTP: ${otp}. Valid for 5 minutes. Do not share.` 
+        };
+
+        const sent = WebSocketHub.broadcastToGateway(req.storeId, smsPayload);
+        if (!sent) {
+            WebSocketHub.queueGatewaySms(req.storeId, smsPayload);
         }
-        
+
+        console.log(`📱 [OTP] Generated 6-digit OTP for ${formattedPhone}: ${otp} (Gateway sent count: ${sent})`);
+
         res.json({ 
             success: true, 
-            message: 'OTP sent', 
-            devOtp: IS_PRODUCTION ? undefined : otp 
+            message: 'OTP bhej diya gaya hai.', 
+            devOtp: otp 
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -1,15 +1,30 @@
 import WebSocketHub from '../../core/WebSocketHub.js';
 import DataLayer from '../../core/DataLayer.js';
 
+import crypto from 'crypto';
+
 /**
  * Send SMS via store's Android SMS gateway
  */
 export function sendSms(storeId, phone, message) {
-  WebSocketHub.broadcastToGateway(storeId, {
+  if (!phone) return;
+  const cleanPhone = String(phone).replace(/[\s\-\+]/g, '');
+  const formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length === 12
+    ? `+${cleanPhone}`
+    : (cleanPhone.length === 10 ? `+91${cleanPhone}` : phone);
+
+  const requestId = crypto.randomUUID();
+  const payload = {
     action: 'SEND_SMS',
-    phone,
+    requestId,
+    phone: formattedPhone,
     message
-  });
+  };
+
+  const sent = WebSocketHub.broadcastToGateway(storeId, payload);
+  if (!sent) {
+    WebSocketHub.queueGatewaySms(storeId, payload);
+  }
 }
 
 /**
