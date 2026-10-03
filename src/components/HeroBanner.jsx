@@ -122,9 +122,9 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
               transition={{ duration: 0.5 }}
               className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9]"
             >
-              REAL
+              {banner.titleLine1 || 'REAL'}
               <br />
-              CHARCOAL
+              {banner.titleLine2 || 'CHARCOAL'}
               <br />
               <span className="text-zinc-900 bg-white px-3 py-0.5 rounded-xl inline-block mt-1 rotate-[-1deg]">
                 {banner.titleHighlight || (featuredItem?.name ? featuredItem.name.toUpperCase() : 'SHAWARMA')}

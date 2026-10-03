@@ -1,6 +1,6 @@
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
-import { generateId, generateOtp, generateUUID, now, normalizePhone } from '../../utils/helpers.js';
+import { generateId, generateOtp, generateUUID, now, normalizePhone, enrichCustomersWithOrderStats } from '../../utils/helpers.js';
 
 const otpStore = new Map(); // Key: `${storeId}:${phone}` → { otp, expiresAt, attempts }
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -260,7 +260,9 @@ export const verifyAdmin = (req, res) => {
 export const getAdminCustomers = (req, res) => {
     try {
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        res.json({ success: true, customers, data: customers });
+        const orders = DataLayer.read(req.storeId, 'orders') || [];
+        const enriched = enrichCustomersWithOrderStats(customers, orders);
+        res.json({ success: true, customers: enriched, data: enriched });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

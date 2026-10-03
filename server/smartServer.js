@@ -33,6 +33,7 @@ import commsRoutes from './modules/communications/comms.routes.js';
 import tenantRoutes from './modules/tenant/tenant.routes.js';
 import mediaRoutes from './modules/media/media.routes.js';
 import gatewayRoutes from './modules/gateway/gateway.routes.js';
+import { enrichCustomersWithOrderStats } from './utils/helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,7 +117,8 @@ app.get('/api/data', (req, res) => {
   const orders = DataLayer.read(storeId, 'orders') || [];
   const deals = DataLayer.read(storeId, 'deals') || [];
   const reviews = DataLayer.read(storeId, 'reviews') || [];
-  const customers = DataLayer.read(storeId, 'customers') || [];
+  const rawCustomers = DataLayer.read(storeId, 'customers') || [];
+  const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
 
   res.json({
     menu: menuData.menu || [],

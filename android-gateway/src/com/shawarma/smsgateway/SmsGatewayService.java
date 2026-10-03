@@ -1109,37 +1109,86 @@ public class SmsGatewayService extends Service {
 
     public static void syncCustomersFromOrders() {
         try {
-            java.util.HashSet<String> existingPhones = new java.util.HashSet<>();
+            java.util.HashMap<String, JSONObject> map = new java.util.HashMap<>();
             for (JSONObject c : customersList) {
                 String p = c.optString("phone", "").replaceAll("[^0-9]", "");
-                if (p.length() >= 10) existingPhones.add(p.substring(p.length() - 10));
+                if (p.length() >= 10) {
+                    map.put(p.substring(p.length() - 10), c);
+                }
             }
+
+            java.util.HashMap<String, Double> spendMap = new java.util.HashMap<>();
+            java.util.HashMap<String, Integer> countMap = new java.util.HashMap<>();
+            java.util.HashMap<String, String> addressMap = new java.util.HashMap<>();
+            java.util.HashMap<String, String> nameMap = new java.util.HashMap<>();
+            java.util.HashMap<String, java.util.HashMap<String, Integer>> dishMap = new java.util.HashMap<>();
+
             for (JSONObject o : ordersList) {
                 JSONObject cust = o.optJSONObject("customer");
-                String phone = "";
-                String name = "";
+                String phone = cust != null ? cust.optString("phone", "") : o.optString("customerPhone", "");
+                String name = cust != null ? cust.optString("name", "") : o.optString("customerName", "");
                 String address = o.optString("address", "");
-                if (cust != null) {
-                    phone = cust.optString("phone", "");
-                    name = cust.optString("name", "");
-                } else {
-                    phone = o.optString("customerPhone", "");
-                    name = o.optString("customerName", "");
-                }
+                double total = o.optDouble("total", o.optDouble("grandTotal", 0));
+
                 String cleanPhone = phone.replaceAll("[^0-9]", "");
-                if (cleanPhone.length() >= 10) {
-                    String last10 = cleanPhone.substring(cleanPhone.length() - 10);
-                    if (!existingPhones.contains(last10)) {
-                        existingPhones.add(last10);
-                        JSONObject synCust = new JSONObject();
-                        synCust.put("id", "cust-" + last10);
-                        synCust.put("name", name.isEmpty() ? "Customer " + last10 : name);
-                        synCust.put("phone", phone);
-                        synCust.put("address", address);
-                        synCust.put("totalOrders", 1);
-                        synCust.put("totalSpent", o.optDouble("total", 0));
-                        customersList.add(synCust);
+                if (cleanPhone.length() < 10) continue;
+                String last10 = cleanPhone.substring(cleanPhone.length() - 10);
+
+                spendMap.put(last10, spendMap.getOrDefault(last10, 0.0) + total);
+                countMap.put(last10, countMap.getOrDefault(last10, 0) + 1);
+                if (!address.isEmpty()) addressMap.put(last10, address);
+                if (!name.isEmpty() && !name.equalsIgnoreCase("Customer")) nameMap.put(last10, name);
+
+                JSONArray items = o.optJSONArray("items");
+                if (items != null) {
+                    java.util.HashMap<String, Integer> dm = dishMap.getOrDefault(last10, new java.util.HashMap<>());
+                    for (int i = 0; i < items.length(); i++) {
+                        JSONObject item = items.optJSONObject(i);
+                        if (item != null) {
+                            String dName = item.optString("name", item.optString("dishName", ""));
+                            if (!dName.isEmpty()) {
+                                dm.put(dName, dm.getOrDefault(dName, 0) + item.optInt("qty", 1));
+                            }
+                        }
                     }
+                    dishMap.put(last10, dm);
+                }
+            }
+
+            for (String last10 : countMap.keySet()) {
+                double spent = spendMap.getOrDefault(last10, 0.0);
+                int orders = countMap.getOrDefault(last10, 0);
+                String bestDish = "";
+                java.util.HashMap<String, Integer> dm = dishMap.get(last10);
+                if (dm != null) {
+                    int maxQ = 0;
+                    for (java.util.Map.Entry<String, Integer> entry : dm.entrySet()) {
+                        if (entry.getValue() > maxQ) {
+                            maxQ = entry.getValue();
+                            bestDish = entry.getKey();
+                        }
+                    }
+                }
+
+                if (map.containsKey(last10)) {
+                    JSONObject c = map.get(last10);
+                    c.put("totalOrders", orders);
+                    c.put("totalSpent", Math.round(spent));
+                    if (!bestDish.isEmpty()) c.put("favoriteDish", bestDish);
+                    if (c.optString("address", "").isEmpty() && addressMap.containsKey(last10)) {
+                        c.put("address", addressMap.get(last10));
+                    }
+                } else {
+                    JSONObject synCust = new JSONObject();
+                    synCust.put("id", "cust-" + last10);
+                    synCust.put("name", nameMap.getOrDefault(last10, "Customer " + last10));
+                    synCust.put("phone", last10);
+                    synCust.put("address", addressMap.getOrDefault(last10, "N/A"));
+                    synCust.put("totalOrders", orders);
+                    synCust.put("totalSpent", Math.round(spent));
+                    if (!bestDish.isEmpty()) synCust.put("favoriteDish", bestDish);
+                    customersList.add(synCust);
+                    map.put(last10, synCust);
                 }
             }
         } catch (Exception ignored) {}

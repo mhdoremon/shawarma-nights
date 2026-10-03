@@ -123,6 +123,110 @@ export function normalizePhone(phone) {
   return cleaned;
 }
 
+/**
+ * Enrich customers with their order count, total spent, last order date, and favorite dish.
+ * Also includes guest customers from orders who haven't registered an account yet.
+ */
+export function enrichCustomersWithOrderStats(customers = [], orders = []) {
+  const phoneStats = {};
+
+  for (const order of orders) {
+    let rawPhone = order.customer?.phone || order.customerPhone || '';
+    let rawName = order.customer?.name || order.customerName || '';
+    let address = order.address || '';
+    let cleanPhone = normalizePhone(rawPhone);
+    if (!cleanPhone) continue;
+
+    if (!phoneStats[cleanPhone]) {
+      phoneStats[cleanPhone] = {
+        totalOrders: 0,
+        totalSpent: 0,
+        lastOrderAt: null,
+        latestAddress: address,
+        latestName: rawName,
+        dishCounts: {}
+      };
+    }
+
+    const stat = phoneStats[cleanPhone];
+    stat.totalOrders += 1;
+    const orderTotal = Number(order.total || order.grandTotal || 0);
+    stat.totalSpent += isNaN(orderTotal) ? 0 : orderTotal;
+
+    const orderDate = order.createdAt || order.placedAt;
+    if (orderDate && (!stat.lastOrderAt || new Date(orderDate) > new Date(stat.lastOrderAt))) {
+      stat.lastOrderAt = orderDate;
+      if (address) stat.latestAddress = address;
+      if (rawName && (!stat.latestName || stat.latestName === 'Customer')) stat.latestName = rawName;
+    }
+
+    const items = order.items || [];
+    for (const item of items) {
+      const dName = item.name || item.dishName;
+      if (dName) {
+        stat.dishCounts[dName] = (stat.dishCounts[dName] || 0) + (Number(item.qty) || 1);
+      }
+    }
+  }
+
+  const enrichedMap = new Map();
+
+  for (const cust of customers) {
+    const cleanPhone = normalizePhone(cust.phone || '');
+    const stat = phoneStats[cleanPhone];
+
+    let favoriteDish = '';
+    if (stat?.dishCounts) {
+      let maxQty = 0;
+      for (const [dish, qty] of Object.entries(stat.dishCounts)) {
+        if (qty > maxQty) {
+          maxQty = qty;
+          favoriteDish = dish;
+        }
+      }
+    }
+
+    enrichedMap.set(cleanPhone || cust.id, {
+      ...cust,
+      name: cust.name || stat?.latestName || 'Customer',
+      address: cust.address || stat?.latestAddress || 'N/A',
+      totalOrders: stat ? stat.totalOrders : 0,
+      totalSpent: stat ? Math.round(stat.totalSpent) : 0,
+      lastOrderAt: stat?.lastOrderAt || cust.registeredAt || null,
+      favoriteDish: favoriteDish || ''
+    });
+  }
+
+  for (const [cleanPhone, stat] of Object.entries(phoneStats)) {
+    if (!enrichedMap.has(cleanPhone)) {
+      let favoriteDish = '';
+      if (stat.dishCounts) {
+        let maxQty = 0;
+        for (const [dish, qty] of Object.entries(stat.dishCounts)) {
+          if (qty > maxQty) {
+            maxQty = qty;
+            favoriteDish = dish;
+          }
+        }
+      }
+
+      enrichedMap.set(cleanPhone, {
+        id: `cust-${cleanPhone}`,
+        name: stat.latestName || `Customer ${cleanPhone}`,
+        phone: cleanPhone,
+        address: stat.latestAddress || 'N/A',
+        totalOrders: stat.totalOrders,
+        totalSpent: Math.round(stat.totalSpent),
+        lastOrderAt: stat.lastOrderAt,
+        favoriteDish: favoriteDish || '',
+        registeredAt: stat.lastOrderAt
+      });
+    }
+  }
+
+  return Array.from(enrichedMap.values());
+}
+
 export default {
   generateId,
   generateOtp,
@@ -135,5 +239,6 @@ export default {
   money,
   isNonEmpty,
   isValidPhone,
-  normalizePhone
+  normalizePhone,
+  enrichCustomersWithOrderStats
 };

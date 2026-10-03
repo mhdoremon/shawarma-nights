@@ -1880,6 +1880,25 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         offerPriceIn.setPadding(dp(12), dp(10), dp(12), dp(10));
         form.addView(offerPriceIn);
 
+        // Headline Line 1 & Line 2 & Highlight
+        EditText title1In = createLabeledInput(form, "Headline Line 1 (वेबसाइट पर 'REAL' की जगह)", h.optString("titleLine1", "REAL"));
+        form.addView(createChipGroup(
+            new String[]{"REAL", "FRESH", "HOT", "TASTY", "CHURU'S", "BEST", "SIGNATURE"},
+            new String[]{"REAL", "FRESH", "HOT", "TASTY", "CHURU'S", "BEST", "SIGNATURE"},
+            title1In.getText().toString(), title1In));
+
+        EditText title2In = createLabeledInput(form, "Headline Line 2 (वेबसाइट पर 'CHARCOAL' की जगह)", h.optString("titleLine2", "CHARCOAL"));
+        form.addView(createChipGroup(
+            new String[]{"CHARCOAL", "SPICY", "CRISPY", "SPECIAL", "LOADED", "CHEF'S", "DELIGHT"},
+            new String[]{"CHARCOAL", "SPICY", "CRISPY", "SPECIAL", "LOADED", "CHEF'S", "DELIGHT"},
+            title2In.getText().toString(), title2In));
+
+        EditText highlightIn = createLabeledInput(form, "Headline Highlight (व्हाइट बॉक्स में शब्द)", dishName.toUpperCase(Locale.ROOT));
+        form.addView(createChipGroup(
+            new String[]{dishName.toUpperCase(Locale.ROOT), "SHAWARMA", "PLATTER", "BURGER", "PIZZA", "SPECIAL"},
+            new String[]{dishName.toUpperCase(Locale.ROOT), "SHAWARMA", "PLATTER", "BURGER", "PIZZA", "SPECIAL"},
+            highlightIn.getText().toString(), highlightIn));
+
         // Badge Tag
         EditText badgeIn = createLabeledInput(form, "Badge Tag (उदा. 50% OFF — NIGHT50)", h.optString("badgeText", "50% OFF — NIGHT50"));
 
@@ -1902,7 +1921,10 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 if (!pVal.startsWith("₹")) pVal = "₹" + pVal;
                 updated.put("priceValue", pVal);
                 updated.put("badgeText", badgeIn.getText().toString().trim());
-                updated.put("titleHighlight", dishName.toUpperCase(Locale.ROOT));
+                updated.put("titleLine1", title1In.getText().toString().trim().isEmpty() ? "REAL" : title1In.getText().toString().trim());
+                updated.put("titleLine2", title2In.getText().toString().trim().isEmpty() ? "CHARCOAL" : title2In.getText().toString().trim());
+                String hl = highlightIn.getText().toString().trim();
+                updated.put("titleHighlight", hl.isEmpty() ? dishName.toUpperCase(Locale.ROOT) : hl.toUpperCase(Locale.ROOT));
 
                 SmsGatewayService.sendUpdateHeroBanner(updated);
                 Toast.makeText(this, "⭐ Hero Offer activated for " + dishName + "!", Toast.LENGTH_SHORT).show();
@@ -2463,6 +2485,26 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         priceIn.setPadding(dp(12), dp(10), dp(12), dp(10));
         heroCard.addView(priceIn);
 
+        // Headline Line 1 & Line 2 & Highlight
+        EditText title1In = createLabeledInput(heroCard, "Headline Line 1 (वेबसाइट पर 'REAL' की जगह)", h.optString("titleLine1", "REAL"));
+        heroCard.addView(createChipGroup(
+            new String[]{"REAL", "FRESH", "HOT", "TASTY", "CHURU'S", "BEST", "SIGNATURE"},
+            new String[]{"REAL", "FRESH", "HOT", "TASTY", "CHURU'S", "BEST", "SIGNATURE"},
+            title1In.getText().toString(), title1In));
+
+        EditText title2In = createLabeledInput(heroCard, "Headline Line 2 (वेबसाइट पर 'CHARCOAL' की जगह)", h.optString("titleLine2", "CHARCOAL"));
+        heroCard.addView(createChipGroup(
+            new String[]{"CHARCOAL", "SPICY", "CRISPY", "SPECIAL", "LOADED", "CHEF'S", "DELIGHT"},
+            new String[]{"CHARCOAL", "SPICY", "CRISPY", "SPECIAL", "LOADED", "CHEF'S", "DELIGHT"},
+            title2In.getText().toString(), title2In));
+
+        String defHighlight = h.optString("titleHighlight", selectedDishName[0].isEmpty() ? "SHAWARMA" : selectedDishName[0].toUpperCase(Locale.ROOT));
+        EditText highlightIn = createLabeledInput(heroCard, "Headline Highlight (व्हाइट बॉक्स में शब्द)", defHighlight);
+        heroCard.addView(createChipGroup(
+            new String[]{"SHAWARMA", "PLATTER", "BURGER", "PIZZA", "ROLL", "WINGS", "FRIES"},
+            new String[]{"SHAWARMA", "PLATTER", "BURGER", "PIZZA", "ROLL", "WINGS", "FRIES"},
+            highlightIn.getText().toString(), highlightIn));
+
         // Badge Tag & Subtitle
         EditText badgeIn = createLabeledInput(heroCard, "Badge Tag (उदा. 50% OFF — NIGHT50)", h.optString("badgeText", "50% OFF — NIGHT50"));
         EditText subIn = createLabeledInput(heroCard, "Subtitle Text", h.optString("subtitle", "Slow-turned on glowing coals. Carved fresh."));
@@ -2488,9 +2530,10 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 if (!pVal.startsWith("₹")) pVal = "₹" + pVal;
                 updated.put("priceValue", pVal);
                 updated.put("badgeText", badgeIn.getText().toString().trim());
-                updated.put("titleLine1", "REAL");
-                updated.put("titleLine2", "CHARCOAL");
-                updated.put("titleHighlight", selectedDishName[0].isEmpty() ? "SHAWARMA" : selectedDishName[0].toUpperCase(Locale.ROOT));
+                updated.put("titleLine1", title1In.getText().toString().trim().isEmpty() ? "REAL" : title1In.getText().toString().trim());
+                updated.put("titleLine2", title2In.getText().toString().trim().isEmpty() ? "CHARCOAL" : title2In.getText().toString().trim());
+                String hl = highlightIn.getText().toString().trim();
+                updated.put("titleHighlight", hl.isEmpty() ? (selectedDishName[0].isEmpty() ? "SHAWARMA" : selectedDishName[0].toUpperCase(Locale.ROOT)) : hl.toUpperCase(Locale.ROOT));
                 updated.put("subtitle", subIn.getText().toString().trim());
                 updated.put("marqueeText", marqIn.getText().toString().trim());
                 SmsGatewayService.sendUpdateHeroBanner(updated);

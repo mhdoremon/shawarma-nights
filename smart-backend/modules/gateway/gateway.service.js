@@ -1,6 +1,6 @@
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
-import { generateId, now } from '../../utils/helpers.js';
+import { generateId, now, enrichCustomersWithOrderStats } from '../../utils/helpers.js';
 
 export function handleGatewayMessage(data, ws, storeId, source) {
   const action = data.action || data.type;
@@ -10,7 +10,8 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const orders = DataLayer.read(storeId, 'orders') || [];
       const deals = DataLayer.read(storeId, 'deals') || [];
       const storeConfig = DataLayer.getStoreConfig(storeId) || {};
-      const customers = DataLayer.read(storeId, 'customers') || [];
+      const rawCustomers = DataLayer.read(storeId, 'customers') || [];
+      const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
       WebSocketHub.sendTo(ws, {
         action: 'INIT_STATE',
         payload: { 
