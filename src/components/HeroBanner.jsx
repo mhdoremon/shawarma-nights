@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowDown } from 'lucide-react';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { MENU_ITEMS } from '../data/menuData';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
   const { heroBanner, menu, reviews } = useRealtimeDB();
@@ -187,8 +188,9 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
               <div className="absolute -inset-4 sm:-inset-6 rounded-full border-[3px] border-dashed border-white/20 animate-[spin_25s_linear_infinite] pointer-events-none" />
 
               <img
-                src={circleImageSrc}
+                src={getImageUrl(circleImageSrc)}
                 alt={featuredItem?.name || "Charcoal Shawarma"}
+                onError={handleImageError}
                 className="w-[300px] sm:w-[380px] h-[300px] sm:h-[380px] rounded-full object-cover border-4 border-white shadow-2xl transition-transform duration-300 group-hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)]"
               />
 

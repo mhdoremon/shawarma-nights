@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Flame, Plus, Minus, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 export default function CustomizeModal({ item, onClose }) {
   const { addToCart } = useCart();
@@ -74,8 +75,9 @@ export default function CustomizeModal({ item, onClose }) {
           <div className="p-4 sm:p-5 border-b border-zinc-100 flex items-start justify-between">
             <div className="flex gap-3">
               <img
-                src={item.image}
+                src={getImageUrl(item.image)}
                 alt={item.name}
+                onError={handleImageError}
                 className="w-16 h-16 rounded-xl object-cover border border-zinc-100 shrink-0"
               />
               <div>

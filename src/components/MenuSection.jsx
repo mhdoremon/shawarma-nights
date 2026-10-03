@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useRealtimeDB } from '../context/RealtimeContext';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 // Pure line-art icon mapper
 const iconMap = {
@@ -372,8 +373,9 @@ export default function MenuSection({ onSelectForCustomize }) {
                 {/* Right: Dish Photo */}
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden shrink-0 bg-zinc-100 border border-zinc-100">
                   <img
-                    src={item.image}
+                    src={getImageUrl(item.image)}
                     alt={item.name}
+                    onError={handleImageError}
                     loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

@@ -24,6 +24,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 export default function CartDrawer({ onOpenTracker }) {
   const { currentUser, isAuthenticated, openAuthModal, updateUserProfile } = useAuth();
@@ -417,8 +418,9 @@ export default function CartDrawer({ onOpenTracker }) {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex gap-3">
                             <img
-                              src={item.image}
+                              src={getImageUrl(item.image)}
                               alt={item.name}
+                              onError={handleImageError}
                               className="w-14 h-14 rounded-xl object-cover shrink-0 border border-zinc-100"
                             />
                             <div>

@@ -18,7 +18,9 @@ import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Typeface;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.util.Base64;
 import java.io.ByteArrayOutputStream;
@@ -1372,30 +1374,77 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
         new Thread(() -> {
             try {
+                // 1. Preserve Camera Orientation from EXIF (portrait food photos will stay upright)
+                int rotationDegrees = 0;
+                try {
+                    InputStream exifStream = getContentResolver().openInputStream(uri);
+                    if (exifStream != null) {
+                        ExifInterface exif = new ExifInterface(exifStream);
+                        int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+                        if (orientation == ExifInterface.ORIENTATION_ROTATE_90) rotationDegrees = 90;
+                        else if (orientation == ExifInterface.ORIENTATION_ROTATE_180) rotationDegrees = 180;
+                        else if (orientation == ExifInterface.ORIENTATION_ROTATE_270) rotationDegrees = 270;
+                        exifStream.close();
+                    }
+                } catch (Exception ignored) {}
+
+                // 2. Read original image dimensions
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inJustDecodeBounds = true;
                 InputStream is1 = getContentResolver().openInputStream(uri);
                 BitmapFactory.decodeStream(is1, null, opts);
                 if (is1 != null) is1.close();
 
-                int maxDim = Math.max(opts.outWidth, opts.outHeight);
+                int origW = opts.outWidth;
+                int origH = opts.outHeight;
+                if (origW <= 0 || origH <= 0) {
+                    throw new Exception("Photo dimensions invalid");
+                }
+
+                // 3. Smart Downsampling: Target crisp 1280px max dimension (Full HD retina quality)
+                int targetMax = 1280;
+                int maxDim = Math.max(origW, origH);
                 int sampleSize = 1;
-                while (maxDim / sampleSize > 800) {
+                while (maxDim / (sampleSize * 2) >= targetMax) {
                     sampleSize *= 2;
                 }
 
                 opts.inJustDecodeBounds = false;
                 opts.inSampleSize = sampleSize;
                 InputStream is2 = getContentResolver().openInputStream(uri);
-                final Bitmap bmp = BitmapFactory.decodeStream(is2, null, opts);
+                Bitmap decodedBmp = BitmapFactory.decodeStream(is2, null, opts);
                 if (is2 != null) is2.close();
 
-                if (bmp == null) {
+                if (decodedBmp == null) {
                     throw new Exception("Photo decode nahi ho payi");
                 }
 
+                // 4. Exact bilinear scaling with aspect ratio preservation & rotation correction
+                int curW = decodedBmp.getWidth();
+                int curH = decodedBmp.getHeight();
+                float scale = Math.min(1.0f, (float) targetMax / Math.max(curW, curH));
+
+                Matrix matrix = new Matrix();
+                if (scale < 1.0f) {
+                    matrix.postScale(scale, scale);
+                }
+                if (rotationDegrees != 0) {
+                    matrix.postRotate(rotationDegrees);
+                }
+
+                final Bitmap finalBitmap;
+                if (scale < 1.0f || rotationDegrees != 0) {
+                    finalBitmap = Bitmap.createBitmap(decodedBmp, 0, 0, curW, curH, matrix, true);
+                    if (finalBitmap != decodedBmp) {
+                        decodedBmp.recycle();
+                    }
+                } else {
+                    finalBitmap = decodedBmp;
+                }
+
+                // 5. High-quality 90% JPEG compression (crystal clear, ~180KB - 250KB)
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bmp.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos);
                 byte[] bytes = baos.toByteArray();
                 String base64Data = "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP);
 
@@ -1411,9 +1460,9 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                             activeImageTargetInput.setText(uploadedUrl);
                         }
                         if (activeImagePreviewView != null) {
-                            activeImagePreviewView.setImageBitmap(bmp);
+                            activeImagePreviewView.setImageBitmap(finalBitmap);
                         }
-                        Toast.makeText(MainActivity.this, "✅ Photo Upload Ho Gayi! 📸", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "✅ Photo Upload Ho Gayi! 📸 (HD Clear)", Toast.LENGTH_SHORT).show();
                     });
                 } else {
                     String err = res != null ? res.optString("error", "Upload failed") : "Upload failed";

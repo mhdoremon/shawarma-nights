@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES as DEFAULT_CATEGORIES, MENU_ITEMS } from '../data/menuData';
 import { useCart } from '../context/CartContext';
 import { useRealtimeDB } from '../context/RealtimeContext';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 const iconMap = {
   Utensils, Flame, Sparkles, Layers, UtensilsCrossed, Package, Coffee,
@@ -217,7 +218,7 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                       transition={{ duration: 0.3 }}
                     >
                       <div className="bg-white rounded-3xl overflow-hidden shadow-md border border-zinc-100">
-                        <img src={item.image} alt={item.name} className="w-full h-36 object-cover" />
+                        <img src={getImageUrl(item.image)} alt={item.name} onError={handleImageError} className="w-full h-36 object-cover" />
                         <div className="p-3">
                           <div className="text-xs font-bold text-zinc-800 truncate">{item.name}</div>
                           <div className="text-xs font-bold text-zinc-500 mt-0.5">₹{item.price}</div>
@@ -258,8 +259,9 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                     {/* Hero Image & Overlay Badges */}
                     <div className="relative h-56 sm:h-64 overflow-hidden bg-zinc-100">
                       <img
-                        src={item.image}
+                        src={getImageUrl(item.image)}
                         alt={item.name}
+                        onError={handleImageError}
                         className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale contrast-75' : ''}`}
                       />
 
@@ -382,7 +384,7 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                       transition={{ duration: 0.3 }}
                     >
                       <div className="bg-white rounded-3xl overflow-hidden shadow-md border border-zinc-100">
-                        <img src={item.image} alt={item.name} className="w-full h-36 object-cover" />
+                        <img src={getImageUrl(item.image)} alt={item.name} onError={handleImageError} className="w-full h-36 object-cover" />
                         <div className="p-3">
                           <div className="text-xs font-bold text-zinc-800 truncate">{item.name}</div>
                           <div className="text-xs font-bold text-zinc-500 mt-0.5">₹{item.price}</div>

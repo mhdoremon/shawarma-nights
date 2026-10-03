@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, Clock, Flame, Plus, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCart } from '../context/CartContext';
+import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 export default function FoodCard({ item, onSelectForCustomize }) {
   const { cart, addToCart } = useCart();
@@ -38,8 +39,9 @@ export default function FoodCard({ item, onSelectForCustomize }) {
       {/* Top Image & Badges Container */}
       <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-charcoal-950">
         <img
-          src={item.image}
+          src={getImageUrl(item.image)}
           alt={item.name}
+          onError={handleImageError}
           loading="lazy"
           className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500"
         />
