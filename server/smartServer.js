@@ -74,7 +74,12 @@ app.get(['/healthz', '/api/health'], (req, res) => {
     stores: stores.length,
     activeConnections: wsStats,
     uptime: Math.floor(process.uptime()),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    mongo: {
+      hasUri: Boolean(process.env.MONGODB_URI),
+      uriMasked: process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^@]+)@/, ':****@') : 'NONE_NOT_SET',
+      isConnected: DataLayer.isMongoReady()
+    }
   });
 });
 
