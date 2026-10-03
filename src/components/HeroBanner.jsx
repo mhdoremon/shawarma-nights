@@ -5,7 +5,7 @@ import { useRealtimeDB } from '../context/RealtimeContext';
 import { MENU_ITEMS } from '../data/menuData';
 import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
-export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
+export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish, onOpenFranchise }) {
   const { heroBanner, menu, reviews } = useRealtimeDB();
 
   // Live menu items with fallback to default seeded menu
@@ -32,7 +32,7 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
     circleImage: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=85',
     priceText: 'Starts from',
     priceValue: '₹179',
-    marqueeText: '★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS',
+    marqueeText: '★ TAP HERE TO OWN A FRANCHISE ● ★ 3-6 MONTHS ROI ● ★ HIGH CASH FLOW ● ★ TURNKEY SETUP ● ★ LIMITED CITY SLOTS AVAILABLE ★',
     ...heroBanner,
   };
 
@@ -94,8 +94,12 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
     <section className="relative overflow-hidden bg-[#DC2626] text-white">
       
       {/* Infinite Scrolling Marquee Top Strip */}
-      <div className="bg-zinc-900 py-2 overflow-hidden">
-        <div className="animate-marquee whitespace-nowrap flex items-center gap-8 text-xs font-bold tracking-widest text-white/70">
+      <button 
+        onClick={onOpenFranchise}
+        className="w-full bg-zinc-900 py-2 overflow-hidden hover:bg-black transition-colors cursor-pointer group block text-left border-0 focus:outline-none"
+        title="Tap to Explore Franchise Opportunities"
+      >
+        <div className="animate-marquee whitespace-nowrap flex items-center gap-8 text-[11px] sm:text-xs font-bold tracking-widest text-white/70 group-hover:text-white transition-colors">
           {[...Array(4)].map((_, i) => (
             <span key={i} className="flex items-center gap-8">
               {marqueeItems.map((item, idx) => (
@@ -107,7 +111,7 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
             </span>
           ))}
         </div>
-      </div>
+      </button>
 
       {/* Main Hero */}
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-14 sm:py-20 lg:py-24">

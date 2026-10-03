@@ -44,6 +44,7 @@ export default function CustomerApp() {
               <HeroBanner 
                 onExploreMenu={scrollToMenu} 
                 onSelectFeaturedDish={setCustomizeItem} 
+                onOpenFranchise={() => setIsFranchiseOpen(true)}
               />
               <DealBanners />
               <div id="menu">
