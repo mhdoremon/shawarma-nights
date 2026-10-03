@@ -626,10 +626,18 @@ export const MasterProvider = ({ children }) => {
     }
   };
 
+  const switchStoreId = (newId) => {
+    const cleanId = (newId || 'shawarma').trim().toLowerCase();
+    setStoreId(cleanId);
+    localStorage.setItem('churuone_master_store_id', cleanId);
+    showToast(`Switched to Store: ${cleanId}`, 'success');
+  };
+
   return (
     <MasterContext.Provider value={{
       storeId,
       setStoreId,
+      switchStoreId,
       token,
       role,
       user,
