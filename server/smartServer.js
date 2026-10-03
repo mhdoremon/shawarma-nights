@@ -394,7 +394,7 @@ function migrateExistingData() {
 // ─── Start Server ─────────────────────────────────────────────
 const PORT = config.PORT;
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log('\n' + '═'.repeat(60));
   console.log('  🧠 ChuruOne Smart Backend v1.0');
   console.log('  🌐 Multi-Tenant Engine Started');
@@ -404,6 +404,9 @@ server.listen(PORT, () => {
   console.log(`  📁 Data:  ${config.DATA_DIR}`);
   console.log(`  🏪 Default Store: "${config.DEFAULT_STORE_ID}"`);
   console.log('═'.repeat(60) + '\n');
+
+  // Connect to MongoDB Atlas (if MONGODB_URI is provided)
+  await DataLayer.initMongo();
 
   // Init default store & migrate
   initDefaultStore();
@@ -426,6 +429,7 @@ server.listen(PORT, () => {
       console.warn('⚠️ [24/7 Keep-Alive] Ping error:', err.message);
     }
   }, 8 * 60 * 1000); // 8 minutes interval (Render free tier sleeps after 15 mins)
+});
 
 // Graceful shutdown
 process.on('SIGINT', () => {

@@ -10,6 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { MongoClient } from 'mongodb';
 import config from '../config/index.js';
 
 // In-memory cache: { "shawarma": { "menu.json": {...}, "orders.json": [...] } }
@@ -20,6 +21,11 @@ const dirtyFlags = {};
 
 // Write batch interval (ms) — flush dirty data every 2 seconds
 const FLUSH_INTERVAL = 2000;
+
+// ─── MongoDB Atlas Engine References ──────────────────────────
+let mongoClient = null;
+let mongoDb = null;
+let isMongoConnected = false;
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -92,6 +98,9 @@ function write(storeId, collection, data) {
   if (!cache[storeId]) cache[storeId] = {};
   cache[storeId][fileName] = data;
 
+  // Persist to MongoDB Atlas if connected
+  persistToMongo(storeId, fileName, data);
+
   // Mark dirty for batch flush
   dirtyFlags[`${storeId}/${fileName}`] = true;
 }
@@ -111,9 +120,14 @@ function writeSync(storeId, collection, data) {
   if (!cache[storeId]) cache[storeId] = {};
   cache[storeId][fileName] = data;
 
+  // Persist to MongoDB Atlas if connected
+  persistToMongo(storeId, fileName, data);
+
   // Write to disk immediately
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
     delete dirtyFlags[`${storeId}/${fileName}`];
   } catch (err) {
     console.error(`❌ [DataLayer] WriteSync error: ${storeId}/${fileName}:`, err.message);
@@ -139,7 +153,9 @@ function flushDirty() {
     const filePath = getFilePath(storeId, fileName);
     try {
       ensureDir(getStorePath(storeId));
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+      const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
       delete dirtyFlags[key];
     } catch (err) {
       console.error(`❌ [DataLayer] Flush error: ${key}:`, err.message);
@@ -256,6 +272,7 @@ function invalidateCache(storeId) {
 
 function deepMerge(target, source) {
   const result = { ...target };
+  if (!source) return result;
   for (const key of Object.keys(source)) {
     if (
       source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&
@@ -294,9 +311,127 @@ function writePlatform(fileName, data) {
   ensureDir(config.PLATFORM_DIR);
   const filePath = path.join(config.PLATFORM_DIR, fileName.endsWith('.json') ? fileName : `${fileName}.json`);
   try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    const tmpPath = filePath + '.tmp';
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tmpPath, filePath);
   } catch (err) {
     console.error(`❌ [DataLayer] Platform write error: ${fileName}:`, err.message);
+  }
+}
+
+// ─── MongoDB Atlas Cloud Integration ──────────────────────────
+
+/**
+ * Persist collection change to MongoDB Atlas in background.
+ */
+function persistToMongo(storeId, fileName, data) {
+  if (!isMongoConnected || !mongoDb) return;
+  mongoDb.collection('store_data').updateOne(
+    { _id: `${storeId}_${fileName}` },
+    { $set: { storeId, collection: fileName, data, updatedAt: new Date().toISOString() } },
+    { upsert: true }
+  ).catch(err => {
+    console.error(`❌ [MongoDB Atlas] Write error (${storeId}/${fileName}):`, err.message);
+  });
+}
+
+/**
+ * Sync MongoDB data with local cache & seed if empty.
+ */
+async function syncMongoData() {
+  if (!isMongoConnected || !mongoDb) return;
+  try {
+    const col = mongoDb.collection('store_data');
+    const docs = await col.find({}).toArray();
+
+    if (docs.length > 0) {
+      // Populate cache from MongoDB Atlas
+      for (const doc of docs) {
+        const { storeId, collection: colName, data } = doc;
+        if (storeId && colName && data !== undefined) {
+          if (!cache[storeId]) cache[storeId] = {};
+          cache[storeId][colName] = data;
+
+          // Also update local file as persistent offline backup
+          try {
+            const filePath = getFilePath(storeId, colName);
+            ensureDir(getStorePath(storeId));
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+          } catch {}
+        }
+      }
+      console.log(`📦 [MongoDB Atlas] Loaded ${docs.length} collection document(s) into memory cache.`);
+    } else {
+      // MongoDB is completely fresh — seed all local stores into MongoDB Atlas!
+      console.log('🌱 [MongoDB Atlas] Empty database detected. Seeding local files into MongoDB Atlas...');
+      const localStoreIds = listStoreIds();
+      let seeded = 0;
+
+      for (const storeId of localStoreIds) {
+        const storeDir = getStorePath(storeId);
+        if (!fs.existsSync(storeDir)) continue;
+
+        const files = fs.readdirSync(storeDir).filter(f => f.endsWith('.json'));
+        for (const f of files) {
+          try {
+            const content = JSON.parse(fs.readFileSync(path.join(storeDir, f), 'utf-8'));
+            await col.updateOne(
+              { _id: `${storeId}_${f}` },
+              { $set: { storeId, collection: f, data: content, updatedAt: new Date().toISOString() } },
+              { upsert: true }
+            );
+            if (!cache[storeId]) cache[storeId] = {};
+            cache[storeId][f] = content;
+            seeded++;
+          } catch {}
+        }
+      }
+      console.log(`✨ [MongoDB Atlas] Successfully seeded ${seeded} collection(s) to MongoDB Atlas.`);
+    }
+  } catch (err) {
+    console.error('⚠️ [MongoDB Atlas] Sync error:', err.message);
+  }
+}
+
+/**
+ * Initialize MongoDB connection if MONGODB_URI is provided.
+ * Seamlessly syncs between MongoDB Atlas and in-memory cache.
+ */
+async function initMongo() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.log('🍃 [DataLayer] MONGODB_URI not set — operating in High-Speed Local JSON Storage mode.');
+    return false;
+  }
+
+  try {
+    console.log('🍃 [MongoDB Atlas] Connecting to cluster...');
+    mongoClient = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000
+    });
+    await mongoClient.connect();
+
+    // Extract database name from URI or default to 'churuone'
+    let dbName = 'churuone';
+    try {
+      const parsed = new URL(uri);
+      const extracted = parsed.pathname.replace(/^\//, '');
+      if (extracted) dbName = extracted;
+    } catch {}
+
+    mongoDb = mongoClient.db(dbName);
+    isMongoConnected = true;
+    console.log(`✅ [MongoDB Atlas] Connected successfully to database: "${dbName}"`);
+
+    // Sync data from MongoDB into cache, or seed local data into MongoDB
+    await syncMongoData();
+    return true;
+  } catch (err) {
+    console.error('❌ [MongoDB Atlas] Connection failed:', err.message);
+    console.warn('⚠️ [DataLayer] Operating in fallback local storage mode.');
+    isMongoConnected = false;
+    return false;
   }
 }
 
@@ -345,7 +480,9 @@ const DataLayer = {
   readPlatform,
   writePlatform,
   startFlushTimer,
-  stopFlushTimer
+  stopFlushTimer,
+  initMongo,
+  isMongoReady: () => isMongoConnected
 };
 
 export default DataLayer;
