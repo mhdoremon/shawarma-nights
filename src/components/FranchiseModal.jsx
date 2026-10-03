@@ -97,19 +97,19 @@ export default function FranchiseModal({ isOpen, onClose }) {
     <AnimatePresence>
       <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start justify-center p-2 sm:p-4 md:p-6">
         
-        {/* Main Clean Modal Container (Solid Crisp Card, Zero Blur) */}
+        {/* Main Clean Modal Container (Solid Crisp Elevated 3D Card, Zero Blur) */}
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.98 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-4xl bg-[#FFFBF7] border border-zinc-200 rounded-3xl shadow-2xl overflow-hidden my-4 sm:my-8 text-zinc-900"
+          className="relative w-full max-w-4xl bg-[#FFFBF7] rounded-[2.5rem] shadow-[0_30px_90px_-20px_rgba(0,0,0,0.35)] overflow-hidden my-4 sm:my-8 text-zinc-900"
         >
           
           {/* Top Header Bar */}
-          <div className="sticky top-0 z-20 bg-white border-b border-zinc-200 px-5 sm:px-8 py-4 flex items-center justify-between">
+          <div className="sticky top-0 z-20 bg-white shadow-xs px-5 sm:px-8 py-4.5 flex items-center justify-between border-b border-zinc-100">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#DC2626] text-white flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#DC2626] text-white flex items-center justify-center shadow-sm">
                 <Store className="w-4 h-4 stroke-[2.5]" />
               </div>
               <div>
@@ -136,9 +136,8 @@ export default function FranchiseModal({ isOpen, onClose }) {
             
             {/* HERO SECTION */}
             <div className="text-center max-w-2xl mx-auto space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-50 border border-red-200 text-[#DC2626] text-xs font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>EXPANSION PARTNERSHIP 2026</span>
+              <div className="inline-block bg-zinc-900 text-white px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm rotate-[-1deg]">
+                EXPANSION PARTNERSHIP 2026
               </div>
 
               <h1 className="text-3xl sm:text-5xl font-black text-zinc-900 tracking-tight leading-tight">
@@ -150,10 +149,10 @@ export default function FranchiseModal({ isOpen, onClose }) {
               </p>
             </div>
 
-            {/* 4 KEY METRICS (Crisp White Metric Cards) */}
+            {/* 4 KEY METRICS (Solid Elevated 3D Metric Cards, Zero Outline) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
                 <div className="w-8 h-8 rounded-xl bg-red-50 text-[#DC2626] flex items-center justify-center mb-3">
                   <DollarSign className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -162,7 +161,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">Low Initial Capex</div>
               </div>
 
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
                   <TrendingUp className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -171,7 +170,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">Fast Capital Recovery</div>
               </div>
 
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
                 <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
                   <Award className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -180,7 +179,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">High Daily Cash Flow</div>
               </div>
 
-              <div className="bg-white border border-zinc-200 rounded-2xl p-4 sm:p-5 shadow-xs">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
                 <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3">
                   <Clock className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -201,13 +200,13 @@ export default function FranchiseModal({ isOpen, onClose }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
                 
                 {/* Format 1: Express Kiosk */}
-                <div className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_18px_45px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col justify-between space-y-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-zinc-100 text-zinc-700 uppercase tracking-wider">
+                      <span className="text-xs font-black px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white uppercase tracking-wider">
                         FORMAT 1
                       </span>
-                      <span className="text-lg font-black text-[#DC2626]">₹3.5 Lakhs</span>
+                      <span className="text-xl font-black text-[#DC2626]">₹3.5 Lakhs</span>
                     </div>
 
                     <div>
@@ -237,7 +236,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       setFormData(prev => ({ ...prev, budget: '₹3.5 Lakhs (Express Kiosk)' }));
                       document.getElementById('franchise-form')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="w-full py-3 px-4 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-4 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     <span>Apply for Express Kiosk</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -245,17 +244,17 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Format 2: High Street Dine-in */}
-                <div className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_18px_45px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col justify-between space-y-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-[#DC2626] text-white text-[10px] font-black px-4 py-1 rounded-bl-xl uppercase tracking-wider">
                     FLAGSHIP
                   </div>
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold px-3 py-1 rounded-full bg-red-50 text-[#DC2626] uppercase tracking-wider">
+                      <span className="text-xs font-black px-3.5 py-1.5 rounded-xl bg-red-50 text-[#DC2626] uppercase tracking-wider">
                         FORMAT 2
                       </span>
-                      <span className="text-lg font-black text-[#DC2626]">₹6.5 Lakhs</span>
+                      <span className="text-xl font-black text-[#DC2626]">₹6.5 Lakhs</span>
                     </div>
 
                     <div>
@@ -285,7 +284,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       setFormData(prev => ({ ...prev, budget: '₹6.5 Lakhs (High-Street Cafe)' }));
                       document.getElementById('franchise-form')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="w-full py-3 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                    className="w-full py-3.5 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
                   >
                     <span>Apply for Flagship Cafe</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -337,7 +336,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 ].map((item, idx) => {
                   const Icon = item.icon;
                   return (
-                    <div key={idx} className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-xs space-y-2">
+                    <div key={idx} className="bg-white rounded-2xl p-5 shadow-[0_8px_25px_-5px_rgba(0,0,0,0.04)] space-y-2">
                       <div className="w-8 h-8 rounded-lg bg-red-50 text-[#DC2626] flex items-center justify-center">
                         <Icon className="w-4 h-4 stroke-[2.2]" />
                       </div>
@@ -350,7 +349,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
             </div>
 
             {/* INQUIRY FORM & DIRECT CALL SECTION */}
-            <div id="franchise-form" className="bg-white border border-zinc-200 rounded-3xl p-6 sm:p-10 shadow-xs space-y-8">
+            <div id="franchise-form" className="bg-white rounded-3xl p-6 sm:p-10 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.07)] space-y-8">
               
               <div className="text-center max-w-xl mx-auto space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">
@@ -413,7 +412,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                         placeholder="e.g. Rahul Sharma"
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:bg-white focus:border-[#DC2626] focus:outline-none transition-all"
+                        className="w-full px-4 py-3.5 rounded-2xl bg-[#FFFBF7] text-zinc-900 text-sm focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs"
                       />
                     </div>
 
@@ -428,7 +427,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                         placeholder="e.g. 7023963189"
                         value={formData.phone}
                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:bg-white focus:border-[#DC2626] focus:outline-none transition-all"
+                        className="w-full px-4 py-3.5 rounded-2xl bg-[#FFFBF7] text-zinc-900 text-sm focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs"
                       />
                     </div>
                   </div>
@@ -445,7 +444,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                         placeholder="e.g. Churu, Jaipur, Sikar"
                         value={formData.city}
                         onChange={e => setFormData({ ...formData, city: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:bg-white focus:border-[#DC2626] focus:outline-none transition-all"
+                        className="w-full px-4 py-3.5 rounded-2xl bg-[#FFFBF7] text-zinc-900 text-sm focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs"
                       />
                     </div>
 
@@ -457,7 +456,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       <select
                         value={formData.budget}
                         onChange={e => setFormData({ ...formData, budget: e.target.value })}
-                        className="w-full px-4 py-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:bg-white focus:border-[#DC2626] focus:outline-none transition-all cursor-pointer"
+                        className="w-full px-4 py-3.5 rounded-2xl bg-[#FFFBF7] text-zinc-900 text-sm focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all cursor-pointer shadow-xs"
                       >
                         <option value="₹3.5 Lakhs (Express Kiosk)">₹3.5 Lakhs (Express Kiosk)</option>
                         <option value="₹6.5 Lakhs (High-Street Cafe)">₹6.5 Lakhs (High-Street Cafe)</option>
@@ -467,7 +466,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                   </div>
 
                   {/* Prior Experience Toggle */}
-                  <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-[#FFFBF7] shadow-xs flex items-center justify-between">
                     <div>
                       <div className="text-xs font-bold text-zinc-900">Prior Food / Restaurant Experience?</div>
                       <div className="text-[11px] text-zinc-500">Not mandatory — we provide 100% training & SOPs</div>
@@ -476,8 +475,8 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, experience: false })}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                          !formData.experience ? 'bg-zinc-900 text-white' : 'bg-zinc-200 text-zinc-600'
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          !formData.experience ? 'bg-zinc-900 text-white shadow-xs' : 'bg-zinc-200 text-zinc-600'
                         }`}
                       >
                         No
@@ -485,8 +484,8 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, experience: true })}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                          formData.experience ? 'bg-[#DC2626] text-white' : 'bg-zinc-200 text-zinc-600'
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                          formData.experience ? 'bg-[#DC2626] text-white shadow-xs' : 'bg-zinc-200 text-zinc-600'
                         }`}
                       >
                         Yes
@@ -504,7 +503,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       placeholder="e.g. Have a 200 sq ft rented space on main market road..."
                       value={formData.notes}
                       onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full px-4 py-3 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-900 text-sm focus:bg-white focus:border-[#DC2626] focus:outline-none transition-all resize-none"
+                      className="w-full px-4 py-3 rounded-2xl bg-[#FFFBF7] text-zinc-900 text-sm focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all resize-none shadow-xs"
                     />
                   </div>
 
@@ -512,7 +511,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-4 px-6 rounded-full bg-[#DC2626] hover:bg-red-700 active:scale-[0.99] text-white font-black text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                    className="w-full py-4 px-6 rounded-full bg-[#DC2626] hover:bg-red-700 active:scale-[0.99] text-white font-black text-sm uppercase tracking-wider shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                   >
                     {isSubmitting ? (
                       <span>Submitting Application...</span>
@@ -557,11 +556,11 @@ export default function FranchiseModal({ isOpen, onClose }) {
 
           </div>
 
-          {/* Sticky Bottom Close Bar */}
-          <div className="bg-zinc-100 border-t border-zinc-200 px-6 py-3.5 text-center">
+          {/* Bottom Close Bar */}
+          <div className="bg-white border-t border-zinc-100 px-6 py-4 text-center">
             <button
               onClick={onClose}
-              className="text-xs font-bold text-zinc-600 hover:text-zinc-900 transition-colors uppercase tracking-wider"
+              className="text-xs font-black text-zinc-500 hover:text-[#DC2626] transition-colors uppercase tracking-wider cursor-pointer"
             >
               ← Back to Shawarma Nights Menu
             </button>
