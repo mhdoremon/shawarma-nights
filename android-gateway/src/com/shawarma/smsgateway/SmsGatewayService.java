@@ -118,12 +118,35 @@ public class SmsGatewayService extends Service {
         } catch (Exception ignored) {}
     }
 
+    public static String getConfiguredStoreId(Context context) {
+        if (context == null) return "shawarma";
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("dukandar_prefs", Context.MODE_PRIVATE);
+            String sid = prefs.getString("store_id", "shawarma").trim().toLowerCase();
+            return sid.isEmpty() ? "shawarma" : sid;
+        } catch (Exception e) {
+            return "shawarma";
+        }
+    }
+
+    public static void setConfiguredStoreId(Context context, String storeId) {
+        if (context == null || storeId == null || storeId.trim().isEmpty()) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("dukandar_prefs", Context.MODE_PRIVATE);
+            prefs.edit().putString("store_id", storeId.trim().toLowerCase()).apply();
+            if (instance != null) {
+                instance.reconnectNow();
+            }
+        } catch (Exception ignored) {}
+    }
+
     public static String[] getHostBases() {
         return new String[] { "https://churuone-backend.onrender.com" };
     }
 
     private String[] getServerUrls() {
-        return new String[] { "wss://churuone-backend.onrender.com/gateway?storeId=shawarma" };
+        String storeId = getConfiguredStoreId(this);
+        return new String[] { "wss://churuone-backend.onrender.com/gateway?storeId=" + storeId };
     }
 
     public void reconnectNow() {
@@ -320,6 +343,7 @@ public class SmsGatewayService extends Service {
                     conn.setConnectTimeout(2500);
                     conn.setReadTimeout(2500);
                     conn.setRequestMethod("GET");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(this));
                     if (conn.getResponseCode() == 200) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         StringBuilder sb = new StringBuilder();
@@ -342,6 +366,7 @@ public class SmsGatewayService extends Service {
                     conn.setConnectTimeout(2500);
                     conn.setReadTimeout(2500);
                     conn.setRequestMethod("GET");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(this));
                     if (conn.getResponseCode() == 200) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         StringBuilder sb = new StringBuilder();
@@ -812,6 +837,7 @@ public class SmsGatewayService extends Service {
                     conn.setReadTimeout(3000);
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(instance != null ? instance : null));
                     conn.setDoOutput(true);
                     OutputStream os = conn.getOutputStream();
                     os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
@@ -837,6 +863,7 @@ public class SmsGatewayService extends Service {
                     conn.setConnectTimeout(3000);
                     conn.setReadTimeout(3000);
                     conn.setRequestMethod("DELETE");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(instance != null ? instance : null));
                     int code = conn.getResponseCode();
                     if (code >= 200 && code < 300) {
                         Log.i(TAG, "REST delete success: " + path + " on " + base);

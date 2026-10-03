@@ -2841,6 +2841,64 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         sub.setPadding(0, dp(2), 0, dp(14));
         container.addView(sub);
 
+        // Active Store & Dukan Switcher Card
+        LinearLayout storeCard = new LinearLayout(this);
+        storeCard.setOrientation(LinearLayout.VERTICAL);
+        storeCard.setBackgroundResource(theme.resCardBg);
+        storeCard.setPadding(dp(16), dp(16), dp(16), dp(16));
+        LinearLayout.LayoutParams storeCardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        storeCardLp.bottomMargin = dp(14);
+        storeCard.setLayoutParams(storeCardLp);
+
+        TextView scTitle = new TextView(this);
+        scTitle.setText("🏪 ACTIVE DUKAN / STORE ID");
+        scTitle.setTextSize(12);
+        scTitle.setTypeface(null, Typeface.BOLD);
+        scTitle.setTextColor(Color.parseColor("#DC2626"));
+        storeCard.addView(scTitle);
+
+        final String activeSid = SmsGatewayService.getConfiguredStoreId(this);
+        TextView scSub = new TextView(this);
+        scSub.setText("Connected Store: [" + activeSid + "] | Website & Orders synced to this ID");
+        scSub.setTextSize(13);
+        scSub.setTextColor(theme.colorTextSecondary);
+        scSub.setPadding(0, dp(4), 0, dp(12));
+        storeCard.addView(scSub);
+
+        Button switchStoreBtn = new Button(this);
+        switchStoreBtn.setText("🔄 SWITCH DUKAN / STORE ID (बदलें)");
+        switchStoreBtn.setTextSize(13);
+        switchStoreBtn.setTypeface(null, Typeface.BOLD);
+        switchStoreBtn.setTextColor(Color.WHITE);
+        switchStoreBtn.setBackgroundResource(R.drawable.bg_button_blue);
+        switchStoreBtn.setPadding(0, dp(12), 0, dp(12));
+
+        switchStoreBtn.setOnClickListener(v -> {
+            AlertDialog.Builder b = new AlertDialog.Builder(this);
+            b.setTitle("🏪 Switch Store / Dukan ID");
+            b.setMessage("Enter the Store ID of the shop you want to manage (e.g. shawarma, pizza, fashion):");
+
+            final EditText input = new EditText(this);
+            input.setText(activeSid);
+            input.setHint("store id (lowercase)");
+            input.setPadding(dp(16), dp(12), dp(16), dp(12));
+            b.setView(input);
+
+            b.setPositiveButton("Switch & Connect", (diag, which) -> {
+                String newSid = input.getText().toString().trim().toLowerCase();
+                if (newSid.isEmpty()) newSid = "shawarma";
+                SmsGatewayService.setConfiguredStoreId(MainActivity.this, newSid);
+                Toast.makeText(MainActivity.this, "Switched to Store: " + newSid, Toast.LENGTH_SHORT).show();
+                SmsGatewayService.triggerRefresh();
+                renderSettingsTab();
+            });
+            b.setNegativeButton("Cancel", null);
+            b.show();
+        });
+
+        storeCard.addView(switchStoreBtn);
+        container.addView(storeCard);
+
         // Appearance & Display Theme Card
         LinearLayout themeCard = new LinearLayout(this);
         themeCard.setOrientation(LinearLayout.VERTICAL);
@@ -4371,6 +4429,10 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             note.setPadding(0, dp(4), 0, dp(12));
             card.addView(note);
 
+            String currStore = SmsGatewayService.getConfiguredStoreId(this);
+            EditText storeIdIn = createLabeledInput(card, "STORE ID / DUKAN CODE (UNIQUE, NO SPACES)", currStore);
+            storeIdIn.setHint("e.g. shawarma, pizza, fashion");
+
             EditText dukanIn = createLabeledInput(card, "DUKAN / RESTAURANT NAME", dukanName != null && !dukanName.isEmpty() ? dukanName : "Shawarma Nights");
             EditText userIn = createLabeledInput(card, "MASTER USERNAME / ID", "");
             userIn.setHint("e.g. admin or owner name");
@@ -4408,6 +4470,11 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             setupBtn.setLayoutParams(bp);
 
             setupBtn.setOnClickListener(v -> {
+                String targetSid = storeIdIn.getText().toString().trim().toLowerCase();
+                if (targetSid.isEmpty()) targetSid = "shawarma";
+                final String sId = targetSid;
+                SmsGatewayService.setConfiguredStoreId(MainActivity.this, sId);
+
                 String dName = dukanIn.getText().toString().trim();
                 String uName = userIn.getText().toString().trim();
                 String phone = phoneIn.getText().toString().trim();
@@ -4454,6 +4521,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                                     .putBoolean("is_admin_logged_in", true)
                                     .putBoolean("is_delivery_logged_in", false)
                                     .putString("user_role", "dukandar")
+                                    .putString("store_id", sId)
                                     .putString("admin_username", resp.optString("username", uName))
                                     .putString("admin_dukan_name", resp.optString("dukanName", dName))
                                     .putString("admin_token", resp.optString("token", ""))
@@ -4492,6 +4560,10 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             subtitle.setPadding(0, dp(4), 0, dp(12));
             card.addView(subtitle);
 
+            String currStore = SmsGatewayService.getConfiguredStoreId(this);
+            EditText loginStoreIn = createLabeledInput(card, "STORE ID / DUKAN CODE", currStore);
+            loginStoreIn.setHint("e.g. shawarma, pizza (default: shawarma)");
+
             EditText loginUserIn = createLabeledInput(card, "USERNAME / DUKAN ID / PHONE", "");
             loginUserIn.setHint("Master Username ya Mobile Number");
             EditText loginPassIn = createLabeledInput(card, "MASTER PASSWORD", "");
@@ -4522,6 +4594,11 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             loginBtn.setLayoutParams(bp);
 
             loginBtn.setOnClickListener(v -> {
+                String inputStore = loginStoreIn.getText().toString().trim().toLowerCase();
+                if (inputStore.isEmpty()) inputStore = "shawarma";
+                final String sId = inputStore;
+                SmsGatewayService.setConfiguredStoreId(MainActivity.this, sId);
+
                 String uName = loginUserIn.getText().toString().trim();
                 String pwd = loginPassIn.getText().toString();
 
@@ -4550,6 +4627,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                                     .putBoolean("is_admin_logged_in", true)
                                     .putBoolean("is_delivery_logged_in", false)
                                     .putString("user_role", "dukandar")
+                                    .putString("store_id", sId)
                                     .putString("admin_username", returnedUser)
                                     .putString("admin_dukan_name", returnedDukan)
                                     .putString("admin_token", resp.optString("token", ""))
@@ -5335,7 +5413,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         conn.setReadTimeout(15000);
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("User-Agent", "ShawarmaDukandar/5.0 (Android)");
-        conn.setRequestProperty("X-Store-Id", "shawarma");
+        conn.setRequestProperty("X-Store-Id", SmsGatewayService.getConfiguredStoreId(this));
         if (jsonBody != null) {
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
