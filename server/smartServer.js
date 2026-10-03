@@ -64,7 +64,7 @@ if (fs.existsSync(distDir)) {
 }
 
 // ─── Health Check (no tenant needed) ──────────────────────────
-app.get(['/', '/healthz', '/api/health'], (req, res) => {
+app.get(['/healthz', '/api/health'], (req, res) => {
   const stores = DataLayer.listStoreIds();
   const wsStats = WebSocketHub.getStats();
   res.json({
