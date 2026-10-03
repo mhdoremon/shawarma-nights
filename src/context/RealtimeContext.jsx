@@ -50,6 +50,22 @@ export function RealtimeProvider({ children }) {
       youtube: ''
     }
   });
+  const [franchise, setFranchise] = useState({
+    enabled: true,
+    brandName: 'Shawarma Nights',
+    tagline: 'Artisanal Charcoal Spit Kitchen Franchise',
+    headline: 'Own A Shawarma Nights In Your City',
+    subheadline: "Join India's fastest growing artisanal charcoal shawarma network. Proven high-volume unit economics, turnkey kitchen setup, and 100% proprietary spice & sauce supply.",
+    investmentRange: '₹3.5 Lakhs – ₹6.5 Lakhs',
+    roiMonths: '3 to 6 Months',
+    grossMargin: '50% – 60%',
+    setupDays: '14 Days',
+    directPhone: '7023963189',
+    whatsappPhone: '917023963189',
+    brochureUrl: '',
+    highlights: [],
+    models: []
+  });
   const [reviews, setReviews] = useState([]);
   const [lastPaymentConfirmed, setLastPaymentConfirmed] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -186,6 +202,7 @@ export function RealtimeProvider({ children }) {
         if (data.heroBanner) setHeroBanner(data.heroBanner);
         if (data.storeInfo) setStoreInfo(data.storeInfo);
         if (data.reviews) setReviews(data.reviews);
+        if (data.franchise) setFranchise(data.franchise);
         // Cache fresh data for microsecond loading next time
         try { localStorage.setItem('sn_cache_data_v2', JSON.stringify(data)); } catch(e) {}
       })
@@ -209,6 +226,14 @@ export function RealtimeProvider({ children }) {
         if (payload.heroBanner) setHeroBanner(payload.heroBanner);
         if (payload.storeInfo) setStoreInfo(payload.storeInfo);
         if (payload.reviews) setReviews(payload.reviews);
+        if (payload.franchise) setFranchise(payload.franchise);
+        break;
+
+      case 'FRANCHISE_CONFIG_UPDATED':
+        if (payload) {
+          setFranchise(payload);
+          showToast('Live: Franchise details update hui!');
+        }
         break;
 
       case 'MENU_UPDATED':
@@ -572,6 +597,19 @@ export function RealtimeProvider({ children }) {
     }
   };
 
+  const submitFranchiseInquiry = async (inquiryData) => {
+    try {
+      const res = await fetch(`${API_URL}/api/franchise/inquire`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(inquiryData)
+      });
+      return await res.json();
+    } catch (err) {
+      return { success: false, message: err.message || 'Failed to submit inquiry' };
+    }
+  };
+
   return (
     <RealtimeContext.Provider
       value={{
@@ -581,6 +619,8 @@ export function RealtimeProvider({ children }) {
         categories,
         heroBanner,
         storeInfo,
+        franchise,
+        submitFranchiseInquiry,
         reviews,
         stats,
         isConnected,

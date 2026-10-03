@@ -1,10 +1,10 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag, User } from 'lucide-react';
+import { ShoppingBag, User, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function Navbar() {
+export default function Navbar({ onOpenFranchise }) {
   const { 
     itemsCount, 
     grandTotal, 
@@ -58,6 +58,16 @@ export default function Navbar() {
 
         {/* RIGHT: Login / User Profile Button (Solid White Pill, matching Bag button!) */}
         <div className="flex items-center justify-end flex-1">
+
+          {/* FRANCHISE QUICK BUTTON */}
+          <button
+            onClick={onOpenFranchise}
+            className="flex items-center gap-1.5 px-3 py-2 sm:py-2.5 rounded-full bg-white/15 hover:bg-white text-white hover:text-[#DC2626] font-extrabold text-xs shadow-xs hover:shadow-md transition-all cursor-pointer whitespace-nowrap mr-2 border border-white/25 active:scale-95"
+            title="Own a Shawarma Nights Franchise"
+          >
+            <Store className="w-3.5 h-3.5 stroke-[2.2]" />
+            <span className="hidden xs:inline sm:inline">Franchise ↗</span>
+          </button>
 
           {isAuthenticated ? (
             <button

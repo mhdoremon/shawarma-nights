@@ -33,6 +33,7 @@ import commsRoutes from './modules/communications/comms.routes.js';
 import tenantRoutes from './modules/tenant/tenant.routes.js';
 import mediaRoutes from './modules/media/media.routes.js';
 import gatewayRoutes from './modules/gateway/gateway.routes.js';
+import franchiseRoutes from './modules/franchise/franchise.routes.js';
 import { enrichCustomersWithOrderStats } from './utils/helpers.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -111,6 +112,8 @@ app.use('/api/comms', commsRoutes);
 app.use('/api', mediaRoutes);
 // Gateway: routes have /status → mount at /api/gateway
 app.use('/api/gateway', gatewayRoutes);
+// Franchise: routes have /franchise/*, /admin/franchise/* → mount at /api
+app.use('/api', franchiseRoutes);
 // Store Info & Hero (from tenant module): routes have /store-info, /hero
 import { storeInfoRouter } from './modules/tenant/tenant.routes.js';
 app.use('/api', storeInfoRouter);
@@ -125,6 +128,7 @@ app.get('/api/data', (req, res) => {
   const reviews = DataLayer.read(storeId, 'reviews') || [];
   const rawCustomers = DataLayer.read(storeId, 'customers') || [];
   const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
+  const franchiseData = DataLayer.read(storeId, 'franchise') || {};
 
   res.json({
     menu: menuData.menu || [],
@@ -133,6 +137,7 @@ app.get('/api/data', (req, res) => {
     deals,
     reviews,
     customers,
+    franchise: franchiseData.config || {},
     heroBanner: storeConfig?.heroBanner || {},
     storeInfo: {
       ...(storeConfig?.settings || {}),

@@ -11,13 +11,14 @@ import {
   Youtube, 
   Phone,
   ExternalLink,
-  Navigation
+  Navigation,
+  Store
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 
-export default function Footer() {
+export default function Footer({ onOpenFranchise }) {
   const { storeInfo } = useRealtimeDB();
 
   // Dynamic Dukandar Data with robust fallbacks
@@ -187,6 +188,17 @@ export default function Footer() {
                     <Youtube className="w-4 h-4" />
                   </a>
                 )}
+              </div>
+
+              {/* Own a Franchise Quick Link */}
+              <div className="pt-2">
+                <button
+                  onClick={onOpenFranchise}
+                  className="w-full py-2.5 px-4 rounded-full bg-zinc-50 hover:bg-red-50 text-zinc-800 hover:text-[#DC2626] border border-zinc-200 hover:border-red-200 font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
+                >
+                  <Store className="w-3.5 h-3.5 text-[#DC2626]" />
+                  <span>Own a Franchise / Partner With Us ↗</span>
+                </button>
               </div>
             </div>
           </div>

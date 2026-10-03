@@ -1,0 +1,74 @@
+{
+  "config": {
+    "enabled": true,
+    "brandName": "Shawarma Nights",
+    "tagline": "Artisanal Charcoal Spit Kitchen Franchise",
+    "headline": "Own A Shawarma Nights In Your City",
+    "subheadline": "Join India's fastest growing artisanal charcoal shawarma network. Proven high-volume unit economics, turnkey kitchen setup, and 100% proprietary spice & sauce supply.",
+    "investmentRange": "₹3.5 Lakhs – ₹6.5 Lakhs",
+    "roiMonths": "3 to 6 Months",
+    "grossMargin": "50% – 60%",
+    "setupDays": "14 Days",
+    "directPhone": "7023963189",
+    "whatsappPhone": "917023963189",
+    "brochureUrl": "",
+    "highlights": [
+      {
+        "title": "Turnkey Kitchen Setup",
+        "desc": "Complete layout, custom heavy-duty charcoal rotisserie spit, extraction hood, and commercial kitchen equipment delivered."
+      },
+      {
+        "title": "Proprietary Spice & Sauce Supply",
+        "desc": "Centralized secret marination spices, garlic toum base, and signature pickles supplied directly to maintain 100% taste consistency."
+      },
+      {
+        "title": "Chef & Staff Training",
+        "desc": "7-day intensive culinary training for pitmasters and counter staff with standardized recipes and portion controls."
+      },
+      {
+        "title": "Smart POS & Delivery Integration",
+        "desc": "Pre-configured smart billing POS, SMS gateway notifications, and automated multi-channel delivery aggregator onboarding."
+      },
+      {
+        "title": "Zero Royalty on Initial Growth",
+        "desc": "Transparent low fixed fees or zero royalty in initial months so you recoup your investment capital at lightning speed."
+      },
+      {
+        "title": "Grand Opening & Local Marketing",
+        "desc": "Hyperlocal social media campaigns, influencer seeding, and launch collateral provided for a packed day-1 opening."
+      }
+    ],
+    "models": [
+      {
+        "id": "model_express",
+        "name": "Express Kiosk / Cloud Outpost",
+        "space": "120 – 250 Sq Ft",
+        "investment": "₹3.5 Lakhs",
+        "idealFor": "High-footfall markets, food courts, midnight takeaway & online delivery hubs.",
+        "dailyCapacity": "200+ Rolls / Day",
+        "features": [
+          "Minimal staff required (2 people)",
+          "Compact heavy-duty charcoal rotisserie",
+          "Lowest commercial rent overhead",
+          "Fastest breakeven (90 to 120 days)"
+        ]
+      },
+      {
+        "id": "model_cafe",
+        "name": "High-Street Dine-In Cafe",
+        "space": "350 – 800 Sq Ft",
+        "investment": "₹6.5 Lakhs",
+        "idealFor": "Prominent high streets, college & youth hubs, family dining with live charcoal theater.",
+        "dailyCapacity": "500+ Rolls & Platters / Day",
+        "features": [
+          "Live charcoal spit visible kitchen",
+          "Seating for 16 to 32 guests",
+          "Expanded menu with loaded fries, platters & shakes",
+          "Highest average order value (AOV)"
+        ]
+      }
+    ],
+    "updatedAt": "2026-10-04T02:30:00.000Z"
+  },
+  "inquiries": []
+}

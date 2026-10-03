@@ -52,6 +52,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -173,12 +174,12 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     private LocationListener locationListener = null;
 
 
-    // 8 Tab Containers
-    private ScrollView[] tabScrollViews = new ScrollView[8];
-    private LinearLayout[] tabContainers = new LinearLayout[8];
+    // 9 Tab Containers (0: DASHBOARD, 1: ORDERS, 2: MENU, 3: OFFERS, 4: CUSTOMERS, 5: REVIEWS, 6: SMS, 7: FRANCHISE, 8: SETTINGS)
+    private ScrollView[] tabScrollViews = new ScrollView[9];
+    private LinearLayout[] tabContainers = new LinearLayout[9];
 
     // Navigation Tab Chips
-    private TextView[] navChipButtons = new TextView[8];
+    private TextView[] navChipButtons = new TextView[9];
 
     // Dish & Hero Photo Upload Selectors
     private static final int REQ_PICK_DISH_IMAGE = 101;
@@ -497,8 +498,8 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1.0f);
         contentFrame.setLayoutParams(contentParams);
 
-        // Initialize 8 tab scroll containers
-        for (int i = 0; i < 8; i++) {
+        // Initialize 9 tab scroll containers
+        for (int i = 0; i < 9; i++) {
             ScrollView sv = new ScrollView(this);
             sv.setLayoutParams(new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
@@ -649,10 +650,11 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
                 "CUSTOMERS",
                 "REVIEWS",
                 "SMS GATEWAY",
+                "FRANCHISE",
                 "SETTINGS"
         };
 
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 9; i++) {
             final int index = i;
             TextView chip = new TextView(this);
             chip.setText(titles[i]);
@@ -675,7 +677,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     }
 
     private void updateNavChipsTheme() {
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 9; i++) {
             if (navChipButtons[i] == null) continue;
             boolean active = (i == currentTab);
             if (active) {
@@ -691,7 +693,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     private void switchTab(int tabIndex) {
         currentTab = tabIndex;
 
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 9; i++) {
             boolean active = (i == tabIndex);
             tabScrollViews[i].setVisibility(active ? View.VISIBLE : View.GONE);
         }
@@ -708,7 +710,8 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             case 4: renderCustomersTab(); break;
             case 5: renderReviewsTab(); break;
             case 6: renderSmsTab(); break;
-            case 7: renderSettingsTab(); break;
+            case 7: renderFranchiseTab(); break;
+            case 8: renderSettingsTab(); break;
         }
     }
 
@@ -3265,11 +3268,392 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
     }
 
     // ==========================================
-    // TAB 7: STORE SETTINGS & BRAND INFO
+    // TAB 7: FRANCHISE & EXPANSION LEADS
+    // ==========================================
+
+    private void renderFranchiseTab() {
+        LinearLayout container = tabContainers[7];
+        container.removeAllViews();
+
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView title = new TextView(this);
+        title.setText("FRANCHISE & EXPANSION (" + SmsGatewayService.franchiseInquiriesList.size() + ")");
+        title.setTextSize(16);
+        title.setTypeface(null, Typeface.BOLD);
+        title.setTextColor(theme.colorTextPrimary);
+        title.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        titleRow.addView(title);
+
+        Button syncBtn = new Button(this);
+        syncBtn.setText("SYNC");
+        syncBtn.setTextSize(11);
+        syncBtn.setTypeface(null, Typeface.BOLD);
+        syncBtn.setTextColor(Color.WHITE);
+        syncBtn.setBackgroundResource(R.drawable.bg_button_red);
+        syncBtn.setPadding(dp(12), dp(4), dp(12), dp(4));
+        syncBtn.setOnClickListener(v -> {
+            SmsGatewayService.triggerFranchiseSync();
+            Toast.makeText(this, "Refreshing franchise inquiries...", Toast.LENGTH_SHORT).show();
+            renderFranchiseTab();
+        });
+        titleRow.addView(syncBtn);
+        container.addView(titleRow);
+
+        TextView sub = new TextView(this);
+        sub.setText("Manage franchise inquiries, expansion settings & investor applications");
+        sub.setTextSize(11);
+        sub.setTextColor(theme.colorTextSecondary);
+        sub.setPadding(0, dp(2), 0, dp(12));
+        container.addView(sub);
+
+        // 1. Franchise Configuration & Live Overview Card
+        JSONObject franchise = SmsGatewayService.franchiseObj;
+        boolean isEnabled = franchise != null ? franchise.optBoolean("enabled", true) : true;
+        String brandName = franchise != null ? franchise.optString("brandName", "Shawarma Nights") : "Shawarma Nights";
+        String tagline = franchise != null ? franchise.optString("tagline", "Artisanal Charcoal Spit Kitchen") : "Artisanal Charcoal Spit Kitchen";
+        String invRange = franchise != null ? franchise.optString("investmentRange", "₹3.5L – ₹6.5L") : "₹3.5L – ₹6.5L";
+        String roi = franchise != null ? franchise.optString("roiMonths", "3 to 6 Months") : "3 to 6 Months";
+        String margin = franchise != null ? franchise.optString("grossMargin", "50% – 60%") : "50% – 60%";
+        String phone = franchise != null ? franchise.optString("directPhone", "7023963189") : "7023963189";
+
+        LinearLayout cfgCard = new LinearLayout(this);
+        cfgCard.setOrientation(LinearLayout.VERTICAL);
+        cfgCard.setBackgroundResource(theme.resCardBg);
+        cfgCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        clp.bottomMargin = dp(14);
+        cfgCard.setLayoutParams(clp);
+
+        LinearLayout cfgTop = new LinearLayout(this);
+        cfgTop.setOrientation(LinearLayout.HORIZONTAL);
+        cfgTop.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView brandTv = new TextView(this);
+        brandTv.setText(brandName + " Franchise");
+        brandTv.setTextSize(14);
+        brandTv.setTypeface(null, Typeface.BOLD);
+        brandTv.setTextColor(theme.colorTextPrimary);
+        brandTv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        cfgTop.addView(brandTv);
+
+        TextView statusBadge = new TextView(this);
+        statusBadge.setText(isEnabled ? "LIVE ON WEBSITE" : "PAUSED / HIDDEN");
+        statusBadge.setTextSize(10);
+        statusBadge.setTypeface(null, Typeface.BOLD);
+        statusBadge.setTextColor(isEnabled ? Color.parseColor("#10B981") : Color.parseColor("#EF4444"));
+        statusBadge.setBackgroundResource(theme.resPillGray);
+        statusBadge.setPadding(dp(8), dp(3), dp(8), dp(3));
+        cfgTop.addView(statusBadge);
+        cfgCard.addView(cfgTop);
+
+        TextView tagTv = new TextView(this);
+        tagTv.setText(tagline);
+        tagTv.setTextSize(11);
+        tagTv.setTextColor(theme.colorTextSecondary);
+        tagTv.setPadding(0, dp(4), 0, dp(8));
+        cfgCard.addView(tagTv);
+
+        LinearLayout statsRow = new LinearLayout(this);
+        statsRow.setOrientation(LinearLayout.HORIZONTAL);
+        statsRow.setPadding(0, dp(4), 0, dp(8));
+
+        TextView s1 = new TextView(this);
+        s1.setText("Investment: " + invRange + "\nMargin: " + margin);
+        s1.setTextSize(11);
+        s1.setTextColor(theme.colorTextSecondary);
+        s1.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        statsRow.addView(s1);
+
+        TextView s2 = new TextView(this);
+        s2.setText("ROI: " + roi + "\nHelpline: +91 " + phone);
+        s2.setTextSize(11);
+        s2.setTextColor(theme.colorTextSecondary);
+        s2.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        statsRow.addView(s2);
+        cfgCard.addView(statsRow);
+
+        Button editCfgBtn = new Button(this);
+        editCfgBtn.setText("EDIT FRANCHISE OFFER / PRICING");
+        editCfgBtn.setTextSize(11);
+        editCfgBtn.setTypeface(null, Typeface.BOLD);
+        editCfgBtn.setTextColor(theme.colorTextPrimary);
+        editCfgBtn.setBackgroundResource(theme.resOutlineBtn);
+        editCfgBtn.setPadding(0, dp(8), 0, dp(8));
+        LinearLayout.LayoutParams ecp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        ecp.topMargin = dp(6);
+        editCfgBtn.setLayoutParams(ecp);
+        editCfgBtn.setOnClickListener(v -> showEditFranchiseDialog());
+        cfgCard.addView(editCfgBtn);
+
+        container.addView(cfgCard);
+
+        // 2. Inquiries / Leads Section
+        TextView inqHeader = new TextView(this);
+        inqHeader.setText("APPLICANT LEADS & APPLICATIONS");
+        inqHeader.setTextSize(13);
+        inqHeader.setTypeface(null, Typeface.BOLD);
+        inqHeader.setTextColor(theme.colorTextSecondary);
+        inqHeader.setPadding(0, dp(4), 0, dp(8));
+        container.addView(inqHeader);
+
+        List<JSONObject> inquiries = SmsGatewayService.franchiseInquiriesList;
+        if (inquiries.isEmpty()) {
+            LinearLayout emptyCard = new LinearLayout(this);
+            emptyCard.setOrientation(LinearLayout.VERTICAL);
+            emptyCard.setBackgroundResource(theme.resCardBg);
+            emptyCard.setPadding(dp(20), dp(24), dp(20), dp(24));
+            emptyCard.setGravity(Gravity.CENTER);
+
+            TextView emptyTitle = new TextView(this);
+            emptyTitle.setText("No Franchise Applications Yet");
+            emptyTitle.setTextSize(14);
+            emptyTitle.setTypeface(null, Typeface.BOLD);
+            emptyTitle.setTextColor(theme.colorTextPrimary);
+            emptyTitle.setGravity(Gravity.CENTER);
+            emptyCard.addView(emptyTitle);
+
+            TextView emptySub = new TextView(this);
+            emptySub.setText("When visitors submit inquiries on your website, their contact details and investment preferences will appear here instantly.");
+            emptySub.setTextSize(11);
+            emptySub.setTextColor(theme.colorTextSecondary);
+            emptySub.setGravity(Gravity.CENTER);
+            emptySub.setPadding(0, dp(6), 0, 0);
+            emptyCard.addView(emptySub);
+
+            container.addView(emptyCard);
+        } else {
+            for (int i = 0; i < inquiries.size(); i++) {
+                final JSONObject inq = inquiries.get(i);
+                final String inqId = inq.optString("id", "inq-" + i);
+                final String inqName = inq.optString("name", "Applicant");
+                final String inqPhone = inq.optString("phone", "");
+                final String inqCity = inq.optString("city", "N/A");
+                final String inqModel = inq.optString("preferredModel", "Express Kiosk");
+                final String inqBudget = inq.optString("budget", "N/A");
+                final String inqTimeline = inq.optString("timeline", "N/A");
+                final String inqExp = inq.optString("foodExperience", "");
+                final String inqMsg = inq.optString("message", "");
+                final String inqStatus = inq.optString("status", "new").toLowerCase();
+                final String inqDate = inq.optString("createdAt", "");
+
+                LinearLayout iCard = new LinearLayout(this);
+                iCard.setOrientation(LinearLayout.VERTICAL);
+                iCard.setBackgroundResource(theme.resCardBg);
+                iCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+                LinearLayout.LayoutParams iclp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                iclp.bottomMargin = dp(12);
+                iCard.setLayoutParams(iclp);
+
+                LinearLayout iTop = new LinearLayout(this);
+                iTop.setOrientation(LinearLayout.HORIZONTAL);
+                iTop.setGravity(Gravity.CENTER_VERTICAL);
+
+                TextView nTv = new TextView(this);
+                nTv.setText(inqName);
+                nTv.setTextSize(14);
+                nTv.setTypeface(null, Typeface.BOLD);
+                nTv.setTextColor(theme.colorTextPrimary);
+                nTv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+                iTop.addView(nTv);
+
+                TextView sBadge = new TextView(this);
+                sBadge.setText(inqStatus.toUpperCase());
+                sBadge.setTextSize(10);
+                sBadge.setTypeface(null, Typeface.BOLD);
+                if ("approved".equals(inqStatus)) {
+                    sBadge.setTextColor(Color.parseColor("#10B981"));
+                } else if ("contacted".equals(inqStatus)) {
+                    sBadge.setTextColor(Color.parseColor("#3B82F6"));
+                } else if ("rejected".equals(inqStatus)) {
+                    sBadge.setTextColor(Color.parseColor("#EF4444"));
+                } else {
+                    sBadge.setTextColor(Color.parseColor("#F59E0B"));
+                }
+                sBadge.setBackgroundResource(theme.resPillGray);
+                sBadge.setPadding(dp(8), dp(3), dp(8), dp(3));
+                iTop.addView(sBadge);
+                iCard.addView(iTop);
+
+                TextView locTv = new TextView(this);
+                locTv.setText("City: " + inqCity + "  |  Model: " + inqModel);
+                locTv.setTextSize(12);
+                locTv.setTextColor(theme.colorTextSecondary);
+                locTv.setPadding(0, dp(4), 0, dp(2));
+                iCard.addView(locTv);
+
+                TextView bTv = new TextView(this);
+                bTv.setText("Budget: " + inqBudget + "  |  Timeline: " + inqTimeline);
+                bTv.setTextSize(11);
+                bTv.setTextColor(theme.colorTextSecondary);
+                bTv.setPadding(0, 0, 0, dp(2));
+                iCard.addView(bTv);
+
+                if (!inqExp.isEmpty()) {
+                    TextView expTv = new TextView(this);
+                    expTv.setText("Experience: " + inqExp);
+                    expTv.setTextSize(11);
+                    expTv.setTextColor(theme.colorTextMuted);
+                    expTv.setPadding(0, 0, 0, dp(2));
+                    iCard.addView(expTv);
+                }
+                if (!inqMsg.isEmpty()) {
+                    TextView mTv = new TextView(this);
+                    mTv.setText("Message: " + inqMsg);
+                    mTv.setTextSize(11);
+                    mTv.setTextColor(theme.colorTextMuted);
+                    mTv.setPadding(0, 0, 0, dp(2));
+                    iCard.addView(mTv);
+                }
+
+                TextView cTv = new TextView(this);
+                cTv.setText("Phone: +91 " + inqPhone + (!inqDate.isEmpty() ? "  •  " + inqDate : ""));
+                cTv.setTextSize(11);
+                cTv.setTextColor(theme.colorTextMuted);
+                cTv.setPadding(0, 0, 0, dp(8));
+                iCard.addView(cTv);
+
+                View divider = new View(this);
+                divider.setBackgroundColor(theme.colorDivider);
+                LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+                dlp.setMargins(0, dp(2), 0, dp(8));
+                divider.setLayoutParams(dlp);
+                iCard.addView(divider);
+
+                LinearLayout actRow = new LinearLayout(this);
+                actRow.setOrientation(LinearLayout.HORIZONTAL);
+                actRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                Button callBtn = new Button(this);
+                callBtn.setText("CALL");
+                callBtn.setTextSize(11);
+                callBtn.setTypeface(null, Typeface.BOLD);
+                callBtn.setTextColor(Color.parseColor("#10B981"));
+                callBtn.setBackgroundResource(theme.resOutlineBtn);
+                callBtn.setPadding(dp(12), dp(4), dp(12), dp(4));
+                LinearLayout.LayoutParams callLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+                callLp.rightMargin = dp(6);
+                callBtn.setLayoutParams(callLp);
+                callBtn.setOnClickListener(v -> {
+                    try {
+                        Intent dial = new Intent(Intent.ACTION_DIAL);
+                        dial.setData(Uri.parse("tel:" + inqPhone));
+                        startActivity(dial);
+                    } catch (Exception ignored) {}
+                });
+                actRow.addView(callBtn);
+
+                Button waBtn = new Button(this);
+                waBtn.setText("WHATSAPP");
+                waBtn.setTextSize(11);
+                waBtn.setTypeface(null, Typeface.BOLD);
+                waBtn.setTextColor(Color.parseColor("#25D366"));
+                waBtn.setBackgroundResource(theme.resOutlineBtn);
+                waBtn.setPadding(dp(12), dp(4), dp(12), dp(4));
+                LinearLayout.LayoutParams waLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+                waLp.rightMargin = dp(6);
+                waBtn.setLayoutParams(waLp);
+                waBtn.setOnClickListener(v -> {
+                    try {
+                        String clean = inqPhone.replaceAll("[^0-9]", "");
+                        if (!clean.startsWith("91") && clean.length() == 10) clean = "91" + clean;
+                        String text = "Hello " + inqName + ", thank you for showing interest in a Shawarma Nights franchise. Let's discuss your location and setup!";
+                        String url = "https://api.whatsapp.com/send?phone=" + clean + "&text=" + URLEncoder.encode(text, "UTF-8");
+                        Intent waIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(waIntent);
+                    } catch (Exception ignored) {}
+                });
+                actRow.addView(waBtn);
+
+                Button statBtn = new Button(this);
+                statBtn.setText("STATUS");
+                statBtn.setTextSize(11);
+                statBtn.setTypeface(null, Typeface.BOLD);
+                statBtn.setTextColor(theme.colorTextPrimary);
+                statBtn.setBackgroundResource(theme.resOutlineBtn);
+                statBtn.setPadding(dp(12), dp(4), dp(12), dp(4));
+                LinearLayout.LayoutParams statLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
+                statBtn.setLayoutParams(statLp);
+                statBtn.setOnClickListener(v -> {
+                    String[] opts = new String[] { "New", "Contacted", "Approved", "Rejected" };
+                    AlertDialog.Builder b = createDialogBuilder();
+                    b.setTitle("Update Status for " + inqName);
+                    b.setItems(opts, (d, which) -> {
+                        String chosen = opts[which].toLowerCase();
+                        SmsGatewayService.sendUpdateFranchiseInquiryStatus(inqId, chosen);
+                        Toast.makeText(this, "Status set to " + opts[which], Toast.LENGTH_SHORT).show();
+                        renderFranchiseTab();
+                    });
+                    b.setNegativeButton("Cancel", null);
+                    b.show();
+                });
+                actRow.addView(statBtn);
+
+                iCard.addView(actRow);
+                container.addView(iCard);
+            }
+        }
+    }
+
+    private void showEditFranchiseDialog() {
+        JSONObject current = SmsGatewayService.franchiseObj != null ? SmsGatewayService.franchiseObj : new JSONObject();
+
+        ScrollView sv = new ScrollView(this);
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(14), dp(20), dp(14));
+        sv.addView(form);
+
+        CheckBox enableCb = new CheckBox(this);
+        enableCb.setText("Show Franchise Expansion on Website");
+        enableCb.setChecked(current.optBoolean("enabled", true));
+        enableCb.setTextColor(theme.colorTextPrimary);
+        form.addView(enableCb);
+
+        EditText brandIn = createLabeledInput(form, "Brand Name", current.optString("brandName", "Shawarma Nights"));
+        EditText tagIn = createLabeledInput(form, "Brand Tagline", current.optString("tagline", "Artisanal Charcoal Spit Kitchen"));
+        EditText invIn = createLabeledInput(form, "Investment Range (e.g. ₹3.5L – ₹6.5L)", current.optString("investmentRange", "₹3.5 Lakhs – ₹6.5 Lakhs"));
+        EditText roiIn = createLabeledInput(form, "Expected ROI (e.g. 3 to 6 Months)", current.optString("roiMonths", "3 to 6 Months"));
+        EditText marginIn = createLabeledInput(form, "Gross Profit Margin (e.g. 50% – 60%)", current.optString("grossMargin", "50% – 60%"));
+        EditText setupIn = createLabeledInput(form, "Setup Days (e.g. 14 Days)", current.optString("setupDays", "14 Days"));
+        EditText phoneIn = createLabeledInput(form, "Direct Franchise Phone", current.optString("directPhone", "7023963189"));
+        EditText waIn = createLabeledInput(form, "WhatsApp Business Phone", current.optString("whatsappPhone", "917023963189"));
+
+        AlertDialog.Builder b = createDialogBuilder();
+        b.setTitle("Edit Franchise Configuration");
+        b.setView(sv);
+        b.setPositiveButton("Save & Sync Live", (dialog, which) -> {
+            try {
+                JSONObject updated = new JSONObject(current.toString());
+                updated.put("enabled", enableCb.isChecked());
+                updated.put("brandName", brandIn.getText().toString().trim());
+                updated.put("tagline", tagIn.getText().toString().trim());
+                updated.put("investmentRange", invIn.getText().toString().trim());
+                updated.put("roiMonths", roiIn.getText().toString().trim());
+                updated.put("grossMargin", marginIn.getText().toString().trim());
+                updated.put("setupDays", setupIn.getText().toString().trim());
+                updated.put("directPhone", phoneIn.getText().toString().trim());
+                updated.put("whatsappPhone", waIn.getText().toString().trim());
+
+                SmsGatewayService.sendUpdateFranchiseConfig(updated);
+                Toast.makeText(this, "Franchise settings synced to website live!", Toast.LENGTH_SHORT).show();
+                renderFranchiseTab();
+            } catch (Exception e) {
+                Toast.makeText(this, "Save error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        b.setNegativeButton("Cancel", null);
+        b.show();
+    }
+
+    // ==========================================
+    // TAB 8: STORE SETTINGS & BRAND INFO
     // ==========================================
 
     private void renderSettingsTab() {
-        LinearLayout container = tabContainers[7];
+        LinearLayout container = tabContainers[8];
         container.removeAllViews();
 
         TextView title = new TextView(this);

@@ -171,6 +171,8 @@ public class SmsGatewayService extends Service {
     public static final List<JSONObject> customersList = new CopyOnWriteArrayList<>();
     public static volatile JSONObject storeInfoObj = new JSONObject();
     public static volatile JSONObject heroBannerObj = new JSONObject();
+    public static volatile JSONObject franchiseObj = new JSONObject();
+    public static final List<JSONObject> franchiseInquiriesList = new CopyOnWriteArrayList<>();
     public static final List<String> smsLogs = new CopyOnWriteArrayList<>();
     public static volatile String currentUpiId = "";
     public static volatile int smsSentToday = 0;
@@ -386,6 +388,38 @@ public class SmsGatewayService extends Service {
                             syncCustomersFromOrders();
                             notifyDataChanged();
                             Log.i(TAG, "Customers synced: " + customersList.size());
+                        }
+                        break;
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // 3. Fetch Franchise Inquiries (/api/admin/franchise/inquiries)
+            for (String base : hosts) {
+                try {
+                    URL url = new URL(base + "/api/admin/franchise/inquiries");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(3000);
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(this));
+                    conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+                    conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
+                    if (conn.getResponseCode() == 200) {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) sb.append(line);
+                        reader.close();
+                        JSONObject data = new JSONObject(sb.toString());
+                        JSONArray inqArr = data.optJSONArray("inquiries");
+                        if (inqArr != null) {
+                            franchiseInquiriesList.clear();
+                            for (int i = 0; i < inqArr.length(); i++) {
+                                franchiseInquiriesList.add(inqArr.getJSONObject(i));
+                            }
+                            notifyDataChanged();
+                            Log.i(TAG, "Franchise inquiries synced: " + franchiseInquiriesList.size());
                         }
                         break;
                     }
@@ -688,6 +722,33 @@ public class SmsGatewayService extends Service {
                         notifyDataChanged();
                     }
                 }
+            } else if ("NEW_FRANCHISE_INQUIRY".equals(action)) {
+                JSONObject inquiry = root.optJSONObject("payload");
+                if (inquiry != null) {
+                    franchiseInquiriesList.add(0, inquiry);
+                    notifyDataChanged();
+                    AudioAlertManager.playOrderChime(getApplicationContext());
+                    updateNotification("New Franchise Inquiry: " + inquiry.optString("name") + " (" + inquiry.optString("city") + ")!");
+                    addSmsLog("Franchise Lead: " + inquiry.optString("name") + " (" + inquiry.optString("city") + ")");
+                }
+            } else if ("FRANCHISE_CONFIG_UPDATED".equals(action)) {
+                JSONObject fConfig = root.optJSONObject("payload");
+                if (fConfig != null) {
+                    franchiseObj = fConfig;
+                    notifyDataChanged();
+                }
+            } else if ("FRANCHISE_INQUIRY_UPDATED".equals(action)) {
+                JSONObject inq = root.optJSONObject("payload");
+                if (inq != null) {
+                    String inqId = inq.optString("id");
+                    for (int i = 0; i < franchiseInquiriesList.size(); i++) {
+                        if (franchiseInquiriesList.get(i).optString("id").equals(inqId)) {
+                            franchiseInquiriesList.set(i, inq);
+                            break;
+                        }
+                    }
+                    notifyDataChanged();
+                }
             } else if ("CONNECTED".equals(action)) {
                 sendWsMessage("{\"action\":\"GET_INITIAL_STATE\"}");
             }
@@ -761,6 +822,19 @@ public class SmsGatewayService extends Service {
             JSONObject heroBanner = db.optJSONObject("heroBanner");
             if (heroBanner != null) {
                 heroBannerObj = heroBanner;
+            }
+
+            JSONObject franchise = db.optJSONObject("franchise");
+            if (franchise != null) {
+                franchiseObj = franchise;
+            }
+
+            JSONArray franInquiries = db.optJSONArray("franchiseInquiries");
+            if (franInquiries != null) {
+                franchiseInquiriesList.clear();
+                for (int i = 0; i < franInquiries.length(); i++) {
+                    franchiseInquiriesList.add(franInquiries.getJSONObject(i));
+                }
             }
 
             notifyDataChanged();
@@ -1232,6 +1306,12 @@ public class SmsGatewayService extends Service {
         }).start();
     }
 
+    public static void triggerFranchiseSync() {
+        if (instance != null) {
+            instance.fetchInitialRestData();
+        }
+    }
+
     public static void sendTestSms(Context context, String phone) {
         if (phone == null || phone.trim().isEmpty()) {
             return;
@@ -1408,10 +1488,51 @@ public class SmsGatewayService extends Service {
 
     private void updateNotification(String text) {
         try {
-            NotificationManager nm = getSystemService(NotificationManager.class);
+            NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) {
                 nm.notify(1, buildNotification(text));
             }
         } catch (Exception ignored) {}
+    }
+
+    public static void sendUpdateFranchiseConfig(JSONObject config) {
+        try {
+            franchiseObj = config;
+            notifyDataChanged();
+            JSONObject msg = new JSONObject();
+            msg.put("action", "UPDATE_FRANCHISE_CONFIG");
+            msg.put("config", config);
+            if (instance != null) {
+                instance.sendWsMessage(msg.toString());
+            }
+            postRestAsync("/api/admin/franchise/config", config.toString());
+        } catch (Exception e) {
+            Log.e(TAG, "Error sending franchise config: " + e.getMessage());
+        }
+    }
+
+    public static void sendUpdateFranchiseInquiryStatus(String inquiryId, String status) {
+        try {
+            for (JSONObject inq : franchiseInquiriesList) {
+                if (inquiryId.equals(inq.optString("id"))) {
+                    inq.put("status", status);
+                    break;
+                }
+            }
+            notifyDataChanged();
+            JSONObject msg = new JSONObject();
+            msg.put("action", "UPDATE_FRANCHISE_INQUIRY_STATUS");
+            msg.put("inquiryId", inquiryId);
+            msg.put("status", status);
+            if (instance != null) {
+                instance.sendWsMessage(msg.toString());
+            }
+            JSONObject body = new JSONObject();
+            body.put("inquiryId", inquiryId);
+            body.put("status", status);
+            postRestAsync("/api/admin/franchise/inquiry-status", body.toString());
+        } catch (Exception e) {
+            Log.e(TAG, "Error sending franchise inquiry status: " + e.getMessage());
+        }
     }
 }

@@ -12,6 +12,7 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const storeConfig = DataLayer.getStoreConfig(storeId) || {};
       const rawCustomers = DataLayer.read(storeId, 'customers') || [];
       const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
+      const franchiseData = DataLayer.read(storeId, 'franchise') || {};
       WebSocketHub.sendTo(ws, {
         action: 'INIT_STATE',
         payload: { 
@@ -20,6 +21,8 @@ export function handleGatewayMessage(data, ws, storeId, source) {
           orders, 
           deals, 
           customers,
+          franchise: franchiseData.config || {},
+          franchiseInquiries: franchiseData.inquiries || [],
           storeInfo: storeConfig.settings || {}, 
           heroBanner: storeConfig.heroBanner || {} 
         }
@@ -117,6 +120,27 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       config.payment.upiId = data.upiId;
       DataLayer.updateStoreConfig(storeId, config);
       WebSocketHub.broadcastToAll(storeId, { action: 'UPI_ID_UPDATED', payload: data.upiId });
+      return true;
+    }
+    case 'UPDATE_FRANCHISE_CONFIG': {
+      const dataObj = DataLayer.read(storeId, 'franchise') || { config: {}, inquiries: [] };
+      const updates = data.config || data.payload || {};
+      dataObj.config = { ...(dataObj.config || {}), ...updates, updatedAt: now() };
+      DataLayer.writeSync(storeId, 'franchise', dataObj);
+      WebSocketHub.broadcastToAll(storeId, { action: 'FRANCHISE_CONFIG_UPDATED', payload: dataObj.config });
+      return true;
+    }
+    case 'UPDATE_FRANCHISE_INQUIRY_STATUS': {
+      const dataObj = DataLayer.read(storeId, 'franchise') || { config: {}, inquiries: [] };
+      const inquiryId = data.inquiryId || data.payload?.inquiryId;
+      const status = data.status || data.payload?.status;
+      const idx = (dataObj.inquiries || []).findIndex(i => String(i.id) === String(inquiryId));
+      if (idx !== -1) {
+        dataObj.inquiries[idx].status = status;
+        dataObj.inquiries[idx].updatedAt = now();
+        DataLayer.writeSync(storeId, 'franchise', dataObj);
+        WebSocketHub.broadcastToGateway(storeId, { action: 'FRANCHISE_INQUIRY_UPDATED', payload: dataObj.inquiries[idx] });
+      }
       return true;
     }
     case 'PAYMENT_SMS_RECEIVED': {
