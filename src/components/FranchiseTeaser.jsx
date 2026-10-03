@@ -15,7 +15,7 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative bg-white rounded-[2.5rem] p-7 sm:p-12 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.07)] hover:shadow-[0_28px_65px_-15px_rgba(0,0,0,0.12)] transition-all duration-300 overflow-hidden"
+        className="relative bg-white rounded-[2.5rem] p-7 sm:p-12 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)] hover:shadow-[0_28px_65px_-15px_rgba(0,0,0,0.25)] transition-all duration-300 overflow-hidden border-0"
       >
         {/* Subtle decorative background typography accent */}
         <div className="absolute -bottom-6 -right-6 text-8xl sm:text-9xl font-black text-zinc-900/[0.03] select-none pointer-events-none tracking-tighter leading-none">
@@ -28,7 +28,7 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
           <div className="lg:col-span-8 space-y-5">
             
             {/* Solid Sticker Badge (Matching Hero Style — Zero Outline, Zero Glassy) */}
-            <div className="inline-block bg-zinc-900 text-white px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-sm rotate-[-1deg]">
+            <div className="inline-block bg-zinc-900 text-white px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md rotate-[-1deg]">
               FRANCHISE EXPANSION
             </div>
 
@@ -42,7 +42,7 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
 
             {/* Clean Elevated 3D Metric Blocks (Zero Borders, Clean Solid Style) */}
             <div className="grid grid-cols-3 gap-3 pt-2 max-w-xl">
-              <div className="bg-[#FFFBF7] rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-xs">
+              <div className="bg-white rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-lg border-0">
                 <div className="text-sm sm:text-lg font-black text-zinc-900">
                   {franchise?.investmentRange?.split('–')[0]?.trim() || '₹3.5L'}
                 </div>
@@ -51,7 +51,7 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
                 </div>
               </div>
 
-              <div className="bg-[#FFFBF7] rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-xs">
+              <div className="bg-white rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-lg border-0">
                 <div className="text-sm sm:text-lg font-black text-[#DC2626]">
                   {franchise?.roiMonths || '3–6 Months'}
                 </div>
@@ -60,7 +60,7 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
                 </div>
               </div>
 
-              <div className="bg-[#FFFBF7] rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-xs">
+              <div className="bg-white rounded-2xl p-3.5 sm:p-4 text-center sm:text-left shadow-lg border-0">
                 <div className="text-sm sm:text-lg font-black text-zinc-900">
                   {franchise?.grossMargin || '50%–60%'}
                 </div>
@@ -76,10 +76,9 @@ export default function FranchiseTeaser({ onOpenFranchise }) {
           <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end justify-center gap-3">
             <button
               onClick={onOpenFranchise}
-              className="w-full sm:w-auto px-8 py-4.5 rounded-full bg-[#DC2626] hover:bg-red-700 active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-xl hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2.5 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-[#DC2626] hover:bg-red-700 active:scale-95 text-white font-black text-xs sm:text-sm uppercase tracking-wider transition-all shadow-xl hover:shadow-2xl flex items-center justify-center cursor-pointer border-0"
             >
-              <span>EXPLORE FRANCHISE & APPLY</span>
-              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              EXPLORE FRANCHISE & APPLY
             </button>
             <span className="text-[11px] text-zinc-400 text-center lg:text-right font-medium">
               Limited territory slots available

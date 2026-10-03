@@ -348,10 +348,10 @@ export default function CustomerReviews() {
                       <button
                         type="button"
                         onClick={() => setReviewType('dish')}
-                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 ${
                           reviewType === 'dish'
-                            ? 'bg-red-50 border-red-500 text-red-600'
-                            : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                            ? 'bg-red-100 text-[#DC2626] shadow-sm'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                         }`}
                       >
                         <Utensils className="w-3.5 h-3.5" />
@@ -360,10 +360,10 @@ export default function CustomerReviews() {
                       <button
                         type="button"
                         onClick={() => setReviewType('restaurant')}
-                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 ${
                           reviewType === 'restaurant'
-                            ? 'bg-red-50 border-red-500 text-red-600'
-                            : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100'
+                            ? 'bg-red-100 text-[#DC2626] shadow-sm'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                         }`}
                       >
                         <Store className="w-3.5 h-3.5" />
@@ -433,7 +433,7 @@ export default function CustomerReviews() {
                     <button
                       type="button"
                       onClick={() => setIsWriteModalOpen(false)}
-                      className="px-4 py-2 rounded-full border border-zinc-200 text-zinc-600 text-xs font-bold hover:bg-zinc-50 cursor-pointer"
+                      className="px-4 py-2 rounded-full border-0 bg-zinc-100 text-zinc-600 text-xs font-bold hover:bg-zinc-200 cursor-pointer"
                     >
                       Cancel
                     </button>

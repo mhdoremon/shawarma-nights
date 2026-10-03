@@ -152,7 +152,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
             {/* 4 KEY METRICS (Solid Elevated 3D Metric Cards, Zero Outline) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
               
-              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-lg border-0">
                 <div className="w-8 h-8 rounded-xl bg-red-50 text-[#DC2626] flex items-center justify-center mb-3">
                   <DollarSign className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -161,7 +161,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">Low Initial Capex</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-lg border-0">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
                   <TrendingUp className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -170,7 +170,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">Fast Capital Recovery</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-lg border-0">
                 <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
                   <Award className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -179,7 +179,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                 <div className="text-[11px] text-zinc-500 mt-1">High Daily Cash Flow</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)]">
+              <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-lg border-0">
                 <div className="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center mb-3">
                   <Clock className="w-4 h-4 stroke-[2.5]" />
                 </div>
@@ -200,7 +200,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2">
                 
                 {/* Format 1: Express Kiosk */}
-                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_18px_45px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col justify-between space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-2xl transition-all flex flex-col justify-between space-y-6 border-0">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white uppercase tracking-wider">
@@ -224,7 +224,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                         'Fastest breakeven (90 to 120 days)'
                       ].map((feat, idx) => (
                         <div key={idx} className="flex items-start gap-2.5 text-xs text-zinc-700">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="font-bold text-zinc-400 mt-0.5">•</span>
                           <span>{feat}</span>
                         </div>
                       ))}
@@ -236,15 +236,14 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       setFormData(prev => ({ ...prev, budget: '₹3.5 Lakhs (Express Kiosk)' }));
                       document.getElementById('franchise-form')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="w-full py-3.5 px-4 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    className="w-full py-3.5 px-4 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer active:scale-95 border-0"
                   >
                     <span>Apply for Express Kiosk</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 {/* Format 2: High Street Dine-in */}
-                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-[0_12px_35px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_18px_45px_-8px_rgba(0,0,0,0.1)] transition-all flex flex-col justify-between space-y-6 relative overflow-hidden">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-2xl transition-all flex flex-col justify-between space-y-6 relative overflow-hidden border-0">
                   <div className="absolute top-0 right-0 bg-[#DC2626] text-white text-[10px] font-black px-4 py-1 rounded-bl-xl uppercase tracking-wider">
                     FLAGSHIP
                   </div>
@@ -272,7 +271,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
                         'Highest Average Order Value (AOV)'
                       ].map((feat, idx) => (
                         <div key={idx} className="flex items-start gap-2.5 text-xs text-zinc-700">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="font-bold text-zinc-400 mt-0.5">•</span>
                           <span>{feat}</span>
                         </div>
                       ))}
@@ -284,10 +283,9 @@ export default function FranchiseModal({ isOpen, onClose }) {
                       setFormData(prev => ({ ...prev, budget: '₹6.5 Lakhs (High-Street Cafe)' }));
                       document.getElementById('franchise-form')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="w-full py-3.5 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                    className="w-full py-3.5 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center cursor-pointer shadow-lg active:scale-95 border-0"
                   >
                     <span>Apply for Flagship Cafe</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -352,9 +350,8 @@ export default function FranchiseModal({ isOpen, onClose }) {
             <div id="franchise-form" className="bg-white rounded-3xl p-6 sm:p-10 shadow-[0_15px_45px_-10px_rgba(0,0,0,0.07)] space-y-8">
               
               <div className="text-center max-w-xl mx-auto space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>DIRECT EXPANSION DESK</span>
+                <div className="inline-block px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider">
+                  DIRECT EXPANSION DESK
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-black text-zinc-900">
                   Submit Franchise Application
