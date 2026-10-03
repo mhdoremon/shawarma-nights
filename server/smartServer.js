@@ -78,7 +78,8 @@ app.get(['/healthz', '/api/health'], (req, res) => {
     mongo: {
       hasUri: Boolean(process.env.MONGODB_URI),
       uriMasked: process.env.MONGODB_URI ? process.env.MONGODB_URI.replace(/:([^@]+)@/, ':****@') : 'NONE_NOT_SET',
-      isConnected: DataLayer.isMongoReady()
+      isConnected: DataLayer.isMongoReady(),
+      error: DataLayer.getMongoError() || null
     }
   });
 });

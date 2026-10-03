@@ -26,6 +26,7 @@ const FLUSH_INTERVAL = 2000;
 let mongoClient = null;
 let mongoDb = null;
 let isMongoConnected = false;
+let lastMongoError = null;
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -428,6 +429,7 @@ async function initMongo() {
     await syncMongoData();
     return true;
   } catch (err) {
+    lastMongoError = err.message;
     console.error('❌ [MongoDB Atlas] Connection failed:', err.message);
     console.warn('⚠️ [DataLayer] Operating in fallback local storage mode.');
     isMongoConnected = false;
@@ -482,7 +484,8 @@ const DataLayer = {
   startFlushTimer,
   stopFlushTimer,
   initMongo,
-  isMongoReady: () => isMongoConnected
+  isMongoReady: () => isMongoConnected,
+  getMongoError: () => lastMongoError
 };
 
 export default DataLayer;
