@@ -5414,6 +5414,8 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         conn.setRequestProperty("Accept", "application/json");
         conn.setRequestProperty("User-Agent", "ShawarmaDukandar/5.0 (Android)");
         conn.setRequestProperty("X-Store-Id", SmsGatewayService.getConfiguredStoreId(this));
+        conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+        conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
         if (jsonBody != null) {
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");

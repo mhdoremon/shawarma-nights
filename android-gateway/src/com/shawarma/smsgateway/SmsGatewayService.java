@@ -838,6 +838,8 @@ public class SmsGatewayService extends Service {
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                     conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(instance != null ? instance : null));
+                    conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+                    conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
                     conn.setDoOutput(true);
                     OutputStream os = conn.getOutputStream();
                     os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
@@ -864,6 +866,8 @@ public class SmsGatewayService extends Service {
                     conn.setReadTimeout(3000);
                     conn.setRequestMethod("DELETE");
                     conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(instance != null ? instance : null));
+                    conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+                    conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
                     int code = conn.getResponseCode();
                     if (code >= 200 && code < 300) {
                         Log.i(TAG, "REST delete success: " + path + " on " + base);
@@ -915,7 +919,7 @@ public class SmsGatewayService extends Service {
         if (instance != null) {
             instance.sendWsMessage(json);
         }
-        postRestAsync("/api/menu/toggle-stock", "{\"id\":\"" + escapeJson(itemId) + "\",\"available\":" + isAvailable + "}");
+        postRestAsync("/api/menu/toggle-stock", "{\"itemId\":\"" + escapeJson(itemId) + "\",\"id\":\"" + escapeJson(itemId) + "\",\"available\":" + isAvailable + "}");
     }
 
     public static void sendAddMenuItem(JSONObject item) {

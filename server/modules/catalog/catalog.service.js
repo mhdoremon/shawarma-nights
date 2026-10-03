@@ -98,13 +98,14 @@ export function deleteMenuItem(req, res) {
 
 export function toggleStock(req, res) {
   try {
-    const { itemId, available } = req.body;
+    const targetId = req.body.itemId || req.body.id;
+    const targetAvailable = req.body.available !== undefined ? req.body.available : req.body.isAvailable;
     const menuData = DataLayer.read(req.storeId, 'menu') || { menu: [], categories: [] };
     let menu = menuData.menu || [];
     
-    const itemIndex = menu.findIndex(i => i.id === itemId);
+    const itemIndex = menu.findIndex(i => String(i.id) === String(targetId));
     if (itemIndex >= 0) {
-      menu[itemIndex].available = available;
+      menu[itemIndex].available = targetAvailable;
       menu[itemIndex].updatedAt = now();
       DataLayer.writeSync(req.storeId, 'menu', menuData);
       WebSocketHub.broadcastToAll(req.storeId, { action: 'MENU_UPDATED', payload: menuData });

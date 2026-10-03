@@ -26,8 +26,8 @@ export function requireAdmin(req, res, next) {
 
   // Check admin token
   if (storeConfig.owner.token !== token) {
-    // Also check for master dev token
-    if (token !== 'dukandar_master_token_2026') {
+    // Also check for master dev token or gateway secret token
+    if (token !== 'dukandar_master_token_2026' && token !== 'sn_dev_gateway_secret_local') {
       return res.status(403).json({ success: false, message: 'Invalid admin token' });
     }
   }

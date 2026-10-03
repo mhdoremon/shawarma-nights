@@ -126,10 +126,11 @@ app.get('/api/data', (req, res) => {
     heroBanner: storeConfig?.heroBanner || {},
     storeInfo: {
       ...(storeConfig?.settings || {}),
+      payment: storeConfig?.payment || {},
       ...(storeConfig?.payment || {}),
       socials: storeConfig?.socials || {},
-      taxesAndCharges: storeConfig?.tax || {},
-      name: storeConfig?.name || '',
+      taxesAndCharges: storeConfig?.taxesAndCharges || storeConfig?.tax || {},
+      name: storeConfig?.name || storeConfig?.settings?.name || 'Shawarma Nights',
       address: storeConfig?.settings?.address || '',
       timing: storeConfig?.settings?.timing || '',
       freeDeliveryThreshold: storeConfig?.settings?.freeDeliveryThreshold ?? 350

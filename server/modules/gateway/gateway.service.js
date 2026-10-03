@@ -50,9 +50,12 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'TOGGLE_AVAILABILITY': {
       const menuData = DataLayer.read(storeId, 'menu') || { menu: [], categories: [] };
-      const idx = menuData.menu.findIndex(item => item.id === (data.itemId || data.payload?.id));
+      const targetId = data.itemId || data.id || data.payload?.id || data.payload?.itemId;
+      const targetAvailable = data.isAvailable !== undefined ? data.isAvailable : (data.available !== undefined ? data.available : data.payload?.available);
+      const idx = menuData.menu.findIndex(item => String(item.id) === String(targetId));
       if (idx !== -1) {
-        menuData.menu[idx].available = data.isAvailable !== undefined ? data.isAvailable : data.payload?.available;
+        menuData.menu[idx].available = Boolean(targetAvailable);
+        menuData.menu[idx].updatedAt = now();
         DataLayer.writeSync(storeId, 'menu', menuData);
         WebSocketHub.broadcastToAll(storeId, { action: 'MENU_UPDATED', payload: menuData });
       }
@@ -60,7 +63,8 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'ADD_DEAL': {
       const deals = DataLayer.read(storeId, 'deals') || [];
-      const newDeal = { id: generateId(), ...data.deal };
+      const dealObj = data.deal || data.payload || {};
+      const newDeal = { id: dealObj.id || generateId('deal'), ...dealObj };
       deals.push(newDeal);
       DataLayer.writeSync(storeId, 'deals', deals);
       WebSocketHub.broadcastToAll(storeId, { action: 'DEALS_UPDATED', payload: deals });
@@ -68,9 +72,10 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'UPDATE_DEAL': {
       const deals = DataLayer.read(storeId, 'deals') || [];
-      const idx = deals.findIndex(d => d.id === data.deal.id);
+      const dealObj = data.deal || data.payload || {};
+      const idx = deals.findIndex(d => String(d.id) === String(dealObj.id));
       if (idx !== -1) {
-        deals[idx] = { ...deals[idx], ...data.deal };
+        deals[idx] = { ...deals[idx], ...dealObj };
         DataLayer.writeSync(storeId, 'deals', deals);
         WebSocketHub.broadcastToAll(storeId, { action: 'DEALS_UPDATED', payload: deals });
       }
@@ -78,16 +83,19 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'DELETE_DEAL': {
       let deals = DataLayer.read(storeId, 'deals') || [];
-      deals = deals.filter(d => d.id !== data.dealId);
+      const targetDealId = data.dealId || data.id || data.payload?.id;
+      deals = deals.filter(d => String(d.id) !== String(targetDealId));
       DataLayer.writeSync(storeId, 'deals', deals);
       WebSocketHub.broadcastToAll(storeId, { action: 'DEALS_UPDATED', payload: deals });
       return true;
     }
     case 'UPDATE_ORDER_STATUS': {
       const orders = DataLayer.read(storeId, 'orders') || [];
-      const idx = orders.findIndex(o => o.id === data.orderId);
+      const orderId = data.orderId || data.id || data.payload?.orderId || data.payload?.id;
+      const status = data.status || data.payload?.status;
+      const idx = orders.findIndex(o => String(o.id) === String(orderId));
       if (idx !== -1) {
-        orders[idx].status = data.status;
+        orders[idx].status = status;
         orders[idx].updatedAt = now();
         DataLayer.writeSync(storeId, 'orders', orders);
         WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: orders[idx] });
@@ -96,14 +104,25 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'UPDATE_STORE_INFO': {
       const config = DataLayer.getStoreConfig(storeId) || {};
-      config.settings = { ...config.settings, ...data.storeInfo };
+      const updates = data.storeInfo || data.payload || {};
+      config.settings = { ...(config.settings || {}), ...updates };
+      if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
+      if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
+      if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
       DataLayer.updateStoreConfig(storeId, config);
-      WebSocketHub.broadcastToAll(storeId, { action: 'STORE_INFO_UPDATED', payload: config.settings });
+      const combined = {
+        ...(config.settings || {}),
+        payment: config.payment || {},
+        socials: config.socials || {},
+        taxesAndCharges: config.taxesAndCharges || {}
+      };
+      WebSocketHub.broadcastToAll(storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
       return true;
     }
     case 'UPDATE_HERO_BANNER': {
       const config = DataLayer.getStoreConfig(storeId) || {};
-      config.heroBanner = { ...config.heroBanner, ...data.heroBanner };
+      const hero = data.heroBanner || data.payload || {};
+      config.heroBanner = { ...(config.heroBanner || {}), ...hero };
       DataLayer.updateStoreConfig(storeId, config);
       WebSocketHub.broadcastToAll(storeId, { action: 'HERO_UPDATED', payload: config.heroBanner });
       return true;

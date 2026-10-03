@@ -131,9 +131,22 @@ export const getStoreSettings = (req, res) => {
 
 export const updateStoreSettings = (req, res) => {
     try {
-        DataLayer.updateStoreConfig(req.storeId, req.body);
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'STORE_INFO_UPDATED', payload: req.body });
-        return res.json({ success: true, message: 'Updated' });
+        const config = DataLayer.getStoreConfig(req.storeId) || {};
+        const updates = req.body || {};
+        config.settings = { ...(config.settings || {}), ...updates };
+        if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
+        if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
+        if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
+        DataLayer.updateStoreConfig(req.storeId, config);
+
+        const combined = {
+            ...(config.settings || {}),
+            payment: config.payment || {},
+            socials: config.socials || {},
+            taxesAndCharges: config.taxesAndCharges || {}
+        };
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
+        return res.json({ success: true, message: 'Updated', storeInfo: combined });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
     }
@@ -151,7 +164,7 @@ export const getHero = (req, res) => {
 export const updateHero = (req, res) => {
     try {
         DataLayer.updateStoreConfig(req.storeId, { heroBanner: req.body });
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'HERO_UPDATED', payload: req.body });
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'HERO_UPDATED', payload: req.body });
         return res.json({ success: true, message: 'Updated' });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
@@ -160,11 +173,24 @@ export const updateHero = (req, res) => {
 
 export function handleStoreWsMessage(data, ws, storeId, source) {
     if (data.action === 'UPDATE_STORE_INFO') {
-        DataLayer.updateStoreConfig(storeId, data.payload);
-        WebSocketHub.broadcastToGateway(storeId, { action: 'STORE_INFO_UPDATED', payload: data.payload });
+        const updates = data.payload || data.storeInfo || {};
+        const config = DataLayer.getStoreConfig(storeId) || {};
+        config.settings = { ...(config.settings || {}), ...updates };
+        if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
+        if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
+        if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
+        DataLayer.updateStoreConfig(storeId, config);
+        const combined = {
+            ...(config.settings || {}),
+            payment: config.payment || {},
+            socials: config.socials || {},
+            taxesAndCharges: config.taxesAndCharges || {}
+        };
+        WebSocketHub.broadcastToAll(storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
     }
     if (data.action === 'UPDATE_HERO_BANNER') {
-        DataLayer.updateStoreConfig(storeId, { heroBanner: data.payload });
-        WebSocketHub.broadcastToGateway(storeId, { action: 'HERO_UPDATED', payload: data.payload });
+        const hero = data.payload || data.heroBanner || {};
+        DataLayer.updateStoreConfig(storeId, { heroBanner: hero });
+        WebSocketHub.broadcastToAll(storeId, { action: 'HERO_UPDATED', payload: hero });
     }
 }
