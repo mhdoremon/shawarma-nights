@@ -29,12 +29,12 @@ export function tenantResolver(req, res, next) {
 
   // 1. Header: X-Store-Id
   if (req.headers['x-store-id']) {
-    storeId = req.headers['x-store-id'].toLowerCase().trim();
+    storeId = String(req.headers['x-store-id']).toLowerCase().trim();
   }
 
   // 2. Query param: ?storeId=
   if (!storeId && req.query.storeId) {
-    storeId = req.query.storeId.toLowerCase().trim();
+    storeId = String(req.query.storeId).toLowerCase().trim();
   }
 
   // 3. Subdomain: shawarma.churuone.in (ignore cloud hosting platform domains and IP addresses)

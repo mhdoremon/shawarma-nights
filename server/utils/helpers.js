@@ -45,8 +45,8 @@ export function generateOrderNumber(prefix, sequence) {
  * Sanitize a string for use as slug/ID.
  */
 export function slugify(text) {
-  return text
-    .toString()
+  if (text === null || text === undefined) return '';
+  return String(text)
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
@@ -60,6 +60,7 @@ export function slugify(text) {
  */
 export function deepMerge(target, source) {
   const result = { ...target };
+  if (!source) return result;
   for (const key of Object.keys(source)) {
     if (
       source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&

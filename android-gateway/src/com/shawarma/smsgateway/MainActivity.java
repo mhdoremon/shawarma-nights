@@ -3982,12 +3982,18 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
 
                         JSONObject resp = sendJsonHttpRequestWithCandidateFallback("/api/delivery/login", "POST", payload);
 
+                        String token = resp.optString("token", "");
                         JSONObject boy = resp.optJSONObject("boy");
+                        
+                        if (boy == null && !token.isEmpty()) {
+                            JSONObject statusResp = sendJsonHttpRequestWithCandidateFallback("/api/delivery/status?token=" + token, "GET", null);
+                            boy = statusResp.optJSONObject("deliveryBoy");
+                        }
+
                         String bId = boy != null ? boy.optString("id", "db-1") : "db-1";
                         String bName = boy != null ? boy.optString("name", "Rider") : "Rider";
                         String bPhone = boy != null ? boy.optString("phone", phone) : phone;
                         String bVehicle = boy != null ? boy.optString("vehicle", "Two-Wheeler") : "Two-Wheeler";
-                        String token = resp.optString("token", "");
 
                         runOnUiThread(() -> {
                             getSharedPreferences("dukandar_prefs", MODE_PRIVATE).edit()

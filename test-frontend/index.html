@@ -1,0 +1,250 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Test</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1e1e1e; color: #d4d4d4; margin: 0; padding: 20px; }
+        h1, h2 { color: #569cd6; }
+        .test-section { background-color: #252526; padding: 15px; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #007acc; }
+        .status { font-weight: bold; margin-bottom: 10px; }
+        .status.success { color: #4CAF50; }
+        .status.error { color: #f44336; }
+        .status.pending { color: #ffeb3b; }
+        pre { background-color: #1e1e1e; padding: 10px; border-radius: 4px; overflow-x: auto; border: 1px solid #333; font-family: Consolas, 'Courier New', monospace; font-size: 13px; max-height: 200px; overflow-y: auto; }
+        button { background-color: #0e639c; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; margin-top: 10px; margin-right: 10px; }
+        button:hover { background-color: #1177bb; }
+        input { background-color: #3c3c3c; color: white; border: 1px solid #555; padding: 8px; border-radius: 4px; margin-right: 10px; }
+        .log-container { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        .log-entry { font-family: Consolas, monospace; font-size: 12px; padding: 4px; border-bottom: 1px solid #333; }
+        .log-entry.ws { color: #ce9178; }
+        .log-entry.api { color: #b5cea8; }
+    </style>
+</head>
+<body>
+    <h1>Shawarma Nights Backend Test</h1>
+    <p>Target Backend: <code>https://churuone-backend.onrender.com</code></p>
+
+    <div class="test-section">
+        <h2>1. Load Store Data (GET /api/data)</h2>
+        <div id="data-status" class="status pending">⏳ Pending...</div>
+        <button onclick="testLoadData()">Test API Data</button>
+        <pre id="data-result">Waiting to test...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>2. WebSocket Connection</h2>
+        <div id="ws-status" class="status pending">⏳ Not Connected</div>
+        <button onclick="testWebSocket()">Connect WebSocket</button>
+        <div class="log-container" id="ws-log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Auth Flow (OTP)</h2>
+        <div id="auth-status" class="status pending">⏳ Pending...</div>
+        <input type="text" id="auth-phone" placeholder="Phone Number" value="1234567890">
+        <button onclick="sendOtp()">1. Send OTP</button>
+        <input type="text" id="auth-otp" placeholder="OTP Code">
+        <button onclick="verifyOtp()">2. Verify OTP</button>
+        <pre id="auth-result">Waiting to test...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Place Test Order (POST /api/orders)</h2>
+        <div id="order-status" class="status pending">⏳ Pending...</div>
+        <button onclick="testOrder()">Place Test Order</button>
+        <pre id="order-result">Waiting to test...</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Validate Coupon (POST /api/coupon/validate)</h2>
+        <div id="coupon-status" class="status pending">⏳ Pending...</div>
+        <input type="text" id="coupon-code" value="NIGHT50">
+        <button onclick="testCoupon()">Validate Coupon</button>
+        <pre id="coupon-result">Waiting to test...</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'https://churuone-backend.onrender.com';
+        const WS_URL = 'wss://churuone-backend.onrender.com/ws?storeId=shawarma';
+
+        function setStatus(id, status, isSuccess) {
+            const el = document.getElementById(id);
+            el.className = 'status ' + (isSuccess === true ? 'success' : (isSuccess === false ? 'error' : 'pending'));
+            el.innerHTML = isSuccess === true ? '✅ ' + status : (isSuccess === false ? '❌ ' + status : '⏳ ' + status);
+        }
+
+        function logEvent(type, message) {
+            const container = document.getElementById('ws-log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = '[' + new Date().toLocaleTimeString() + '] ' + type.toUpperCase() + ': ' + message;
+            container.prepend(entry);
+        }
+
+        async function testLoadData() {
+            setStatus('data-status', 'Loading...', null);
+            try {
+                const res = await fetch(API_BASE + '/api/data');
+                const text = await res.text();
+                let data = text;
+                try { data = JSON.parse(text); } catch(e) {}
+                
+                if (res.ok) {
+                    setStatus('data-status', 'Success', true);
+                    document.getElementById('data-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                } else {
+                    setStatus('data-status', 'Failed (' + res.status + ')', false);
+                    document.getElementById('data-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                }
+            } catch (err) {
+                setStatus('data-status', 'Error', false);
+                document.getElementById('data-result').textContent = err.toString();
+            }
+        }
+
+        let ws;
+        function testWebSocket() {
+            if (ws) ws.close();
+            setStatus('ws-status', 'Connecting...', null);
+            logEvent('ws', 'Connecting to ' + WS_URL + '...');
+            
+            try {
+                ws = new WebSocket(WS_URL);
+                
+                ws.onopen = () => {
+                    setStatus('ws-status', 'Connected', true);
+                    logEvent('ws', 'Connection established');
+                };
+                
+                ws.onmessage = (event) => {
+                    logEvent('ws', 'Message received: ' + event.data);
+                };
+                
+                ws.onerror = (error) => {
+                    setStatus('ws-status', 'Error', false);
+                    logEvent('ws', 'WebSocket error occurred');
+                };
+                
+                ws.onclose = (event) => {
+                    setStatus('ws-status', 'Disconnected', false);
+                    logEvent('ws', 'Connection closed (Code: ' + event.code + ')');
+                };
+            } catch (err) {
+                setStatus('ws-status', 'Error', false);
+                logEvent('ws', err.toString());
+            }
+        }
+
+        async function sendOtp() {
+            const phone = document.getElementById('auth-phone').value;
+            setStatus('auth-status', 'Sending OTP...', null);
+            try {
+                const res = await fetch(API_BASE + '/api/auth/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+                const text = await res.text();
+                let data = text;
+                try { data = JSON.parse(text); } catch(e) {}
+                
+                if (res.ok) {
+                    setStatus('auth-status', 'OTP Sent', true);
+                    document.getElementById('auth-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                } else {
+                    setStatus('auth-status', 'Send Failed (' + res.status + ')', false);
+                    document.getElementById('auth-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                }
+            } catch (err) {
+                setStatus('auth-status', 'Error', false);
+                document.getElementById('auth-result').textContent = err.toString();
+            }
+        }
+
+        async function verifyOtp() {
+            const phone = document.getElementById('auth-phone').value;
+            const otp = document.getElementById('auth-otp').value;
+            setStatus('auth-status', 'Verifying OTP...', null);
+            try {
+                const res = await fetch(API_BASE + '/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, otp })
+                });
+                const text = await res.text();
+                let data = text;
+                try { data = JSON.parse(text); } catch(e) {}
+                
+                if (res.ok) {
+                    setStatus('auth-status', 'Verified Successfully', true);
+                    document.getElementById('auth-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                } else {
+                    setStatus('auth-status', 'Verify Failed (' + res.status + ')', false);
+                    document.getElementById('auth-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                }
+            } catch (err) {
+                setStatus('auth-status', 'Error', false);
+                document.getElementById('auth-result').textContent = err.toString();
+            }
+        }
+
+        async function testOrder() {
+            setStatus('order-status', 'Placing Order...', null);
+            const orderPayload = {
+                items: [{ id: "item1", quantity: 1 }],
+                totalAmount: 150,
+                customerInfo: { name: "Test User", phone: "1234567890" }
+            };
+            try {
+                const res = await fetch(API_BASE + '/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderPayload)
+                });
+                const text = await res.text();
+                let data = text;
+                try { data = JSON.parse(text); } catch(e) {}
+                
+                if (res.ok) {
+                    setStatus('order-status', 'Order Placed', true);
+                    document.getElementById('order-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                } else {
+                    setStatus('order-status', 'Order Failed (' + res.status + ')', false);
+                    document.getElementById('order-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                }
+            } catch (err) {
+                setStatus('order-status', 'Error', false);
+                document.getElementById('order-result').textContent = err.toString();
+            }
+        }
+
+        async function testCoupon() {
+            const code = document.getElementById('coupon-code').value;
+            setStatus('coupon-status', 'Validating...', null);
+            try {
+                const res = await fetch(API_BASE + '/api/coupon/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const text = await res.text();
+                let data = text;
+                try { data = JSON.parse(text); } catch(e) {}
+                
+                if (res.ok) {
+                    setStatus('coupon-status', 'Coupon Valid', true);
+                    document.getElementById('coupon-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                } else {
+                    setStatus('coupon-status', 'Invalid/Failed (' + res.status + ')', false);
+                    document.getElementById('coupon-result').textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+                }
+            } catch (err) {
+                setStatus('coupon-status', 'Error', false);
+                document.getElementById('coupon-result').textContent = err.toString();
+            }
+        }
+    </script>
+</body>
+</html>

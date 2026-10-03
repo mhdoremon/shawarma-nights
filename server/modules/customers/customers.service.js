@@ -12,7 +12,7 @@ export const listCustomers = (req, res) => {
 export const getCustomer = (req, res) => {
     try {
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const customer = customers.find(c => c.id === req.params.id);
+        const customer = customers.find(c => String(c.id) === String(req.params.id));
         
         if (!customer) {
             return res.status(404).json({ success: false, message: 'Customer not found' });
@@ -27,7 +27,7 @@ export const getCustomer = (req, res) => {
 export const updateCustomer = (req, res) => {
     try {
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const index = customers.findIndex(c => c.id === req.params.id);
+        const index = customers.findIndex(c => String(c.id) === String(req.params.id));
         
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Customer not found' });
@@ -48,7 +48,7 @@ export const updateCustomer = (req, res) => {
 export const deleteCustomer = (req, res) => {
     try {
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const newCustomers = customers.filter(c => c.id !== req.params.id);
+        const newCustomers = customers.filter(c => String(c.id) !== String(req.params.id));
         
         if (customers.length === newCustomers.length) {
             return res.status(404).json({ success: false, message: 'Customer not found' });

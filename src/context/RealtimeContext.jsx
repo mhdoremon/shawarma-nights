@@ -212,12 +212,22 @@ export function RealtimeProvider({ children }) {
         break;
 
       case 'MENU_UPDATED':
-        setMenu(payload);
-        try {
-          const cached = localStorage.getItem('sn_cache_data_v2');
-          const parsed = cached ? JSON.parse(cached) : {};
-          localStorage.setItem('sn_cache_data_v2', JSON.stringify({ ...parsed, menu: payload }));
-        } catch (e) {}
+        if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.menu) {
+          setMenu(payload.menu);
+          if (payload.categories) setCategories(payload.categories);
+          try {
+            const cached = localStorage.getItem('sn_cache_data_v2');
+            const parsed = cached ? JSON.parse(cached) : {};
+            localStorage.setItem('sn_cache_data_v2', JSON.stringify({ ...parsed, menu: payload.menu, categories: payload.categories || parsed.categories }));
+          } catch (e) {}
+        } else {
+          setMenu(payload);
+          try {
+            const cached = localStorage.getItem('sn_cache_data_v2');
+            const parsed = cached ? JSON.parse(cached) : {};
+            localStorage.setItem('sn_cache_data_v2', JSON.stringify({ ...parsed, menu: payload }));
+          } catch (e) {}
+        }
         showToast('Live Update: Menu me badlaav hua!');
         break;
 
@@ -240,6 +250,7 @@ export function RealtimeProvider({ children }) {
         break;
       }
 
+      case 'PAYMENT_VERIFIED':
       case 'PAYMENT_CONFIRMED':
         setLastPaymentConfirmed(payload);
         sounds.playChime();

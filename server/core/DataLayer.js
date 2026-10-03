@@ -260,6 +260,7 @@ function invalidateCache(storeId) {
 
 function deepMerge(target, source) {
   const result = { ...target };
+  if (!source) return result;
   for (const key of Object.keys(source)) {
     if (
       source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&

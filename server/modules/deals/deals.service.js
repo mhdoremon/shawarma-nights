@@ -106,7 +106,7 @@ const _validateSingleCoupon = (deal, subtotal, phone, itemCategories, storeId) =
     
     if (deal.firstOrderOnly && phone) {
         const orders = DataLayer.read(storeId, 'orders') || [];
-        const hasOrdered = orders.some(o => o.phone === phone);
+        const hasOrdered = orders.some(o => o.customer?.phone === phone || o.customerPhone === phone);
         if (hasOrdered) {
             return { valid: false, reason: 'Coupon valid for first order only' };
         }

@@ -45,7 +45,7 @@ export const addReview = (req, res) => {
             }
         }
 
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'REVIEW_ADDED', payload: review });
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'REVIEW_ADDED', payload: review });
         
         return res.json({ success: true, review });
     } catch (e) {
@@ -82,7 +82,7 @@ export const deleteReview = (req, res) => {
             }
         }
 
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'REVIEW_DELETED', payload: { id } });
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'REVIEW_DELETED', payload: { id } });
 
         return res.json({ success: true, message: 'Review deleted' });
     } catch (e) {

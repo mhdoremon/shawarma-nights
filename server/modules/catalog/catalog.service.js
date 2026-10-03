@@ -22,7 +22,7 @@ export function getCategories(req, res) {
 
 export function addOrUpdateMenuItem(req, res) {
   try {
-    const itemData = req.body;
+    const itemData = req.body || {};
     const menuData = DataLayer.read(req.storeId, 'menu') || { menu: [], categories: [] };
     let menu = menuData.menu || [];
     
@@ -82,7 +82,7 @@ export function deleteMenuItem(req, res) {
     const menuData = DataLayer.read(req.storeId, 'menu') || { menu: [], categories: [] };
     const menuLength = menuData.menu ? menuData.menu.length : 0;
     
-    menuData.menu = (menuData.menu || []).filter(item => item.id !== id);
+    menuData.menu = (menuData.menu || []).filter(item => String(item.id) !== String(id));
     
     if (menuData.menu.length !== menuLength) {
       DataLayer.writeSync(req.storeId, 'menu', menuData);
@@ -148,7 +148,7 @@ export function deleteCategory(req, res) {
     const menuData = DataLayer.read(req.storeId, 'menu') || { menu: [], categories: [] };
     const categoriesLength = menuData.categories ? menuData.categories.length : 0;
     
-    menuData.categories = (menuData.categories || []).filter(c => c.id !== id);
+    menuData.categories = (menuData.categories || []).filter(c => String(c.id) !== String(id));
     
     if (menuData.categories.length !== categoriesLength) {
       DataLayer.writeSync(req.storeId, 'menu', menuData);
@@ -165,7 +165,7 @@ export function deleteCategory(req, res) {
 export function handleCatalogWsMessage(data, ws, storeId, source) {
   const { action, payload } = data;
   
-  if (['ADD_MENU_ITEM', 'UPDATE_MENU_ITEM', 'DELETE_MENU_ITEM', 'TOGGLE_STOCK'].includes(action)) {
+  if (['ADD_MENU_ITEM', 'UPDATE_MENU_ITEM', 'DELETE_MENU_ITEM', 'TOGGLE_STOCK', 'TOGGLE_AVAILABILITY'].includes(action)) {
     const menuData = DataLayer.read(storeId, 'menu') || { menu: [], categories: [] };
     let menu = menuData.menu || [];
     let updated = false;
@@ -216,10 +216,11 @@ export function handleCatalogWsMessage(data, ws, storeId, source) {
       const initialLength = menu.length;
       menu = menu.filter(item => item.id !== id);
       if (menu.length !== initialLength) updated = true;
-    } else if (action === 'TOGGLE_STOCK') {
-      const { itemId, available } = payload;
+    } else if (action === 'TOGGLE_STOCK' || action === 'TOGGLE_AVAILABILITY') {
+      const itemId = payload.itemId || payload.id;
       const itemIndex = menu.findIndex(i => i.id === itemId);
       if (itemIndex >= 0) {
+        const available = payload.available !== undefined ? payload.available : !menu[itemIndex].available;
         menu[itemIndex].available = available;
         menu[itemIndex].updatedAt = now();
         updated = true;

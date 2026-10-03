@@ -54,11 +54,24 @@ export const placeOrder = async (req, res) => {
 
         if (order.couponCode) {
             const usage = DataLayer.read(storeId, 'coupon_usage') || {};
+            const phone = order.customer?.phone || payload.customerPhone;
+            if (phone) {
+                if (!usage[phone]) usage[phone] = {};
+                if (!usage[phone][order.couponCode]) usage[phone][order.couponCode] = 0;
+                usage[phone][order.couponCode] += 1;
+            }
             if (!usage[order.couponCode]) {
                 usage[order.couponCode] = 0;
             }
             usage[order.couponCode] += 1;
             DataLayer.writeSync(storeId, 'coupon_usage', usage);
+
+            const deals = DataLayer.read(storeId, 'deals') || [];
+            const dealIndex = deals.findIndex(d => (d.code || '').toLowerCase() === order.couponCode.toLowerCase());
+            if (dealIndex !== -1) {
+                deals[dealIndex].usageCount = (deals[dealIndex].usageCount || 0) + 1;
+                DataLayer.writeSync(storeId, 'deals', deals);
+            }
         }
 
         orders.push(order);

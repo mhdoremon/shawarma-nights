@@ -895,7 +895,7 @@ public class SmsGatewayService extends Service {
         menuList.add(0, item);
         notifyDataChanged();
 
-        String json = "{\"action\":\"ADD_MENU_ITEM\",\"type\":\"ADD_MENU_ITEM\",\"payload\":" + item.toString() + "}";
+        String json = "{\"action\":\"ADD_MENU_ITEM\",\"type\":\"ADD_MENU_ITEM\",\"item\":" + item.toString() + "}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }
@@ -919,14 +919,13 @@ public class SmsGatewayService extends Service {
         notifyDataChanged();
 
         try {
-            JSONObject payload = new JSONObject();
-            payload.put("id", id);
-            payload.put("updates", updates);
-            String json = "{\"action\":\"UPDATE_MENU_ITEM\",\"type\":\"UPDATE_MENU_ITEM\",\"payload\":" + payload.toString() + "}";
+            updates.put("id", id);
+            String json = "{\"action\":\"UPDATE_MENU_ITEM\",\"type\":\"UPDATE_MENU_ITEM\",\"item\":" + updates.toString() + "}";
             if (instance != null) {
                 instance.sendWsMessage(json);
             }
-            postRestAsync("/api/menu/item", payload.toString());
+            
+            postRestAsync("/api/menu/item", updates.toString());
         } catch (Exception ignored) {}
     }
 
@@ -939,7 +938,7 @@ public class SmsGatewayService extends Service {
         }
         notifyDataChanged();
 
-        String json = "{\"action\":\"DELETE_MENU_ITEM\",\"type\":\"DELETE_MENU_ITEM\",\"payload\":{\"id\":\"" + escapeJson(id) + "\"}}";
+        String json = "{\"action\":\"DELETE_MENU_ITEM\",\"type\":\"DELETE_MENU_ITEM\",\"itemId\":\"" + escapeJson(id) + "\"}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }
@@ -975,7 +974,7 @@ public class SmsGatewayService extends Service {
         dealsList.add(0, deal);
         notifyDataChanged();
 
-        String json = "{\"action\":\"ADD_DEAL\",\"type\":\"ADD_DEAL\",\"payload\":" + deal.toString() + "}";
+        String json = "{\"action\":\"ADD_DEAL\",\"type\":\"ADD_DEAL\",\"deal\":" + deal.toString() + "}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }
@@ -991,7 +990,7 @@ public class SmsGatewayService extends Service {
         }
         notifyDataChanged();
 
-        String json = "{\"action\":\"DELETE_DEAL\",\"type\":\"DELETE_DEAL\",\"payload\":{\"id\":\"" + escapeJson(id) + "\"}}";
+        String json = "{\"action\":\"DELETE_DEAL\",\"type\":\"DELETE_DEAL\",\"dealId\":\"" + escapeJson(id) + "\"}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }
@@ -1009,17 +1008,12 @@ public class SmsGatewayService extends Service {
         notifyDataChanged();
 
         try {
-            JSONObject payload = new JSONObject();
-            payload.put("id", dealId);
-            payload.put("updates", updated);
-            String json = "{\"action\":\"UPDATE_DEAL\",\"type\":\"UPDATE_DEAL\",\"payload\":" + payload.toString() + "}";
+            String json = "{\"action\":\"UPDATE_DEAL\",\"type\":\"UPDATE_DEAL\",\"deal\":" + updated.toString() + "}";
             if (instance != null) {
                 instance.sendWsMessage(json);
             }
-            JSONObject restBody = new JSONObject();
-            restBody.put("id", dealId);
-            restBody.put("updates", updated);
-            postRestAsync("/api/deals/item", restBody.toString());
+            
+            postRestAsync("/api/deals/item", updated.toString());
         } catch (Exception e) {
             Log.e(TAG, "sendUpdateDeal error: " + e.getMessage());
         }
@@ -1029,7 +1023,7 @@ public class SmsGatewayService extends Service {
         heroBannerObj = hero;
         notifyDataChanged();
 
-        String json = "{\"action\":\"UPDATE_HERO_BANNER\",\"type\":\"UPDATE_HERO_BANNER\",\"payload\":" + hero.toString() + "}";
+        String json = "{\"action\":\"UPDATE_HERO_BANNER\",\"type\":\"UPDATE_HERO_BANNER\",\"heroBanner\":" + hero.toString() + "}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }
@@ -1053,7 +1047,7 @@ public class SmsGatewayService extends Service {
         }
         notifyDataChanged();
 
-        String json = "{\"action\":\"UPDATE_STORE_INFO\",\"type\":\"UPDATE_STORE_INFO\",\"payload\":" + storeInfo.toString() + "}";
+        String json = "{\"action\":\"UPDATE_STORE_INFO\",\"type\":\"UPDATE_STORE_INFO\",\"storeInfo\":" + storeInfo.toString() + "}";
         if (instance != null) {
             instance.sendWsMessage(json);
         }

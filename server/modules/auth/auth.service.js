@@ -81,7 +81,7 @@ export const verifyOtp = (req, res) => {
             return res.status(400).json({ success: false, message: 'Too many attempts. Please request a new OTP' });
         }
         
-        if (stored.otp !== otp.toString()) {
+        if (String(stored.otp) !== String(otp)) {
             stored.attempts++;
             otpStore.set(key, stored);
             return res.status(400).json({ success: false, message: 'Invalid OTP' });
@@ -162,11 +162,11 @@ export const register = (req, res) => {
 
 export const updateProfile = (req, res) => {
     try {
-        const { token, name, address, email } = req.body;
-        if (!token) return res.status(400).json({ success: false, message: 'Token is required' });
+        const { phone, token, name, address, email } = req.body;
+        if (!phone && !token) return res.status(400).json({ success: false, message: 'Phone or Token is required' });
         
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const index = customers.findIndex(c => c.token === token);
+        const index = customers.findIndex(c => c.phone === phone || c.token === token);
         
         if (index === -1) return res.status(404).json({ success: false, message: 'Customer not found' });
         
@@ -184,11 +184,11 @@ export const updateProfile = (req, res) => {
 
 export const deleteAccount = (req, res) => {
     try {
-        const { token } = req.body;
-        if (!token) return res.status(400).json({ success: false, message: 'Token is required' });
+        const { phone, token } = req.body;
+        if (!phone && !token) return res.status(400).json({ success: false, message: 'Phone or Token is required' });
         
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const newCustomers = customers.filter(c => c.token !== token);
+        const newCustomers = customers.filter(c => c.phone !== phone && c.token !== token);
         
         if (customers.length === newCustomers.length) {
             return res.status(404).json({ success: false, message: 'Customer not found' });
@@ -243,8 +243,8 @@ export const loginAdmin = (req, res) => {
             return res.status(401).json({ success: false, message: 'Master Admin not registered yet' });
         }
 
-        const uInput = (username || '').trim().toLowerCase();
-        const pInput = (password || '').trim();
+        const uInput = String(username || '').trim().toLowerCase();
+        const pInput = String(password || '').trim();
 
         const uMatch = uInput && (
             uInput === (owner.username || '').trim().toLowerCase() ||
