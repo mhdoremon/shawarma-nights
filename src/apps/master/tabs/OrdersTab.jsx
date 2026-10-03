@@ -44,22 +44,22 @@ export default function OrdersTab() {
     <div className="space-y-5 pb-16">
       
       {/* Search & Filter Bar */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-3.5">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
         {/* Search Input */}
         <div className="relative">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by Order #, customer name or phone..."
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#DC2626] transition-colors"
+            className="w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
           />
         </div>
 
         {/* Status Filter Horizontal Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {filterTabs.map(tab => {
             const count = tab.id === 'all' 
               ? (orders?.length || 0) 
@@ -71,15 +71,15 @@ export default function OrdersTab() {
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border-0 ${
                   active 
                     ? 'bg-[#DC2626] text-white shadow-md' 
-                    : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                    : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
                 }`}
               >
                 <span>{tab.label}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  active ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
+                  active ? 'bg-white text-[#DC2626]' : 'bg-zinc-200 text-zinc-600'
                 }`}>
                   {count}
                 </span>
@@ -91,8 +91,8 @@ export default function OrdersTab() {
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center text-zinc-500 text-sm space-y-1">
-          <p className="font-bold text-zinc-400">No orders found in this filter</p>
+        <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
+          <p className="font-bold text-zinc-700">No orders found in this filter</p>
           <p className="text-xs">Customers ke naye orders aane par yahan auto-show honge.</p>
         </div>
       ) : (
@@ -104,83 +104,83 @@ export default function OrdersTab() {
             const items = Array.isArray(order.items) ? order.items : [];
             const isCOD = order.paymentMethod === 'cod';
 
+            const statusStyle = {
+              confirmed: 'bg-emerald-50 text-emerald-700',
+              preparing: 'bg-amber-50 text-amber-700',
+              out_for_delivery: 'bg-sky-50 text-sky-700',
+              delivered: 'bg-zinc-100 text-zinc-600',
+              cancelled: 'bg-red-50 text-red-700'
+            }[order.status] || 'bg-zinc-100 text-zinc-600';
+
             return (
               <div 
                 key={order.id} 
-                className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 flex flex-col justify-between space-y-4 shadow-lg hover:border-zinc-700 transition-colors"
+                className="bg-white rounded-3xl p-6 flex flex-col justify-between space-y-4 shadow-xl border-0"
               >
                 
                 {/* Header: Order #, Time, Status */}
-                <div className="flex items-start justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3.5">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-black text-white">#{orderNum}</span>
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-base font-black text-zinc-900">#{orderNum}</span>
+                      <span className="text-xs text-zinc-400 font-medium">
                         {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent'}
                       </span>
                     </div>
-                    <div className="text-xs font-bold text-zinc-300 mt-0.5">
+                    <div className="text-xs font-black text-zinc-800 mt-0.5">
                       {customerName}
                     </div>
                   </div>
 
                   {/* Status Badge */}
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                    {
-                      confirmed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-                      preparing: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-                      out_for_delivery: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-                      delivered: 'bg-zinc-800 text-zinc-300 border-zinc-700',
-                      cancelled: 'bg-red-500/10 text-red-400 border-red-500/20'
-                    }[order.status] || 'bg-zinc-800 text-zinc-300 border-zinc-700'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusStyle}`}>
                     {order.status || 'Pending'}
                   </span>
                 </div>
 
                 {/* Items Breakdown */}
-                <div className="space-y-1.5 text-xs text-zinc-300 bg-zinc-950/70 p-3 rounded-2xl border border-zinc-800/50">
+                <div className="space-y-1.5 text-xs text-zinc-700 bg-[#FFFBF7] p-4 rounded-2xl shadow-xs border-0">
                   {items.map((it, idx) => (
                     <div key={idx} className="flex items-center justify-between">
                       <span className="font-medium">
-                        <strong className="text-white font-black">{it.qty || 1}x</strong> {it.name}
+                        <strong className="text-zinc-900 font-black">{it.qty || 1}x</strong> {it.name}
                         {it.bread?.name && <span className="text-zinc-500 text-[11px]"> ({it.bread.name})</span>}
                       </span>
-                      <span className="text-zinc-400 font-bold">
+                      <span className="text-zinc-900 font-bold">
                         ₹{(it.unitPrice || it.price || 0) * (it.qty || 1)}
                       </span>
                     </div>
                   ))}
                   {order.notes && (
-                    <div className="pt-1 text-[11px] text-amber-400 font-medium italic border-t border-zinc-800 mt-2">
+                    <div className="pt-2 text-[11px] text-[#DC2626] font-bold border-t border-zinc-200 mt-2">
                       Note: "{order.notes}"
                     </div>
                   )}
                 </div>
 
                 {/* Customer Contact & Address */}
-                <div className="space-y-1 text-xs text-zinc-400">
+                <div className="space-y-1 text-xs text-zinc-500">
                   {order.address && (
-                    <div className="flex items-start gap-1.5 text-[11px] text-zinc-400 line-clamp-2">
-                      <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-1.5 text-[11px] text-zinc-600 line-clamp-2">
+                      <MapPin className="w-3.5 h-3.5 text-[#DC2626] shrink-0 mt-0.5" />
                       <span>{order.address}</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-1.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-bold">
                       {isCOD ? (
-                        <span className="inline-flex items-center gap-1 text-amber-400 font-bold">
-                          <Banknote className="w-3.5 h-3.5" /> COD (Cash)
+                        <span className="inline-flex items-center gap-1 text-amber-600">
+                          <Banknote className="w-3.5 h-3.5" /> Cash on Delivery (COD)
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-emerald-400 font-bold">
-                          <CreditCard className="w-3.5 h-3.5" /> UPI / Paid
+                        <span className="inline-flex items-center gap-1 text-emerald-600">
+                          <CreditCard className="w-3.5 h-3.5" /> Online UPI / Paid
                         </span>
                       )}
                     </div>
 
-                    <div className="text-base font-black text-white">
+                    <div className="text-lg font-black text-zinc-900">
                       ₹{order.total || order.grandTotal || 0}
                     </div>
                   </div>
@@ -188,21 +188,21 @@ export default function OrdersTab() {
 
                 {/* Customer Quick Call & WhatsApp */}
                 {customerPhone && (
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-800/60">
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100">
                     <a
                       href={`tel:${customerPhone}`}
-                      className="py-2 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      className="py-2.5 px-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Call Client</span>
                     </a>
                     <a
                       href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=Namaste%20${encodeURIComponent(customerName)},%20aapka%20Shawarma%20Nights%20order%20%23${orderNum}%20process%20ho%20raha%20hai.`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="py-2 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                      className="py-2.5 px-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                     >
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                       <span>WhatsApp</span>
                     </a>
                   </div>
@@ -215,14 +215,14 @@ export default function OrdersTab() {
                     <>
                       <button
                         onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                        className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                        className="flex-1 py-3 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                       >
                         <Check className="w-4 h-4 stroke-[2.5]" />
                         <span>Accept Order</span>
                       </button>
                       <button
                         onClick={() => updateOrderStatus(order.id, 'cancelled')}
-                        className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-red-500/50 text-red-400 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
+                        className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                         <span>Reject</span>
@@ -233,7 +233,7 @@ export default function OrdersTab() {
                   {order.status === 'confirmed' && (
                     <button
                       onClick={() => updateOrderStatus(order.id, 'preparing')}
-                      className="w-full py-2.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      className="w-full py-3 px-3 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                     >
                       <ChefHat className="w-4 h-4" />
                       <span>Start Preparing (Kitchen)</span>
@@ -243,7 +243,7 @@ export default function OrdersTab() {
                   {order.status === 'preparing' && (
                     <button
                       onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
-                      className="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      className="w-full py-3 px-3 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                     >
                       <Bike className="w-4 h-4" />
                       <span>Dispatch / Out for Delivery</span>
@@ -253,7 +253,7 @@ export default function OrdersTab() {
                   {order.status === 'out_for_delivery' && (
                     <button
                       onClick={() => updateOrderStatus(order.id, 'delivered')}
-                      className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                      className="w-full py-3 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
                     >
                       <CheckCheck className="w-4 h-4 stroke-[2.5]" />
                       <span>Mark Delivered</span>
@@ -263,7 +263,7 @@ export default function OrdersTab() {
                   {/* Print / View Receipt Button */}
                   <button
                     onClick={() => setSelectedReceiptOrder(order)}
-                    className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:text-white text-zinc-400 transition-colors cursor-pointer"
+                    className="p-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
                     title="Print Receipt"
                   >
                     <Printer className="w-4 h-4" />
@@ -279,11 +279,11 @@ export default function OrdersTab() {
 
       {/* RECEIPT / BILL MODAL */}
       {selectedReceiptOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="text-center space-y-1 border-b border-zinc-200 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border-0">
+            <div className="text-center space-y-1 border-b border-zinc-100 pb-3">
               <h4 className="text-lg font-black tracking-tight">SHAWARMA NIGHTS</h4>
-              <p className="text-[11px] text-zinc-500">Order Slip #{selectedReceiptOrder.orderNumber || selectedReceiptOrder.id?.slice(-4)}</p>
+              <p className="text-xs text-zinc-500 font-bold">Order Slip #{selectedReceiptOrder.orderNumber || selectedReceiptOrder.id?.slice(-4)}</p>
               <p className="text-[10px] text-zinc-400">{new Date(selectedReceiptOrder.createdAt || Date.now()).toLocaleString()}</p>
             </div>
 
@@ -304,7 +304,7 @@ export default function OrdersTab() {
               )}
             </div>
 
-            <div className="border-t border-b border-zinc-200 py-2.5 space-y-1.5 text-xs">
+            <div className="border-t border-b border-zinc-100 py-3 space-y-1.5 text-xs">
               {(selectedReceiptOrder.items || []).map((it, i) => (
                 <div key={i} className="flex justify-between">
                   <span>{it.qty}x {it.name}</span>
@@ -313,7 +313,7 @@ export default function OrdersTab() {
               ))}
             </div>
 
-            <div className="flex justify-between items-center text-sm font-black pt-1">
+            <div className="flex justify-between items-center text-base font-black pt-1">
               <span>TOTAL AMOUNT</span>
               <span className="text-[#DC2626]">₹{selectedReceiptOrder.total || selectedReceiptOrder.grandTotal || 0}</span>
             </div>
@@ -321,13 +321,13 @@ export default function OrdersTab() {
             <div className="pt-2 flex items-center gap-2">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-xl bg-zinc-900 text-white font-bold text-xs"
+                className="flex-1 py-3 rounded-full bg-zinc-900 text-white font-bold text-xs uppercase tracking-wider"
               >
                 Print Slip
               </button>
               <button
                 onClick={() => setSelectedReceiptOrder(null)}
-                className="py-2.5 px-4 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs"
+                className="py-3 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs"
               >
                 Close
               </button>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Store, CreditCard, Sparkles, Volume2, VolumeX, LogOut, Check, Sliders, DollarSign, Bell } from 'lucide-react';
+import { Store, CreditCard, Sparkles, Volume2, VolumeX, LogOut, Check, Bell } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
 
 export default function SettingsTab() {
@@ -69,17 +69,17 @@ export default function SettingsTab() {
     <div className="space-y-6 pb-20 max-w-4xl mx-auto">
       
       {/* Settings Header */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-0">
         <div>
-          <h2 className="text-xl font-black text-white">Store & System Configuration</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <h2 className="text-xl font-black text-zinc-900">Store & System Configuration</h2>
+          <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
             Configure Dukan branding, delivery fees, merchant UPI, hero copy and audio chimes
           </p>
         </div>
 
         <button
           onClick={logout}
-          className="px-4 py-2 rounded-2xl bg-zinc-950 border border-zinc-800 hover:border-red-500/50 text-red-400 hover:text-red-300 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
+          className="px-5 py-2.5 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-600 text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Exit / Logout</span>
@@ -87,9 +87,9 @@ export default function SettingsTab() {
       </div>
 
       {/* SECTION 1: DUKAN PROFILE & OPERATIONAL SETTINGS */}
-      <form onSubmit={handleSaveGeneral} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-5">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <h3 className="text-base font-black text-white flex items-center gap-2">
+      <form onSubmit={handleSaveGeneral} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+          <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
             <Store className="w-4 h-4 text-[#DC2626]" />
             <span>Dukan Operational & Billing Settings</span>
           </h3>
@@ -102,8 +102,8 @@ export default function SettingsTab() {
               onChange={(e) => setGeneralForm({ ...generalForm, isOpen: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
-            <span className={`text-xs font-black ${generalForm.isOpen ? 'text-emerald-400' : 'text-zinc-500'}`}>
+            <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+            <span className={`text-xs font-black ${generalForm.isOpen ? 'text-emerald-700' : 'text-zinc-400'}`}>
               {generalForm.isOpen ? 'STORE OPEN' : 'STORE CLOSED'}
             </span>
           </label>
@@ -111,7 +111,7 @@ export default function SettingsTab() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Store / Dukan Name
             </label>
             <input
@@ -119,59 +119,59 @@ export default function SettingsTab() {
               required
               value={generalForm.name}
               onChange={(e) => setGeneralForm({ ...generalForm, name: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Tagline / Subtext
             </label>
             <input
               type="text"
               value={generalForm.tagline}
               onChange={(e) => setGeneralForm({ ...generalForm, tagline: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Official Contact Phone
             </label>
             <input
               type="tel"
               value={generalForm.phone}
               onChange={(e) => setGeneralForm({ ...generalForm, phone: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Store Address
             </label>
             <input
               type="text"
               value={generalForm.address}
               onChange={(e) => setGeneralForm({ ...generalForm, address: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
         </div>
 
         {/* UPI & Payments */}
-        <div className="pt-2 border-t border-zinc-800">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 flex items-center gap-1.5">
-            <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="pt-3 border-t border-zinc-100">
+          <h4 className="text-xs font-black uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-1.5">
+            <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
             <span>Payment & Charges Setup</span>
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Merchant UPI ID (for QR Payments)
               </label>
               <input
@@ -179,17 +179,17 @@ export default function SettingsTab() {
                 value={generalForm.upiId}
                 onChange={(e) => setGeneralForm({ ...generalForm, upiId: e.target.value })}
                 placeholder="e.g. 7023963189@paytm"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 mt-5">
-              <span className="text-xs font-bold text-white">Accept Cash on Delivery (COD)</span>
+            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#FFFBF7] shadow-xs mt-4 sm:mt-5">
+              <span className="text-xs font-black text-zinc-800">Accept Cash on Delivery (COD)</span>
               <input
                 type="checkbox"
                 checked={generalForm.codEnabled}
                 onChange={(e) => setGeneralForm({ ...generalForm, codEnabled: e.target.checked })}
-                className="rounded bg-zinc-900 border-zinc-700 text-[#DC2626]"
+                className="rounded text-[#DC2626] focus:ring-[#DC2626]"
               />
             </div>
           </div>
@@ -197,50 +197,50 @@ export default function SettingsTab() {
           {/* Delivery & Packaging Fees */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Delivery Fee (₹)
               </label>
               <input
                 type="number"
                 value={generalForm.deliveryFee}
                 onChange={(e) => setGeneralForm({ ...generalForm, deliveryFee: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Free Delivery Above (₹)
               </label>
               <input
                 type="number"
                 value={generalForm.freeDeliveryThreshold}
                 onChange={(e) => setGeneralForm({ ...generalForm, freeDeliveryThreshold: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Packaging Fee (₹)
               </label>
               <input
                 type="number"
                 value={generalForm.packagingCharge}
                 onChange={(e) => setGeneralForm({ ...generalForm, packagingCharge: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Tax / GST (%)
               </label>
               <input
                 type="number"
                 value={generalForm.taxPercent}
                 onChange={(e) => setGeneralForm({ ...generalForm, taxPercent: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function SettingsTab() {
 
         <button
           type="submit"
-          className="w-full py-3.5 rounded-2xl bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+          className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
         >
           <Check className="w-4 h-4 stroke-[2.5]" />
           <span>Save Store Operational Settings</span>
@@ -256,98 +256,98 @@ export default function SettingsTab() {
       </form>
 
       {/* SECTION 2: HERO BANNER & MARQUEE TEXT SETTINGS */}
-      <form onSubmit={handleSaveHero} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-5">
-        <div className="border-b border-zinc-800 pb-3">
-          <h3 className="text-base font-black text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
+      <form onSubmit={handleSaveHero} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+        <div className="border-b border-zinc-100 pb-3.5">
+          <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
             <span>Homepage Hero Banner & Marquee Strip Copy</span>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-zinc-500 mt-0.5">
             Customize the main headline and the scrolling ticker strip at top of website
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Title Line 1
             </label>
             <input
               type="text"
               value={heroForm.titleLine1}
               onChange={(e) => setHeroForm({ ...heroForm, titleLine1: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Title Line 2
             </label>
             <input
               type="text"
               value={heroForm.titleLine2}
               onChange={(e) => setHeroForm({ ...heroForm, titleLine2: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
               Highlight Word
             </label>
             <input
               type="text"
               value={heroForm.titleHighlight}
               onChange={(e) => setHeroForm({ ...heroForm, titleHighlight: e.target.value })}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
             Badge Sticker Text
           </label>
           <input
             type="text"
             value={heroForm.badgeText}
             onChange={(e) => setHeroForm({ ...heroForm, badgeText: e.target.value })}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
           />
         </div>
 
         {/* Marquee Ticker Copy */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
               Scrolling Marquee Top Strip (Clickable Franchise Button)
             </label>
-            <span className="text-[10px] text-zinc-500">Separate items using ● bullet</span>
+            <span className="text-[10px] text-zinc-400">Separate items using ● bullet</span>
           </div>
           <textarea
             rows={3}
             value={heroForm.marqueeText}
             onChange={(e) => setHeroForm({ ...heroForm, marqueeText: e.target.value })}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#DC2626] font-mono leading-relaxed"
+            className="w-full bg-[#FFFBF7] rounded-2xl p-4 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono leading-relaxed resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
             Subtitle Copy
           </label>
           <textarea
             rows={2}
             value={heroForm.subtitle}
             onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+            className="w-full bg-[#FFFBF7] rounded-2xl p-3.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full py-3.5 rounded-2xl bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+          className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
         >
           <Check className="w-4 h-4 stroke-[2.5]" />
           <span>Update Hero Banner & Marquee Strip</span>
@@ -355,13 +355,13 @@ export default function SettingsTab() {
       </form>
 
       {/* SECTION 3: AUDIO NOTIFICATIONS */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 flex items-center justify-between">
+      <div className="bg-white rounded-3xl p-6 sm:p-8 flex items-center justify-between shadow-xl border-0">
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Bell className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-emerald-600" />
             <span>New Order Sound Alert</span>
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">
+          <p className="text-xs text-zinc-500 mt-0.5">
             Plays a synthesized 3-tone notification chime immediately when a new customer order arrives
           </p>
         </div>
@@ -373,7 +373,7 @@ export default function SettingsTab() {
               playOrderSound();
               showToast('Test chime played!', 'info');
             }}
-            className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-full bg-zinc-100 hover:bg-zinc-200 text-xs font-bold text-zinc-700 transition-colors cursor-pointer"
           >
             Test Sound
           </button>
@@ -384,12 +384,12 @@ export default function SettingsTab() {
               setSoundEnabled(!soundEnabled);
               showToast(soundEnabled ? 'Order sound muted' : 'Order sound enabled', 'info');
             }}
-            className={`p-2 rounded-xl transition-colors cursor-pointer ${
-              soundEnabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-zinc-800 text-zinc-400'
+            className={`p-2.5 rounded-full shadow-xs transition-colors cursor-pointer ${
+              soundEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-400'
             }`}
             title={soundEnabled ? 'Mute' : 'Unmute'}
           >
-            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Bike, Phone, MessageCircle, MapPin, CheckCircle2, ShieldCheck, LogOut, Check, X } from 'lucide-react';
+import { Bike, Phone, MessageCircle, MapPin, CheckCircle2, LogOut, X } from 'lucide-react';
 
 export default function DeliveryPartnerView() {
   const { orders, user, logout, verifyDeliveryOtp, showToast } = useMaster();
@@ -13,12 +13,6 @@ export default function DeliveryPartnerView() {
   const activeDeliveries = useMemo(() => {
     const list = Array.isArray(orders) ? orders : [];
     return list.filter(o => o.status === 'out_for_delivery' || o.status === 'preparing');
-  }, [orders]);
-
-  // Delivered history
-  const completedDeliveries = useMemo(() => {
-    const list = Array.isArray(orders) ? orders : [];
-    return list.filter(o => o.status === 'delivered');
   }, [orders]);
 
   const handleVerifyOtp = async (e) => {
@@ -41,20 +35,20 @@ export default function DeliveryPartnerView() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-4 sm:p-6 space-y-6 max-w-2xl mx-auto pb-20">
+    <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 p-4 sm:p-6 space-y-6 max-w-2xl mx-auto pb-20 font-sans">
       
       {/* Top Rider Header */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 flex items-center justify-between">
+      <div className="bg-white rounded-3xl p-6 shadow-xl flex items-center justify-between border-0">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-[#DC2626]/10 border border-[#DC2626]/20 text-[#DC2626] flex items-center justify-center">
-            <Bike className="w-6 h-6" />
+          <div className="w-13 h-13 rounded-2xl bg-red-50 text-[#DC2626] flex items-center justify-center shadow-xs">
+            <Bike className="w-6 h-6 stroke-[2.2]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <h2 className="text-base font-black text-white">ChuruOne Rider Portal</h2>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-base font-black text-zinc-900">ChuruOne Rider Portal</h2>
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               Rider Mobile: {user?.phone || 'Active Partner'}
             </p>
           </div>
@@ -62,7 +56,7 @@ export default function DeliveryPartnerView() {
 
         <button
           onClick={logout}
-          className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white"
+          className="p-2.5 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 transition-colors cursor-pointer"
           title="Logout"
         >
           <LogOut className="w-4 h-4" />
@@ -71,12 +65,12 @@ export default function DeliveryPartnerView() {
 
       {/* Active Orders Assigned */}
       <div className="space-y-3">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+        <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500">
           Active Dispatched Deliveries ({activeDeliveries.length})
         </h3>
 
         {activeDeliveries.length === 0 ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center text-zinc-500 text-xs">
+          <div className="bg-white rounded-3xl p-10 text-center text-zinc-400 text-xs shadow-lg border-0">
             Abhi koi active delivery order nahi hai. Dukan se order dispatch hone par yahan aayega.
           </div>
         ) : (
@@ -88,32 +82,32 @@ export default function DeliveryPartnerView() {
               return (
                 <div
                   key={ord.id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 space-y-4 shadow-lg"
+                  className="bg-white rounded-3xl p-6 space-y-4 shadow-xl border-0"
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <span className="text-sm font-black text-white">
+                      <span className="text-sm font-black text-zinc-900">
                         #{ord.orderNumber || ord.id?.slice(-4)}
                       </span>
-                      <h4 className="text-base font-bold text-zinc-200 mt-0.5">
+                      <h4 className="text-base font-black text-zinc-800 mt-0.5">
                         {customerName}
                       </h4>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-sky-50 text-sky-700">
                       {ord.status}
                     </span>
                   </div>
 
                   {ord.address && (
-                    <div className="flex items-start gap-2 bg-zinc-950 p-3 rounded-2xl border border-zinc-800 text-xs text-zinc-300">
+                    <div className="flex items-start gap-2 bg-[#FFFBF7] p-3.5 rounded-2xl shadow-xs text-xs text-zinc-700">
                       <MapPin className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
                       <span>{ord.address}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-zinc-400">Collect Amount:</span>
-                    <span className="text-base font-black text-white">
+                    <span className="text-zinc-500 font-bold">Collect Amount:</span>
+                    <span className="text-base font-black text-zinc-900">
                       ₹{ord.total || ord.grandTotal || 0} ({ord.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Already Paid Online'})
                     </span>
                   </div>
@@ -123,18 +117,18 @@ export default function DeliveryPartnerView() {
                     <div className="grid grid-cols-2 gap-2">
                       <a
                         href={`tel:${customerPhone}`}
-                        className="py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                        className="py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Call Customer</span>
                       </a>
                       <a
                         href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs font-bold flex items-center justify-center gap-1.5"
+                        className="py-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                       >
-                        <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
                         <span>WhatsApp</span>
                       </a>
                     </div>
@@ -146,7 +140,7 @@ export default function DeliveryPartnerView() {
                       setOtpModalOrder(ord);
                       setDeliveryOtpInput('');
                     }}
-                    className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                    className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Complete Delivery (Enter Customer OTP)</span>
@@ -160,19 +154,19 @@ export default function DeliveryPartnerView() {
 
       {/* DELIVERY OTP VERIFICATION MODAL */}
       {otpModalOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 text-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <h3 className="text-base font-black">Verify Delivery OTP</h3>
               <button
                 onClick={() => setOtpModalOrder(null)}
-                className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400"
+                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-500">
               Ask customer <strong>{otpModalOrder.customer?.name || otpModalOrder.customerName}</strong> for the 4-digit Delivery OTP sent on their phone.
             </p>
 
@@ -185,7 +179,7 @@ export default function DeliveryPartnerView() {
                   value={deliveryOtpInput}
                   onChange={(e) => setDeliveryOtpInput(e.target.value)}
                   placeholder="e.g. 4821"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl py-3 text-center text-xl font-black text-white tracking-widest focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-[#FFFBF7] rounded-2xl py-3.5 text-center text-2xl font-black text-zinc-900 tracking-widest focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all shadow-xs border-0"
                 />
               </div>
 
@@ -193,14 +187,14 @@ export default function DeliveryPartnerView() {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider"
+                  className="flex-1 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-lg border-0"
                 >
                   {isVerifying ? 'Verifying...' : 'Confirm & Complete'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setOtpModalOrder(null)}
-                  className="py-3 px-4 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs"
+                  className="py-3.5 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs border-0"
                 >
                   Cancel
                 </button>

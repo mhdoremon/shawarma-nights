@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Smartphone, Send, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, MessageSquare } from 'lucide-react';
+import { Smartphone, Send, ShieldCheck, CheckCircle2, RefreshCw, MessageSquare } from 'lucide-react';
 
 export default function SmsGatewayTab() {
   const { isConnected, smsLogs, sendTestSms, simulatePaymentSms, showToast } = useMaster();
@@ -29,24 +29,24 @@ export default function SmsGatewayTab() {
     <div className="space-y-6 pb-16">
       
       {/* Gateway Status Banner */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-            <Smartphone className="w-6 h-6" />
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-0">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 shadow-xs">
+            <Smartphone className="w-7 h-7" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <h2 className="text-lg font-black text-white">ChuruOne SMS & UPI Gateway Engine</h2>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="text-lg font-black text-zinc-900">ChuruOne SMS & UPI Gateway Engine</h2>
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
               Dual-Sim Android Gateway + Automated Banking UPI SMS Verification Engine
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-xs font-bold text-zinc-300">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100 text-xs font-black text-zinc-800">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>WebSocket Hub {isConnected ? 'Active' : 'Offline'}</span>
         </div>
       </div>
@@ -54,20 +54,20 @@ export default function SmsGatewayTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* Tool 1: Bank UPI Auto-Verification Simulator */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-4">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
           <div>
-            <h3 className="text-base font-black text-white flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-emerald-600" />
               <span>Simulate Bank UPI SMS Verification</span>
             </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               When a customer pays via UPI QR, bank SMS instantly verifies pending order. Test it here:
             </p>
           </div>
 
           <form onSubmit={handleSimulateUpiSms} className="space-y-3">
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Bank Received SMS Text
               </label>
               <textarea
@@ -75,13 +75,13 @@ export default function SmsGatewayTab() {
                 required
                 value={bankSmsText}
                 onChange={(e) => setBankSmsText(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-200 font-mono focus:outline-none focus:border-[#DC2626] resize-none"
+                className="w-full bg-[#FFFBF7] rounded-2xl p-3.5 text-xs text-zinc-800 font-mono focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg border-0"
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Verify Pending UPI Orders</span>
@@ -90,20 +90,20 @@ export default function SmsGatewayTab() {
         </div>
 
         {/* Tool 2: Send Test SMS Dispatcher */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-4">
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
           <div>
-            <h3 className="text-base font-black text-white flex items-center gap-2">
+            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
               <Send className="w-4 h-4 text-[#DC2626]" />
               <span>Direct SMS Dispatcher</span>
             </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
+            <p className="text-xs text-zinc-500 mt-0.5">
               Send test notification or manual order update to any customer mobile:
             </p>
           </div>
 
           <form onSubmit={handleSendTestSms} className="space-y-3">
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Customer Mobile (+91)
               </label>
               <input
@@ -112,12 +112,12 @@ export default function SmsGatewayTab() {
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="e.g. 7023963189"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                 Message Content
               </label>
               <input
@@ -125,13 +125,13 @@ export default function SmsGatewayTab() {
                 required
                 value={testMsg}
                 onChange={(e) => setTestMsg(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#DC2626]"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg border-0"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Send SMS via SIM Gateway</span>
@@ -142,35 +142,35 @@ export default function SmsGatewayTab() {
       </div>
 
       {/* Live SMS Activity Stream */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-3">
-        <h3 className="text-sm font-black text-white flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-zinc-400" />
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
+        <h3 className="text-sm font-black text-zinc-900 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-zinc-500" />
           <span>Realtime SMS Gateway Event Stream</span>
         </h3>
 
         {(!smsLogs || smsLogs.length === 0) ? (
-          <div className="text-center py-8 text-zinc-500 text-xs">
+          <div className="text-center py-8 text-zinc-400 text-xs">
             Abhi koi SMS activity nahi hui hai. New SMS bhejne par yahan real-time log hoga.
           </div>
         ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
             {smsLogs.map(log => (
               <div
                 key={log.id}
-                className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-3 text-xs flex items-center justify-between gap-3"
+                className="bg-[#FFFBF7] rounded-2xl p-3.5 text-xs flex items-center justify-between gap-3 shadow-xs border-0"
               >
                 <div>
-                  <div className="font-bold text-white flex items-center gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">
+                  <div className="font-black text-zinc-900 flex items-center gap-2">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-200 text-zinc-700 uppercase">
                       {log.type}
                     </span>
                     <span>{log.phone}</span>
                   </div>
-                  <p className="text-zinc-400 text-[11px] mt-0.5 font-mono line-clamp-1">
+                  <p className="text-zinc-600 text-[11px] mt-1 font-mono line-clamp-1">
                     {log.text}
                   </p>
                 </div>
-                <span className="text-[10px] text-zinc-500 shrink-0">{log.timestamp}</span>
+                <span className="text-[10px] text-zinc-400 shrink-0 font-medium">{log.timestamp}</span>
               </div>
             ))}
           </div>

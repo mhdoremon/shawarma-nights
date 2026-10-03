@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Search, Edit2, Trash2, Check, X, Image as ImageIcon, Flame } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Flame } from 'lucide-react';
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 
 export default function MenuTab() {
@@ -72,41 +72,41 @@ export default function MenuTab() {
     <div className="space-y-5 pb-16">
       
       {/* Top Action & Search Bar */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-5 space-y-4">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search dishes by name or ingredient..."
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-[#DC2626] transition-colors"
+              placeholder="Search dishes by name or category..."
+              className="w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           {/* Add New Dish Button */}
           <button
             onClick={() => setModalItem({ name: '', price: '', category: 'Shawarma', available: true, image: '' })}
-            className="px-4 py-2.5 rounded-2xl bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md shrink-0"
+            className="px-5 py-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Add New Dish</span>
           </button>
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {allCategoryTabs.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold capitalize whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-full text-xs font-black capitalize whitespace-nowrap transition-all cursor-pointer border-0 ${
                 activeCategory === cat
                   ? 'bg-[#DC2626] text-white shadow-md'
-                  : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                  : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
               }`}
             >
               {cat === 'all' ? 'All Dishes' : cat}
@@ -118,8 +118,8 @@ export default function MenuTab() {
 
       {/* Dishes Grid */}
       {filteredDishes.length === 0 ? (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-12 text-center text-zinc-500 text-sm space-y-1">
-          <p className="font-bold text-zinc-400">No dishes in this category</p>
+        <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
+          <p className="font-bold text-zinc-700">No dishes found in this category</p>
           <p className="text-xs">Click "Add New Dish" to add your first menu item.</p>
         </div>
       ) : (
@@ -129,35 +129,35 @@ export default function MenuTab() {
             return (
               <div
                 key={dish.id}
-                className={`bg-zinc-900 border rounded-3xl p-4 flex flex-col justify-between space-y-3 transition-colors ${
-                  isAvail ? 'border-zinc-800' : 'border-red-950/40 opacity-75'
+                className={`bg-white rounded-3xl p-5 flex flex-col justify-between space-y-4 shadow-xl hover:shadow-2xl transition-all border-0 ${
+                  !isAvail ? 'opacity-75' : ''
                 }`}
               >
                 
                 {/* Dish Card Top: Image + Info */}
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3.5">
                   <img
                     src={getImageUrl(dish.image)}
                     alt={dish.name}
                     onError={handleImageError}
-                    className="w-16 h-16 rounded-2xl object-cover bg-zinc-950 shrink-0 border border-zinc-800"
+                    className="w-16 h-16 rounded-2xl object-cover bg-zinc-100 shrink-0 shadow-xs border-0"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
                         {dish.category || 'Food'}
                       </span>
-                      {dish.spicy && <Flame className="w-3.5 h-3.5 text-amber-500" />}
+                      {dish.spicy && <Flame className="w-3.5 h-3.5 text-[#DC2626]" />}
                     </div>
-                    <h4 className="text-sm font-black text-white truncate mt-1">
+                    <h4 className="text-sm font-black text-zinc-900 truncate mt-1">
                       {dish.name}
                     </h4>
                     <div className="flex items-baseline gap-2 mt-0.5">
-                      <span className="text-sm font-black text-[#DC2626]">
+                      <span className="text-base font-black text-[#DC2626]">
                         ₹{dish.price}
                       </span>
                       {dish.offerPrice && (
-                        <span className="text-xs text-zinc-500 line-through">
+                        <span className="text-xs text-zinc-400 line-through">
                           ₹{dish.offerPrice}
                         </span>
                       )}
@@ -167,13 +167,13 @@ export default function MenuTab() {
 
                 {/* Description */}
                 {dish.description && (
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">
                     {dish.description}
                   </p>
                 )}
 
                 {/* Bottom Controls: Availability Toggle + Edit/Delete */}
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
                   
                   {/* Availability Toggle Switch */}
                   <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -183,17 +183,17 @@ export default function MenuTab() {
                       onChange={(e) => toggleItemAvailability(dish.id, e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-8 h-4.5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
-                    <span className={`text-[11px] font-bold ${isAvail ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                    <div className="w-9 h-5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                    <span className={`text-[11px] font-bold ${isAvail ? 'text-emerald-700' : 'text-zinc-400'}`}>
                       {isAvail ? 'In Stock' : 'Out of Stock'}
                     </span>
                   </label>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => setModalItem({ ...dish })}
-                      className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                      className="p-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer"
                       title="Edit Dish"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -204,7 +204,7 @@ export default function MenuTab() {
                           deleteMenuItem(dish.id);
                         }
                       }}
-                      className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-red-500/40 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                      className="p-2.5 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-500 hover:text-red-600 transition-colors cursor-pointer"
                       title="Delete Dish"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -221,15 +221,15 @@ export default function MenuTab() {
 
       {/* DISH CREATE / EDIT MODAL */}
       {modalItem && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 text-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-base font-black">
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white text-zinc-900 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <h3 className="text-base font-black text-zinc-900">
                 {modalItem.id ? 'Edit Menu Dish' : 'Add New Menu Item'}
               </h3>
               <button
                 onClick={() => setModalItem(null)}
-                className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white"
+                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -237,7 +237,7 @@ export default function MenuTab() {
 
             <form onSubmit={handleSaveDish} className="space-y-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                   Dish Name *
                 </label>
                 <input
@@ -246,13 +246,13 @@ export default function MenuTab() {
                   value={modalItem.name || ''}
                   onChange={(e) => setModalItem({ ...modalItem, name: e.target.value })}
                   placeholder="e.g. Charcoal Jumbo Shawarma"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                     Price (₹) *
                   </label>
                   <input
@@ -261,25 +261,25 @@ export default function MenuTab() {
                     value={modalItem.price || ''}
                     onChange={(e) => setModalItem({ ...modalItem, price: e.target.value })}
                     placeholder="179"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                    Original / Offer Price (₹)
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    Offer Price (₹)
                   </label>
                   <input
                     type="number"
                     value={modalItem.offerPrice || ''}
                     onChange={(e) => setModalItem({ ...modalItem, offerPrice: e.target.value })}
                     placeholder="220"
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                   Category
                 </label>
                 <input
@@ -287,12 +287,12 @@ export default function MenuTab() {
                   value={modalItem.category || ''}
                   onChange={(e) => setModalItem({ ...modalItem, category: e.target.value })}
                   placeholder="Shawarma, Burgers, Platters..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                   Photo URL
                 </label>
                 <input
@@ -300,12 +300,12 @@ export default function MenuTab() {
                   value={modalItem.image || ''}
                   onChange={(e) => setModalItem({ ...modalItem, image: e.target.value })}
                   placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626]"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                   Description
                 </label>
                 <textarea
@@ -313,21 +313,21 @@ export default function MenuTab() {
                   value={modalItem.description || ''}
                   onChange={(e) => setModalItem({ ...modalItem, description: e.target.value })}
                   placeholder="Ingredients, saj bread, garlic toum..."
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-[#DC2626] resize-none"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
                 />
               </div>
 
               <div className="pt-2 flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-3 rounded-xl bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider shadow-md cursor-pointer"
+                  className="flex-1 py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0"
                 >
                   {modalItem.id ? 'Save Updates' : 'Add to Menu'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalItem(null)}
-                  className="py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-xs cursor-pointer"
+                  className="py-3.5 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer border-0"
                 >
                   Cancel
                 </button>
