@@ -363,10 +363,12 @@ public class SmsGatewayService extends Service {
                 try {
                     URL url = new URL(base + "/api/admin/customers");
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setConnectTimeout(2500);
-                    conn.setReadTimeout(2500);
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(3000);
                     conn.setRequestMethod("GET");
                     conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(this));
+                    conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+                    conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
                     if (conn.getResponseCode() == 200) {
                         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                         StringBuilder sb = new StringBuilder();
@@ -375,11 +377,13 @@ public class SmsGatewayService extends Service {
                         reader.close();
                         JSONObject data = new JSONObject(sb.toString());
                         JSONArray custArr = data.optJSONArray("customers");
+                        if (custArr == null) custArr = data.optJSONArray("data");
                         if (custArr != null) {
                             customersList.clear();
                             for (int i = 0; i < custArr.length(); i++) {
                                 customersList.add(custArr.getJSONObject(i));
                             }
+                            syncCustomersFromOrders();
                             notifyDataChanged();
                             Log.i(TAG, "Customers synced: " + customersList.size());
                         }
@@ -736,12 +740,14 @@ public class SmsGatewayService extends Service {
             }
 
             JSONArray customers = db.optJSONArray("customers");
+            if (customers == null) customers = db.optJSONArray("data");
             if (customers != null) {
                 customersList.clear();
                 for (int i = 0; i < customers.length(); i++) {
                     customersList.add(customers.getJSONObject(i));
                 }
             }
+            syncCustomersFromOrders();
 
             JSONObject storeInfo = db.optJSONObject("storeInfo");
             if (storeInfo != null) {
@@ -1099,6 +1105,82 @@ public class SmsGatewayService extends Service {
             instance.sendWsMessage(json);
         }
         deleteRestAsync("/api/reviews/" + reviewId);
+    }
+
+    public static void syncCustomersFromOrders() {
+        try {
+            java.util.HashSet<String> existingPhones = new java.util.HashSet<>();
+            for (JSONObject c : customersList) {
+                String p = c.optString("phone", "").replaceAll("[^0-9]", "");
+                if (p.length() >= 10) existingPhones.add(p.substring(p.length() - 10));
+            }
+            for (JSONObject o : ordersList) {
+                JSONObject cust = o.optJSONObject("customer");
+                String phone = "";
+                String name = "";
+                String address = o.optString("address", "");
+                if (cust != null) {
+                    phone = cust.optString("phone", "");
+                    name = cust.optString("name", "");
+                } else {
+                    phone = o.optString("customerPhone", "");
+                    name = o.optString("customerName", "");
+                }
+                String cleanPhone = phone.replaceAll("[^0-9]", "");
+                if (cleanPhone.length() >= 10) {
+                    String last10 = cleanPhone.substring(cleanPhone.length() - 10);
+                    if (!existingPhones.contains(last10)) {
+                        existingPhones.add(last10);
+                        JSONObject synCust = new JSONObject();
+                        synCust.put("id", "cust-" + last10);
+                        synCust.put("name", name.isEmpty() ? "Customer " + last10 : name);
+                        synCust.put("phone", phone);
+                        synCust.put("address", address);
+                        synCust.put("totalOrders", 1);
+                        synCust.put("totalSpent", o.optDouble("total", 0));
+                        customersList.add(synCust);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    public static void triggerCustomerSync() {
+        new Thread(() -> {
+            String[] hosts = getHostBases();
+            for (String base : hosts) {
+                try {
+                    URL url = new URL(base + "/api/admin/customers");
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(3000);
+                    conn.setReadTimeout(3000);
+                    conn.setRequestMethod("GET");
+                    conn.setRequestProperty("X-Store-Id", getConfiguredStoreId(instance != null ? instance : null));
+                    conn.setRequestProperty("X-Admin-Token", "dukandar_master_token_2026");
+                    conn.setRequestProperty("Authorization", "Bearer dukandar_master_token_2026");
+                    if (conn.getResponseCode() == 200) {
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                        StringBuilder sb = new StringBuilder();
+                        String line;
+                        while ((line = reader.readLine()) != null) sb.append(line);
+                        reader.close();
+                        JSONObject data = new JSONObject(sb.toString());
+                        JSONArray custArr = data.optJSONArray("customers");
+                        if (custArr == null) custArr = data.optJSONArray("data");
+                        if (custArr != null) {
+                            customersList.clear();
+                            for (int i = 0; i < custArr.length(); i++) {
+                                customersList.add(custArr.getJSONObject(i));
+                            }
+                            syncCustomersFromOrders();
+                            notifyDataChanged();
+                            Log.i(TAG, "Manual customer sync completed: " + customersList.size());
+                            break;
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }).start();
     }
 
     public static void sendTestSms(Context context, String phone) {

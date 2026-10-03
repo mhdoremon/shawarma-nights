@@ -260,7 +260,7 @@ export const verifyAdmin = (req, res) => {
 export const getAdminCustomers = (req, res) => {
     try {
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        res.json({ success: true, data: customers });
+        res.json({ success: true, customers, data: customers });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

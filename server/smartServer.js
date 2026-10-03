@@ -116,6 +116,7 @@ app.get('/api/data', (req, res) => {
   const orders = DataLayer.read(storeId, 'orders') || [];
   const deals = DataLayer.read(storeId, 'deals') || [];
   const reviews = DataLayer.read(storeId, 'reviews') || [];
+  const customers = DataLayer.read(storeId, 'customers') || [];
 
   res.json({
     menu: menuData.menu || [],
@@ -123,6 +124,7 @@ app.get('/api/data', (req, res) => {
     orders,
     deals,
     reviews,
+    customers,
     heroBanner: storeConfig?.heroBanner || {},
     storeInfo: {
       ...(storeConfig?.settings || {}),

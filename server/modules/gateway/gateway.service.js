@@ -10,6 +10,7 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const orders = DataLayer.read(storeId, 'orders') || [];
       const deals = DataLayer.read(storeId, 'deals') || [];
       const storeConfig = DataLayer.getStoreConfig(storeId) || {};
+      const customers = DataLayer.read(storeId, 'customers') || [];
       WebSocketHub.sendTo(ws, {
         action: 'INIT_STATE',
         payload: { 
@@ -17,6 +18,7 @@ export function handleGatewayMessage(data, ws, storeId, source) {
           categories: menuData.categories || [], 
           orders, 
           deals, 
+          customers,
           storeInfo: storeConfig.settings || {}, 
           heroBanner: storeConfig.heroBanner || {} 
         }

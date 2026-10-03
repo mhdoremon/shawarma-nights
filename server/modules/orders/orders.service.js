@@ -77,6 +77,37 @@ export const placeOrder = async (req, res) => {
         orders.push(order);
         DataLayer.writeSync(storeId, 'orders', orders);
 
+        // Sync customer to customers.json so they appear in dukandar database
+        const custPhone = order.customer?.phone || payload.customerPhone;
+        if (custPhone) {
+            try {
+                const customers = DataLayer.read(storeId, 'customers') || [];
+                const cleanPhone = normalizePhone(custPhone);
+                const existingIdx = customers.findIndex(c => normalizePhone(c.phone) === cleanPhone);
+                if (existingIdx !== -1) {
+                    if (order.customer?.name && !customers[existingIdx].name) {
+                        customers[existingIdx].name = order.customer.name;
+                    }
+                    if (order.address && !customers[existingIdx].address) {
+                        customers[existingIdx].address = order.address;
+                    }
+                    customers[existingIdx].lastOrderAt = now();
+                    DataLayer.writeSync(storeId, 'customers', customers);
+                } else {
+                    customers.push({
+                        id: generateId('cust'),
+                        name: order.customer?.name || payload.customerName || '',
+                        phone: custPhone,
+                        email: order.customer?.email || '',
+                        address: order.address || '',
+                        registeredAt: now(),
+                        lastOrderAt: now()
+                    });
+                    DataLayer.writeSync(storeId, 'customers', customers);
+                }
+            } catch (ignored) {}
+        }
+
         WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_CREATED', payload: order });
         WebSocketHub.broadcastToGateway(storeId, { action: 'ORDER_CREATED', payload: order });
 

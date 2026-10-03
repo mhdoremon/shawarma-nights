@@ -1756,7 +1756,163 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         });
         card.addView(toggleBtn);
 
+        // ⭐ Set as Homepage Hero Offer Button
+        boolean isCurrentHero = (SmsGatewayService.heroBannerObj != null && id.equals(SmsGatewayService.heroBannerObj.optString("featuredItemId")));
+        Button heroOfferBtn = new Button(this);
+        heroOfferBtn.setTextSize(11);
+        heroOfferBtn.setTypeface(null, Typeface.BOLD);
+        heroOfferBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
+        LinearLayout.LayoutParams hbp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hbp.topMargin = dp(6);
+        heroOfferBtn.setLayoutParams(hbp);
+
+        if (isCurrentHero) {
+            heroOfferBtn.setText("★ ACTIVE HERO OFFER (Tap to Edit Offer)");
+            heroOfferBtn.setTextColor(Color.parseColor("#92400E"));
+            heroOfferBtn.setBackgroundResource(R.drawable.bg_pill_amber);
+        } else {
+            heroOfferBtn.setText("⭐ SET AS HERO OFFER (वेबसाइट ऑफर बनाएं)");
+            heroOfferBtn.setTextColor(Color.WHITE);
+            heroOfferBtn.setBackgroundResource(R.drawable.bg_button_red);
+        }
+        heroOfferBtn.setOnClickListener(v -> showSetHeroOfferDialog(item));
+        card.addView(heroOfferBtn);
+
         return card;
+    }
+
+    private void showSetHeroOfferDialog(JSONObject dish) {
+        if (dish == null) return;
+        String dishId = dish.optString("id", "");
+        String dishName = dish.optString("name", "Dish");
+        double dishPrice = dish.optDouble("price", 0);
+        String dishImage = dish.optString("image", "");
+        double dishRating = dish.optDouble("rating", 4.9);
+
+        AlertDialog.Builder builder = createDialogBuilder();
+        builder.setTitle("⭐ Homepage Hero Offer Setup");
+
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(10), dp(20), dp(10));
+        scrollView.addView(form);
+
+        // Preview Row
+        LinearLayout previewCard = new LinearLayout(this);
+        previewCard.setOrientation(LinearLayout.HORIZONTAL);
+        previewCard.setGravity(Gravity.CENTER_VERTICAL);
+        previewCard.setBackgroundResource(theme.resCardBg);
+        previewCard.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        ImageView previewImg = new ImageView(this);
+        LinearLayout.LayoutParams pilp = new LinearLayout.LayoutParams(dp(54), dp(54));
+        pilp.rightMargin = dp(12);
+        previewImg.setLayoutParams(pilp);
+        previewImg.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        previewImg.setBackgroundColor(Color.parseColor("#1E293B"));
+        loadImageIntoView(previewImg, dishImage);
+        previewCard.addView(previewImg);
+
+        LinearLayout pInfo = new LinearLayout(this);
+        pInfo.setOrientation(LinearLayout.VERTICAL);
+        TextView pName = new TextView(this);
+        pName.setText(dishName);
+        pName.setTextSize(15);
+        pName.setTypeface(null, Typeface.BOLD);
+        pName.setTextColor(theme.colorTextPrimary);
+        pInfo.addView(pName);
+
+        TextView pSub = new TextView(this);
+        pSub.setText("Menu Price: ₹" + (int)dishPrice + "  •  ⭐ Rating: " + dishRating + " (Automatic)");
+        pSub.setTextSize(11);
+        pSub.setTextColor(theme.colorTextSecondary);
+        pInfo.addView(pSub);
+
+        previewCard.addView(pInfo);
+        form.addView(previewCard);
+
+        JSONObject h = SmsGatewayService.heroBannerObj != null ? SmsGatewayService.heroBannerObj : new JSONObject();
+
+        // Price Prefix Label & Input
+        TextView prefLbl = new TextView(this);
+        prefLbl.setText("Price Prefix Text (मूल्य से पहले का टेक्स्ट)");
+        prefLbl.setTextSize(11);
+        prefLbl.setTypeface(null, Typeface.BOLD);
+        prefLbl.setTextColor(theme.colorTextSecondary);
+        prefLbl.setPadding(0, dp(14), 0, dp(4));
+        form.addView(prefLbl);
+
+        String currentPref = h.optString("priceText", "Starts from");
+        EditText prefixIn = new EditText(this);
+        prefixIn.setText(currentPref);
+        prefixIn.setTextColor(theme.colorInputText);
+        prefixIn.setHintTextColor(theme.colorInputHint);
+        prefixIn.setTextSize(13);
+        prefixIn.setBackgroundResource(theme.resInputBg);
+        prefixIn.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        // Chips for Prefix
+        form.addView(createChipGroup(
+            new String[]{"Starts from", "Special Offer", "Today's Deal", "Only at", "Limited Deal", "Hot Deal"},
+            new String[]{"Starts from", "Special Offer", "Today's Deal", "Only at", "Limited Deal", "Hot Deal"},
+            currentPref, prefixIn));
+        form.addView(prefixIn);
+
+        // Offer Price Label & Input
+        TextView priceLbl = new TextView(this);
+        priceLbl.setText("Offer Price (ऑफर रेट जो 'Starts from' के नीचे दिखेगा)");
+        priceLbl.setTextSize(11);
+        priceLbl.setTypeface(null, Typeface.BOLD);
+        priceLbl.setTextColor(theme.colorTextSecondary);
+        priceLbl.setPadding(0, dp(12), 0, dp(4));
+        form.addView(priceLbl);
+
+        EditText offerPriceIn = new EditText(this);
+        String initialPrice = h.optString("priceValue", String.valueOf((int) dishPrice)).replace("₹", "").trim();
+        offerPriceIn.setText(initialPrice.isEmpty() ? String.valueOf((int) dishPrice) : initialPrice);
+        offerPriceIn.setHint("उदा. 149 या 179");
+        offerPriceIn.setTextColor(theme.colorInputText);
+        offerPriceIn.setHintTextColor(theme.colorInputHint);
+        offerPriceIn.setTextSize(14);
+        offerPriceIn.setTypeface(null, Typeface.BOLD);
+        offerPriceIn.setBackgroundResource(theme.resInputBg);
+        offerPriceIn.setPadding(dp(12), dp(10), dp(12), dp(10));
+        form.addView(offerPriceIn);
+
+        // Badge Tag
+        EditText badgeIn = createLabeledInput(form, "Badge Tag (उदा. 50% OFF — NIGHT50)", h.optString("badgeText", "50% OFF — NIGHT50"));
+
+        // Automatic Rating Note
+        TextView ratingNote = new TextView(this);
+        ratingNote.setText("⭐ Note: इस डिश की फोटो और सिस्टम रेटिंग (" + dishRating + " ★) अपने-आप वेबसाइट के गोल बैनर पर लग जाएगी।");
+        ratingNote.setTextSize(11);
+        ratingNote.setTextColor(Color.parseColor("#10B981"));
+        ratingNote.setPadding(0, dp(12), 0, dp(12));
+        form.addView(ratingNote);
+
+        builder.setView(scrollView);
+        builder.setPositiveButton("🚀 ACTIVATE HERO OFFER", (dialog, which) -> {
+            try {
+                JSONObject updated = new JSONObject(h.toString());
+                updated.put("featuredItemId", dishId);
+                updated.put("circleImage", dishImage);
+                updated.put("priceText", prefixIn.getText().toString().trim());
+                String pVal = offerPriceIn.getText().toString().trim();
+                if (!pVal.startsWith("₹")) pVal = "₹" + pVal;
+                updated.put("priceValue", pVal);
+                updated.put("badgeText", badgeIn.getText().toString().trim());
+                updated.put("titleHighlight", dishName.toUpperCase(Locale.ROOT));
+
+                SmsGatewayService.sendUpdateHeroBanner(updated);
+                Toast.makeText(this, "⭐ Hero Offer activated for " + dishName + "!", Toast.LENGTH_SHORT).show();
+                refreshActiveTab();
+            } catch (Exception e) {
+                Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("CANCEL", null);
+        builder.show();
     }
 
     private void showAddOrEditDishDialog(JSONObject existing) {
@@ -2102,9 +2258,9 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
             }
         }
 
-        // 2. HERO BANNER LIVE EDITOR
+        // 2. HERO BANNER & OFFER LIVE EDITOR (From Listed Dishes)
         TextView heroSecTitle = new TextView(this);
-        heroSecTitle.setText("HOMEPAGE HERO BANNER CUSTOMIZER");
+        heroSecTitle.setText("HOMEPAGE HERO OFFER (मेनू डिश से ऑफर बनाएं)");
         heroSecTitle.setTextSize(15);
         heroSecTitle.setTypeface(null, Typeface.BOLD);
         heroSecTitle.setTextColor(theme.colorTextPrimary);
@@ -2112,7 +2268,7 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         container.addView(heroSecTitle);
 
         TextView heroSecSub = new TextView(this);
-        heroSecSub.setText("Directly updates the customer storefront header");
+        heroSecSub.setText("डिश को मेनू से चुनें — फोटो और रेटिंग अपने-आप वेबसाइट पर लग जाएगी!");
         heroSecSub.setTextSize(11);
         heroSecSub.setTextColor(theme.colorTextSecondary);
         heroSecSub.setPadding(0, 0, 0, dp(12));
@@ -2125,21 +2281,195 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         container.addView(heroCard);
 
         JSONObject h = SmsGatewayService.heroBannerObj != null ? SmsGatewayService.heroBannerObj : new JSONObject();
+        String currentFeaturedId = h.optString("featuredItemId", "");
 
-        EditText circleImgInput = new EditText(this);
-        String currentCircleImg = h.optString("circleImage", "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=85");
-        createImagePickerSection(heroCard, currentCircleImg, circleImgInput, "🎯 HERO SHOWCASE DISH PHOTO (वेबसाइट का गोल फोटो)");
+        JSONObject currentDish = null;
+        for (JSONObject d : SmsGatewayService.menuList) {
+            if (d.optString("id").equals(currentFeaturedId)) {
+                currentDish = d;
+                break;
+            }
+        }
+        if (currentDish == null && !SmsGatewayService.menuList.isEmpty()) {
+            currentDish = SmsGatewayService.menuList.get(0);
+        }
 
-        EditText badgeIn = createLabeledInput(heroCard, "Badge Tag", h.optString("badgeText", ""));
-        EditText t1In = createLabeledInput(heroCard, "Title Line 1", h.optString("titleLine1", ""));
-        EditText t2In = createLabeledInput(heroCard, "Title Line 2", h.optString("titleLine2", ""));
-        EditText tHighIn = createLabeledInput(heroCard, "Title Highlight", h.optString("titleHighlight", ""));
-        EditText subIn = createLabeledInput(heroCard, "Subtitle", h.optString("subtitle", ""));
-        EditText priceIn = createLabeledInput(heroCard, "Price Text", h.optString("priceValue", ""));
-        EditText marqIn = createLabeledInput(heroCard, "Marquee Ticker Text", h.optString("marqueeText", ""));
+        // Active Hero Offer Box
+        LinearLayout currentHeroBox = new LinearLayout(this);
+        currentHeroBox.setOrientation(LinearLayout.HORIZONTAL);
+        currentHeroBox.setGravity(Gravity.CENTER_VERTICAL);
+        currentHeroBox.setBackgroundResource(theme.resInputBg);
+        currentHeroBox.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        ImageView heroDishImg = new ImageView(this);
+        LinearLayout.LayoutParams hdlp = new LinearLayout.LayoutParams(dp(58), dp(58));
+        hdlp.rightMargin = dp(12);
+        heroDishImg.setLayoutParams(hdlp);
+        heroDishImg.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        heroDishImg.setBackgroundColor(Color.parseColor("#1E293B"));
+        String currentImgUrl = (currentDish != null) ? currentDish.optString("image", "") : h.optString("circleImage", "");
+        loadImageIntoView(heroDishImg, currentImgUrl);
+        currentHeroBox.addView(heroDishImg);
+
+        LinearLayout heroDishInfo = new LinearLayout(this);
+        heroDishInfo.setOrientation(LinearLayout.VERTICAL);
+        heroDishInfo.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+
+        TextView hdName = new TextView(this);
+        hdName.setText(currentDish != null ? currentDish.optString("name", "Select Dish") : "Koi dish select nahi hai");
+        hdName.setTextSize(14);
+        hdName.setTypeface(null, Typeface.BOLD);
+        hdName.setTextColor(theme.colorTextPrimary);
+        heroDishInfo.addView(hdName);
+
+        TextView hdRating = new TextView(this);
+        hdRating.setText("⭐ Rating: " + (currentDish != null ? currentDish.optDouble("rating", 4.9) : 4.9) + " ★ (System Automatic)");
+        hdRating.setTextSize(11);
+        hdRating.setTextColor(Color.parseColor("#10B981"));
+        heroDishInfo.addView(hdRating);
+
+        currentHeroBox.addView(heroDishInfo);
+        heroCard.addView(currentHeroBox);
+
+        // Horizontal Dish Selector
+        TextView pickLbl = new TextView(this);
+        pickLbl.setText("CHOOSE DISH FROM MENU (मेनू में से डिश चुनें):");
+        pickLbl.setTextSize(11);
+        pickLbl.setTypeface(null, Typeface.BOLD);
+        pickLbl.setTextColor(theme.colorTextSecondary);
+        pickLbl.setPadding(0, dp(14), 0, dp(6));
+        heroCard.addView(pickLbl);
+
+        HorizontalScrollView dishScroll = new HorizontalScrollView(this);
+        dishScroll.setHorizontalScrollBarEnabled(false);
+        LinearLayout dishRail = new LinearLayout(this);
+        dishRail.setOrientation(LinearLayout.HORIZONTAL);
+        dishRail.setPadding(0, dp(4), 0, dp(10));
+
+        final String[] selectedDishId = new String[]{ (currentDish != null) ? currentDish.optString("id") : "" };
+        final String[] selectedDishImg = new String[]{ currentImgUrl };
+        final String[] selectedDishName = new String[]{ (currentDish != null) ? currentDish.optString("name") : "" };
+
+        for (int i = 0; i < SmsGatewayService.menuList.size(); i++) {
+            final JSONObject dishObj = SmsGatewayService.menuList.get(i);
+            final int index = i;
+            final String dId = dishObj.optString("id");
+            final String dName = dishObj.optString("name");
+            final String dImg = dishObj.optString("image");
+            final double dPrice = dishObj.optDouble("price", 0);
+            final double dRating = dishObj.optDouble("rating", 4.9);
+
+            LinearLayout dChip = new LinearLayout(this);
+            dChip.setOrientation(LinearLayout.VERTICAL);
+            dChip.setGravity(Gravity.CENTER_HORIZONTAL);
+            dChip.setPadding(dp(8), dp(8), dp(8), dp(8));
+            LinearLayout.LayoutParams dcp = new LinearLayout.LayoutParams(dp(86), ViewGroup.LayoutParams.WRAP_CONTENT);
+            dcp.rightMargin = dp(8);
+            dChip.setLayoutParams(dcp);
+
+            boolean isSelected = dId.equals(selectedDishId[0]);
+            dChip.setBackgroundResource(isSelected ? R.drawable.bg_button_red : theme.resInputBg);
+
+            ImageView dThumb = new ImageView(this);
+            LinearLayout.LayoutParams dtlp = new LinearLayout.LayoutParams(dp(44), dp(44));
+            dtlp.bottomMargin = dp(4);
+            dThumb.setLayoutParams(dtlp);
+            dThumb.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            dThumb.setBackgroundColor(Color.parseColor("#1E293B"));
+            loadImageIntoView(dThumb, dImg);
+            dChip.addView(dThumb);
+
+            TextView dTitleTv = new TextView(this);
+            dTitleTv.setText(dName);
+            dTitleTv.setTextSize(10);
+            dTitleTv.setTypeface(null, Typeface.BOLD);
+            dTitleTv.setTextColor(isSelected ? Color.WHITE : theme.colorTextPrimary);
+            dTitleTv.setMaxLines(2);
+            dTitleTv.setGravity(Gravity.CENTER);
+            dChip.addView(dTitleTv);
+
+            TextView dPrTv = new TextView(this);
+            dPrTv.setText("₹" + (int) dPrice);
+            dPrTv.setTextSize(10);
+            dPrTv.setTextColor(isSelected ? Color.WHITE : Color.parseColor("#10B981"));
+            dChip.addView(dPrTv);
+
+            dChip.setOnClickListener(v -> {
+                selectedDishId[0] = dId;
+                selectedDishImg[0] = dImg;
+                selectedDishName[0] = dName;
+                loadImageIntoView(heroDishImg, dImg);
+                hdName.setText(dName);
+                hdRating.setText("⭐ Rating: " + dRating + " ★ (System Automatic)");
+                for (int ci = 0; ci < dishRail.getChildCount(); ci++) {
+                    View cView = dishRail.getChildAt(ci);
+                    boolean match = (ci == index);
+                    cView.setBackgroundResource(match ? R.drawable.bg_button_red : theme.resInputBg);
+                    if (cView instanceof ViewGroup) {
+                        ViewGroup vg = (ViewGroup) cView;
+                        if (vg.getChildCount() > 1 && vg.getChildAt(1) instanceof TextView) {
+                            ((TextView) vg.getChildAt(1)).setTextColor(match ? Color.WHITE : theme.colorTextPrimary);
+                        }
+                    }
+                }
+            });
+
+            dishRail.addView(dChip);
+        }
+        dishScroll.addView(dishRail);
+        heroCard.addView(dishScroll);
+
+        // Price Prefix Section
+        TextView prefLbl = new TextView(this);
+        prefLbl.setText("Price Prefix Text (मूल्य से पहले का टेक्स्ट):");
+        prefLbl.setTextSize(11);
+        prefLbl.setTypeface(null, Typeface.BOLD);
+        prefLbl.setTextColor(theme.colorTextSecondary);
+        prefLbl.setPadding(0, dp(12), 0, dp(4));
+        heroCard.addView(prefLbl);
+
+        EditText prefixIn = new EditText(this);
+        prefixIn.setText(h.optString("priceText", "Starts from"));
+        prefixIn.setTextColor(theme.colorInputText);
+        prefixIn.setHintTextColor(theme.colorInputHint);
+        prefixIn.setTextSize(13);
+        prefixIn.setBackgroundResource(theme.resInputBg);
+        prefixIn.setPadding(dp(12), dp(10), dp(12), dp(10));
+
+        heroCard.addView(createChipGroup(
+            new String[]{"Starts from", "Special Offer", "Today's Deal", "Only at", "Limited Deal", "Hot Deal"},
+            new String[]{"Starts from", "Special Offer", "Today's Deal", "Only at", "Limited Deal", "Hot Deal"},
+            h.optString("priceText", "Starts from"), prefixIn));
+        heroCard.addView(prefixIn);
+
+        // Offer Price Section
+        TextView priceLbl = new TextView(this);
+        priceLbl.setText("Offer Price (ऑफर रेट जो 'Starts from' के नीचे दिखेगा):");
+        priceLbl.setTextSize(11);
+        priceLbl.setTypeface(null, Typeface.BOLD);
+        priceLbl.setTextColor(theme.colorTextSecondary);
+        priceLbl.setPadding(0, dp(12), 0, dp(4));
+        heroCard.addView(priceLbl);
+
+        EditText priceIn = new EditText(this);
+        String defPrice = h.optString("priceValue", "179").replace("₹", "").trim();
+        priceIn.setText(defPrice);
+        priceIn.setHint("उदा. 149 या 179");
+        priceIn.setTextColor(theme.colorInputText);
+        priceIn.setHintTextColor(theme.colorInputHint);
+        priceIn.setTextSize(14);
+        priceIn.setTypeface(null, Typeface.BOLD);
+        priceIn.setBackgroundResource(theme.resInputBg);
+        priceIn.setPadding(dp(12), dp(10), dp(12), dp(10));
+        heroCard.addView(priceIn);
+
+        // Badge Tag & Subtitle
+        EditText badgeIn = createLabeledInput(heroCard, "Badge Tag (उदा. 50% OFF — NIGHT50)", h.optString("badgeText", "50% OFF — NIGHT50"));
+        EditText subIn = createLabeledInput(heroCard, "Subtitle Text", h.optString("subtitle", "Slow-turned on glowing coals. Carved fresh."));
+        EditText marqIn = createLabeledInput(heroCard, "Marquee Ticker Text", h.optString("marqueeText", "★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50"));
 
         Button saveHeroBtn = new Button(this);
-        saveHeroBtn.setText("SAVE & SYNC HERO BANNER");
+        saveHeroBtn.setText("🚀 SAVE & ACTIVATE HERO OFFER");
         saveHeroBtn.setTextSize(13);
         saveHeroBtn.setTypeface(null, Typeface.BOLD);
         saveHeroBtn.setTextColor(Color.WHITE);
@@ -2151,16 +2481,20 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         saveHeroBtn.setOnClickListener(v -> {
             try {
                 JSONObject updated = new JSONObject();
-                updated.put("circleImage", circleImgInput.getText().toString().trim());
+                updated.put("featuredItemId", selectedDishId[0]);
+                updated.put("circleImage", selectedDishImg[0]);
+                updated.put("priceText", prefixIn.getText().toString().trim());
+                String pVal = priceIn.getText().toString().trim();
+                if (!pVal.startsWith("₹")) pVal = "₹" + pVal;
+                updated.put("priceValue", pVal);
                 updated.put("badgeText", badgeIn.getText().toString().trim());
-                updated.put("titleLine1", t1In.getText().toString().trim());
-                updated.put("titleLine2", t2In.getText().toString().trim());
-                updated.put("titleHighlight", tHighIn.getText().toString().trim());
+                updated.put("titleLine1", "REAL");
+                updated.put("titleLine2", "CHARCOAL");
+                updated.put("titleHighlight", selectedDishName[0].isEmpty() ? "SHAWARMA" : selectedDishName[0].toUpperCase(Locale.ROOT));
                 updated.put("subtitle", subIn.getText().toString().trim());
-                updated.put("priceValue", priceIn.getText().toString().trim());
                 updated.put("marqueeText", marqIn.getText().toString().trim());
                 SmsGatewayService.sendUpdateHeroBanner(updated);
-                Toast.makeText(this, "Hero Banner Synced to Website!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "⭐ Hero Offer Synced to Website!", Toast.LENGTH_SHORT).show();
             } catch (Exception ignored) {}
         });
         heroCard.addView(saveHeroBtn);
@@ -2347,12 +2681,31 @@ public class MainActivity extends Activity implements SmsGatewayService.StateCha
         LinearLayout container = tabContainers[4];
         container.removeAllViews();
 
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+
         TextView title = new TextView(this);
         title.setText("CUSTOMER DATABASE (" + SmsGatewayService.customersList.size() + ")");
         title.setTextSize(16);
         title.setTypeface(null, Typeface.BOLD);
         title.setTextColor(theme.colorTextPrimary);
-        container.addView(title);
+        title.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f));
+        titleRow.addView(title);
+
+        Button syncBtn = new Button(this);
+        syncBtn.setText("🔄 SYNC");
+        syncBtn.setTextSize(11);
+        syncBtn.setTypeface(null, Typeface.BOLD);
+        syncBtn.setTextColor(Color.WHITE);
+        syncBtn.setBackgroundResource(R.drawable.bg_button_red);
+        syncBtn.setPadding(dp(12), dp(4), dp(12), dp(4));
+        syncBtn.setOnClickListener(v -> {
+            SmsGatewayService.triggerCustomerSync();
+            Toast.makeText(this, "Refreshing customer database...", Toast.LENGTH_SHORT).show();
+        });
+        titleRow.addView(syncBtn);
+        container.addView(titleRow);
 
         TextView sub = new TextView(this);
         sub.setText("All registered customers with verified phone numbers & order history");

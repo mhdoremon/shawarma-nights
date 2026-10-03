@@ -36,8 +36,10 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
     ...heroBanner,
   };
 
-  // Real price calculation
-  const displayPrice = featuredItem?.price ? `₹${featuredItem.price}` : (banner.priceValue || '₹179');
+  // Real price calculation: prioritize offer price set by dukandar in priceValue, then dish price
+  const displayPrice = banner.priceValue
+    ? (String(banner.priceValue).startsWith('₹') ? String(banner.priceValue) : `₹${banner.priceValue}`)
+    : (featuredItem?.price ? `₹${featuredItem.price}` : '₹179');
 
   // Real rating calculation:
   // If featuredItem?.rating exists, use it. Else if server reviews exist, calculate average rating. Fallback to clean rating.
@@ -72,9 +74,9 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
     return 'Customer Favorite';
   }, [featuredItem?.reviews, reviews, heroBanner?.reviewsText]);
 
-  const circleImageSrc = (heroBanner?.featuredItemId && featuredItem?.image)
+  const circleImageSrc = (featuredItem?.image)
     ? featuredItem.image
-    : (banner.circleImage || featuredItem?.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=85');
+    : (banner.circleImage || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=800&q=85');
 
   const marqueeItems = (banner.marqueeText || '').split('●').map((s) => s.trim()).filter(Boolean);
 
@@ -125,7 +127,7 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish }) {
               CHARCOAL
               <br />
               <span className="text-zinc-900 bg-white px-3 py-0.5 rounded-xl inline-block mt-1 rotate-[-1deg]">
-                SHAWARMA
+                {banner.titleHighlight || (featuredItem?.name ? featuredItem.name.toUpperCase() : 'SHAWARMA')}
               </span>
             </motion.h1>
 
