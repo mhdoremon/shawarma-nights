@@ -56,18 +56,9 @@ export default function Navbar({ onOpenFranchise }) {
           </div>
         </div>
 
-        {/* RIGHT: Franchise & Login */}
+        {/* RIGHT: Login / User Profile */}
         <div className="flex items-center justify-end flex-1 gap-2 sm:gap-3">
           
-          <button
-            onClick={onOpenFranchise}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-[10px] uppercase tracking-widest shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
-            title="Own a Franchise"
-          >
-            <Store className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Franchise</span>
-          </button>
-
           {isAuthenticated ? (
             <button
               onClick={() => setIsProfileOpen(true)}
