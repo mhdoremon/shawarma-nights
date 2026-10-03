@@ -231,6 +231,13 @@ function migrateExistingData() {
   const storeId = config.DEFAULT_STORE_ID;
   const storeDataDir = DataLayer.getStorePath(storeId);
 
+  // Check if store was already migrated — never run or overwrite again!
+  const migrationLock = path.join(storeDataDir, '.migrated');
+  if (fs.existsSync(migrationLock)) {
+    console.log(`ℹ️ [Migration] Store "${storeId}" already migrated. Skipping migration.`);
+    return;
+  }
+
   // Check if old data exists and store data doesn't
   if (!fs.existsSync(oldDataDir)) return;
 
@@ -342,7 +349,8 @@ function migrateExistingData() {
         }
       }
 
-      if (oldData.heroBanner) {
+      // Only set heroBanner if currentConfig doesn't have one
+      if (oldData.heroBanner && (!currentConfig.heroBanner || Object.keys(currentConfig.heroBanner).length === 0)) {
         currentConfig.heroBanner = oldData.heroBanner;
       }
 
@@ -371,6 +379,13 @@ function migrateExistingData() {
     }
   }
 
+  // Create migration lock file so this never runs again
+  try {
+    fs.writeFileSync(migrationLock, JSON.stringify({ migratedAt: new Date().toISOString() }), 'utf-8');
+  } catch (err) {
+    console.warn('⚠️ [Migration] Could not write .migrated lock:', err.message);
+  }
+
   if (migrated > 0) {
     console.log(`📦 [Migration] Migrated ${migrated} file(s) from old backend to store "${storeId}"`);
   }
@@ -396,7 +411,21 @@ server.listen(PORT, () => {
 
   const stores = DataLayer.listStoreIds();
   console.log(`📊 Active Stores: ${stores.length} → [${stores.join(', ')}]`);
-});
+
+  // 24/7 Keep-Alive Self-Ping: Keeps Render free instance awake so it never sleeps
+  const KEEP_ALIVE_URL = process.env.RENDER_EXTERNAL_URL || 'https://churuone-backend.onrender.com';
+  console.log(`💓 [24/7 Keep-Alive] Initializing heartbeat for: ${KEEP_ALIVE_URL}`);
+
+  setInterval(async () => {
+    try {
+      const res = await fetch(`${KEEP_ALIVE_URL}/healthz`);
+      if (res.ok) {
+        console.log(`💓 [24/7 Keep-Alive] Pinged ${KEEP_ALIVE_URL}/healthz - Server awake.`);
+      }
+    } catch (err) {
+      console.warn('⚠️ [24/7 Keep-Alive] Ping error:', err.message);
+    }
+  }, 8 * 60 * 1000); // 8 minutes interval (Render free tier sleeps after 15 mins)
 
 // Graceful shutdown
 process.on('SIGINT', () => {
