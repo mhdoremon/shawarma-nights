@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { API_URL } from '../config/api';
+import { API_URL, getStoreId } from '../config/api';
 import { sounds } from '../utils/soundEffects';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
@@ -147,10 +147,14 @@ export function AuthProvider({ children }) {
 
     // 1. Send OTP via Backend SMS Engine (Priority 1: Private SIM Gateway, Priority 2: Fast2SMS)
     try {
+      const activeStoreId = getStoreId();
       const sRes = await fetch(`${API_URL}/api/auth/send-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
+        body: JSON.stringify({ phone: cleanPhone, storeId: activeStoreId }),
       });
       const sData = await sRes.json();
 
@@ -269,10 +273,14 @@ export function AuthProvider({ children }) {
     }
 
     try {
+      const activeStoreId = getStoreId();
       const sRes = await fetch(`${API_URL}/api/auth/verify-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: pendingPhone, otp: cleanOtp }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
+        body: JSON.stringify({ phone: pendingPhone, otp: cleanOtp, storeId: activeStoreId }),
       });
       const sData = await sRes.json();
       
@@ -311,15 +319,20 @@ export function AuthProvider({ children }) {
     const tempToken = localStorage.getItem('temp_reg_token');
     
     try {
+      const activeStoreId = getStoreId();
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
         body: JSON.stringify({
           phone: pendingPhone,
           name: profileData.name || 'Foodie',
           email: profileData.email || '',
           address: profileData.address || '',
-          tempToken
+          tempToken,
+          storeId: activeStoreId
         })
       });
       const data = await res.json();
@@ -394,14 +407,19 @@ export function AuthProvider({ children }) {
       } catch (e) {}
 
       // Sync with backend
+      const activeStoreId = getStoreId();
       await fetch(`${API_URL}/api/auth/update-profile`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
         body: JSON.stringify({
           phone: currentUser.phone,
           name: updates.name,
           email: updates.email,
           address: updates.address,
+          storeId: activeStoreId
         })
       });
 
@@ -417,10 +435,14 @@ export function AuthProvider({ children }) {
   const deleteUserAccount = async () => {
     try {
       if (currentUser?.phone) {
+        const activeStoreId = getStoreId();
         await fetch(`${API_URL}/api/auth/delete-account`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: currentUser.phone })
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-store-id': activeStoreId
+          },
+          body: JSON.stringify({ phone: currentUser.phone, storeId: activeStoreId })
         });
       }
       try {

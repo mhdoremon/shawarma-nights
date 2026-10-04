@@ -7,11 +7,12 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export const sendOtp = (req, res) => {
     try {
-        const { phone } = req.body;
+        const { phone, storeId: bodyStoreId } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
         
+        const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
         const normalizedPhone = normalizePhone(phone);
-        const key = `${req.storeId}:${normalizedPhone}`;
+        const key = `${targetStoreId}:${normalizedPhone}`;
 
         // Security: Prevent SMS Bombing (Rate Limiting)
         const existingOtp = otpStore.get(key);
@@ -28,25 +29,32 @@ export const sendOtp = (req, res) => {
             ? normalizedPhone
             : (normalizedPhone.length === 10 ? `+91${normalizedPhone}` : normalizedPhone);
 
+        // Fetch store configuration to brand the SMS with the merchant's exact shop name
+        const storeConfig = DataLayer.getStoreConfig(targetStoreId);
+        const storeName = storeConfig?.settings?.name || storeConfig?.name || (targetStoreId === 'shawarma' ? 'Shawarma Nights' : targetStoreId.toUpperCase());
+
         const requestId = generateUUID();
         const smsPayload = { 
             action: 'SEND_SMS', 
             requestId,
             phone: formattedPhone, 
-            message: `Shawarma Nights login OTP: ${otp}. Valid for 5 minutes. Do not share.` 
+            message: `${storeName} login OTP: ${otp}. Valid for 5 minutes. Do not share.`,
+            storeId: targetStoreId
         };
 
-        const sent = WebSocketHub.broadcastToGateway(req.storeId, smsPayload);
+        // Broadcast exclusively to the specific store's connected gateway phone(s)
+        const sent = WebSocketHub.broadcastToGateway(targetStoreId, smsPayload);
         if (!sent) {
-            WebSocketHub.queueGatewaySms(req.storeId, smsPayload);
+            WebSocketHub.queueGatewaySms(targetStoreId, smsPayload);
         }
 
-        console.log(`📱 [OTP] Generated 6-digit OTP for ${formattedPhone}: ${otp} (Gateway sent count: ${sent})`);
+        console.log(`📱 [OTP] Generated 6-digit OTP for ${formattedPhone} on store "${targetStoreId}": ${otp} (Gateway sent count: ${sent})`);
 
         res.json({ 
             success: true, 
             message: 'OTP bhej diya gaya hai.', 
-            devOtp: otp 
+            devOtp: otp,
+            storeId: targetStoreId 
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -55,7 +63,8 @@ export const sendOtp = (req, res) => {
 
 export const getGatewayStatus = (req, res) => {
     try {
-        res.json({ connected: WebSocketHub.isGatewayConnected(req.storeId) });
+        const targetStoreId = (req.query.storeId || req.storeId || 'shawarma').toLowerCase().trim();
+        res.json({ connected: WebSocketHub.isGatewayConnected(targetStoreId), storeId: targetStoreId });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -63,11 +72,12 @@ export const getGatewayStatus = (req, res) => {
 
 export const verifyOtp = (req, res) => {
     try {
-        const { phone, otp } = req.body;
+        const { phone, otp, storeId: bodyStoreId } = req.body;
         if (!phone || !otp) return res.status(400).json({ success: false, message: 'Phone and OTP are required' });
         
+        const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
         const normalizedPhone = normalizePhone(phone);
-        const key = `${req.storeId}:${normalizedPhone}`;
+        const key = `${targetStoreId}:${normalizedPhone}`;
         const stored = otpStore.get(key);
         
         if (!stored) return res.status(400).json({ success: false, message: 'OTP expired or not sent' });
@@ -90,13 +100,13 @@ export const verifyOtp = (req, res) => {
         // OTP valid
         otpStore.delete(key);
         
-        const customers = DataLayer.read(req.storeId, 'customers') || [];
+        const customers = DataLayer.read(targetStoreId, 'customers') || [];
         let customer = customers.find(c => c.phone === normalizedPhone);
         let isNewUser = false;
         
         if (customer) {
             // Existing customer
-            return res.json({ success: true, token: customer.token, isNewUser, user: customer });
+            return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         } else {
             // New customer
             isNewUser = true;
@@ -110,8 +120,8 @@ export const verifyOtp = (req, res) => {
                 createdAt: now()
             };
             customers.push(customer);
-            DataLayer.writeSync(req.storeId, 'customers', customers);
-            return res.json({ success: true, token: customer.token, isNewUser, user: customer });
+            DataLayer.writeSync(targetStoreId, 'customers', customers);
+            return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         }
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

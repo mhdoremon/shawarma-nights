@@ -37,6 +37,11 @@ export function tenantResolver(req, res, next) {
     storeId = String(req.query.storeId).toLowerCase().trim();
   }
 
+  // 2b. Request body: storeId (for POST/PUT JSON requests)
+  if (!storeId && req.body && req.body.storeId) {
+    storeId = String(req.body.storeId).toLowerCase().trim();
+  }
+
   // 3. Subdomain: shawarma.churuone.in (ignore cloud hosting platform domains and IP addresses)
   if (!storeId) {
     const host = (req.headers.host || '').toLowerCase();

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { sounds } from '../utils/soundEffects';
-import { API_URL, WS_URL } from '../config/api';
+import { API_URL, WS_URL, getStoreId } from '../config/api';
 import { isFirebaseConfigured } from '../firebase/config';
 import { 
   subscribeToMenu, 
@@ -138,7 +138,8 @@ export function RealtimeProvider({ children }) {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         wsUrl = `${protocol}//${window.location.host}/ws`;
       }
-      wsUrl = wsUrl.includes('?') ? wsUrl : `${wsUrl}?storeId=shawarma`;
+      const activeStoreId = getStoreId();
+      wsUrl = wsUrl.includes('?') ? wsUrl : `${wsUrl}?storeId=${encodeURIComponent(activeStoreId)}`;
 
       try {
         const ws = new WebSocket(wsUrl);
@@ -339,13 +340,14 @@ export function RealtimeProvider({ children }) {
   };
 
   const sendEvent = (type, payload) => {
+    const activeStoreId = getStoreId();
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type, payload }));
+      wsRef.current.send(JSON.stringify({ type, action: type, storeId: activeStoreId, payload }));
     }
 
     if (broadcastChannelRef.current) {
       try {
-        broadcastChannelRef.current.postMessage({ type, payload });
+        broadcastChannelRef.current.postMessage({ type, action: type, storeId: activeStoreId, payload });
       } catch (err) {}
     }
 
@@ -438,16 +440,21 @@ export function RealtimeProvider({ children }) {
       return;
     }
 
+    const activeStoreId = getStoreId();
+
     // 1. Send via WebSocket for real-time delivery
-    sendEvent('PLACE_ORDER', orderData);
+    sendEvent('PLACE_ORDER', { ...orderData, storeId: activeStoreId });
 
     // 2. Guaranteed REST delivery to server database
     try {
       const apiUrl = API_URL ? API_URL.replace(/\/+$/, '') : '';
       fetch(`${apiUrl}/api/orders`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
+        body: JSON.stringify({ ...orderData, storeId: activeStoreId })
       }).then(r => r.json()).then(data => {
         if (data.success && data.order) {
           console.log('✅ [REST Order Success] Saved:', data.order.id);
