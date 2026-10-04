@@ -34,4 +34,6 @@ lerna-debug.log*
 *.sln
 *.sw?
 android-gateway/obj/
+android-otp-relay/obj/
+android-otp-relay/bin/
 *.log
