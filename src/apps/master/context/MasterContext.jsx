@@ -368,24 +368,48 @@ export const MasterProvider = ({ children }) => {
     }
   };
 
-  // 2. DELIVERY BOY LOGIN
-  const loginDelivery = async (targetStoreId, phone, otp) => {
+  // 2. DELIVERY BOY LOGIN & REGISTRATION
+  const loginDelivery = async (targetStoreId, phone, password) => {
     try {
-      const res = await fetch(`${API_BASE}/api/delivery/verify-otp`, {
+      const res = await fetch(`${API_BASE}/api/delivery/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-store-id': targetStoreId
         },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone, password })
       });
       const data = await res.json();
       if (data.success && data.token) {
-        saveAuthSession(targetStoreId, data.token, 'delivery_boy', data.deliveryBoy || { phone });
-        showToast('Delivery Partner Logged In!', 'success');
+        const boyData = data.boy || data.deliveryBoy || { phone };
+        saveAuthSession(targetStoreId, data.token, 'delivery_boy', boyData);
+        showToast(`Welcome ${boyData.name || 'Partner'}! Delivery Console ready.`, 'success');
         return { success: true };
       }
-      return { success: false, message: data.message || 'Invalid OTP' };
+      return { success: false, message: data.message || 'Invalid credentials' };
+    } catch (err) {
+      return { success: false, message: err.message || 'Network error' };
+    }
+  };
+
+  const registerDelivery = async (targetStoreId, { name, phone, vehicle, password }) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/delivery/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-store-id': targetStoreId
+        },
+        body: JSON.stringify({ name, phone, vehicle, password })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        const boyData = data.boy || data.deliveryBoy || { name, phone, vehicle };
+        saveAuthSession(targetStoreId, data.token, 'delivery_boy', boyData);
+        showToast(`Welcome ${boyData.name}! Partner registered successfully.`, 'success');
+        return { success: true };
+      }
+      return { success: false, message: data.message || 'Registration failed' };
     } catch (err) {
       return { success: false, message: err.message || 'Network error' };
     }
@@ -665,6 +689,7 @@ export const MasterProvider = ({ children }) => {
       // Actions
       loginDukandar,
       loginDelivery,
+      registerDelivery,
       logout,
       updateOrderStatus,
       toggleItemAvailability,

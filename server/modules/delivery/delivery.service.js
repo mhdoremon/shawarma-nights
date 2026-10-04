@@ -4,34 +4,49 @@ import { generateId, generateOtp, generateUUID, now, normalizePhone } from '../.
 
 export function register(req, res) {
   try {
-    const { name, phone, vehicleType, vehicleNumber } = req.body;
+    const { name, phone, vehicle, vehicleType, vehicleNumber, password } = req.body;
     if (!name || !phone) {
-      return res.status(400).json({ success: false, message: 'Name and phone are required' });
+      return res.status(400).json({ success: false, message: 'Name aur Phone number dono zaroori hain!' });
     }
     
     const deliveryBoys = DataLayer.read(req.storeId, 'delivery_boys') || [];
+    const cleanPhone = phone.replace(/\D/g, '');
     const normPhone = normalizePhone(phone);
     
-    if (deliveryBoys.find(d => d.phone === normPhone)) {
-      return res.status(400).json({ success: false, message: 'Phone number already registered' });
+    if (deliveryBoys.find(d => (d.phone || '').replace(/\D/g, '') === cleanPhone)) {
+      return res.status(400).json({ success: false, message: 'Yeh mobile number pehle se registered hai! Kripya login karein.' });
     }
     
     const deliveryBoy = {
-      id: generateId('del'),
-      name,
-      phone: normPhone,
+      id: 'db-' + Date.now(),
+      name: name.trim(),
+      phone: cleanPhone.length === 10 ? cleanPhone : normPhone,
+      password: (password || '').trim(),
+      vehicle: (vehicle || vehicleType || 'Two-Wheeler').trim(),
+      vehicleType: vehicleType || vehicle || 'Two-Wheeler',
+      vehicleNumber: vehicleNumber || '',
       token: generateUUID(),
       status: 'active',
-      location: null,
-      vehicleType,
-      vehicleNumber,
+      currentLocation: null,
       createdAt: now()
     };
     
     deliveryBoys.push(deliveryBoy);
     DataLayer.writeSync(req.storeId, 'delivery_boys', deliveryBoys);
     
-    return res.json({ success: true, token: deliveryBoy.token, deliveryBoy });
+    console.log(`🛵 [Delivery Subsystem] New Delivery Partner Registered: ${deliveryBoy.name} (${deliveryBoy.phone}, ${deliveryBoy.vehicle})`);
+    
+    return res.json({
+      success: true,
+      token: deliveryBoy.token,
+      boy: {
+        id: deliveryBoy.id,
+        name: deliveryBoy.name,
+        phone: deliveryBoy.phone,
+        vehicle: deliveryBoy.vehicle
+      },
+      deliveryBoy
+    });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -41,15 +56,48 @@ const deliveryOtpStore = new Map();
 
 export function login(req, res) {
   try {
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ success: false, message: 'Phone required' });
+    const { phone, password } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai!' });
     
     const deliveryBoys = DataLayer.read(req.storeId, 'delivery_boys') || [];
+    const cleanPhone = phone.replace(/\D/g, '');
     const normPhone = normalizePhone(phone);
-    const boy = deliveryBoys.find(d => d.phone === normPhone);
     
-    if (!boy) return res.status(404).json({ success: false, message: 'Delivery partner not found' });
+    const boy = deliveryBoys.find(d => {
+      const dPhoneClean = (d.phone || '').replace(/\D/g, '');
+      return dPhoneClean === cleanPhone || d.phone === normPhone || d.phone === phone;
+    });
     
+    if (!boy) return res.status(404).json({ success: false, message: 'Delivery partner not found! Kripya pehle register karein.' });
+    
+    // Password authentication (primary - matching Android app)
+    if (password !== undefined && password !== null && password !== '') {
+      if (boy.password && boy.password !== password.trim()) {
+        return res.status(401).json({ success: false, message: 'Galat Password! Kripya sahi credentials dalein.' });
+      }
+      
+      if (!boy.token) {
+        boy.token = generateUUID();
+        DataLayer.writeSync(req.storeId, 'delivery_boys', deliveryBoys);
+      }
+      
+      console.log(`🛵 [Delivery Subsystem] Delivery Partner Logged In: ${boy.name} (${boy.phone})`);
+      
+      return res.json({
+        success: true,
+        token: boy.token,
+        boy: {
+          id: boy.id,
+          name: boy.name,
+          phone: boy.phone,
+          vehicle: boy.vehicle || boy.vehicleType || 'Two-Wheeler'
+        },
+        deliveryBoy: boy,
+        message: 'Login successful!'
+      });
+    }
+
+    // OTP fallback
     const otp = generateOtp(6);
     deliveryOtpStore.set(`${req.storeId}:${normPhone}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
