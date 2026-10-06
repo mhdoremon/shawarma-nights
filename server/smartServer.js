@@ -146,6 +146,8 @@ app.get('/api/data', (req, res) => {
       socials: storeConfig?.socials || {},
       taxesAndCharges: storeConfig?.taxesAndCharges || storeConfig?.tax || {},
       name: storeConfig?.name || storeConfig?.settings?.name || 'Shawarma Nights',
+      vertical: storeConfig?.vertical || 'food',
+      branding: storeConfig?.branding || {},
       address: storeConfig?.settings?.address || '',
       timing: storeConfig?.settings?.timing || '',
       freeDeliveryThreshold: storeConfig?.settings?.freeDeliveryThreshold ?? 350

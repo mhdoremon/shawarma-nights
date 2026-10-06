@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound } from 'lucide-react';
+import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar } from 'lucide-react';
 
 export default function OrdersTab() {
-  const { orders, updateOrderStatus, verifyDeliveryOtp, showToast } = useMaster();
+  const { orders, updateOrderStatus, verifyDeliveryOtp, showToast, storeInfo, storeId } = useMaster();
+  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
 
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +42,12 @@ export default function OrdersTab() {
     return list;
   }, [orders, statusFilter, searchQuery]);
 
-  const filterTabs = [
+  const filterTabs = isSalon ? [
+    { id: 'ALL', label: 'ALL SLOTS' },
+    { id: 'NEW', label: 'NEW BOOKINGS' },
+    { id: 'KITCHEN', label: 'IN CHAIR' },
+    { id: 'DELIVERED', label: 'COMPLETED' }
+  ] : [
     { id: 'ALL', label: 'ALL' },
     { id: 'NEW', label: 'NEW' },
     { id: 'KITCHEN', label: 'KITCHEN' },
@@ -279,7 +285,11 @@ export default function OrdersTab() {
                       <span>Call Client</span>
                     </a>
                     <a
-                      href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=Namaste%20${encodeURIComponent(customerName)},%20aapka%20Shawarma%20Nights%20order%20%23${orderNum}%20process%20ho%20raha%20hai.`}
+                      href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                        isSalon
+                          ? `Namaste ${customerName}, aapka Nash Studio salon appointment #${orderNum} confirm ho gaya hai. Time: ${order.timeLabel || order.slot || 'Scheduled'}.`
+                          : `Namaste ${customerName}, aapka Shawarma Nights order #${orderNum} process ho raha hai.`
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="py-2.5 px-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
@@ -290,67 +300,119 @@ export default function OrdersTab() {
                   </div>
                 )}
 
-                {/* PROGRESSIVE WORKFLOW ACTION BUTTON (Exact Android App Logic) */}
+                {/* PROGRESSIVE WORKFLOW ACTION BUTTON */}
                 <div className="pt-2 flex flex-wrap items-center gap-2">
                   
-                  {/* STEP 1: NEW / PENDING -> ACCEPT & SEND TO KITCHEN */}
-                  {(status === 'new' || status === 'pending') && (
+                  {/* SALON SPECIFIC WORKFLOW */}
+                  {isSalon ? (
                     <>
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="flex-1 py-3 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                      >
-                        <ChefHat className="w-4 h-4 stroke-[2.2]" />
-                        <span>ACCEPT & SEND TO KITCHEN</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Reject / Cancel Order #${orderNum}?`)) {
-                            updateOrderStatus(order.id, 'cancelled');
-                          }
-                        }}
-                        className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-0"
-                        title="Reject Order"
-                      >
-                        <X className="w-4 h-4" />
-                        <span>REJECT</span>
-                      </button>
+                      {/* STEP 1: NEW / PENDING -> CONFIRM APPOINTMENT */}
+                      {(status === 'new' || status === 'pending') && (
+                        <>
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
+                            className="flex-1 py-3 px-4 rounded-full bg-[#d4af37] hover:bg-[#b8972e] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          >
+                            <Calendar className="w-4 h-4 stroke-[2.2]" />
+                            <span>CONFIRM APPOINTMENT</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Cancel Appointment #${orderNum}?`)) {
+                                updateOrderStatus(order.id, 'cancelled');
+                              }
+                            }}
+                            className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-0"
+                            title="Cancel Appointment"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>CANCEL</span>
+                          </button>
+                        </>
+                      )}
+
+                      {/* STEP 2: CONFIRMED / PREPARING -> CLIENT IN CHAIR OR FINISH */}
+                      {(status === 'preparing' || status === 'confirmed') && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'delivered')}
+                          className="flex-1 py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                        >
+                          <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                          <span>SERVICE COMPLETED (MARK DONE)</span>
+                        </button>
+                      )}
+
+                      {/* STEP 3: COMPLETED */}
+                      {(status === 'delivered' || status === 'completed') && (
+                        <div className="flex-1 py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                          <span>APPOINTMENT COMPLETED</span>
+                        </div>
+                      )}
                     </>
-                  )}
+                  ) : (
+                    /* RESTAURANT WORKFLOW (Shawarma Nights) */
+                    <>
+                      {/* STEP 1: NEW / PENDING -> ACCEPT & SEND TO KITCHEN */}
+                      {(status === 'new' || status === 'pending') && (
+                        <>
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            className="flex-1 py-3 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          >
+                            <ChefHat className="w-4 h-4 stroke-[2.2]" />
+                            <span>ACCEPT & SEND TO KITCHEN</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Reject / Cancel Order #${orderNum}?`)) {
+                                updateOrderStatus(order.id, 'cancelled');
+                              }
+                            }}
+                            className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-0"
+                            title="Reject Order"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>REJECT</span>
+                          </button>
+                        </>
+                      )}
 
-                  {/* STEP 2: IN KITCHEN / PREPARING -> DISPATCH OUT FOR DELIVERY */}
-                  {(status === 'preparing' || status === 'confirmed') && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
-                      className="w-full py-3 px-4 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                    >
-                      <Bike className="w-4 h-4 stroke-[2.2]" />
-                      <span>DISPATCH → OUT FOR DELIVERY</span>
-                    </button>
-                  )}
+                      {/* STEP 2: IN KITCHEN / PREPARING -> DISPATCH OUT FOR DELIVERY */}
+                      {(status === 'preparing' || status === 'confirmed') && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
+                          className="w-full py-3 px-4 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                        >
+                          <Bike className="w-4 h-4 stroke-[2.2]" />
+                          <span>DISPATCH → OUT FOR DELIVERY</span>
+                        </button>
+                      )}
 
-                  {/* STEP 3: OUT FOR DELIVERY / READY -> VERIFY OTP & DELIVER */}
-                  {(status === 'out_for_delivery' || status === 'ready') && (
-                    <button
-                      onClick={() => {
-                        setDeliveryOtpModalOrder(order);
-                        setEnteredOtp('');
-                        setCashConfirmed(false);
-                        setOtpError('');
-                      }}
-                      className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                    >
-                      <CheckCheck className="w-4 h-4 stroke-[2.5]" />
-                      <span>VERIFY OTP & DELIVER (DELIVERY CONFIRM)</span>
-                    </button>
-                  )}
+                      {/* STEP 3: OUT FOR DELIVERY / READY -> VERIFY OTP & DELIVER */}
+                      {(status === 'out_for_delivery' || status === 'ready') && (
+                        <button
+                          onClick={() => {
+                            setDeliveryOtpModalOrder(order);
+                            setEnteredOtp('');
+                            setCashConfirmed(false);
+                            setOtpError('');
+                          }}
+                          className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                        >
+                          <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                          <span>VERIFY OTP & DELIVER (DELIVERY CONFIRM)</span>
+                        </button>
+                      )}
 
-                  {/* STEP 4: DELIVERED -> STATUS COMPLETED */}
-                  {status === 'delivered' && (
-                    <div className="w-full py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                      <span>ORDER DELIVERED & COMPLETED</span>
-                    </div>
+                      {/* STEP 4: DELIVERED -> STATUS COMPLETED */}
+                      {status === 'delivered' && (
+                        <div className="w-full py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                          <span>ORDER DELIVERED & COMPLETED</span>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Print / View Receipt Button */}

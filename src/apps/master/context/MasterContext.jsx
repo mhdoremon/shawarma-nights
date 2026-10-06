@@ -19,7 +19,24 @@ const WS_BASE = window.location.hostname === 'localhost' || window.location.host
   : 'wss://churuone-backend.onrender.com';
 
 export const MasterProvider = ({ children }) => {
-  const [storeId, setStoreId] = useState(() => localStorage.getItem('churuone_master_store_id') || 'shawarma');
+  const [storeId, setStoreId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlStore = params.get('storeId') || params.get('store');
+      if (urlStore) {
+        const normalized = (urlStore === 'nash' || urlStore === 'beared' || urlStore === 'beard') ? 'nash-studio' : urlStore;
+        localStorage.setItem('churuone_master_store_id', normalized);
+        return normalized;
+      }
+      const host = window.location.hostname.toLowerCase();
+      if (host.includes('nash')) {
+        localStorage.setItem('churuone_master_store_id', 'nash-studio');
+        return 'nash-studio';
+      }
+      return localStorage.getItem('churuone_master_store_id') || 'shawarma';
+    }
+    return 'shawarma';
+  });
   const [token, setToken] = useState(() => localStorage.getItem('churuone_master_token') || '');
   const [role, setRole] = useState(() => localStorage.getItem('churuone_master_role') || 'dukandar'); // 'dukandar' | 'delivery_boy'
   const [user, setUser] = useState(() => {

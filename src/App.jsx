@@ -4,24 +4,31 @@ import CustomerApp from './apps/customer/CustomerApp';
 import MasterApp from './apps/master/MasterApp';
 import AppStorePage from './apps/hub/AppStorePage';
 import ChuruOneHomePage from './apps/churuone/ChuruOneHomePage';
+import NashStudioApp from './apps/nash/NashStudioApp';
 
 function RootEntry() {
+  const host = window.location.hostname.toLowerCase();
   const params = new URLSearchParams(window.location.search);
+  const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
 
-  // If query parameter has storeId (e.g. ?storeId=shawarma), open customer store
-  if (params.get('storeId') || params.get('store')) {
+  // 1. Nash Studio Salon Website (Subdomain: nash.churuone.in or ?storeId=nash-studio)
+  if (host.startsWith('nash.') || storeParam === 'nash-studio' || storeParam === 'nash' || storeParam === 'beared') {
+    return <NashStudioApp />;
+  }
+
+  // 2. Shawarma Nights Flagship Store (Subdomain: shawarma.churuone.in or ?storeId=shawarma)
+  if (host.startsWith('shawarma.') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
     return <CustomerApp />;
   }
 
-  // If explicitly requested via query parameter ?view=churuone or ?portal=1
-  if (params.get('view') === 'churuone' || params.get('portal') === '1' || params.get('home') === '1') {
+  // 3. ChuruOne Main City Marketplace (root domain churuone.in or www.churuone.in)
+  if (host === 'churuone.in' || host === 'www.churuone.in' || params.get('view') === 'churuone' || params.get('portal') === '1' || params.get('home') === '1') {
     return <ChuruOneHomePage />;
   }
 
-  // If accessed directly on root domain churuone.in (without a subdomain)
-  const host = window.location.hostname.toLowerCase();
-  if (host === 'churuone.in' || host === 'www.churuone.in') {
-    return <ChuruOneHomePage />;
+  // 4. Default: If any storeId is provided, show customer store
+  if (storeParam) {
+    return <CustomerApp />;
   }
 
   // Otherwise, default to the flagship store (Shawarma Nights)
@@ -41,6 +48,10 @@ export default function App() {
         <Route path="/apps/*" element={<AppStorePage />} />
         <Route path="/downloads/*" element={<AppStorePage />} />
         <Route path="/store/*" element={<AppStorePage />} />
+
+        {/* Nash Studio Salon Web App */}
+        <Route path="/nash/*" element={<NashStudioApp />} />
+        <Route path="/salon/*" element={<NashStudioApp />} />
 
         {/* ChuruOne Master Web OS for iPhone, Mac, Desktop & Tablets */}
         <Route path="/admin/*" element={<MasterApp />} />

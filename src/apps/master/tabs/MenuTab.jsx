@@ -4,7 +4,8 @@ import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as Image
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 
 export default function MenuTab() {
-  const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeId } = useMaster();
+  const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeInfo, storeId } = useMaster();
+  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
 
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,8 +27,15 @@ export default function MenuTab() {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Ready Food Photo Presets (Exact match to Android App)
-  const photoPresets = [
+  // Ready Photo Presets
+  const photoPresets = isSalon ? [
+    { name: 'Fade Haircut', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80' },
+    { name: 'Beard Grooming', url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&auto=format&fit=crop&q=80' },
+    { name: 'Classic Scissors', url: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&auto=format&fit=crop&q=80' },
+    { name: 'Hair Color & Styling', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80' },
+    { name: 'Facial & Glow', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop&q=80' },
+    { name: 'Head Massage', url: 'https://images.unsplash.com/photo-1519824145371-296894a0daa9?w=800&auto=format&fit=crop&q=80' }
+  ] : [
     { name: 'Classic Roll', url: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80' },
     { name: 'Spicy Shawarma', url: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&auto=format&fit=crop&q=80' },
     { name: 'Charcoal Platter', url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80' },
@@ -197,29 +205,31 @@ export default function MenuTab() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search dishes by name or category..."
-              className="w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              placeholder={isSalon ? "Search services by name or category..." : "Search dishes by name or category..."}
+              className={`w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
             />
           </div>
 
-          {/* Add New Dish Button */}
+          {/* Add New Item Button */}
           <button
             onClick={() => setModalItem({ 
               name: '', 
-              price: '179', 
+              price: isSalon ? '499' : '179', 
               originalPrice: '0',
-              category: 'shawarmas', 
+              category: isSalon ? 'haircut' : 'shawarmas', 
               isVeg: false,
               badge: '',
-              prepTime: '15-20 min',
+              prepTime: isSalon ? '30 min' : '15-20 min',
               available: true, 
-              image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
+              image: isSalon 
+                ? 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80'
+                : 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
               description: ''
             })}
-            className="px-5 py-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all"
+            className={`px-5 py-3 rounded-full ${isSalon ? 'bg-[#d4af37] hover:bg-[#b8972e]' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>+ ADD DISH</span>
+            <span>{isSalon ? '+ ADD SERVICE' : '+ ADD DISH'}</span>
           </button>
         </div>
 
@@ -395,7 +405,7 @@ export default function MenuTab() {
           <div className="bg-white text-zinc-900 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0 my-8">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <h3 className="text-base font-black text-zinc-900">
-                {modalItem.id ? 'Edit Dish (Dish Update)' : 'Add New Dish (Nayi Dish Jodein)'}
+                {modalItem.id ? (isSalon ? 'Edit Service' : 'Edit Dish') : (isSalon ? 'Add New Service' : 'Add New Dish')}
               </h3>
               <button
                 onClick={() => setModalItem(null)}
@@ -410,8 +420,8 @@ export default function MenuTab() {
               {/* 1. PHOTO PICKER SECTION (Device Upload + Presets + URL) */}
               <div className="bg-[#FFFBF7] p-4 rounded-2xl space-y-3 border-0">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-black text-[#DC2626] uppercase tracking-wider">
-                    DISH PHOTO (GALLERY YA PRESET SE)
+                  <label className={`block text-xs font-black ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'} uppercase tracking-wider`}>
+                    {isSalon ? 'SERVICE PHOTO (GALLERY YA PRESET SE)' : 'DISH PHOTO (GALLERY YA PRESET SE)'}
                   </label>
                   {isUploading && <span className="text-[10px] text-zinc-500 font-bold">Uploading...</span>}
                 </div>
@@ -470,21 +480,24 @@ export default function MenuTab() {
                 </div>
               </div>
 
-              {/* 2. DISH NAME + QUICK CHIPS */}
+              {/* 2. DISH / SERVICE NAME + QUICK CHIPS */}
               <div>
                 <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                  DISH NAME *
+                  {isSalon ? 'SERVICE NAME *' : 'DISH NAME *'}
                 </label>
                 <input
                   type="text"
                   required
                   value={modalItem.name || ''}
                   onChange={(e) => setModalItem({ ...modalItem, name: e.target.value })}
-                  placeholder="e.g. Charcoal Chicken Shawarma Roll"
-                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  placeholder={isSalon ? "e.g. Royal Fade Haircut & Beard Grooming" : "e.g. Charcoal Chicken Shawarma Roll"}
+                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 scrollbar-none">
-                  {['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings'].map(n => (
+                  {(isSalon
+                    ? ['Fade Haircut', 'Beard Trim & Styling', 'Gold Facial', 'Head Massage', 'Hair Spa', 'Classic Shave']
+                    : ['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings']
+                  ).map(n => (
                     <button
                       key={n}
                       type="button"
@@ -507,11 +520,14 @@ export default function MenuTab() {
                   required
                   value={modalItem.category || ''}
                   onChange={(e) => setModalItem({ ...modalItem, category: e.target.value })}
-                  placeholder="shawarmas, platters, fries, drinks..."
-                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  placeholder={isSalon ? "haircut, beard, styling, facial, spa..." : "shawarmas, platters, fries, drinks..."}
+                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
-                  {['shawarmas', 'platters', 'fries', 'drinks', 'starters'].map(c => (
+                  {(isSalon 
+                    ? ['haircut', 'beard', 'styling', 'facial', 'spa', 'massage'] 
+                    : ['shawarmas', 'platters', 'fries', 'drinks', 'starters']
+                  ).map(c => (
                     <button
                       key={c}
                       type="button"
@@ -524,32 +540,34 @@ export default function MenuTab() {
                 </div>
               </div>
 
-              {/* 4. FOOD TYPE (Veg / Non-Veg) */}
-              <div>
-                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1.5">
-                  FOOD TYPE
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setModalItem({ ...modalItem, isVeg: false })}
-                    className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 ${
-                      !modalItem.isVeg ? 'bg-red-600 text-white shadow-md' : 'bg-zinc-100 text-zinc-600'
-                    }`}
-                  >
-                    Non-Veg
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setModalItem({ ...modalItem, isVeg: true })}
-                    className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 ${
-                      modalItem.isVeg ? 'bg-emerald-600 text-white shadow-md' : 'bg-zinc-100 text-zinc-600'
-                    }`}
-                  >
-                    100% Pure Veg
-                  </button>
+              {/* 4. FOOD TYPE (Veg / Non-Veg) - Hidden for Salons */}
+              {!isSalon && (
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1.5">
+                    FOOD TYPE
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setModalItem({ ...modalItem, isVeg: false })}
+                      className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 ${
+                        !modalItem.isVeg ? 'bg-red-600 text-white shadow-md' : 'bg-zinc-100 text-zinc-600'
+                      }`}
+                    >
+                      Non-Veg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModalItem({ ...modalItem, isVeg: true })}
+                      className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 ${
+                        modalItem.isVeg ? 'bg-emerald-600 text-white shadow-md' : 'bg-zinc-100 text-zinc-600'
+                      }`}
+                    >
+                      100% Pure Veg
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 5. PRICES (Selling Price & Original Strike Price) */}
               <div className="grid grid-cols-2 gap-3">
@@ -634,17 +652,17 @@ export default function MenuTab() {
 
                 <div>
                   <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                    PREP TIME
+                    {isSalon ? 'SERVICE DURATION' : 'PREP TIME'}
                   </label>
                   <input
                     type="text"
-                    value={modalItem.prepTime || '15-20 min'}
+                    value={modalItem.prepTime || (isSalon ? '30 min' : '15-20 min')}
                     onChange={(e) => setModalItem({ ...modalItem, prepTime: e.target.value })}
-                    placeholder="15-20 min"
-                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                    placeholder={isSalon ? '30 min' : '15-20 min'}
+                    className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                   />
                   <div className="flex items-center gap-1 pt-1.5 flex-wrap">
-                    {['10-15 min', '15-20 min', '20-25 min'].map(t => (
+                    {(isSalon ? ['20 min', '30 min', '45 min', '60 min'] : ['10-15 min', '15-20 min', '20-25 min']).map(t => (
                       <button
                         key={t}
                         type="button"

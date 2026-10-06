@@ -145,6 +145,8 @@ app.get('/api/data', (req, res) => {
       socials: storeConfig?.socials || {},
       taxesAndCharges: storeConfig?.tax || {},
       name: storeConfig?.name || '',
+      vertical: storeConfig?.vertical || 'food',
+      branding: storeConfig?.branding || {},
       address: storeConfig?.settings?.address || '',
       timing: storeConfig?.settings?.timing || '',
       freeDeliveryThreshold: storeConfig?.settings?.freeDeliveryThreshold ?? 350

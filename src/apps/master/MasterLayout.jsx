@@ -56,6 +56,8 @@ export default function MasterLayout() {
     return <DeliveryPartnerView />;
   }
 
+  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
+
   // Active / pending orders count
   const activeOrdersCount = (orders || []).filter(o => 
     ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)
@@ -63,34 +65,34 @@ export default function MasterLayout() {
 
   const tabsConfig = [
     { id: 0, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 1, label: 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
-    { id: 2, label: 'Menu', icon: UtensilsCrossed, badge: menu?.length || 0 },
+    { id: 1, label: isSalon ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
+    { id: 2, label: isSalon ? 'Services' : 'Menu', icon: UtensilsCrossed, badge: menu?.length || 0 },
     { id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 },
-    { id: 4, label: 'Customers', icon: Users, badge: customers?.length || 0 },
+    { id: 4, label: isSalon ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
     { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
     { id: 6, label: 'SMS Gateway', icon: Smartphone },
-    { id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 },
+    ...(!isSalon ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
     { id: 8, label: 'Settings', icon: Settings },
   ];
 
   return (
     <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col">
       
-      {/* 1. TOP BRAND NAVBAR (Matching Shawarma Nights Crisp Red Bar) */}
-      <header className="sticky top-0 z-40 bg-[#DC2626] text-white shadow-md px-4 sm:px-6 py-3">
+      {/* 1. TOP BRAND NAVBAR */}
+      <header className={`sticky top-0 z-40 ${isSalon ? 'bg-zinc-950 border-b border-zinc-800' : 'bg-[#DC2626]'} text-white shadow-md px-4 sm:px-6 py-3`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           
           {/* Left: Brand + Active Store Pill */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveTab(0)}>
               <span className="text-base sm:text-lg font-black tracking-tight text-white">CHURUONE</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-900 text-white font-extrabold uppercase tracking-wider ml-1">
-                MASTER OS
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isSalon ? 'bg-[#d4af37] text-zinc-950 font-black' : 'bg-zinc-900 text-white font-extrabold'} uppercase tracking-wider ml-1`}>
+                {isSalon ? 'SALON OS' : 'MASTER OS'}
               </span>
             </div>
 
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-zinc-900 text-xs font-black shadow-sm">
-              <Store className="w-3.5 h-3.5 text-[#DC2626]" />
+              <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
               <span className="capitalize">{storeInfo?.name || storeId}</span>
             </div>
           </div>
