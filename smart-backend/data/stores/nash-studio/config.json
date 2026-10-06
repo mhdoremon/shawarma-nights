@@ -1,0 +1,105 @@
+{
+  "name": "Nash Studio",
+  "slug": "nash-studio",
+  "vertical": "salon",
+  "status": "active",
+  "owner": {
+    "name": "Nash Studio",
+    "phone": "7023963189",
+    "password": "nash2024",
+    "token": "ns-token-nash-studio-2026",
+    "username": "nash_studio"
+  },
+  "branding": {
+    "logo": "",
+    "primaryColor": "#d4af37",
+    "secondaryColor": "#111111",
+    "font": "Inter",
+    "tagline": "Precision Grooming. Bina Intezaar Ke.",
+    "heroImage": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80"
+  },
+  "domain": {
+    "subdomain": "nash",
+    "customDomain": null
+  },
+  "settings": {
+    "currency": "INR",
+    "currencySymbol": "₹",
+    "timezone": "Asia/Kolkata",
+    "language": "hi",
+    "isOpen": true,
+    "timing": "Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed",
+    "studioName": "Nash Studio",
+    "heroTagline": "PRECISION GROOMING. BINA INTEZAAR KE.",
+    "heroButtonText": "BOOK APPOINTMENT NOW",
+    "shopWhatsapp": "923001234567",
+    "phoneDisplay": "0300-1234567",
+    "address": "Shop 12, Main Boulevard, Gulberg",
+    "monSatHours": "11:00 AM to 11:00 PM",
+    "sundayHours": "Closed",
+    "bookingFee": 50,
+    "upiId": "nashstudio@upi",
+    "accountTitle": "Nash Studio",
+    "freeDeliveryThreshold": 0,
+    "deliveryRadius": 10,
+    "minOrderAmount": 0,
+    "maxOrdersPerHour": 20,
+    "autoAcceptOrders": true,
+    "enabledModules": [
+      "catalog",
+      "orders",
+      "deals",
+      "reviews",
+      "payments",
+      "customers",
+      "salon"
+    ],
+    "aboutText": "Nash Studio offers bespoke haircuts, luxury skin fades, hot towel razor shaves, and executive beard grooming.",
+    "packagingCharge": 0
+  },
+  "payment": {
+    "upiId": "nashstudio@upi",
+    "payeeName": "Nash Studio",
+    "razorpayKeyId": null,
+    "codEnabled": true,
+    "autoSmsVerification": false
+  },
+  "tax": {
+    "enabled": false,
+    "gstin": "",
+    "defaultTaxRate": 0,
+    "pricesIncludeTax": true
+  },
+  "socials": {
+    "instagram": "https://instagram.com/nashstudio",
+    "whatsapp": "923001234567",
+    "facebook": "",
+    "youtube": "",
+    "twitter": ""
+  },
+  "smsGateway": {
+    "connected": false,
+    "deviceId": null,
+    "lastSeen": null
+  },
+  "plan": {
+    "type": "pro",
+    "monthlyFee": 0,
+    "validUntil": null
+  },
+  "storeId": "nash-studio",
+  "heroBanner": {
+    "badgeText": "LUXURY SALON & GROOMING",
+    "titleLine1": "PRECISION",
+    "titleLine2": "GROOMING",
+    "titleHighlight": "NASH STUDIO",
+    "subtitle": "Bina Intezaar Ke. Master barbers, custom skin fades, and luxury beard sculpting.",
+    "circleImage": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+    "priceText": "Starts from",
+    "priceValue": "₹500",
+    "ratingText": "4.9 ★",
+    "reviewsText": "450+ Reviews",
+    "marqueeText": "★ NASH STUDIO SALON & GROOMING ● ★ CHURU ONE EXCLUSIVE ● ★ LUXURY HAIRCUTS & BEARD SCULPTING ★"
+  },
+  "updatedAt": "2026-10-06T12:00:00.000Z"
+}

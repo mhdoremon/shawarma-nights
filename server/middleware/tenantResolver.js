@@ -79,6 +79,11 @@ export function tenantResolver(req, res, next) {
   // Sanitize storeId (alphanumeric + hyphens only)
   storeId = storeId.replace(/[^a-z0-9\-_]/g, '');
 
+  // Tenant aliases (e.g. nash, beared -> nash-studio)
+  if (storeId === 'nash' || storeId === 'beared' || storeId === 'beard') {
+    storeId = 'nash-studio';
+  }
+
   if (!storeId) {
     return res.status(400).json({
       success: false,

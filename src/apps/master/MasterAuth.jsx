@@ -7,11 +7,28 @@ export default function MasterAuth() {
   const { loginDukandar, loginDelivery, registerDelivery, showToast } = useMaster();
 
   const [authRole, setAuthRole] = useState('dukandar'); // 'dukandar' | 'delivery_boy'
-  const [storeIdInput, setStoreIdInput] = useState('shawarma');
+  const [storeIdInput, setStoreIdInput] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('storeId') || params.get('store');
+    if (fromUrl) return fromUrl;
+    const host = window.location.hostname.toLowerCase();
+    if (host.includes('nash')) return 'nash-studio';
+    return 'shawarma';
+  });
 
   // Dukandar Form State
-  const [username, setUsername] = useState('Shawarma_Nights');
-  const [password, setPassword] = useState('Pvv9yyy8c1');
+  const [username, setUsername] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get('storeId') || params.get('store');
+    if (sid === 'nash-studio' || sid === 'nash' || window.location.hostname.includes('nash')) return 'nash_studio';
+    return 'Shawarma_Nights';
+  });
+  const [password, setPassword] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get('storeId') || params.get('store');
+    if (sid === 'nash-studio' || sid === 'nash' || window.location.hostname.includes('nash')) return 'nash2024';
+    return 'Pvv9yyy8c1';
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   // Delivery Boy Sub-tab: 'login' | 'register'

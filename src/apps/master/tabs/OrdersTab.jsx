@@ -196,6 +196,18 @@ export default function OrdersTab() {
                   </div>
                 </div>
 
+                {/* Appointment Slot / Salon Details */}
+                {(order.timeLabel || order.dateLabel || order.dateISO) && (
+                  <div className="bg-amber-50 text-amber-900 border border-amber-200/60 p-2.5 rounded-xl text-xs font-bold flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <span>📅 Slot:</span>
+                      <span className="text-amber-800 font-black">{order.timeLabel || 'Booked Slot'}</span>
+                      <span className="text-amber-600 font-medium">({order.dateLabel || order.dateISO})</span>
+                    </span>
+                    {order.workMinutes && <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{order.workMinutes} mins</span>}
+                  </div>
+                )}
+
                 {/* Items Breakdown */}
                 <div className="space-y-1.5 text-xs text-zinc-700 bg-[#FFFBF7] p-4 rounded-2xl shadow-xs border-0">
                   {items.map((it, idx) => (

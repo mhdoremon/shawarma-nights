@@ -1,0 +1,34 @@
+[
+  {
+    "id": "deal-nash1",
+    "code": "NASH20",
+    "title": "20% OFF — First Appointment",
+    "desc": "Flat 20% discount on any premium haircut or grooming service",
+    "isActive": true,
+    "active": true,
+    "discountType": "percentage",
+    "discountPercent": 20,
+    "maxDiscount": 300,
+    "flatDiscount": null,
+    "minOrder": 500,
+    "usageLimit": 500,
+    "usageCount": 12,
+    "autoApply": false
+  },
+  {
+    "id": "deal-nash2",
+    "code": "ROYAL100",
+    "title": "₹100 Flat Off — Royal Grooming",
+    "desc": "Save ₹100 on appointments above ₹1000",
+    "isActive": true,
+    "active": true,
+    "discountType": "flat",
+    "discountPercent": null,
+    "maxDiscount": 100,
+    "flatDiscount": 100,
+    "minOrder": 1000,
+    "usageLimit": 1000,
+    "usageCount": 35,
+    "autoApply": true
+  }
+]

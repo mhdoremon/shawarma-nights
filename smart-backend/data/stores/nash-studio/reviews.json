@@ -1,0 +1,38 @@
+[
+  {
+    "id": "rev-nash1",
+    "name": "Zubair Khan",
+    "phone": "9829011223",
+    "rating": 5,
+    "comment": "Best skin fade in town! The barber was extremely professional and on time. Zero waiting time.",
+    "dish": "Royal Pompadour Fade",
+    "dishId": "hs3",
+    "type": "salon",
+    "date": "Yesterday",
+    "createdAt": "2026-10-05T14:30:00.000Z"
+  },
+  {
+    "id": "rev-nash2",
+    "name": "Hamza Ali",
+    "phone": "9829044556",
+    "rating": 5,
+    "comment": "Loved the beard sculpting and scissor work. Ambience is top notch.",
+    "dish": "Scissor Sculpt & Lineup",
+    "dishId": "hs7",
+    "type": "salon",
+    "date": "2 days ago",
+    "createdAt": "2026-10-04T16:00:00.000Z"
+  },
+  {
+    "id": "rev-nash3",
+    "name": "Bilal Sheikh",
+    "phone": "9829077889",
+    "rating": 5,
+    "comment": "Quick, neat, and highly skilled staff. Booking online makes it effortless.",
+    "dish": "Classic Low Taper Fade",
+    "dishId": "hs14",
+    "type": "salon",
+    "date": "3 days ago",
+    "createdAt": "2026-10-03T11:15:00.000Z"
+  }
+]

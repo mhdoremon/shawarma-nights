@@ -25,6 +25,7 @@ export default function ChuruOneHomePage() {
   const categories = [
     { id: 'all', label: 'Sabhi Dukaane' },
     { id: 'food', label: 'Food & Dining' },
+    { id: 'salon', label: 'Salon & Grooming' },
     { id: 'sweets', label: 'Sweets & Bakery' },
     { id: 'grocery', label: 'Kirana & Daily' },
     { id: 'fashion', label: 'Fashion & Retail' }
@@ -46,6 +47,22 @@ export default function ChuruOneHomePage() {
       actionUrl: '/?storeId=shawarma',
       subdomainUrl: 'https://shawarma.churuone.in',
       badge: 'Flagship Partner'
+    },
+    {
+      id: 'nash-studio',
+      name: 'Nash Studio',
+      tagline: 'Precision Grooming, Luxury Haircuts & Beard Sculpting',
+      category: 'salon',
+      rating: '4.9',
+      reviewCount: '450+ reviews',
+      deliveryTime: 'Slot Booking',
+      minOrder: '₹500',
+      status: 'OPEN NOW',
+      isLive: true,
+      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80',
+      actionUrl: 'https://nash.churuone.in',
+      subdomainUrl: 'https://nash.churuone.in',
+      badge: 'Live Salon'
     },
     {
       id: 'pizza-club',

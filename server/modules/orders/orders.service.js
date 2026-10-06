@@ -11,41 +11,104 @@ export const getOrders = async (req, res) => {
     }
 };
 
+export const getBookings = async (req, res) => {
+    try {
+        const { dateISO } = req.query;
+        const orders = DataLayer.read(req.storeId, 'orders') || [];
+        let bookings = orders.filter(o => o.status !== 'cancelled' && (o.dateISO || o.startMin !== undefined));
+        if (dateISO) {
+            bookings = bookings.filter(o => o.dateISO === dateISO);
+        }
+        res.json({ success: true, bookings });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const placeOrder = async (req, res) => {
     try {
         const storeId = req.storeId;
+        const storeConfig = DataLayer.getStoreConfig(storeId) || {};
         const orders = DataLayer.read(storeId, 'orders') || [];
         const payload = req.body;
 
+        // Check salon appointment slot collision
+        if (payload.dateISO && payload.startMin !== undefined && payload.totalMinutes) {
+            const startMin = Number(payload.startMin);
+            const totalMinutes = Number(payload.totalMinutes);
+            const reqEnd = startMin + totalMinutes;
+            const existingBookings = orders.filter(o => o.dateISO === payload.dateISO && o.status !== 'cancelled' && o.startMin !== undefined);
+            for (const b of existingBookings) {
+                const bStart = Number(b.startMin);
+                const bEnd = bStart + Number(b.totalMinutes || 30);
+                if (Math.max(bStart, startMin) < Math.min(bEnd, reqEnd)) {
+                    return res.status(409).json({ success: false, message: 'SLOT_ALREADY_TAKEN' });
+                }
+            }
+        }
+
+        const prefix = (storeConfig.slug || storeId).split('-').map(s => s[0]).join('').toUpperCase().slice(0, 3) || 'ORD';
         const orderNumCount = orders.length + 1;
-        const orderNumber = `SN-${String(orderNumCount).padStart(4, '0')}`;
+        const defaultOrderNum = `${prefix}-${String(orderNumCount).padStart(4, '0')}`;
+        const orderNumber = payload.token || payload.orderNumber || defaultOrderNum;
         
-        const status = payload.paymentMethod === 'cod' ? 'confirmed' : 'payment_pending';
+        const status = payload.status || (payload.paymentMethod === 'cod' ? 'confirmed' : 'confirmed');
         const deliveryOtp = payload.deliveryType === 'delivery' ? generateOtp() : null;
+
+        // Extract customer
+        const customerName = payload.customer?.name || payload.customerName || payload.name || "";
+        const customerPhone = payload.customer?.phone || payload.customerPhone || payload.phone || "";
+        const customerEmail = payload.customer?.email || payload.userEmail || payload.email || "";
+
+        // Extract items (support single service/hairstyle or item array)
+        let items = payload.items || [];
+        if ((!items || items.length === 0) && payload.styleName) {
+            items = [{
+                name: payload.styleName,
+                price: safeNum(payload.totalPrice) || safeNum(payload.price) || 0,
+                unitPrice: safeNum(payload.totalPrice) || safeNum(payload.price) || 0,
+                qty: 1,
+                time: safeNum(payload.workMinutes) || 30,
+                tier: payload.tier || 'standard'
+            }];
+        }
 
         const order = {
             id: payload.orderId || payload.id || generateId('ord'),
             orderNumber,
+            token: payload.token || orderNumber,
             status,
-            customer: payload.customer || { name: payload.customerName || "", phone: payload.customerPhone || "", email: "" },
-            items: payload.items || [],
-            deliveryType: payload.deliveryType || 'delivery',
+            customer: { name: customerName, phone: customerPhone, email: customerEmail },
+            items,
+            deliveryType: payload.deliveryType || (payload.dateISO ? 'booking' : 'delivery'),
             address: payload.address || '',
             lat: payload.orderGps?.lat || payload.lat || null,
             lng: payload.orderGps?.lng || payload.lng || null,
             orderGps: payload.orderGps || null,
             paymentMethod: payload.paymentMethod || 'cod',
-            paymentStatus: payload.paymentMethod === 'cod' ? 'pending' : 'pending',
-            utr: payload.utr || null,
+            paymentStatus: payload.paymentStatus || (payload.paymentMethod === 'cod' ? 'pending' : 'pending'),
+            utr: payload.utr || payload.txnId || null,
             couponCode: payload.couponCode || null,
-            subtotal: safeNum(payload.subtotal),
-            discount: safeNum(payload.discount),
-            deliveryFee: safeNum(payload.deliveryFee),
-            tax: safeNum(payload.tax),
-            packagingCharge: safeNum(payload.packagingCharge),
-            tip: safeNum(payload.tip),
-            total: safeNum(payload.total) || safeNum(payload.grandTotal),
+            subtotal: safeNum(payload.subtotal) || safeNum(payload.totalPrice) || 0,
+            discount: safeNum(payload.discount) || 0,
+            deliveryFee: safeNum(payload.deliveryFee) || 0,
+            tax: safeNum(payload.tax) || 0,
+            packagingCharge: safeNum(payload.packagingCharge) || 0,
+            tip: safeNum(payload.tip) || 0,
+            total: safeNum(payload.total) || safeNum(payload.grandTotal) || safeNum(payload.totalPrice) || 0,
+            totalPrice: safeNum(payload.totalPrice) || safeNum(payload.total) || safeNum(payload.grandTotal) || 0,
             notes: payload.notes || payload.note || '',
+            // Salon specific appointment fields:
+            dateISO: payload.dateISO || null,
+            dateLabel: payload.dateLabel || null,
+            timeLabel: payload.timeLabel || null,
+            startMin: payload.startMin !== undefined ? Number(payload.startMin) : null,
+            workMinutes: payload.workMinutes ? Number(payload.workMinutes) : null,
+            totalMinutes: payload.totalMinutes ? Number(payload.totalMinutes) : null,
+            styleName: payload.styleName || (items[0]?.name || null),
+            tier: payload.tier || null,
+            bookingFee: safeNum(payload.bookingFee) || 0,
+            remainingDue: safeNum(payload.remainingDue) || 0,
             deliveryBoyId: null,
             deliveryOtp,
             createdAt: now(),
