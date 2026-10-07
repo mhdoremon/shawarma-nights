@@ -196,6 +196,33 @@ export async function getSmartCustomerSession(param = {}) {
 }
 
 /**
+ * 12. Send Real SMS OTP to Mobile Number
+ */
+export async function sendSmartOtp(phone) {
+  return await smartFetch(`/api/auth/send-otp`, {
+    method: 'POST',
+    body: JSON.stringify({
+      phone,
+      storeId: SMART_CONFIG.storeId
+    })
+  });
+}
+
+/**
+ * 13. Verify Real SMS OTP
+ */
+export async function verifySmartOtp(phone, otp) {
+  return await smartFetch(`/api/auth/verify-otp`, {
+    method: 'POST',
+    body: JSON.stringify({
+      phone,
+      otp,
+      storeId: SMART_CONFIG.storeId
+    })
+  });
+}
+
+/**
  * 9. Real-time WebSocket connection to ChuruOne Smart Server
  */
 export function connectSmartWebSocket(onEvent) {

@@ -34,7 +34,8 @@ import {
   postSmartReview,
   connectSmartWebSocket,
   loginSmartGoogle,
-  loginSmartDirectCustomer
+  sendSmartOtp,
+  verifySmartOtp
 } from "./smartServerClient";
 
 // ============ FIREBASE CONFIG (OPTIONAL FALLBACK) ============
@@ -528,93 +529,100 @@ export function subscribeToAuth(callback) {
   return () => {};
 }
 
-export async function loginWithGoogle(credentialOrUserData = null) {
-  // If pre-provided user payload from Google Identity Services or Custom Google Modal
-  if (credentialOrUserData) {
-    try {
-      const serverRes = await loginSmartGoogle(credentialOrUserData);
-      if (serverRes?.user) {
-        const u = serverRes.user;
-        const uData = {
-          uid: u.id || u.uid || `cust_${Date.now()}`,
-          id: u.id,
-          displayName: u.name || u.displayName || "Google User",
-          name: u.name || u.displayName || "Google User",
-          email: u.email || "",
-          photoURL: u.photoURL || u.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name || "U")}`,
-          picture: u.picture || u.photoURL,
-          phoneNumber: u.phone || u.phoneNumber || "",
-          token: serverRes.token
-        };
-        localStorage.setItem("nash_user", JSON.stringify(uData));
-        if (serverRes.token) localStorage.setItem("auth_token", serverRes.token);
-        return uData;
-      }
-    } catch (e) {
-      console.warn("Server Google login note:", e.message);
-    }
+export async function loginWithGoogle() {
+  if (!auth || !googleProvider) {
+    throw new Error("Firebase Authentication initialized nahi hai.");
   }
 
-  // Attempt 1: Firebase Popup (if authorized domain)
-  if (auth && googleProvider) {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const googlePayload = {
-        googleId: user.uid,
-        email: user.email,
-        name: user.displayName,
-        picture: user.photoURL,
-        phone: user.phoneNumber || ""
-      };
-      // Immediately register with ChuruOne Smart Server
-      const serverRes = await loginSmartGoogle(googlePayload).catch(() => null);
-      const uData = {
-        uid: serverRes?.user?.id || user.uid,
-        id: serverRes?.user?.id || user.uid,
-        displayName: user.displayName || user.email?.split("@")[0] || "User",
-        name: user.displayName || user.email?.split("@")[0] || "User",
-        email: user.email || "",
-        photoURL: user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.displayName || "N")}`,
-        picture: user.photoURL,
-        phoneNumber: user.phoneNumber || "",
-        token: serverRes?.token || null
-      };
-      localStorage.setItem("nash_user", JSON.stringify(uData));
-      if (serverRes?.token) localStorage.setItem("auth_token", serverRes.token);
-      return uData;
-    } catch (err) {
-      console.warn("Firebase Google popup fallback to smart modal:", err.code || err.message);
-      return null;
-    }
-  }
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    const idToken = await user.getIdToken().catch(() => null);
 
-  return null;
+    const googlePayload = {
+      googleId: user.uid,
+      email: user.email,
+      name: user.displayName,
+      picture: user.photoURL,
+      idToken: idToken,
+      phone: user.phoneNumber || ""
+    };
+
+    // Register & sync verified Google customer with ChuruOne Smart Server
+    const serverRes = await loginSmartGoogle(googlePayload).catch(() => null);
+
+    const uData = {
+      uid: user.uid,
+      id: serverRes?.user?.id || user.uid,
+      displayName: user.displayName || user.email?.split("@")[0] || "Google User",
+      name: user.displayName || user.email?.split("@")[0] || "Google User",
+      email: user.email || "",
+      photoURL: user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.displayName || "N")}`,
+      picture: user.photoURL,
+      phoneNumber: user.phoneNumber || "",
+      token: serverRes?.token || null
+    };
+
+    localStorage.setItem("nash_user", JSON.stringify(uData));
+    if (serverRes?.token) localStorage.setItem("auth_token", serverRes.token);
+    return uData;
+  } catch (err) {
+    console.error("Firebase Google Auth Error:", err);
+    if (err.code === "auth/unauthorized-domain") {
+      throw new Error("UNAUTHORIZED_DOMAIN: Firebase Console me jaakar 'churuone.in' ko Authorized Domains me add karein taaki Google Sign-In allow ho sake.");
+    }
+    if (err.code === "auth/popup-closed-by-user") {
+      throw new Error("Sign-in popup band kar diya gaya tha.");
+    }
+    if (err.code === "auth/popup-blocked") {
+      throw new Error("Browser ne Google popup block kar diya. Kripya popups allow karein.");
+    }
+    throw new Error(err.message || "Google sign-in fail ho gaya.");
+  }
 }
 
-export async function loginDirectCustomer(customerName, customerPhone, customerEmail = "") {
-  let serverUser = null;
-  try {
-    const res = await loginSmartDirectCustomer(customerName, customerPhone, customerEmail);
-    if (res?.user) {
-      serverUser = res.user;
-      if (res.token) localStorage.setItem("auth_token", res.token);
-    }
-  } catch (e) {
-    console.warn("Direct login smart sync note:", e.message);
+export async function sendVerificationOtp(phone) {
+  const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
+  if (cleanPhone.length !== 10) {
+    throw new Error("Kripya sahi 10-digit mobile number enter karein.");
+  }
+  const res = await sendSmartOtp(cleanPhone);
+  if (!res.success) {
+    throw new Error(res.message || "OTP bhejne me problem aayi.");
+  }
+  return res;
+}
+
+export async function loginWithPhoneOtp(phone, otp) {
+  const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
+  if (cleanPhone.length !== 10) {
+    throw new Error("Kripya sahi 10-digit mobile number enter karein.");
+  }
+  const cleanOtp = (otp || "").trim();
+  if (cleanOtp.length !== 6) {
+    throw new Error("Kripya 6-digit ka SMS OTP enter karein.");
   }
 
+  const res = await verifySmartOtp(cleanPhone, cleanOtp);
+  if (!res.success) {
+    throw new Error(res.message || "Invalid OTP code.");
+  }
+
+  const u = res.user;
   const uData = {
-    uid: serverUser?.id || `cust_${Date.now()}`,
-    id: serverUser?.id || `cust_${Date.now()}`,
-    displayName: customerName || serverUser?.name || "Customer",
-    name: customerName || serverUser?.name || "Customer",
-    email: customerEmail || serverUser?.email || "",
-    photoURL: serverUser?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(customerName || "C")}`,
-    picture: serverUser?.picture,
-    phoneNumber: customerPhone || serverUser?.phone || ""
+    uid: u.id || `cust_${Date.now()}`,
+    id: u.id,
+    displayName: u.name || `User ${cleanPhone.slice(-4)}`,
+    name: u.name || `User ${cleanPhone.slice(-4)}`,
+    email: u.email || "",
+    photoURL: u.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanPhone)}`,
+    picture: u.picture,
+    phoneNumber: cleanPhone,
+    token: res.token
   };
+
   localStorage.setItem("nash_user", JSON.stringify(uData));
+  if (res.token) localStorage.setItem("auth_token", res.token);
   return uData;
 }
 

@@ -8,7 +8,8 @@ import {
   isFirebaseConfigured,
   subscribeToAuth,
   loginWithGoogle,
-  loginDirectCustomer,
+  sendVerificationOtp,
+  loginWithPhoneOtp,
   logoutUser,
   saveFeedback,
   saveReview,
@@ -221,11 +222,13 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [phone, setPhone] = useState(user?.phoneNumber || user?.phone || "");
   const [done, setDone] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleModalEmail, setGoogleModalEmail] = useState("");
-  const [googleModalName, setGoogleModalName] = useState("");
-  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [otpPhone, setOtpPhone] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [domainNotice, setDomainNotice] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [realtimeBookings, setRealtimeBookings] = useState([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -268,51 +271,86 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     }
   }, [user]);
 
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Timer effect for SMS OTP cooldown
+  useEffect(() => {
+    let timer = null;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => { if (timer) clearInterval(timer); };
+  }, [resendCooldown]);
+
   async function handleGoogleAuth() {
-    setAuthLoading(true);
+    setGoogleLoading(true);
+    setDomainNotice(null);
     try {
       const u = await loginWithGoogle();
       if (u) {
         setUser(u);
         if (u.displayName || u.name) setName(u.displayName || u.name);
-        showToast("Google account se login ho gaya!", "success");
-      } else {
-        // Fallback: If Firebase popup blocked/unauthorized domain, open the sleek ChuruOne Google modal
-        setShowGoogleModal(true);
+        showToast("Google account verified! Safal login ho gaya.", "success");
       }
     } catch (err) {
-      console.warn("Google auth note:", err.message);
-      setShowGoogleModal(true);
+      console.error("Google Auth error:", err);
+      if (err.message && err.message.includes("UNAUTHORIZED_DOMAIN")) {
+        setDomainNotice(err.message);
+      } else {
+        alert(err.message || "Google sign-in fail ho gaya.");
+      }
     } finally {
-      setAuthLoading(false);
+      setGoogleLoading(false);
     }
   }
 
-  async function handleGoogleModalSubmit(e) {
-    e.preventDefault();
-    if (!googleModalEmail.trim()) return;
-    setGoogleSubmitting(true);
+  async function handleSendOtp() {
+    const raw = otpPhone || phone || "";
+    const clean = raw.replace(/\D/g, "").slice(-10);
+    if (clean.length !== 10) {
+      alert("Kripya sahi 10-digit mobile number enter karein.");
+      return;
+    }
+    setOtpLoading(true);
     try {
-      const email = googleModalEmail.trim().toLowerCase();
-      const userName = googleModalName.trim() || email.split('@')[0];
-      const payload = {
-        email,
-        name: userName,
-        googleId: `goog_${Date.now()}`,
-        authProvider: 'google',
-        picture: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}`
-      };
-      const u = await loginWithGoogle(payload);
+      const res = await sendVerificationOtp(clean);
+      setOtpSent(true);
+      setResendCooldown(60);
+      showToast(res.devOtp ? `OTP code: ${res.devOtp} (SMS dispatched to +91 ${clean})` : `OTP +91 ${clean} par bhej diya gaya hai.`, "success");
+    } catch (err) {
+      alert(err.message || "OTP bhejne me problem aayi.");
+    } finally {
+      setOtpLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp() {
+    const raw = otpPhone || phone || "";
+    const cleanPhone = raw.replace(/\D/g, "").slice(-10);
+    const cleanCode = (otpCode || "").trim();
+    if (cleanPhone.length !== 10) {
+      alert("Kripya sahi 10-digit mobile number enter karein.");
+      return;
+    }
+    if (cleanCode.length !== 6) {
+      alert("Kripya 6-digit ka SMS OTP enter karein.");
+      return;
+    }
+    setOtpVerifying(true);
+    try {
+      const u = await loginWithPhoneOtp(cleanPhone, cleanCode);
       if (u) {
         setUser(u);
+        setPhone(cleanPhone);
         if (u.displayName || u.name) setName(u.displayName || u.name);
-        setShowGoogleModal(false);
-        showToast(`Welcome ${u.displayName || u.name}! Google login safal raha.`, "success");
+        showToast("Mobile OTP verified! Safal login ho gaya.", "success");
       }
     } catch (err) {
-      alert(err.message || "Google sign-in fail ho gaya.");
+      alert(err.message || "Invalid OTP code.");
     } finally {
-      setGoogleSubmitting(false);
+      setOtpVerifying(false);
     }
   }
 
@@ -345,6 +383,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   function goStep(n) { setStep(n); setTimeout(() => bookRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
 
   async function confirmBooking() {
+    if (!user) {
+      alert("Kripya pehle Google ya Mobile SMS OTP se Sign In karein.");
+      return;
+    }
     if (!name.trim()) { 
       alert("Kripya apna naam zaroor darj karein."); 
       return; 
@@ -353,14 +395,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     const contactEmail = (user?.email || "").trim();
 
     if (!contactPhone && !contactEmail) { 
-      alert("Mobile number ya Google account se sign in zaroor karein."); 
+      alert("Mobile number ya Google account se verified sign in zaroor karein."); 
       return; 
     }
-    let currentUserObj = user;
-    if (!currentUserObj) {
-      currentUserObj = await loginDirectCustomer(name.trim(), contactPhone, contactEmail);
-      setUser(currentUserObj);
-    }
+    const currentUserObj = user;
     if (!slot) { alert("Slot select karein."); return; }
     if (ENABLE_ONLINE_PAYMENT && !txnId.trim()) {
       alert("Please UPI / Online Payment ka Transaction ID / UTR number enter karein.");
@@ -832,7 +870,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     </div>
 
                     {!user ? (
-                      /* STEP 3 AUTH GATE: SIGN IN WITH GOOGLE OR FAST NAME & PHONE */
+                      /* STEP 3 AUTH GATE: REAL GOOGLE OAUTH OR VERIFIED 6-DIGIT SMS OTP */
                       <div style={{
                         textAlign: "center",
                         padding: "32px 20px",
@@ -849,22 +887,23 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           textTransform: "uppercase",
                           marginBottom: 8
                         }}>
-                          Sign In to Confirm Appointment
+                          Verified Sign In Required
                         </div>
                         <p style={{
                           fontSize: 12,
                           color: "var(--muted)",
-                          maxWidth: 360,
+                          maxWidth: 380,
                           margin: "0 auto 20px",
                           lineHeight: 1.6
                         }}>
-                          Choose Google Sign-In or quickly enter your Name & Mobile Number below to get your Token Pass.
+                          Securely sign in with your Google account or verify your mobile number with a real 6-digit SMS OTP.
                         </p>
 
+                        {/* 1. REAL GOOGLE SIGN-IN BUTTON */}
                         <button
                           type="button"
                           onClick={handleGoogleAuth}
-                          disabled={authLoading}
+                          disabled={googleLoading}
                           style={{
                             width: "100%",
                             maxWidth: 340,
@@ -874,7 +913,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             padding: "16px 24px",
                             fontSize: 11,
                             border: "1px solid var(--line)",
-                            cursor: "pointer",
+                            cursor: googleLoading ? "wait" : "pointer",
                             textTransform: "uppercase",
                             letterSpacing: "0.15em",
                             display: "inline-flex",
@@ -882,7 +921,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             justifyContent: "center",
                             gap: 12,
                             transition: "all 0.3s",
-                            marginBottom: 20
+                            marginBottom: domainNotice ? 12 : 20
                           }}
                           className="nash-btn-confirm"
                         >
@@ -892,9 +931,31 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                           </svg>
-                          {authLoading ? "CONNECTING..." : "SIGN IN WITH GOOGLE"}
+                          {googleLoading ? "OPENING GOOGLE..." : "SIGN IN WITH GOOGLE"}
                         </button>
 
+                        {/* DOMAIN AUTHORIZATION HELPER NOTICE (IF FIREBASE THROWS UNAUTHORIZED DOMAIN) */}
+                        {domainNotice && (
+                          <div style={{
+                            margin: "0 auto 20px",
+                            maxWidth: 340,
+                            background: "rgba(234, 67, 53, 0.12)",
+                            border: "1px solid #EA4335",
+                            borderRadius: 6,
+                            padding: "12px 14px",
+                            fontSize: 11,
+                            color: "#ffffff",
+                            textAlign: "left",
+                            lineHeight: 1.5
+                          }}>
+                            <strong style={{color: "#FF8A80", display: "block", marginBottom: 4}}>
+                              ⚙️ Firebase Setup Step Required:
+                            </strong>
+                            Google sign-in allow karne ke liye Firebase Console me jaakar <b>Authentication &gt; Settings &gt; Authorized domains</b> me <code style={{background:"rgba(0,0,0,0.4)", padding:"1px 4px", borderRadius:3}}>churuone.in</code> aur <code style={{background:"rgba(0,0,0,0.4)", padding:"1px 4px", borderRadius:3}}>nash.churuone.in</code> add karein.
+                          </div>
+                        )}
+
+                        {/* DIVIDER */}
                         <div style={{
                           display: "flex",
                           alignItems: "center",
@@ -903,50 +964,126 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           maxWidth: 340
                         }}>
                           <div style={{flex: 1, height: 1, background: "var(--line)"}} />
-                          <span style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.15em"}}>OR FAST SIGN IN</span>
+                          <span style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.15em"}}>OR VERIFY VIA MOBILE OTP</span>
                           <div style={{flex: 1, height: 1, background: "var(--line)"}} />
                         </div>
 
+                        {/* 2. REAL 6-DIGIT SMS OTP VERIFICATION FLOW */}
                         <div style={{maxWidth: 340, margin: "0 auto", textAlign: "left"}}>
-                          <input
-                            style={{...S.input, marginBottom: 10}}
-                            type="text"
-                            placeholder="Your Full Name *"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                          />
-                          <input
-                            style={{...S.input, marginBottom: 14}}
-                            type="tel"
-                            placeholder="Mobile Number (e.g. 03001234567) *"
-                            value={phone}
-                            onChange={e => setPhone(e.target.value)}
-                          />
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!name.trim()) {
-                                alert("Naam zaroor enter karein.");
-                                return;
-                              }
-                              const u = await loginDirectCustomer(name.trim(), phone.trim());
-                              setUser(u);
-                            }}
-                            style={{
-                              width: "100%",
-                              background: "var(--surface-hover)",
-                              color: "var(--paper)",
-                              border: "1px solid var(--line)",
-                              padding: "14px",
-                              fontSize: 11,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              letterSpacing: "0.15em",
-                              textTransform: "uppercase"
-                            }}
-                          >
-                            CONTINUE WITH NAME & MOBILE →
-                          </button>
+                          {!otpSent ? (
+                            <div>
+                              <label style={{display: "block", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6}}>
+                                10-Digit Mobile Number *
+                              </label>
+                              <div style={{display: "flex", gap: 8, marginBottom: 12}}>
+                                <span style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  padding: "0 12px",
+                                  background: "rgba(255,255,255,0.06)",
+                                  border: "1px solid var(--line)",
+                                  fontSize: 12,
+                                  color: "var(--paper)",
+                                  fontWeight: 600
+                                }}>+91</span>
+                                <input
+                                  style={{...S.input, flex: 1}}
+                                  type="tel"
+                                  maxLength={10}
+                                  placeholder="e.g. 7023963189"
+                                  value={otpPhone}
+                                  onChange={e => setOtpPhone(e.target.value.replace(/\D/g, ''))}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                disabled={otpLoading || otpPhone.length !== 10}
+                                onClick={handleSendOtp}
+                                style={{
+                                  width: "100%",
+                                  background: otpPhone.length === 10 ? "var(--paper)" : "rgba(255,255,255,0.1)",
+                                  color: otpPhone.length === 10 ? "var(--ink)" : "var(--muted)",
+                                  border: "none",
+                                  padding: "14px",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: otpPhone.length === 10 ? "pointer" : "not-allowed",
+                                  letterSpacing: "0.15em",
+                                  textTransform: "uppercase",
+                                  transition: "all 0.3s"
+                                }}
+                              >
+                                {otpLoading ? "SENDING SMS OTP..." : "SEND 6-DIGIT SMS OTP →"}
+                              </button>
+                            </div>
+                          ) : (
+                            <div>
+                              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10}}>
+                                <span style={{fontSize: 11, color: "#34A853", fontWeight: 600}}>
+                                  ✓ OTP Sent to +91 {otpPhone}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
+                                  style={{background: "none", border: "none", color: "var(--muted)", fontSize: 11, cursor: "pointer", textDecoration: "underline"}}
+                                >
+                                  Change
+                                </button>
+                              </div>
+                              <label style={{display: "block", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6}}>
+                                Enter 6-Digit SMS Code *
+                              </label>
+                              <input
+                                style={{
+                                  ...S.input,
+                                  marginBottom: 12,
+                                  letterSpacing: "0.3em",
+                                  fontSize: 18,
+                                  textAlign: "center",
+                                  fontWeight: 700
+                                }}
+                                type="text"
+                                maxLength={6}
+                                placeholder="• • • • • •"
+                                value={otpCode}
+                                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                              />
+                              <button
+                                type="button"
+                                disabled={otpVerifying || otpCode.length !== 6}
+                                onClick={handleVerifyOtp}
+                                style={{
+                                  width: "100%",
+                                  background: otpCode.length === 6 ? "#34A853" : "rgba(255,255,255,0.1)",
+                                  color: "#ffffff",
+                                  border: "none",
+                                  padding: "14px",
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: otpCode.length === 6 ? "pointer" : "not-allowed",
+                                  letterSpacing: "0.15em",
+                                  textTransform: "uppercase",
+                                  transition: "all 0.3s",
+                                  marginBottom: 10
+                                }}
+                              >
+                                {otpVerifying ? "VERIFYING CODE..." : "VERIFY OTP & PROCEED →"}
+                              </button>
+                              <div style={{textAlign: "center", fontSize: 11, color: "var(--muted)"}}>
+                                {resendCooldown > 0 ? (
+                                  <span>Resend OTP in {resendCooldown}s</span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    style={{background: "none", border: "none", color: "var(--paper)", cursor: "pointer", textDecoration: "underline", fontSize: 11}}
+                                  >
+                                    Resend OTP
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -1301,176 +1438,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book</button>
       </div>
 
-      {/* CHURUONE UNIVERSAL GOOGLE SIGN-IN MODAL */}
-      {showGoogleModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.8)",
-          backdropFilter: "blur(6px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 999999,
-          padding: 16
-        }}>
-          <div style={{
-            background: "#121214",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 16,
-            maxWidth: 400,
-            width: "100%",
-            padding: "28px 24px",
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
-            position: "relative",
-            textAlign: "center",
-            color: "#ffffff"
-          }}>
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setShowGoogleModal(false)}
-              style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
-                background: "transparent",
-                border: "none",
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 18,
-                cursor: "pointer",
-                padding: "4px 8px"
-              }}
-            >
-              ✕
-            </button>
-
-            {/* Google G Logo */}
-            <div style={{
-              width: 52,
-              height: 52,
-              borderRadius: "50%",
-              background: "#ffffff",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              marginBottom: 16,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
-            }}>
-              <svg width="26" height="26" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-              </svg>
-            </div>
-
-            <h3 style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#ffffff",
-              margin: "0 0 6px",
-              letterSpacing: "0.02em"
-            }}>
-              Sign in with Google
-            </h3>
-            <p style={{
-              fontSize: 12,
-              color: "rgba(255,255,255,0.6)",
-              margin: "0 0 22px",
-              lineHeight: 1.5
-            }}>
-              To continue to Nash Studio & ChuruOne Smart ID
-            </p>
-
-            {/* Form */}
-            <form onSubmit={handleGoogleModalSubmit} style={{textAlign: "left"}}>
-              <div style={{marginBottom: 14}}>
-                <label style={{display: "block", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6}}>
-                  Google Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="e.g. yourname@gmail.com"
-                  value={googleModalEmail}
-                  onChange={(e) => setGoogleModalEmail(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8,
-                    color: "#ffffff",
-                    fontSize: 13,
-                    outline: "none",
-                    boxSizing: "border-box"
-                  }}
-                />
-              </div>
-
-              <div style={{marginBottom: 20}}>
-                <label style={{display: "block", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6}}>
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Sameer Khan"
-                  value={googleModalName}
-                  onChange={(e) => setGoogleModalName(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    borderRadius: 8,
-                    color: "#ffffff",
-                    fontSize: 13,
-                    outline: "none",
-                    boxSizing: "border-box"
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={googleSubmitting}
-                style={{
-                  width: "100%",
-                  padding: "14px",
-                  background: "#4285F4",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  transition: "all 0.2s"
-                }}
-              >
-                {googleSubmitting ? "SIGNING IN TO SERVER..." : "CONTINUE WITH GOOGLE →"}
-              </button>
-            </form>
-
-            <div style={{
-              marginTop: 18,
-              paddingTop: 14,
-              borderTop: "1px solid rgba(255,255,255,0.1)",
-              fontSize: 11,
-              color: "rgba(255,255,255,0.4)"
-            }}>
-              🔒 Verified by ChuruOne Universal Identity Engine
-            </div>
-          </div>
-        </div>
-      )}
+      {/* END STICKY CTA */}
     </div>
   );
 }
