@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { ArrowLeft, CheckCircle2, ShieldCheck, User, AlertCircle, Phone, ArrowRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck, User, AlertCircle, Phone, ArrowRight, Store } from 'lucide-react';
 import { firebaseConfig } from '../nash/firebase';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -565,6 +565,20 @@ export default function ChuruOneAuthPage() {
             </div>
           </form>
         )}
+
+        {/* Dukandar Portal Option */}
+        <div className="mt-8 pt-6 border-t border-zinc-100 text-center">
+          <p className="text-[11px] text-zinc-400 mb-2 uppercase tracking-wider font-medium">
+            Are you a store owner or delivery partner?
+          </p>
+          <a
+            href="/admin"
+            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-widest font-semibold text-zinc-950 hover:text-black border-b border-zinc-950 pb-0.5 transition-colors"
+          >
+            <Store className="w-3.5 h-3.5 stroke-[1.5]" />
+            <span>Login as a Dukandar Portal</span>
+          </a>
+        </div>
 
       </div>
 

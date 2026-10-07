@@ -9,9 +9,11 @@ import {
   Smartphone, 
   ArrowRight,
   SlidersHorizontal,
-  Star
+  Star,
+  User
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export default function ChuruOneHomePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,46 +102,44 @@ export default function ChuruOneHomePage() {
             </div>
           </Link>
 
-          {/* Clean Navigation Links */}
-          <div className="flex items-center gap-4 sm:gap-6">
-            <Link 
-              to="/admin" 
-              className="text-xs tracking-wider uppercase font-medium text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1.5"
-            >
-              <Store className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span className="hidden sm:inline">Merchant</span> Portal
-            </Link>
-
+          {/* Clean Action Button */}
+          <div className="flex items-center gap-4">
             <Link 
               to="/auth" 
-              className="border border-zinc-900 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs uppercase tracking-widest font-medium px-4 py-2 transition-colors inline-block"
+              className="bg-zinc-950 hover:bg-black text-white text-xs uppercase tracking-widest font-medium px-4 py-2 transition-colors inline-flex items-center gap-2"
             >
-              Create your ChuruOne account
+              <User className="w-3.5 h-3.5 stroke-[1.5]" />
+              <span>Create</span>
             </Link>
           </div>
         </div>
       </header>
 
       {/* ─── Quiet Luxury Hero Section ──────────────────────────── */}
-      <section className="pt-16 pb-12 sm:pt-24 sm:pb-16 border-b border-zinc-100">
+      <section className="pt-16 pb-12 sm:pt-20 sm:pb-16 border-b border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           
-          <div className="inline-flex items-center gap-2 mb-4">
-            <span className="text-[10px] sm:text-[11px] font-medium tracking-[0.3em] uppercase text-zinc-400">
-              CHURU, RAJASTHAN
-            </span>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-zinc-950 leading-[1.12]">
+              Curated Local Establishments.
+            </h1>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-light tracking-tight text-zinc-950 leading-[1.15]">
-            Curated Local Establishments.
-          </h1>
-
-          <p className="mt-4 sm:mt-5 text-sm sm:text-base text-zinc-500 max-w-xl mx-auto font-normal leading-relaxed">
-            Direct digital ordering and salon booking from premier local stores. Transparent pricing with zero aggregator commission.
-          </p>
+            <p className="mt-3 sm:mt-4 text-xs sm:text-[13px] text-zinc-500 max-w-2xl mx-auto font-normal leading-relaxed">
+              Direct digital ordering and verified slot reservations from premier local establishments with zero aggregator markup.
+            </p>
+          </motion.div>
 
           {/* Minimal Search & Filter Strip */}
-          <div className="mt-8 sm:mt-10 max-w-lg mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-8 sm:mt-10 max-w-lg mx-auto"
+          >
             <div className="border border-zinc-200 bg-white p-2 flex items-center gap-2 focus-within:border-zinc-900 transition-colors">
               <Search className="w-4 h-4 text-zinc-400 ml-2 shrink-0 stroke-[1.5]" />
               <input
@@ -179,7 +179,7 @@ export default function ChuruOneHomePage() {
                 </button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
         </div>
       </section>
@@ -197,7 +197,12 @@ export default function ChuruOneHomePage() {
         </div>
 
         {/* Store Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+        <motion.div 
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12"
+        >
           {filteredStores.map((store) => {
             const destinationUrl = getStoreUrl(store.id);
 
@@ -289,7 +294,7 @@ export default function ChuruOneHomePage() {
               </div>
             );
           })}
-        </div>
+        </motion.div>
 
         {filteredStores.length === 0 && (
           <div className="border border-zinc-200 p-12 text-center my-8">
@@ -300,70 +305,135 @@ export default function ChuruOneHomePage() {
         )}
       </section>
 
-      {/* ─── Compact Editorial Summary / About the Network ─────── */}
-      <section className="py-16 bg-white border-t border-zinc-100">
+      {/* ─── Elevated Editorial About Section ───────────────────── */}
+      <section className="py-20 sm:py-24 bg-[#FAFAFA] border-t border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
-          <div className="max-w-2xl mb-12">
-            <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-zinc-400 block mb-2">
-              ABOUT THE NETWORK
+          {/* Section Header */}
+          <div className="max-w-2xl mb-14">
+            <span className="text-[10px] font-semibold tracking-[0.3em] uppercase text-zinc-400 block mb-2">
+              01 / PLATFORM ARCHITECTURE
             </span>
-            <h2 className="text-2xl sm:text-3xl font-light tracking-tight text-zinc-950">
-              Direct City Commerce.
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-zinc-950">
+              Direct City Commerce Protocol.
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-500 mt-2 font-normal leading-relaxed">
-              ChuruOne provides dedicated digital commerce infrastructure for local merchants, eliminating aggregator commission markups while preserving customer privacy.
+            <p className="text-xs sm:text-sm text-zinc-500 mt-3 font-normal leading-relaxed">
+              ChuruOne provides dedicated digital commerce infrastructure for premier local merchants, eliminating third-party aggregator markups while offering authentic in-store pricing to citizens.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="border-t border-zinc-200 pt-5">
-              <span className="text-[10px] tracking-widest uppercase font-semibold text-zinc-900 block mb-1">
-                01 / DIRECT STOREFRONTS
-              </span>
-              <p className="text-xs text-zinc-500 leading-relaxed mt-2">
-                Each verified partner operates their own official web store with direct menus, custom rules, and zero intermediary fees.
-              </p>
+          {/* 3 Luxury Architectural Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            
+            <div className="border border-zinc-200 bg-white p-7 sm:p-8 flex flex-col justify-between hover:border-zinc-400 transition-colors shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[11px] font-mono tracking-widest text-zinc-400 font-semibold">
+                    01
+                  </span>
+                  <span className="text-[9px] uppercase tracking-[0.2em] font-semibold text-zinc-950 bg-zinc-100 px-2.5 py-1">
+                    0% Commission
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-zinc-950">
+                  Authentic Direct Stores
+                </h3>
+                <p className="text-xs text-zinc-500 leading-relaxed mt-2.5">
+                  Each verified partner operates their own official digital store with transparent menus, original recipes, and zero aggregator price inflation.
+                </p>
+              </div>
+              <div className="mt-6 pt-5 border-t border-zinc-100 flex items-center gap-2 text-[11px] font-medium text-zinc-400">
+                <Store className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>True In-Store Rates</span>
+              </div>
             </div>
 
-            <div className="border-t border-zinc-200 pt-5">
-              <span className="text-[10px] tracking-widest uppercase font-semibold text-zinc-900 block mb-1">
-                02 / DIRECT BANK UPI
-              </span>
-              <p className="text-xs text-zinc-500 leading-relaxed mt-2">
-                Orders and advance booking tokens settle directly into merchant UPI accounts. Clean, instant, and middleman-free.
-              </p>
+            <div className="border border-zinc-200 bg-white p-7 sm:p-8 flex flex-col justify-between hover:border-zinc-400 transition-colors shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[11px] font-mono tracking-widest text-zinc-400 font-semibold">
+                    02
+                  </span>
+                  <span className="text-[9px] uppercase tracking-[0.2em] font-semibold text-zinc-950 bg-zinc-100 px-2.5 py-1">
+                    Direct UPI Settle
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-zinc-950">
+                  Instant Bank Settlement
+                </h3>
+                <p className="text-xs text-zinc-500 leading-relaxed mt-2.5">
+                  100% of order totals and advance booking tokens settle straight into verified merchant bank accounts without third-party delay.
+                </p>
+              </div>
+              <div className="mt-6 pt-5 border-t border-zinc-100 flex items-center gap-2 text-[11px] font-medium text-zinc-400">
+                <Smartphone className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Zero Escrow Intermediaries</span>
+              </div>
             </div>
 
-            <div className="border-t border-zinc-200 pt-5">
-              <span className="text-[10px] tracking-widest uppercase font-semibold text-zinc-900 block mb-1">
-                03 / UNIFIED SINGLE SIGN-ON
-              </span>
-              <p className="text-xs text-zinc-500 leading-relaxed mt-2">
-                One unified ChuruOne identity seamlessly links across all city stores for hassle-free order tracking and appointment history.
-              </p>
+            <div className="border border-zinc-200 bg-white p-7 sm:p-8 flex flex-col justify-between hover:border-zinc-400 transition-colors shadow-2xs">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <span className="text-[11px] font-mono tracking-widest text-zinc-400 font-semibold">
+                    03
+                  </span>
+                  <span className="text-[9px] uppercase tracking-[0.2em] font-semibold text-zinc-950 bg-zinc-100 px-2.5 py-1">
+                    Universal SSO
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-zinc-950">
+                  Unified Citizen Identity
+                </h3>
+                <p className="text-xs text-zinc-500 leading-relaxed mt-2.5">
+                  One master ChuruOne account securely connects food delivery, salon appointments, and future municipal services with complete privacy.
+                </p>
+              </div>
+              <div className="mt-6 pt-5 border-t border-zinc-100 flex items-center gap-2 text-[11px] font-medium text-zinc-400">
+                <ShieldCheck className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Privacy-First Architecture</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Minimalist Trust & Status Strip */}
+          <div className="mt-12 py-6 px-6 sm:px-8 border border-zinc-200 bg-white flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-600 font-medium">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>Direct Store Ordering</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+              <span>Zero Aggregator Commission</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+              <span>Direct Merchant UPI</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>Realtime Dukandar Sync</span>
             </div>
           </div>
 
-          {/* Minimal Merchant Portal Row */}
-          <div className="mt-12 pt-8 border-t border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* Minimal Merchant Access Link */}
+          <div className="mt-12 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-xs uppercase tracking-wider font-semibold text-zinc-950">
-                Operating a store in Churu?
+                Operating a store or salon in Churu?
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Manage orders, configure catalog items, and view live analytics through the Merchant OS.
+                Manage orders, configure menus, and track appointments via Dukandar Portal.
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link
-                to="/admin"
-                className="text-xs uppercase tracking-widest font-medium text-zinc-900 hover:text-black border-b border-zinc-900 pb-0.5 transition-colors"
-              >
-                Open Merchant Portal →
-              </Link>
-            </div>
+            <a
+              href="/admin"
+              className="text-xs uppercase tracking-widest font-semibold text-zinc-900 hover:text-black border-b border-zinc-900 pb-0.5 transition-colors inline-flex items-center gap-1.5"
+            >
+              <span>Access Dukandar Portal</span>
+              <ArrowRight className="w-3 h-3 stroke-[1.5]" />
+            </a>
           </div>
 
         </div>
