@@ -10,10 +10,10 @@ export function AuthProvider({ children }) {
   // Helper to load persistent user session from localStorage
   const loadSavedUser = () => {
     try {
-      const saved = localStorage.getItem('sn_session') || localStorage.getItem('sn_current_user');
+      const saved = localStorage.getItem('sn_session') || localStorage.getItem('sn_current_user') || localStorage.getItem('churuone_user');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && (parsed.phone || parsed.id || parsed.name)) {
+        if (parsed && typeof parsed === 'object' && (parsed.phone || parsed.phoneNumber || parsed.id || parsed.name || parsed.email)) {
           return parsed;
         }
       }
@@ -37,6 +37,73 @@ export function AuthProvider({ children }) {
 
   // New State for Profile VIP Pass Modal
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Unified ChuruOne SSO Launcher
+  const handleChuruOneSSO = () => {
+    const isLocal = window.location.hostname === 'localhost';
+    const base = isLocal ? '' : 'https://churuone.in';
+    const returnUrl = window.location.href;
+    const ssoUrl = `${base}/auth?storeId=shawarma&returnUrl=${encodeURIComponent(returnUrl)}`;
+    window.location.href = ssoUrl;
+  };
+
+  // Listen for ChuruOne SSO URL parameters & postMessage
+  useEffect(() => {
+    // 1. Check URL parameters from ChuruOne SSO redirect
+    const params = new URLSearchParams(window.location.search);
+    const ssoUserRaw = params.get('churuone_user');
+    const ssoToken = params.get('churuone_token');
+    if (ssoUserRaw) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(ssoUserRaw));
+        const formattedUser = {
+          ...parsed,
+          phone: parsed.phone || parsed.phoneNumber || '',
+          name: parsed.name || parsed.displayName || 'Foodie'
+        };
+        setCurrentUser(formattedUser);
+        localStorage.setItem('sn_session', JSON.stringify(formattedUser));
+        localStorage.setItem('sn_current_user', JSON.stringify(formattedUser));
+        localStorage.setItem('churuone_user', JSON.stringify(formattedUser));
+        if (ssoToken) localStorage.setItem('auth_token', ssoToken);
+
+        // Clean URL parameters without reloading
+        params.delete('churuone_user');
+        params.delete('churuone_token');
+        const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, document.title, cleanUrl);
+
+        sounds.playSuccessFanfare();
+        setIsAuthModalOpen(false);
+      } catch (e) {
+        console.warn('SSO payload parse warning in AuthContext:', e);
+      }
+    }
+
+    // 2. Listen for postMessage from popup SSO window
+    const handleAuthMessage = (event) => {
+      if (event.data && event.data.type === 'CHURUONE_AUTH_SUCCESS') {
+        const { user: ssoUser, token } = event.data;
+        if (ssoUser) {
+          const formattedUser = {
+            ...ssoUser,
+            phone: ssoUser.phone || ssoUser.phoneNumber || '',
+            name: ssoUser.name || ssoUser.displayName || 'Foodie'
+          };
+          setCurrentUser(formattedUser);
+          localStorage.setItem('sn_session', JSON.stringify(formattedUser));
+          localStorage.setItem('sn_current_user', JSON.stringify(formattedUser));
+          localStorage.setItem('churuone_user', JSON.stringify(formattedUser));
+          if (token) localStorage.setItem('auth_token', token);
+          sounds.playSuccessFanfare();
+          setIsAuthModalOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, []);
 
   // Keep session synchronized in localStorage whenever currentUser updates
   useEffect(() => {
@@ -351,36 +418,37 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Universal Google Login with Smart Server
+  // Universal Google Login with Smart Server / Unified ChuruOne SSO
   const loginWithGoogle = async (googleData = null) => {
+    if (!googleData) {
+      // Redirect to central Unified ChuruOne SSO Portal
+      handleChuruOneSSO();
+      return;
+    }
     try {
-      if (googleData) {
-        const activeStoreId = getStoreId();
-        const res = await fetch(`${API_URL}/api/auth/google`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-store-id': activeStoreId
-          },
-          body: JSON.stringify({
-            ...googleData,
-            storeId: activeStoreId
-          })
-        });
-        const data = await res.json();
-        if (data.success && data.user) {
-          setCurrentUser(data.user);
-          if (data.token) localStorage.setItem('auth_token', data.token);
-          sounds.playSuccessFanfare();
-          closeAuthModal();
-          return { success: true, user: data.user };
-        }
+      const activeStoreId = getStoreId();
+      const res = await fetch(`${API_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStoreId
+        },
+        body: JSON.stringify({
+          ...googleData,
+          storeId: activeStoreId
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        if (data.token) localStorage.setItem('auth_token', data.token);
+        sounds.playSuccessFanfare();
+        closeAuthModal();
+        return { success: true, user: data.user };
       }
     } catch (e) {
       console.warn('Google login context error:', e);
     }
-    setActiveStep('phone');
-    alert('Google login ke baad mobile number verify karna zaroori hai taaki rider call kar sake.');
   };
 
   // Live GPS Location Detection
@@ -517,6 +585,7 @@ export function AuthProvider({ children }) {
         updateUserProfile,
         deleteUserAccount,
         loginWithGoogle,
+        handleChuruOneSSO,
         fetchCurrentGPSLocation,
         logout,
       }}

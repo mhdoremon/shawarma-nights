@@ -35,6 +35,7 @@ export default function ChuruOneAuthPage() {
 
   const destination = getDestinationUrl();
   const storeDisplayName = STORE_NAMES[storeId] || 'Partner Store';
+  const isShawarma = storeId.includes('shawarma') || storeId === 'shawarma-nights';
 
   // Auth State
   const [step, setStep] = useState(1); // 1: Google login, 2: Profile complete (phone mandatory)
@@ -173,6 +174,8 @@ export default function ChuruOneAuthPage() {
 
     localStorage.setItem('churuone_user', JSON.stringify(verifiedUser));
     localStorage.setItem('nash_user', JSON.stringify(verifiedUser));
+    localStorage.setItem('sn_session', JSON.stringify(verifiedUser));
+    localStorage.setItem('sn_current_user', JSON.stringify(verifiedUser));
     if (data.token) localStorage.setItem('auth_token', data.token);
 
     setSuccessMsg(`Login safal raha! ${storeDisplayName} par redirect ho rahe hain...`);
@@ -323,6 +326,32 @@ export default function ChuruOneAuthPage() {
         {/* STEP 1: GOOGLE SIGN-IN */}
         {step === 1 && (
           <div>
+            {/* SPECIAL NOTICE FOR SHAWARMA NIGHTS: MANDATORY MOBILE VERIFICATION */}
+            {isShawarma && (
+              <div style={{
+                background: 'rgba(220, 38, 38, 0.14)',
+                border: '1px solid rgba(220, 38, 38, 0.45)',
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 20,
+                fontSize: 12,
+                color: '#fca5a5',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+                lineHeight: 1.5,
+                textAlign: 'left'
+              }}>
+                <AlertCircle size={20} color="#ef4444" style={{flexShrink: 0, marginTop: 1}} />
+                <div>
+                  <strong style={{color: '#ffffff', display: 'block', fontSize: 13, marginBottom: 2}}>
+                    ⚠️ Mobile Number Verification Zaroori Hai!
+                  </strong>
+                  Shawarma Nights food delivery aur live order tracking ke liye Google sign-in ke turant baad aapka valid 10-digit mobile number enter karna aniwarya hai.
+                </div>
+              </div>
+            )}
+
             <p style={{
               fontSize: 13,
               color: 'rgba(255,255,255,0.8)',
@@ -330,7 +359,7 @@ export default function ChuruOneAuthPage() {
               lineHeight: 1.6,
               marginBottom: 24
             }}>
-              Apne official Google account se 1-click me authenticate karein. ChuruOne ID aapke account aur bookings ko surakshit rakhta hai.
+              Apne official Google account se 1-click me authenticate karein. ChuruOne ID aapke account aur orders ko surakshit rakhta hai.
             </p>
 
             <button
@@ -461,6 +490,24 @@ export default function ChuruOneAuthPage() {
 
             {/* MANDATORY MOBILE NUMBER (NO OTP REQUIRED) */}
             <div style={{marginBottom: 20}}>
+              {isShawarma && (
+                <div style={{
+                  background: 'rgba(220, 38, 38, 0.12)',
+                  border: '1px solid rgba(220, 38, 38, 0.35)',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  marginBottom: 12,
+                  fontSize: 11,
+                  color: '#fca5a5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  textAlign: 'left'
+                }}>
+                  <AlertCircle size={16} color="#ef4444" style={{flexShrink: 0}} />
+                  <span><b>Delivery Rule:</b> Shawarma Nights delivery partner isi number par call karega. Kripya apna sahi 10-digit mobile number enter karein.</span>
+                </div>
+              )}
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
                 <label style={{
                   fontSize: 11,
@@ -509,7 +556,9 @@ export default function ChuruOneAuthPage() {
                 />
               </div>
               <p style={{fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: '6px 0 0', lineHeight: 1.4}}>
-                * Booking confirmation & appointment status ke liye mobile number mandatory hai.
+                {isShawarma
+                  ? '* Food order verification aur rider tracking ke liye mobile number aniwarya hai.'
+                  : '* Booking confirmation & appointment status ke liye mobile number mandatory hai.'}
               </p>
             </div>
 
