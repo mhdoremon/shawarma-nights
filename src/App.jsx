@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import CustomerApp from './apps/customer/CustomerApp';
 import MasterApp from './apps/master/MasterApp';
 import AppStorePage from './apps/hub/AppStorePage';
@@ -8,9 +8,10 @@ import ChuruOneAuthPage from './apps/churuone/ChuruOneAuthPage';
 import NashStudioApp from './apps/nash/NashStudioApp';
 
 function RootEntry() {
+  const location = useLocation();
   const host = window.location.hostname.toLowerCase();
-  const path = window.location.pathname.toLowerCase();
-  const params = new URLSearchParams(window.location.search);
+  const path = location.pathname.toLowerCase();
+  const params = new URLSearchParams(location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
 
   // 0. Unified ChuruOne SSO Authentication Portal (/auth or /login)
@@ -18,13 +19,13 @@ function RootEntry() {
     return <ChuruOneAuthPage />;
   }
 
-  // 1. Nash Studio Salon Website (Subdomain: nash.churuone.in or ?storeId=nash-studio)
-  if (host.startsWith('nash.') || storeParam === 'nash-studio' || storeParam === 'nash' || storeParam === 'beared') {
+  // 1. Nash Studio Salon Website (Subdomain: nash.churuone.in or ?storeId=nash-studio or /nash or /salon)
+  if (host.startsWith('nash.') || storeParam === 'nash-studio' || storeParam === 'nash' || storeParam === 'beared' || path.startsWith('/nash') || path.startsWith('/salon')) {
     return <NashStudioApp />;
   }
 
-  // 2. Shawarma Nights Flagship Store (Subdomain: shawarma.churuone.in or ?storeId=shawarma)
-  if (host.startsWith('shawarma.') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
+  // 2. Shawarma Nights Flagship Store (Subdomain: shawarma.churuone.in or ?storeId=shawarma or /shawarma or /sn)
+  if (host.startsWith('shawarma.') || storeParam === 'shawarma' || storeParam === 'shawarma-nights' || path.startsWith('/shawarma') || path.startsWith('/sn')) {
     return <CustomerApp />;
   }
 
@@ -60,6 +61,10 @@ export default function App() {
         <Route path="/apps/*" element={<AppStorePage />} />
         <Route path="/downloads/*" element={<AppStorePage />} />
         <Route path="/store/*" element={<AppStorePage />} />
+
+        {/* Shawarma Nights Flagship Store */}
+        <Route path="/shawarma/*" element={<CustomerApp />} />
+        <Route path="/sn/*" element={<CustomerApp />} />
 
         {/* Nash Studio Salon Web App */}
         <Route path="/nash/*" element={<NashStudioApp />} />
