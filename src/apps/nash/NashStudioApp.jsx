@@ -8,8 +8,6 @@ import {
   isFirebaseConfigured,
   subscribeToAuth,
   loginWithGoogle,
-  sendVerificationOtp,
-  loginWithPhoneOtp,
   logoutUser,
   saveFeedback,
   saveReview,
@@ -222,13 +220,8 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [phone, setPhone] = useState(user?.phoneNumber || user?.phone || "");
   const [done, setDone] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [otpPhone, setOtpPhone] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [domainNotice, setDomainNotice] = useState(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [realtimeBookings, setRealtimeBookings] = useState([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -271,19 +264,6 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     }
   }, [user]);
 
-  const [googleLoading, setGoogleLoading] = useState(false);
-
-  // Timer effect for SMS OTP cooldown
-  useEffect(() => {
-    let timer = null;
-    if (resendCooldown > 0) {
-      timer = setInterval(() => {
-        setResendCooldown(prev => Math.max(0, prev - 1));
-      }, 1000);
-    }
-    return () => { if (timer) clearInterval(timer); };
-  }, [resendCooldown]);
-
   async function handleGoogleAuth() {
     setGoogleLoading(true);
     setDomainNotice(null);
@@ -303,54 +283,6 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       }
     } finally {
       setGoogleLoading(false);
-    }
-  }
-
-  async function handleSendOtp() {
-    const raw = otpPhone || phone || "";
-    const clean = raw.replace(/\D/g, "").slice(-10);
-    if (clean.length !== 10) {
-      alert("Kripya sahi 10-digit mobile number enter karein.");
-      return;
-    }
-    setOtpLoading(true);
-    try {
-      const res = await sendVerificationOtp(clean);
-      setOtpSent(true);
-      setResendCooldown(60);
-      showToast(res.devOtp ? `OTP code: ${res.devOtp} (SMS dispatched to +91 ${clean})` : `OTP +91 ${clean} par bhej diya gaya hai.`, "success");
-    } catch (err) {
-      alert(err.message || "OTP bhejne me problem aayi.");
-    } finally {
-      setOtpLoading(false);
-    }
-  }
-
-  async function handleVerifyOtp() {
-    const raw = otpPhone || phone || "";
-    const cleanPhone = raw.replace(/\D/g, "").slice(-10);
-    const cleanCode = (otpCode || "").trim();
-    if (cleanPhone.length !== 10) {
-      alert("Kripya sahi 10-digit mobile number enter karein.");
-      return;
-    }
-    if (cleanCode.length !== 6) {
-      alert("Kripya 6-digit ka SMS OTP enter karein.");
-      return;
-    }
-    setOtpVerifying(true);
-    try {
-      const u = await loginWithPhoneOtp(cleanPhone, cleanCode);
-      if (u) {
-        setUser(u);
-        setPhone(cleanPhone);
-        if (u.displayName || u.name) setName(u.displayName || u.name);
-        showToast("Mobile OTP verified! Safal login ho gaya.", "success");
-      }
-    } catch (err) {
-      alert(err.message || "Invalid OTP code.");
-    } finally {
-      setOtpVerifying(false);
     }
   }
 
@@ -384,7 +316,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
   async function confirmBooking() {
     if (!user) {
-      alert("Kripya pehle Google ya Mobile SMS OTP se Sign In karein.");
+      alert("Kripya pehle Google account se Sign In karein.");
       return;
     }
     if (!name.trim()) { 
@@ -870,10 +802,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     </div>
 
                     {!user ? (
-                      /* STEP 3 AUTH GATE: REAL GOOGLE OAUTH OR VERIFIED 6-DIGIT SMS OTP */
+                      /* STEP 3 AUTH GATE: DIRECT GOOGLE AUTHENTICATION ONLY */
                       <div style={{
                         textAlign: "center",
-                        padding: "32px 20px",
+                        padding: "36px 24px",
                         background: "var(--surface)",
                         border: "1px solid var(--line)",
                         marginBottom: 20
@@ -887,19 +819,19 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           textTransform: "uppercase",
                           marginBottom: 8
                         }}>
-                          Verified Sign In Required
+                          Sign In with Google
                         </div>
                         <p style={{
                           fontSize: 12,
                           color: "var(--muted)",
                           maxWidth: 380,
-                          margin: "0 auto 20px",
+                          margin: "0 auto 24px",
                           lineHeight: 1.6
                         }}>
-                          Securely sign in with your Google account or verify your mobile number with a real 6-digit SMS OTP.
+                          Apne Google account se sign in karein aur appointment confirm karein.
                         </p>
 
-                        {/* 1. REAL GOOGLE SIGN-IN BUTTON */}
+                        {/* DIRECT GOOGLE SIGN-IN BUTTON */}
                         <button
                           type="button"
                           onClick={handleGoogleAuth}
@@ -921,11 +853,11 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             justifyContent: "center",
                             gap: 12,
                             transition: "all 0.3s",
-                            marginBottom: domainNotice ? 12 : 20
+                            marginBottom: domainNotice ? 14 : 0
                           }}
                           className="nash-btn-confirm"
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24">
+                          <svg width="18" height="18" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
                             <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
                             <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
@@ -937,154 +869,47 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         {/* DOMAIN AUTHORIZATION HELPER NOTICE (IF FIREBASE THROWS UNAUTHORIZED DOMAIN) */}
                         {domainNotice && (
                           <div style={{
-                            margin: "0 auto 20px",
-                            maxWidth: 340,
+                            margin: "14px auto 0",
+                            maxWidth: 360,
                             background: "rgba(234, 67, 53, 0.12)",
-                            border: "1px solid #EA4335",
-                            borderRadius: 6,
-                            padding: "12px 14px",
+                            border: "1px solid rgba(234, 67, 53, 0.4)",
+                            borderRadius: 8,
+                            padding: "14px 16px",
                             fontSize: 11,
                             color: "#ffffff",
                             textAlign: "left",
-                            lineHeight: 1.5
+                            lineHeight: 1.6
                           }}>
-                            <strong style={{color: "#FF8A80", display: "block", marginBottom: 4}}>
-                              ⚙️ Firebase Setup Step Required:
-                            </strong>
-                            Google sign-in allow karne ke liye Firebase Console me jaakar <b>Authentication &gt; Settings &gt; Authorized domains</b> me <code style={{background:"rgba(0,0,0,0.4)", padding:"1px 4px", borderRadius:3}}>churuone.in</code> aur <code style={{background:"rgba(0,0,0,0.4)", padding:"1px 4px", borderRadius:3}}>nash.churuone.in</code> add karein.
+                            <div style={{display: "flex", alignItems: "center", gap: 8, color: "#FF8A80", fontWeight: 700, marginBottom: 6}}>
+                              <span>⚙️</span>
+                              <span>Firebase Setup Step Required</span>
+                            </div>
+                            <p style={{margin: "0 0 10px", color: "rgba(255,255,255,0.8)"}}>
+                              Google security ke niyam anusaar, is domain ko Firebase Console me allow karna zaroori hai.
+                            </p>
+                            <a
+                              href="https://console.firebase.google.com/project/nash-studio-567ea/authentication/settings"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: "inline-block",
+                                background: "#4285F4",
+                                color: "#ffffff",
+                                padding: "8px 14px",
+                                borderRadius: 4,
+                                textDecoration: "none",
+                                fontWeight: 700,
+                                fontSize: 11,
+                                letterSpacing: "0.05em"
+                              }}
+                            >
+                              Open Firebase Settings ↗
+                            </a>
+                            <div style={{marginTop: 8, fontSize: 10, color: "rgba(255,255,255,0.6)"}}>
+                              Settings &gt; Authorized domains me <b>churuone.in</b> add karein.
+                            </div>
                           </div>
                         )}
-
-                        {/* DIVIDER */}
-                        <div style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          margin: "0 auto 20px",
-                          maxWidth: 340
-                        }}>
-                          <div style={{flex: 1, height: 1, background: "var(--line)"}} />
-                          <span style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.15em"}}>OR VERIFY VIA MOBILE OTP</span>
-                          <div style={{flex: 1, height: 1, background: "var(--line)"}} />
-                        </div>
-
-                        {/* 2. REAL 6-DIGIT SMS OTP VERIFICATION FLOW */}
-                        <div style={{maxWidth: 340, margin: "0 auto", textAlign: "left"}}>
-                          {!otpSent ? (
-                            <div>
-                              <label style={{display: "block", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6}}>
-                                10-Digit Mobile Number *
-                              </label>
-                              <div style={{display: "flex", gap: 8, marginBottom: 12}}>
-                                <span style={{
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  padding: "0 12px",
-                                  background: "rgba(255,255,255,0.06)",
-                                  border: "1px solid var(--line)",
-                                  fontSize: 12,
-                                  color: "var(--paper)",
-                                  fontWeight: 600
-                                }}>+91</span>
-                                <input
-                                  style={{...S.input, flex: 1}}
-                                  type="tel"
-                                  maxLength={10}
-                                  placeholder="e.g. 7023963189"
-                                  value={otpPhone}
-                                  onChange={e => setOtpPhone(e.target.value.replace(/\D/g, ''))}
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                disabled={otpLoading || otpPhone.length !== 10}
-                                onClick={handleSendOtp}
-                                style={{
-                                  width: "100%",
-                                  background: otpPhone.length === 10 ? "var(--paper)" : "rgba(255,255,255,0.1)",
-                                  color: otpPhone.length === 10 ? "var(--ink)" : "var(--muted)",
-                                  border: "none",
-                                  padding: "14px",
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  cursor: otpPhone.length === 10 ? "pointer" : "not-allowed",
-                                  letterSpacing: "0.15em",
-                                  textTransform: "uppercase",
-                                  transition: "all 0.3s"
-                                }}
-                              >
-                                {otpLoading ? "SENDING SMS OTP..." : "SEND 6-DIGIT SMS OTP →"}
-                              </button>
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10}}>
-                                <span style={{fontSize: 11, color: "#34A853", fontWeight: 600}}>
-                                  ✓ OTP Sent to +91 {otpPhone}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => { setOtpSent(false); setOtpCode(""); }}
-                                  style={{background: "none", border: "none", color: "var(--muted)", fontSize: 11, cursor: "pointer", textDecoration: "underline"}}
-                                >
-                                  Change
-                                </button>
-                              </div>
-                              <label style={{display: "block", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6}}>
-                                Enter 6-Digit SMS Code *
-                              </label>
-                              <input
-                                style={{
-                                  ...S.input,
-                                  marginBottom: 12,
-                                  letterSpacing: "0.3em",
-                                  fontSize: 18,
-                                  textAlign: "center",
-                                  fontWeight: 700
-                                }}
-                                type="text"
-                                maxLength={6}
-                                placeholder="• • • • • •"
-                                value={otpCode}
-                                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                              />
-                              <button
-                                type="button"
-                                disabled={otpVerifying || otpCode.length !== 6}
-                                onClick={handleVerifyOtp}
-                                style={{
-                                  width: "100%",
-                                  background: otpCode.length === 6 ? "#34A853" : "rgba(255,255,255,0.1)",
-                                  color: "#ffffff",
-                                  border: "none",
-                                  padding: "14px",
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  cursor: otpCode.length === 6 ? "pointer" : "not-allowed",
-                                  letterSpacing: "0.15em",
-                                  textTransform: "uppercase",
-                                  transition: "all 0.3s",
-                                  marginBottom: 10
-                                }}
-                              >
-                                {otpVerifying ? "VERIFYING CODE..." : "VERIFY OTP & PROCEED →"}
-                              </button>
-                              <div style={{textAlign: "center", fontSize: 11, color: "var(--muted)"}}>
-                                {resendCooldown > 0 ? (
-                                  <span>Resend OTP in {resendCooldown}s</span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={handleSendOtp}
-                                    style={{background: "none", border: "none", color: "var(--paper)", cursor: "pointer", textDecoration: "underline", fontSize: 11}}
-                                  >
-                                    Resend OTP
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     ) : (
                       /* USER IS LOGGED IN -> ENTER DETAILS & BOOK APPOINTMENT */

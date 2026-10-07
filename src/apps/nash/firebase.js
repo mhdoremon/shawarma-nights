@@ -33,9 +33,7 @@ import {
   saveSmartSettings,
   postSmartReview,
   connectSmartWebSocket,
-  loginSmartGoogle,
-  sendSmartOtp,
-  verifySmartOtp
+  loginSmartGoogle
 } from "./smartServerClient";
 
 // ============ FIREBASE CONFIG (OPTIONAL FALLBACK) ============
@@ -579,51 +577,6 @@ export async function loginWithGoogle() {
     }
     throw new Error(err.message || "Google sign-in fail ho gaya.");
   }
-}
-
-export async function sendVerificationOtp(phone) {
-  const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
-  if (cleanPhone.length !== 10) {
-    throw new Error("Kripya sahi 10-digit mobile number enter karein.");
-  }
-  const res = await sendSmartOtp(cleanPhone);
-  if (!res.success) {
-    throw new Error(res.message || "OTP bhejne me problem aayi.");
-  }
-  return res;
-}
-
-export async function loginWithPhoneOtp(phone, otp) {
-  const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
-  if (cleanPhone.length !== 10) {
-    throw new Error("Kripya sahi 10-digit mobile number enter karein.");
-  }
-  const cleanOtp = (otp || "").trim();
-  if (cleanOtp.length !== 6) {
-    throw new Error("Kripya 6-digit ka SMS OTP enter karein.");
-  }
-
-  const res = await verifySmartOtp(cleanPhone, cleanOtp);
-  if (!res.success) {
-    throw new Error(res.message || "Invalid OTP code.");
-  }
-
-  const u = res.user;
-  const uData = {
-    uid: u.id || `cust_${Date.now()}`,
-    id: u.id,
-    displayName: u.name || `User ${cleanPhone.slice(-4)}`,
-    name: u.name || `User ${cleanPhone.slice(-4)}`,
-    email: u.email || "",
-    photoURL: u.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cleanPhone)}`,
-    picture: u.picture,
-    phoneNumber: cleanPhone,
-    token: res.token
-  };
-
-  localStorage.setItem("nash_user", JSON.stringify(uData));
-  if (res.token) localStorage.setItem("auth_token", res.token);
-  return uData;
 }
 
 export async function logoutUser() {
