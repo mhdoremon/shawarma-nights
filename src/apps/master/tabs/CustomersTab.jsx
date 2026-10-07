@@ -100,15 +100,26 @@ export default function CustomersTab() {
                       <h3 className="text-sm font-black text-zinc-900 truncate">
                         {cust.name || 'Customer'}
                       </h3>
-                      {cust.authProvider === 'google' && (
+                      {cust.authProvider === 'google' ? (
                         <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-blue-50 text-blue-600 font-bold uppercase tracking-wider shrink-0">
                           Google
                         </span>
+                      ) : (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-emerald-50 text-emerald-700 font-bold uppercase tracking-wider shrink-0">
+                          Phone OTP
+                        </span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">
-                      {cust.phone || cust.email || 'Direct Client'}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-xs text-zinc-500 font-mono truncate">
+                        {cust.phone || cust.email || 'Direct Client'}
+                      </p>
+                      {cust.phone && (
+                        <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${cust.phoneVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'}`}>
+                          {cust.phoneVerified ? '✓ Verified' : 'Unverified Phone'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

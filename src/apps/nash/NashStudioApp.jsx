@@ -222,6 +222,59 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [saving, setSaving] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [domainNotice, setDomainNotice] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  function showToast(msg, type = "success") {
+    setToast({ msg, type, id: Date.now() });
+    setTimeout(() => setToast(null), 3500);
+  }
+
+  // 1. Listen for ChuruOne SSO Return Parameters & postMessage
+  useEffect(() => {
+    // Check URL parameters from ChuruOne SSO redirect
+    const params = new URLSearchParams(window.location.search);
+    const ssoUserRaw = params.get('churuone_user');
+    const ssoToken = params.get('churuone_token');
+    if (ssoUserRaw) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(ssoUserRaw));
+        setUser(parsed);
+        if (parsed.displayName || parsed.name) setName(parsed.displayName || parsed.name);
+        if (parsed.phoneNumber || parsed.phone) setPhone(parsed.phoneNumber || parsed.phone);
+        localStorage.setItem("nash_user", JSON.stringify(parsed));
+        if (ssoToken) localStorage.setItem("auth_token", ssoToken);
+
+        // Clean URL parameters without page reload
+        params.delete('churuone_user');
+        params.delete('churuone_token');
+        const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, document.title, cleanUrl);
+
+        showToast(`Welcome ${parsed.displayName || parsed.name}! ChuruOne ID connected.`, "success");
+      } catch (e) {
+        console.warn("SSO payload parse warning:", e);
+      }
+    }
+
+    // Listen for postMessage from popup SSO window
+    const handleAuthMessage = (event) => {
+      if (event.data && event.data.type === 'CHURUONE_AUTH_SUCCESS') {
+        const { user: ssoUser, token } = event.data;
+        if (ssoUser) {
+          setUser(ssoUser);
+          if (ssoUser.displayName || ssoUser.name) setName(ssoUser.displayName || ssoUser.name);
+          if (ssoUser.phoneNumber || ssoUser.phone) setPhone(ssoUser.phoneNumber || ssoUser.phone);
+          localStorage.setItem("nash_user", JSON.stringify(ssoUser));
+          if (token) localStorage.setItem("auth_token", token);
+          showToast(`Welcome ${ssoUser.displayName || ssoUser.name}! ChuruOne ID connected.`, "success");
+        }
+      }
+    };
+
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, []);
+
   const [realtimeBookings, setRealtimeBookings] = useState([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -257,33 +310,29 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     return () => { if (typeof unsub === "function") unsub(); };
   }, []);
 
-  // Auto-fill name if user logs in
+  // Auto-fill name and phone if user logs in
   useEffect(() => {
-    if (user && user.displayName && !name) {
-      setName(user.displayName);
+    if (user) {
+      if ((user.displayName || user.name) && !name) {
+        setName(user.displayName || user.name);
+      }
+      if ((user.phoneNumber || user.phone) && !phone) {
+        setPhone(user.phoneNumber || user.phone);
+      }
     }
   }, [user]);
 
+  function handleChuruOneSSO() {
+    const isLocal = window.location.hostname === 'localhost';
+    const base = isLocal ? '' : 'https://churuone.in';
+    const returnUrl = window.location.href;
+    const ssoUrl = `${base}/auth?storeId=nash-studio&returnUrl=${encodeURIComponent(returnUrl)}`;
+    window.location.href = ssoUrl;
+  }
+
   async function handleGoogleAuth() {
-    setGoogleLoading(true);
-    setDomainNotice(null);
-    try {
-      const u = await loginWithGoogle();
-      if (u) {
-        setUser(u);
-        if (u.displayName || u.name) setName(u.displayName || u.name);
-        showToast("Google account verified! Safal login ho gaya.", "success");
-      }
-    } catch (err) {
-      console.error("Google Auth error:", err);
-      if (err.message && err.message.includes("UNAUTHORIZED_DOMAIN")) {
-        setDomainNotice(err.message);
-      } else {
-        alert(err.message || "Google sign-in fail ho gaya.");
-      }
-    } finally {
-      setGoogleLoading(false);
-    }
+    // Direct redirect to ChuruOne Universal Single Sign-On Portal
+    handleChuruOneSSO();
   }
 
   async function handleLogout() {
@@ -324,12 +373,12 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       return; 
     }
     const contactPhone = (phone || user?.phoneNumber || user?.phone || "").trim();
-    const contactEmail = (user?.email || "").trim();
-
-    if (!contactPhone && !contactEmail) { 
-      alert("Mobile number ya Google account se verified sign in zaroor karein."); 
+    const cleanDigits = contactPhone.replace(/\D/g, '').slice(-10);
+    if (!contactPhone || cleanDigits.length < 10) { 
+      alert("Kripya apna 10-digit mobile number zaroor darj karein (Appointment confirmation ke liye zaroori hai)."); 
       return; 
     }
+    const contactEmail = (user?.email || "").trim();
     const currentUserObj = user;
     if (!slot) { alert("Slot select karein."); return; }
     if (ENABLE_ONLINE_PAYMENT && !txnId.trim()) {
@@ -819,7 +868,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           textTransform: "uppercase",
                           marginBottom: 8
                         }}>
-                          Sign In with Google
+                          Sign In with ChuruOne ID
                         </div>
                         <p style={{
                           fontSize: 12,
@@ -828,17 +877,17 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           margin: "0 auto 24px",
                           lineHeight: 1.6
                         }}>
-                          Apne Google account se sign in karein aur appointment confirm karein.
+                          Apne ChuruOne ID ya Google account se sign in karein aur appointment confirm karein.
                         </p>
 
-                        {/* DIRECT GOOGLE SIGN-IN BUTTON */}
+                        {/* DIRECT CHURUONE SSO GOOGLE SIGN-IN BUTTON */}
                         <button
                           type="button"
                           onClick={handleGoogleAuth}
                           disabled={googleLoading}
                           style={{
                             width: "100%",
-                            maxWidth: 340,
+                            maxWidth: 360,
                             background: "var(--paper)",
                             color: "var(--ink)",
                             fontWeight: 700,
@@ -863,7 +912,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                           </svg>
-                          {googleLoading ? "OPENING GOOGLE..." : "SIGN IN WITH GOOGLE"}
+                          {googleLoading ? "OPENING CHURUONE AUTH..." : "CONTINUE WITH GOOGLE"}
                         </button>
 
                         {/* DOMAIN AUTHORIZATION HELPER NOTICE (IF FIREBASE THROWS UNAUTHORIZED DOMAIN) */}
@@ -929,8 +978,8 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           </div>
 
                           <div style={S.formRow}>
-                            <input style={S.input} type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-                            <input style={S.input} type="tel" placeholder={user.email ? "Mobile Number (Optional for SMS updates)" : "Mobile Number (e.g. 03001234567)"} value={phone} onChange={e => setPhone(e.target.value)} />
+                            <input style={S.input} type="text" placeholder="Full Name *" value={name} onChange={e => setName(e.target.value)} required />
+                            <input style={S.input} type="tel" placeholder="10-Digit Mobile Number (Mandatory) *" value={phone} onChange={e => setPhone(e.target.value)} required />
                           </div>
                         </div>
 
@@ -1262,6 +1311,31 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"03001234567").replace(/[^0-9]/g,"")}`}>Call</button>
         <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book</button>
       </div>
+
+      {/* FLOATING SYSTEM TOAST */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          bottom: 24,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: toast.type === "error" ? "#dc2626" : "#1a1714",
+          color: "#ffffff",
+          border: "1px solid #d4af37",
+          borderRadius: 12,
+          padding: "12px 24px",
+          fontSize: 12,
+          fontWeight: 600,
+          zIndex: 999999,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.6)"
+        }}>
+          <span>{toast.type === "error" ? "⚠️" : "✓"}</span>
+          <span>{toast.msg}</span>
+        </div>
+      )}
 
       {/* END STICKY CTA */}
     </div>

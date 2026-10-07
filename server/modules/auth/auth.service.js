@@ -106,6 +106,10 @@ export const verifyOtp = (req, res) => {
         
         if (customer) {
             // Existing customer
+            customer.authProvider = customer.authProvider || 'phone';
+            customer.phoneVerified = true;
+            customer.lastLoginAt = now();
+            DataLayer.writeSync(targetStoreId, 'customers', customers);
             return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         } else {
             // New customer
@@ -117,7 +121,10 @@ export const verifyOtp = (req, res) => {
                 name: '',
                 address: '',
                 email: '',
-                createdAt: now()
+                authProvider: 'phone',
+                phoneVerified: true,
+                createdAt: now(),
+                lastLoginAt: now()
             };
             customers.push(customer);
             DataLayer.writeSync(targetStoreId, 'customers', customers);
@@ -287,10 +294,13 @@ export const googleLogin = async (req, res) => {
             if (userGoogleId && !customer.googleId) {
                 customer.googleId = userGoogleId;
             }
-            if (phone && !customer.phone) {
+            if (phone) {
                 customer.phone = normalizePhone(phone);
             }
             customer.authProvider = 'google';
+            if (customer.phoneVerified === undefined) {
+                customer.phoneVerified = false;
+            }
             customer.lastLoginAt = now();
         } else {
             isNewUser = true;
@@ -299,6 +309,7 @@ export const googleLogin = async (req, res) => {
                 name: userName || (normalizedEmail ? normalizedEmail.split('@')[0] : 'Google User'),
                 email: normalizedEmail,
                 phone: phone ? normalizePhone(phone) : '',
+                phoneVerified: false,
                 picture: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 photoURL: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 googleId: userGoogleId || '',
@@ -325,6 +336,9 @@ export const googleLogin = async (req, res) => {
                 existingGlobal.lastLoginAt = now();
                 if (userName) existingGlobal.name = userName;
                 if (userPicture) existingGlobal.picture = userPicture;
+                if (customer.phone) existingGlobal.phone = customer.phone;
+                existingGlobal.phoneVerified = Boolean(customer.phoneVerified);
+                existingGlobal.authProvider = 'google';
             } else {
                 list.push({
                     churuOneId: `churu_cust_${Date.now()}`,
@@ -332,6 +346,8 @@ export const googleLogin = async (req, res) => {
                     email: normalizedEmail,
                     name: userName || customer.name,
                     phone: customer.phone || '',
+                    phoneVerified: Boolean(customer.phoneVerified),
+                    authProvider: 'google',
                     picture: userPicture || customer.picture,
                     registeredStoreId: targetStoreId,
                     createdAt: now(),

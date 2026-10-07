@@ -4,12 +4,19 @@ import CustomerApp from './apps/customer/CustomerApp';
 import MasterApp from './apps/master/MasterApp';
 import AppStorePage from './apps/hub/AppStorePage';
 import ChuruOneHomePage from './apps/churuone/ChuruOneHomePage';
+import ChuruOneAuthPage from './apps/churuone/ChuruOneAuthPage';
 import NashStudioApp from './apps/nash/NashStudioApp';
 
 function RootEntry() {
   const host = window.location.hostname.toLowerCase();
+  const path = window.location.pathname.toLowerCase();
   const params = new URLSearchParams(window.location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
+
+  // 0. Unified ChuruOne SSO Authentication Portal (/auth or /login)
+  if (path.startsWith('/auth') || path.startsWith('/login') || path.startsWith('/signup')) {
+    return <ChuruOneAuthPage />;
+  }
 
   // 1. Nash Studio Salon Website (Subdomain: nash.churuone.in or ?storeId=nash-studio)
   if (host.startsWith('nash.') || storeParam === 'nash-studio' || storeParam === 'nash' || storeParam === 'beared') {
@@ -39,6 +46,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* ChuruOne Unified SSO Auth Portal */}
+        <Route path="/auth/*" element={<ChuruOneAuthPage />} />
+        <Route path="/login/*" element={<ChuruOneAuthPage />} />
+        <Route path="/signup/*" element={<ChuruOneAuthPage />} />
+
         {/* ChuruOne Main City Portal & Marketplace */}
         <Route path="/portal/*" element={<ChuruOneHomePage />} />
         <Route path="/churuone-home/*" element={<ChuruOneHomePage />} />
