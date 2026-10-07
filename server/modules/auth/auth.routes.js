@@ -12,6 +12,8 @@ router.post('/register', service.register);
 router.post('/update-profile', service.updateProfile);
 router.post('/delete-account', service.deleteAccount);
 router.get('/me', service.getMe);
+router.post('/google', service.googleLogin);
+router.post('/direct', service.directLogin);
 
 // Admin Auth
 router.get('/admin/status', service.getAdminStatus);

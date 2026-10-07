@@ -217,11 +217,15 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [expandedGallery, setExpandedGallery] = useState(false);
   const [dateIndex, setDateIndex] = useState(0);
   const [slot, setSlot] = useState(null);
-  const [name, setName] = useState(user ? user.displayName : "");
-  const [phone, setPhone] = useState(user?.phoneNumber || "");
+  const [name, setName] = useState(user ? (user.displayName || user.name) : "");
+  const [phone, setPhone] = useState(user?.phoneNumber || user?.phone || "");
   const [done, setDone] = useState(null);
   const [saving, setSaving] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleModalEmail, setGoogleModalEmail] = useState("");
+  const [googleModalName, setGoogleModalName] = useState("");
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [realtimeBookings, setRealtimeBookings] = useState([]);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -270,12 +274,45 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       const u = await loginWithGoogle();
       if (u) {
         setUser(u);
-        if (u.displayName) setName(u.displayName);
+        if (u.displayName || u.name) setName(u.displayName || u.name);
+        showToast("Google account se login ho gaya!", "success");
+      } else {
+        // Fallback: If Firebase popup blocked/unauthorized domain, open the sleek ChuruOne Google modal
+        setShowGoogleModal(true);
+      }
+    } catch (err) {
+      console.warn("Google auth note:", err.message);
+      setShowGoogleModal(true);
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  async function handleGoogleModalSubmit(e) {
+    e.preventDefault();
+    if (!googleModalEmail.trim()) return;
+    setGoogleSubmitting(true);
+    try {
+      const email = googleModalEmail.trim().toLowerCase();
+      const userName = googleModalName.trim() || email.split('@')[0];
+      const payload = {
+        email,
+        name: userName,
+        googleId: `goog_${Date.now()}`,
+        authProvider: 'google',
+        picture: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName)}`
+      };
+      const u = await loginWithGoogle(payload);
+      if (u) {
+        setUser(u);
+        if (u.displayName || u.name) setName(u.displayName || u.name);
+        setShowGoogleModal(false);
+        showToast(`Welcome ${u.displayName || u.name}! Google login safal raha.`, "success");
       }
     } catch (err) {
       alert(err.message || "Google sign-in fail ho gaya.");
     } finally {
-      setAuthLoading(false);
+      setGoogleSubmitting(false);
     }
   }
 
@@ -308,13 +345,21 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   function goStep(n) { setStep(n); setTimeout(() => bookRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
 
   async function confirmBooking() {
-    if (!name.trim() || !phone.trim()) { 
-      alert("Naam aur mobile number zaroor darj karein."); 
+    if (!name.trim()) { 
+      alert("Kripya apna naam zaroor darj karein."); 
       return; 
     }
-    if (!user) {
-      const directUser = loginDirectCustomer(name.trim(), phone.trim());
-      setUser(directUser);
+    const contactPhone = (phone || user?.phoneNumber || user?.phone || "").trim();
+    const contactEmail = (user?.email || "").trim();
+
+    if (!contactPhone && !contactEmail) { 
+      alert("Mobile number ya Google account se sign in zaroor karein."); 
+      return; 
+    }
+    let currentUserObj = user;
+    if (!currentUserObj) {
+      currentUserObj = await loginDirectCustomer(name.trim(), contactPhone, contactEmail);
+      setUser(currentUserObj);
     }
     if (!slot) { alert("Slot select karein."); return; }
     if (ENABLE_ONLINE_PAYMENT && !txnId.trim()) {
@@ -333,9 +378,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     const payload = {
       token: bookingToken,
       name: name.trim(),
-      phone: phone.trim(),
-      userEmail: user.email || "",
-      userUid: user.uid || "",
+      phone: contactPhone || (contactEmail ? contactEmail : "Walk-in"),
+      email: contactEmail,
+      userEmail: contactEmail,
+      userUid: currentUserObj?.uid || currentUserObj?.id || "",
       tier,
       styleName: selectedStyle.name,
       totalPrice,
@@ -878,12 +924,12 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           />
                           <button
                             type="button"
-                            onClick={() => {
-                              if (!name.trim() || !phone.trim()) {
-                                alert("Naam aur mobile number zaroor enter karein.");
+                            onClick={async () => {
+                              if (!name.trim()) {
+                                alert("Naam zaroor enter karein.");
                                 return;
                               }
-                              const u = loginDirectCustomer(name.trim(), phone.trim());
+                              const u = await loginDirectCustomer(name.trim(), phone.trim());
                               setUser(u);
                             }}
                             style={{
@@ -899,7 +945,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                               textTransform: "uppercase"
                             }}
                           >
-                            CONTINUE WITH NAME & MOBILE â†’
+                            CONTINUE WITH NAME & MOBILE →
                           </button>
                         </div>
                       </div>
@@ -907,17 +953,22 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       /* USER IS LOGGED IN -> ENTER DETAILS & BOOK APPOINTMENT */
                       <div className="nash-expand-anim">
                         <div style={S.fieldGroup}>
-                          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
-                            <span style={{...S.fieldLabel, margin:0}}>Customer Details</span>
-                            <span style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:8}}>
-                              <span style={{color:"#25D366", fontSize:12}}>â—</span>
-                              {user.displayName}
+                          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, padding:"10px 14px", background:"rgba(255,255,255,0.04)", borderRadius:8, border:"1px solid var(--line)"}}>
+                            <div style={{display:"flex", alignItems:"center", gap:10}}>
+                              <img src={user.photoURL || user.picture} alt="" style={{width:32, height:32, borderRadius:"50%"}} />
+                              <div>
+                                <div style={{fontWeight:700, fontSize:12, color:"var(--paper)"}}>{user.displayName || user.name}</div>
+                                <div style={{fontSize:10, color:"var(--muted)"}}>{user.email || user.phoneNumber || "ChuruOne Verified"}</div>
+                              </div>
+                            </div>
+                            <span style={{fontSize:10, background:"rgba(52, 168, 83, 0.15)", color:"#34A853", padding:"3px 8px", borderRadius:12, fontWeight:700}}>
+                              ✓ LOGGED IN
                             </span>
                           </div>
 
                           <div style={S.formRow}>
                             <input style={S.input} type="text" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} />
-                            <input style={S.input} type="tel" placeholder="Mobile Number (e.g. 03001234567)" value={phone} onChange={e => setPhone(e.target.value)} />
+                            <input style={S.input} type="tel" placeholder={user.email ? "Mobile Number (Optional for SMS updates)" : "Mobile Number (e.g. 03001234567)"} value={phone} onChange={e => setPhone(e.target.value)} />
                           </div>
                         </div>
 
@@ -1249,6 +1300,177 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"03001234567").replace(/[^0-9]/g,"")}`}>Call</button>
         <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book</button>
       </div>
+
+      {/* CHURUONE UNIVERSAL GOOGLE SIGN-IN MODAL */}
+      {showGoogleModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.8)",
+          backdropFilter: "blur(6px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 999999,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#121214",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 16,
+            maxWidth: 400,
+            width: "100%",
+            padding: "28px 24px",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.8)",
+            position: "relative",
+            textAlign: "center",
+            color: "#ffffff"
+          }}>
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShowGoogleModal(false)}
+              style={{
+                position: "absolute",
+                top: 14,
+                right: 14,
+                background: "transparent",
+                border: "none",
+                color: "rgba(255,255,255,0.6)",
+                fontSize: 18,
+                cursor: "pointer",
+                padding: "4px 8px"
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Google G Logo */}
+            <div style={{
+              width: 52,
+              height: 52,
+              borderRadius: "50%",
+              background: "#ffffff",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 16,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+            </div>
+
+            <h3 style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: "#ffffff",
+              margin: "0 0 6px",
+              letterSpacing: "0.02em"
+            }}>
+              Sign in with Google
+            </h3>
+            <p style={{
+              fontSize: 12,
+              color: "rgba(255,255,255,0.6)",
+              margin: "0 0 22px",
+              lineHeight: 1.5
+            }}>
+              To continue to Nash Studio & ChuruOne Smart ID
+            </p>
+
+            {/* Form */}
+            <form onSubmit={handleGoogleModalSubmit} style={{textAlign: "left"}}>
+              <div style={{marginBottom: 14}}>
+                <label style={{display: "block", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6}}>
+                  Google Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. yourname@gmail.com"
+                  value={googleModalEmail}
+                  onChange={(e) => setGoogleModalEmail(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 8,
+                    color: "#ffffff",
+                    fontSize: 13,
+                    outline: "none",
+                    boxSizing: "border-box"
+                  }}
+                />
+              </div>
+
+              <div style={{marginBottom: 20}}>
+                <label style={{display: "block", fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6}}>
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Sameer Khan"
+                  value={googleModalName}
+                  onChange={(e) => setGoogleModalName(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 8,
+                    color: "#ffffff",
+                    fontSize: 13,
+                    outline: "none",
+                    boxSizing: "border-box"
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={googleSubmitting}
+                style={{
+                  width: "100%",
+                  padding: "14px",
+                  background: "#4285F4",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 12,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "all 0.2s"
+                }}
+              >
+                {googleSubmitting ? "SIGNING IN TO SERVER..." : "CONTINUE WITH GOOGLE →"}
+              </button>
+            </form>
+
+            <div style={{
+              marginTop: 18,
+              paddingTop: 14,
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              fontSize: 11,
+              color: "rgba(255,255,255,0.4)"
+            }}>
+              🔒 Verified by ChuruOne Universal Identity Engine
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

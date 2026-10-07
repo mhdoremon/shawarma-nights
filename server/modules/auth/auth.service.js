@@ -130,19 +130,34 @@ export const verifyOtp = (req, res) => {
 
 export const getMe = (req, res) => {
     try {
-        const { phone } = req.query;
-        if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
+        const { phone, email, token } = req.query;
+        const authHeader = req.headers.authorization;
+        const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        const searchToken = token || bearerToken;
+
+        if (!phone && !email && !searchToken) {
+            return res.status(400).json({ success: false, message: 'Phone, Email ya Token required hai' });
+        }
         
-        const normalizedPhone = normalizePhone(phone);
+        const normalizedPhone = phone ? normalizePhone(phone) : '';
+        const normalizedEmail = email ? email.toLowerCase().trim() : '';
+
         const customers = DataLayer.read(req.storeId, 'customers') || [];
-        const customer = customers.find(c => c.phone === normalizedPhone);
+        const customer = customers.find(c => 
+            (searchToken && c.token === searchToken) ||
+            (normalizedPhone && c.phone && normalizePhone(c.phone) === normalizedPhone) ||
+            (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+        );
         
         if (!customer) {
             return res.status(404).json({ success: false, message: 'Customer not found' });
         }
 
         const orders = DataLayer.read(req.storeId, 'orders') || [];
-        const userOrders = orders.filter(o => (o.customer?.phone === normalizedPhone) || (o.customerPhone === normalizedPhone));
+        const userOrders = orders.filter(o => 
+            (normalizedPhone && ((o.customer?.phone && normalizePhone(o.customer.phone) === normalizedPhone) || (o.customerPhone && normalizePhone(o.customerPhone) === normalizedPhone))) ||
+            (normalizedEmail && ((o.customer?.email && o.customer.email.toLowerCase() === normalizedEmail) || (o.userEmail && o.userEmail.toLowerCase() === normalizedEmail)))
+        );
 
         res.json({ success: true, user: customer, orders: userOrders });
     } catch (error) {
@@ -207,6 +222,206 @@ export const deleteAccount = (req, res) => {
         DataLayer.writeSync(req.storeId, 'customers', newCustomers);
         
         res.json({ success: true, message: 'Account deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const googleLogin = async (req, res) => {
+    try {
+        const { credential, email, name, picture, photoURL, googleId, phone, storeId: bodyStoreId } = req.body;
+        const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
+
+        let userEmail = email;
+        let userName = name;
+        let userPicture = picture || photoURL;
+        let userGoogleId = googleId;
+
+        // If Google Identity Services JWT credential string was provided, decode base64 payload
+        if (credential && typeof credential === 'string') {
+            try {
+                const parts = credential.split('.');
+                if (parts.length === 3) {
+                    const base64Url = parts[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = Buffer.from(base64, 'base64').toString('utf8');
+                    const payload = JSON.parse(jsonPayload);
+                    userEmail = payload.email || userEmail;
+                    userName = payload.name || userName;
+                    userPicture = payload.picture || userPicture;
+                    userGoogleId = payload.sub || userGoogleId;
+                }
+            } catch (jwtErr) {
+                console.warn('⚠️ [AUTH] Google JWT parse warning:', jwtErr.message);
+            }
+        }
+
+        if (!userEmail && !userGoogleId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Google login ke liye Email ya Google ID zaroori hai.' 
+            });
+        }
+
+        const normalizedEmail = (userEmail || '').toLowerCase().trim();
+        const customers = DataLayer.read(targetStoreId, 'customers') || [];
+
+        // Check if customer already exists by Google ID or Email
+        let customer = customers.find(c => 
+            (userGoogleId && c.googleId && c.googleId === userGoogleId) ||
+            (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+        );
+
+        let isNewUser = false;
+        const customerToken = customer?.token || generateUUID();
+
+        if (customer) {
+            // Update customer profile with fresh Google metadata
+            if (userName && (!customer.name || customer.name === 'Salon Customer' || customer.name === 'User' || customer.name === 'Customer')) {
+                customer.name = userName;
+            }
+            if (userPicture) {
+                customer.picture = userPicture;
+                customer.photoURL = userPicture;
+            }
+            if (userGoogleId && !customer.googleId) {
+                customer.googleId = userGoogleId;
+            }
+            if (phone && !customer.phone) {
+                customer.phone = normalizePhone(phone);
+            }
+            customer.authProvider = 'google';
+            customer.lastLoginAt = now();
+        } else {
+            isNewUser = true;
+            customer = {
+                id: generateId('cust'),
+                name: userName || (normalizedEmail ? normalizedEmail.split('@')[0] : 'Google User'),
+                email: normalizedEmail,
+                phone: phone ? normalizePhone(phone) : '',
+                picture: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
+                photoURL: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
+                googleId: userGoogleId || '',
+                authProvider: 'google',
+                token: customerToken,
+                createdAt: now(),
+                lastLoginAt: now()
+            };
+            customers.push(customer);
+        }
+
+        DataLayer.writeSync(targetStoreId, 'customers', customers);
+
+        // Universal Cross-Store ChuruOne Customer Registry Sync
+        try {
+            const platformData = DataLayer.readPlatform('customers') || { customers: [] };
+            const list = Array.isArray(platformData.customers) ? platformData.customers : [];
+            const existingGlobal = list.find(c => 
+                (userGoogleId && c.googleId === userGoogleId) || 
+                (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+            );
+            if (existingGlobal) {
+                existingGlobal.lastStoreId = targetStoreId;
+                existingGlobal.lastLoginAt = now();
+                if (userName) existingGlobal.name = userName;
+                if (userPicture) existingGlobal.picture = userPicture;
+            } else {
+                list.push({
+                    churuOneId: `churu_cust_${Date.now()}`,
+                    googleId: userGoogleId || '',
+                    email: normalizedEmail,
+                    name: userName || customer.name,
+                    phone: customer.phone || '',
+                    picture: userPicture || customer.picture,
+                    registeredStoreId: targetStoreId,
+                    createdAt: now(),
+                    lastLoginAt: now()
+                });
+            }
+            platformData.customers = list;
+            DataLayer.writePlatform('customers', platformData);
+        } catch (globalErr) {
+            console.warn('⚠️ [AUTH] Universal customer sync note:', globalErr.message);
+        }
+
+        WebSocketHub.broadcastToAll(targetStoreId, {
+            action: 'CUSTOMER_UPDATED',
+            payload: customer
+        });
+
+        console.log(`✅ [AUTH] Google Login success: "${customer.name}" (${customer.email}) on store "${targetStoreId}"`);
+
+        return res.json({
+            success: true,
+            token: customer.token,
+            isNewUser,
+            user: customer,
+            storeId: targetStoreId,
+            message: 'Google login safal raha!'
+        });
+    } catch (error) {
+        console.error('❌ [AUTH] Google login error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const directLogin = (req, res) => {
+    try {
+        const { name, phone, email, storeId: bodyStoreId } = req.body;
+        if (!name && !phone && !email) {
+            return res.status(400).json({ success: false, message: 'Name, Phone ya Email required hai' });
+        }
+
+        const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
+        const normalizedPhone = phone ? normalizePhone(phone) : '';
+        const normalizedEmail = email ? email.toLowerCase().trim() : '';
+
+        const customers = DataLayer.read(targetStoreId, 'customers') || [];
+        let customer = customers.find(c => 
+            (normalizedPhone && c.phone && normalizePhone(c.phone) === normalizedPhone) ||
+            (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+        );
+
+        let isNewUser = false;
+        if (customer) {
+            if (name && (!customer.name || customer.name === 'Salon Customer' || customer.name === 'Customer')) {
+                customer.name = name;
+            }
+            if (normalizedEmail && !customer.email) customer.email = normalizedEmail;
+            if (normalizedPhone && !customer.phone) customer.phone = normalizedPhone;
+            customer.lastLoginAt = now();
+        } else {
+            isNewUser = true;
+            customer = {
+                id: generateId('cust'),
+                name: name || (normalizedEmail ? normalizedEmail.split('@')[0] : 'Customer'),
+                phone: normalizedPhone,
+                email: normalizedEmail,
+                picture: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || 'C')}`,
+                photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || 'C')}`,
+                authProvider: 'direct',
+                token: generateUUID(),
+                createdAt: now(),
+                lastLoginAt: now()
+            };
+            customers.push(customer);
+        }
+
+        DataLayer.writeSync(targetStoreId, 'customers', customers);
+
+        WebSocketHub.broadcastToAll(targetStoreId, {
+            action: 'CUSTOMER_UPDATED',
+            payload: customer
+        });
+
+        return res.json({
+            success: true,
+            token: customer.token,
+            isNewUser,
+            user: customer,
+            storeId: targetStoreId,
+            message: 'Customer session ready!'
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

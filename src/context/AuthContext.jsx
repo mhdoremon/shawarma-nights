@@ -351,8 +351,34 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google Login Alternative
-  const loginWithGoogle = () => {
+  // Universal Google Login with Smart Server
+  const loginWithGoogle = async (googleData = null) => {
+    try {
+      if (googleData) {
+        const activeStoreId = getStoreId();
+        const res = await fetch(`${API_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-store-id': activeStoreId
+          },
+          body: JSON.stringify({
+            ...googleData,
+            storeId: activeStoreId
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setCurrentUser(data.user);
+          if (data.token) localStorage.setItem('auth_token', data.token);
+          sounds.playSuccessFanfare();
+          closeAuthModal();
+          return { success: true, user: data.user };
+        }
+      }
+    } catch (e) {
+      console.warn('Google login context error:', e);
+    }
     setActiveStep('phone');
     alert('Google login ke baad mobile number verify karna zaroori hai taaki rider call kar sake.');
   };

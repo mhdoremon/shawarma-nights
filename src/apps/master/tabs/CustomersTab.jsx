@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Search, Phone, MessageCircle, ShoppingBag, IndianRupee } from 'lucide-react';
+import { Search, Phone, MessageCircle, ShoppingBag, IndianRupee, Mail } from 'lucide-react';
 
 export default function CustomersTab() {
   const { customers, orders } = useMaster();
@@ -13,8 +13,8 @@ export default function CustomersTab() {
 
     return list.map(c => {
       const custOrders = allOrders.filter(o => 
-        (o.customer?.phone && o.customer.phone === c.phone) ||
-        (o.customerPhone && o.customerPhone === c.phone)
+        (c.phone && ((o.customer?.phone && o.customer.phone === c.phone) || (o.customerPhone && o.customerPhone === c.phone))) ||
+        (c.email && ((o.customer?.email && o.customer.email.toLowerCase() === c.email.toLowerCase()) || (o.userEmail && o.userEmail.toLowerCase() === c.email.toLowerCase())))
       );
 
       const totalSpent = custOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal) || 0), 0);
@@ -35,6 +35,7 @@ export default function CustomersTab() {
     return enrichedCustomers.filter(c => 
       (c.name || '').toLowerCase().includes(q) ||
       (c.phone || '').toLowerCase().includes(q) ||
+      (c.email || '').toLowerCase().includes(q) ||
       (c.address || '').toLowerCase().includes(q)
     );
   }, [enrichedCustomers, searchQuery]);
@@ -83,15 +84,30 @@ export default function CustomersTab() {
             >
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
-                    {(cust.name || 'U').charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-black text-zinc-900 truncate">
-                      {cust.name || 'Customer'}
-                    </h3>
-                    <p className="text-xs text-zinc-500 font-mono mt-0.5">
-                      {cust.phone}
+                  {cust.picture || cust.photoURL ? (
+                    <img
+                      src={cust.picture || cust.photoURL}
+                      alt=""
+                      className="w-11 h-11 rounded-2xl object-cover shrink-0 shadow-sm border border-zinc-100"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-2xl bg-zinc-900 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-sm">
+                      {(cust.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-black text-zinc-900 truncate">
+                        {cust.name || 'Customer'}
+                      </h3>
+                      {cust.authProvider === 'google' && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-blue-50 text-blue-600 font-bold uppercase tracking-wider shrink-0">
+                          Google
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">
+                      {cust.phone || cust.email || 'Direct Client'}
                     </p>
                   </div>
                 </div>
@@ -123,22 +139,36 @@ export default function CustomersTab() {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-100">
-                <a
-                  href={`tel:${cust.phone}`}
-                  className="py-2.5 px-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Call</span>
-                </a>
-                <a
-                  href={`https://wa.me/${cust.phone?.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>WhatsApp</span>
-                </a>
+                {cust.phone ? (
+                  <>
+                    <a
+                      href={`tel:${cust.phone}`}
+                      className="py-2.5 px-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Call</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${cust.phone?.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 px-3 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <a
+                      href={`mailto:${cust.email}`}
+                      className="py-2.5 px-3 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors col-span-2"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Email ({cust.email})</span>
+                    </a>
+                  </>
+                )}
               </div>
 
             </div>

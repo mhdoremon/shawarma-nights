@@ -142,14 +142,27 @@ export const placeOrder = async (req, res) => {
 
         // Sync customer to customers.json so they appear in dukandar database
         const custPhone = order.customer?.phone || payload.customerPhone;
-        if (custPhone) {
+        const custEmail = order.customer?.email || payload.userEmail || payload.email;
+        if (custPhone || custEmail) {
             try {
                 const customers = DataLayer.read(storeId, 'customers') || [];
-                const cleanPhone = normalizePhone(custPhone);
-                const existingIdx = customers.findIndex(c => normalizePhone(c.phone) === cleanPhone);
+                const cleanPhone = custPhone ? normalizePhone(custPhone) : '';
+                const cleanEmail = custEmail ? custEmail.toLowerCase().trim() : '';
+
+                const existingIdx = customers.findIndex(c => 
+                    (cleanPhone && normalizePhone(c.phone) === cleanPhone) ||
+                    (cleanEmail && c.email && c.email.toLowerCase() === cleanEmail)
+                );
+
                 if (existingIdx !== -1) {
-                    if (order.customer?.name && !customers[existingIdx].name) {
+                    if (order.customer?.name && (!customers[existingIdx].name || customers[existingIdx].name === 'Customer')) {
                         customers[existingIdx].name = order.customer.name;
+                    }
+                    if (cleanEmail && !customers[existingIdx].email) {
+                        customers[existingIdx].email = cleanEmail;
+                    }
+                    if (cleanPhone && !customers[existingIdx].phone) {
+                        customers[existingIdx].phone = cleanPhone;
                     }
                     if (order.address && !customers[existingIdx].address) {
                         customers[existingIdx].address = order.address;
@@ -159,9 +172,9 @@ export const placeOrder = async (req, res) => {
                 } else {
                     customers.push({
                         id: generateId('cust'),
-                        name: order.customer?.name || payload.customerName || '',
-                        phone: custPhone,
-                        email: order.customer?.email || '',
+                        name: order.customer?.name || payload.customerName || (cleanEmail ? cleanEmail.split('@')[0] : 'Customer'),
+                        phone: cleanPhone,
+                        email: cleanEmail,
                         address: order.address || '',
                         registeredAt: now(),
                         lastOrderAt: now()

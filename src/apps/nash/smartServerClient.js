@@ -156,6 +156,46 @@ export async function loginSmartAdmin(username, password) {
 }
 
 /**
+ * 9. Universal Google Sign-In with ChuruOne Smart Server
+ */
+export async function loginSmartGoogle(googleData) {
+  return await smartFetch(`/api/auth/google`, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...googleData,
+      storeId: SMART_CONFIG.storeId
+    })
+  });
+}
+
+/**
+ * 10. Fast Direct Customer Pass Login (Name + Phone or Email)
+ */
+export async function loginSmartDirectCustomer(name, phone, email) {
+  return await smartFetch(`/api/auth/direct`, {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      phone,
+      email,
+      storeId: SMART_CONFIG.storeId
+    })
+  });
+}
+
+/**
+ * 11. Fetch Customer Profile & Active Bookings from Smart Server
+ */
+export async function getSmartCustomerSession(param = {}) {
+  const query = new URLSearchParams();
+  if (param.phone) query.set('phone', param.phone);
+  if (param.email) query.set('email', param.email);
+  if (param.token) query.set('token', param.token);
+  query.set('storeId', SMART_CONFIG.storeId);
+  return await smartFetch(`/api/auth/me?${query.toString()}`);
+}
+
+/**
  * 9. Real-time WebSocket connection to ChuruOne Smart Server
  */
 export function connectSmartWebSocket(onEvent) {
