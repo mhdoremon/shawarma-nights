@@ -87,18 +87,10 @@ export default function ChuruOneHomePage() {
       <header className="border-b border-zinc-200 bg-white sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           
-          {/* Logo / Brand Name */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-none bg-zinc-950 flex items-center justify-center text-white font-medium text-xs tracking-widest">
+          {/* Logo / Brand Mark (Minimal C1 only) */}
+          <Link to="/" className="flex items-center group" aria-label="ChuruOne Home">
+            <div className="w-8 h-8 rounded-none bg-zinc-950 flex items-center justify-center text-white font-medium text-xs tracking-widest hover:bg-black transition-colors">
               C1
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm sm:text-base font-semibold tracking-[0.2em] uppercase text-zinc-950">
-                CHURUONE
-              </span>
-              <span className="text-[9px] uppercase tracking-[0.25em] text-zinc-400 font-medium -mt-0.5">
-                CITY DIRECTORY
-              </span>
             </div>
           </Link>
 
@@ -115,10 +107,47 @@ export default function ChuruOneHomePage() {
         </div>
       </header>
 
-      {/* ─── Quiet Luxury Hero Section ──────────────────────────── */}
-      <section className="pt-16 pb-12 sm:pt-20 sm:pb-16 border-b border-zinc-100">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      {/* ─── Quiet Luxury Hero Section with Continuous Dynamic Motion ─ */}
+      <section className="relative overflow-hidden pt-16 pb-12 sm:pt-20 sm:pb-16 border-b border-zinc-100">
+        
+        {/* Continuous Ambient Architectural Accents (Slow Infinite Rotation) */}
+        <motion.div
+          className="absolute -top-10 right-4 sm:right-16 pointer-events-none opacity-20 hidden md:block"
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 45, ease: "linear" }}
+        >
+          <svg width="110" height="110" viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="48" stroke="currentColor" strokeWidth="0.75" strokeDasharray="3 3" className="text-zinc-900" />
+            <path d="M50 8V92M8 50H92" stroke="currentColor" strokeWidth="0.5" className="text-zinc-900" />
+            <circle cx="50" cy="50" r="4" fill="currentColor" className="text-zinc-900" />
+          </svg>
+        </motion.div>
+
+        <motion.div
+          className="absolute -bottom-8 left-4 sm:left-16 pointer-events-none opacity-20 hidden md:block"
+          animate={{ rotate: -360 }}
+          transition={{ repeat: Infinity, duration: 55, ease: "linear" }}
+        >
+          <svg width="95" height="95" viewBox="0 0 100 100" fill="none">
+            <rect x="18" y="18" width="64" height="64" stroke="currentColor" strokeWidth="0.75" strokeDasharray="4 4" className="text-zinc-900" />
+            <circle cx="50" cy="50" r="24" stroke="currentColor" strokeWidth="0.5" className="text-zinc-900" />
+            <path d="M50 20L50 80" stroke="currentColor" strokeWidth="0.5" className="text-zinc-900" />
+          </svg>
+        </motion.div>
+
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center z-10">
           
+          {/* Continuous Live Radar Status Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 border border-zinc-200 bg-white mb-5 shadow-2xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+            </span>
+            <span className="text-[9px] uppercase tracking-[0.25em] font-semibold text-zinc-700">
+              LIVE CITY DIRECTORY • CHURU REALTIME
+            </span>
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -128,9 +157,15 @@ export default function ChuruOneHomePage() {
               Curated Local Establishments.
             </h1>
 
-            <p className="mt-3 sm:mt-4 text-xs sm:text-[13px] text-zinc-500 max-w-2xl mx-auto font-normal leading-relaxed">
-              Direct digital ordering and verified slot reservations from premier local establishments with zero aggregator markup.
-            </p>
+            {/* CHURUONE & CITY DIRECTORY positioned right below the curated line */}
+            <div className="mt-3.5 sm:mt-4 flex flex-col items-center justify-center">
+              <span className="text-sm sm:text-base font-bold tracking-[0.28em] uppercase text-zinc-950">
+                CHURUONE
+              </span>
+              <span className="text-[10px] sm:text-xs font-semibold tracking-[0.35em] uppercase text-zinc-400 mt-1">
+                CITY DIRECTORY
+              </span>
+            </div>
           </motion.div>
 
           {/* Minimal Search & Filter Strip */}
@@ -184,6 +219,37 @@ export default function ChuruOneHomePage() {
         </div>
       </section>
 
+      {/* ─── Continuous Infinite Live Marquee Ticker ──────────────── */}
+      <div className="w-full overflow-hidden border-b border-zinc-200 bg-zinc-50/75 py-2.5">
+        <motion.div
+          className="flex items-center gap-8 whitespace-nowrap text-[10px] sm:text-[11px] font-semibold tracking-[0.25em] uppercase text-zinc-500"
+          animate={{ x: [0, -1080] }}
+          transition={{ repeat: Infinity, ease: "linear", duration: 25 }}
+        >
+          {[
+            'SHAWARMA NIGHTS • DINING',
+            'DIRECT UPI SETTLEMENT',
+            'NASH STUDIO • GROOMING',
+            'ZERO COMMISSION',
+            'CHURUONE VERIFIED NETWORK',
+            'DIRECT STORE ORDERS',
+            'REALTIME DUKANDAR SYNC',
+            'SHAWARMA NIGHTS • DINING',
+            'DIRECT UPI SETTLEMENT',
+            'NASH STUDIO • GROOMING',
+            'ZERO COMMISSION',
+            'CHURUONE VERIFIED NETWORK',
+            'DIRECT STORE ORDERS',
+            'REALTIME DUKANDAR SYNC'
+          ].map((item, idx) => (
+            <div key={idx} className="flex items-center gap-8 shrink-0">
+              <span>{item}</span>
+              <span className="text-zinc-300 font-light select-none">/</span>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+
       {/* ─── Establishments Grid (Pure Editorial Luxury) ─────────── */}
       <section className="py-16 sm:py-20 max-w-6xl mx-auto px-4 sm:px-6">
         
@@ -225,8 +291,12 @@ export default function ChuruOneHomePage() {
 
                     {/* Minimalist Monochrome Tag Overlay */}
                     <div className="absolute top-4 left-4 flex items-center gap-2">
-                      <span className="bg-zinc-950 text-white text-[9px] uppercase tracking-[0.2em] font-medium px-2 py-0.5">
-                        OPEN NOW
+                      <span className="bg-zinc-950 text-white text-[9px] uppercase tracking-[0.2em] font-medium px-2 py-0.5 flex items-center gap-1.5">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                        </span>
+                        <span>OPEN NOW</span>
                       </span>
                       <span className="bg-white border border-zinc-200 text-zinc-900 text-[9px] uppercase tracking-[0.2em] font-medium px-2 py-0.5">
                         {store.categoryLabel}
