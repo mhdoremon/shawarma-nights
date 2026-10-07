@@ -103,13 +103,6 @@ export default function ChuruOneHomePage() {
           {/* Clean Navigation Links */}
           <div className="flex items-center gap-4 sm:gap-6">
             <Link 
-              to="/auth" 
-              className="text-xs tracking-wider uppercase font-medium text-zinc-500 hover:text-zinc-950 transition-colors hidden sm:inline-block"
-            >
-              Sign In
-            </Link>
-
-            <Link 
               to="/admin" 
               className="text-xs tracking-wider uppercase font-medium text-zinc-500 hover:text-zinc-950 transition-colors flex items-center gap-1.5"
             >
@@ -117,12 +110,11 @@ export default function ChuruOneHomePage() {
               <span className="hidden sm:inline">Merchant</span> Portal
             </Link>
 
-            <Link
-              to="/apps"
-              className="border border-zinc-900 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs uppercase tracking-widest font-medium px-3.5 py-1.5 transition-colors flex items-center gap-1.5"
+            <Link 
+              to="/auth" 
+              className="border border-zinc-900 text-zinc-950 hover:bg-zinc-950 hover:text-white text-xs uppercase tracking-widest font-medium px-4 py-2 transition-colors inline-block"
             >
-              <Smartphone className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span>Apps</span>
+              Create your ChuruOne account
             </Link>
           </div>
         </div>
@@ -396,9 +388,6 @@ export default function ChuruOneHomePage() {
             <a href={getStoreUrl('nash-studio')} className="hover:text-zinc-950 transition-colors">
               Nash Studio
             </a>
-            <Link to="/apps" className="hover:text-zinc-950 transition-colors">
-              Apps
-            </Link>
             <Link to="/admin" className="hover:text-zinc-950 transition-colors">
               Merchant OS
             </Link>
