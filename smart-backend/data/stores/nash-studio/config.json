@@ -32,6 +32,10 @@
     "studioName": "Nash Studio",
     "heroTagline": "PRECISION GROOMING. BINA INTEZAAR KE.",
     "heroButtonText": "BOOK APPOINTMENT NOW",
+    "showHeroBanner": false,
+    "showOfferCards": false,
+    "showMarqueeStrip": false,
+    "dealsEnabled": false,
     "shopWhatsapp": "923001234567",
     "phoneDisplay": "0300-1234567",
     "address": "Shop 12, Main Boulevard, Gulberg",
@@ -89,6 +93,7 @@
   },
   "storeId": "nash-studio",
   "heroBanner": {
+    "enabled": false,
     "badgeText": "LUXURY SALON & GROOMING",
     "titleLine1": "PRECISION",
     "titleLine2": "GROOMING",

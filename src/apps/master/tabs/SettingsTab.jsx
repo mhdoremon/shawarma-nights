@@ -91,6 +91,19 @@ export default function SettingsTab() {
     deliveryFee: storeInfo?.deliveryFee ?? 30
   });
 
+  // Smart Modular Feature Connections (Toggled OFF by default for salon / Nash Studio)
+  const [showHeroBanner, setShowHeroBanner] = useState(
+    storeInfo?.settings?.showHeroBanner !== undefined
+      ? Boolean(storeInfo.settings.showHeroBanner)
+      : (!isSalon)
+  );
+
+  const [showOfferCards, setShowOfferCards] = useState(
+    storeInfo?.settings?.showOfferCards !== undefined
+      ? Boolean(storeInfo.settings.showOfferCards)
+      : (!isSalon)
+  );
+
   // Hero Banner & Marquee Form
   const [heroForm, setHeroForm] = useState({
     titleLine1: heroBanner?.titleLine1 || 'REAL',
@@ -111,6 +124,18 @@ export default function SettingsTab() {
       if (tc.enabled !== undefined) setTaxEnabled(Boolean(tc.enabled));
       if (tc.taxPercent !== undefined) setTaxPercentInput(String(tc.taxPercent));
       if (tc.packagingCharge !== undefined) setPackagingChargeInput(String(tc.packagingCharge));
+
+      if (storeInfo.settings?.showHeroBanner !== undefined) {
+        setShowHeroBanner(Boolean(storeInfo.settings.showHeroBanner));
+      } else if (isSalon) {
+        setShowHeroBanner(false);
+      }
+
+      if (storeInfo.settings?.showOfferCards !== undefined) {
+        setShowOfferCards(Boolean(storeInfo.settings.showOfferCards));
+      } else if (isSalon) {
+        setShowOfferCards(false);
+      }
 
       const pay = storeInfo.payment || {};
       const soc = storeInfo.socials || {};
@@ -242,6 +267,10 @@ export default function SettingsTab() {
       aboutText: operationalForm.aboutText,
       isOpen: operationalForm.isOpen,
       deliveryFee: Number(operationalForm.deliveryFee),
+      showHeroBanner,
+      showOfferCards,
+      showMarqueeStrip: showHeroBanner,
+      dealsEnabled: showOfferCards,
       payment: {
         upiId: operationalForm.upiId.trim(),
         payeeName: operationalForm.payeeName.trim(),
@@ -259,7 +288,14 @@ export default function SettingsTab() {
   // 4. SAVE HERO & MARQUEE COPY
   const handleSaveHero = async (e) => {
     e.preventDefault();
-    await updateHeroBanner(heroForm);
+    await updateHeroBanner({
+      ...heroForm,
+      enabled: showHeroBanner
+    });
+    await updateStoreSettings({
+      showHeroBanner,
+      showMarqueeStrip: showHeroBanner
+    });
     showToast('Homepage Hero Banner & Marquee Strip Saved!', 'success');
   };
 
@@ -362,6 +398,92 @@ export default function SettingsTab() {
             <RefreshCw className="w-3.5 h-3.5" />
             <span>RECONNECT / REFRESH CONNECTION</span>
           </button>
+        </div>
+      </div>
+
+      {/* CARD: SMART MODULAR FEATURE CONNECTIONS (MODULE TOGGLES) */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#DC2626]" />
+              <span>SMART FEATURE CONNECTIONS (स्मार्ट ऑन / ऑफ़ टॉगल)</span>
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Website aur portal par kaunse modules connect karne hain aur kaunse band rakhne hain yahan se 1-click me control karein
+            </p>
+          </div>
+          <span className="text-[10px] px-2.5 py-1 rounded-full bg-zinc-100 font-mono font-bold text-zinc-600 uppercase">
+            Store: [{storeId}]
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          
+          {/* TOGGLE 1: HERO PROMOTIONAL BANNER & MARQUEE */}
+          <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-zinc-900">
+                  Homepage Hero Promotional Banner & Marquee Strip
+                </span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${showHeroBanner ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>
+                  {showHeroBanner ? '🟢 ON (CONNECTED)' : '🔴 OFF (TOGGLED OFF)'}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Website ke main header par restaurant-style bada banner aur offer strip chalana ya band rakhna. (Nash Studio ke liye filhal band rakha gaya hai).
+              </p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+              <input
+                type="checkbox"
+                checked={showHeroBanner}
+                onChange={async (e) => {
+                  const val = e.target.checked;
+                  setShowHeroBanner(val);
+                  await updateStoreSettings({ showHeroBanner: val, showMarqueeStrip: val });
+                  showToast(val ? 'Hero Banner Connection Toggled ON' : 'Hero Banner Connection Toggled OFF', val ? 'success' : 'info');
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#DC2626]"></div>
+            </label>
+          </div>
+
+          {/* TOGGLE 2: SPECIAL OFFER CARDS & DEALS */}
+          <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-zinc-900">
+                  Special Offer Cards & Deals Module
+                </span>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${showOfferCards ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>
+                  {showOfferCards ? '🟢 ON (CONNECTED)' : '🔴 OFF (TOGGLED OFF)'}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                Website par discount offer cards, coupon codes (`NIGHT50`) aur deals card dikhana ya band rakhna. (Nash Studio ke liye filhal band rakha gaya hai).
+              </p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
+              <input
+                type="checkbox"
+                checked={showOfferCards}
+                onChange={async (e) => {
+                  const val = e.target.checked;
+                  setShowOfferCards(val);
+                  await updateStoreSettings({ showOfferCards: val, dealsEnabled: val });
+                  showToast(val ? 'Offers & Deals Connection Toggled ON' : 'Offer Cards Connection Toggled OFF', val ? 'success' : 'info');
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#DC2626]"></div>
+            </label>
+          </div>
+
         </div>
       </div>
 
@@ -920,14 +1042,23 @@ export default function SettingsTab() {
 
       {/* CARD 6: HOMEPAGE HERO BANNER & MARQUEE STRIP COPY */}
       <form onSubmit={handleSaveHero} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
-        <div className="border-b border-zinc-100 pb-3.5">
-          <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Homepage Hero Banner & Marquee Strip Copy</span>
-          </h3>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            Customize the main headline and the scrolling ticker strip at top of website
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-100 pb-3.5 gap-2">
+          <div>
+            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Homepage Hero Banner & Marquee Strip Copy</span>
+            </h3>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Customize the main headline and the scrolling ticker strip at top of website
+            </p>
+          </div>
+          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto ${
+            showHeroBanner
+              ? 'bg-emerald-100 text-emerald-800'
+              : 'bg-zinc-100 text-zinc-600'
+          }`}>
+            {showHeroBanner ? '🟢 Banner Active On Site' : '🔴 Banner Toggled Off'}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

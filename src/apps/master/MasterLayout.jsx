@@ -63,11 +63,13 @@ export default function MasterLayout() {
     ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)
   ).length;
 
+  const showOffers = storeInfo?.settings?.showOfferCards !== false && (!isSalon || storeInfo?.settings?.dealsEnabled === true);
+
   const tabsConfig = [
     { id: 0, label: 'Dashboard', icon: LayoutDashboard },
     { id: 1, label: isSalon ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
     { id: 2, label: isSalon ? 'Services' : 'Menu', icon: UtensilsCrossed, badge: menu?.length || 0 },
-    { id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 },
+    ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 }] : []),
     { id: 4, label: isSalon ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
     { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
     { id: 6, label: 'SMS Gateway', icon: Smartphone },

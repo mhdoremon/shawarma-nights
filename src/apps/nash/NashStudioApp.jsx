@@ -34,6 +34,10 @@ const DEFAULT_SETTINGS = {
   heroTagline: "PRECISION GROOMING. BINA INTEZAAR KE.",
   heroButtonText: "",
   heroVideoUrl: "/video/hero.mp4",
+  showHeroBanner: false,
+  showOfferCards: false,
+  showMarqueeStrip: false,
+  dealsEnabled: false,
   shopWhatsapp: "923001234567",
   phoneDisplay: "0300-1234567",
   address: "Shop 12, Main Boulevard, Gulberg, Lahore",
@@ -437,6 +441,49 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.25) 100%)',zIndex:5,pointerEvents:'none'}} />
         <div style={S.bugattiTitle}>{settings.studioName || "Nash Studio"}</div>
       </section>
+
+      {/* SMART MODULAR WIRE: PROMOTIONAL HERO BANNER (TOGGLED OFF BY DEFAULT, CAN BE ACTIVATED FROM DUKANDAR OS) */}
+      {settings.showHeroBanner && (
+        <section className="nash-promotional-hero-banner" style={{background:"var(--surface)", borderBottom:"1px solid var(--line)", padding:"40px 20px", textAlign:"center"}}>
+          <div style={{maxWidth:800, margin:"0 auto"}}>
+            <span style={{fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", color:"#d4af37", background:"rgba(212,175,55,0.1)", padding:"4px 12px", borderRadius:20}}>
+              {settings.heroTagline || "EXCLUSIVE SALON PROMOTION"}
+            </span>
+            <h1 style={{fontFamily:"var(--display)", fontSize:"clamp(24px, 4vw, 36px)", fontWeight:800, color:"var(--paper)", marginTop:12, textTransform:"uppercase"}}>
+              {settings.studioName || "NASH STUDIO"}
+            </h1>
+            <p style={{color:"var(--muted)", fontSize:14, maxWidth:500, margin:"10px auto 20px", lineHeight:1.6}}>
+              {settings.aboutText || "Precision haircuts, skin fades, and luxury grooming crafted for gentlemen."}
+            </p>
+            {settings.heroButtonText && (
+              <button onClick={scrollToBook} style={{background:"var(--paper)", color:"var(--ink)", border:"none", padding:"12px 28px", borderRadius:4, fontWeight:700, fontSize:12, letterSpacing:"0.1em", cursor:"pointer", textTransform:"uppercase"}}>
+                {settings.heroButtonText}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* SMART MODULAR WIRE: SPECIAL OFFER CARDS (TOGGLED OFF BY DEFAULT, CAN BE ACTIVATED FROM DUKANDAR OS) */}
+      {settings.showOfferCards && (
+        <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"30px 20px"}}>
+          <div style={{maxWidth:1100, margin:"0 auto"}}>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <span style={{fontSize:12, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--paper)"}}>
+                ★ SPECIAL SALON PACKAGES & DEALS
+              </span>
+              <span style={{fontSize:11, color:"#d4af37", fontWeight:600}}>Limited Slots</span>
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:16}}>
+              <div style={{background:"var(--surface)", border:"1px solid var(--line)", borderRadius:8, padding:20}}>
+                <span style={{fontSize:10, fontWeight:700, background:"rgba(212,175,55,0.15)", color:"#d4af37", padding:"3px 8px", borderRadius:4}}>COMBO OFFER</span>
+                <h3 style={{fontSize:16, fontWeight:700, color:"var(--paper)", margin:"8px 0 4px"}}>Royal Grooming Combo</h3>
+                <p style={{fontSize:12, color:"var(--muted)", margin:0}}>Haircut + Hot Towel Razor Shave + Beard Blend</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* HAIRSTYLE SELECTION & BOOKING SECTION */}
       <section id="book" ref={bookRef} style={{...S.section, borderBottom:"1px solid var(--line)"}}>

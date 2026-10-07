@@ -360,16 +360,18 @@ export default function MenuTab() {
                   </p>
                 )}
 
-                {/* BUTTON: SET ON HOMEPAGE HERO BANNER (Exact Android App Feature) */}
-                <button
-                  type="button"
-                  onClick={() => openHeroOfferModal(dish)}
-                  className="w-full py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer border-0"
-                  title="Make this dish the Hero Offer on Homepage"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>SET AS HERO OFFER ON HOMEPAGE</span>
-                </button>
+                {/* BUTTON: SET ON HOMEPAGE HERO BANNER (Only when Hero Banner & Offers are toggled ON) */}
+                {storeInfo?.settings?.showHeroBanner !== false && storeInfo?.settings?.showOfferCards !== false && !isSalon && (
+                  <button
+                    type="button"
+                    onClick={() => openHeroOfferModal(dish)}
+                    className="w-full py-2 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center gap-1.5 transition-colors cursor-pointer border-0"
+                    title="Make this dish the Hero Offer on Homepage"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span>SET AS HERO OFFER ON HOMEPAGE</span>
+                  </button>
+                )}
 
                 {/* Bottom Controls: Availability Toggle + Edit/Delete */}
                 <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
