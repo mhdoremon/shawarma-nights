@@ -321,7 +321,38 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     }
   }, [user]);
 
+  // Restore pending booking state if returning from SSO
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("nash_pending_booking");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.styleId && Array.isArray(hairstyles)) {
+          const found = hairstyles.find(h => h.id === parsed.styleId);
+          if (found) {
+            setSelectedStyle(found);
+            if (typeof parsed.dateIndex === "number") setDateIndex(parsed.dateIndex);
+            if (parsed.slot) setSlot(parsed.slot);
+            if (parsed.txnId) setTxnId(parsed.txnId);
+            if (parsed.step) setStep(parsed.step);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not restore pending booking:", e);
+    }
+  }, [hairstyles]);
+
   function handleChuruOneSSO() {
+    try {
+      sessionStorage.setItem("nash_pending_booking", JSON.stringify({
+        step: 3,
+        styleId: selectedStyle?.id,
+        dateIndex,
+        slot,
+        txnId
+      }));
+    } catch (e) {}
     const isLocal = window.location.hostname === 'localhost';
     const base = isLocal ? '' : 'https://churuone.in';
     const returnUrl = window.location.href;
@@ -849,37 +880,185 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       })}
                     </div>
 
-                    {!user ? (
-                      /* STEP 3 AUTH GATE: DIRECT GOOGLE AUTHENTICATION ONLY */
+                    {/* =========================================================================
+                        MANDATORY ₹50 ONLINE TOKEN ADVANCE PAYMENT (ALWAYS VISIBLE AT STEP 3)
+                        ========================================================================= */}
+                    <div style={{
+                      background: "rgba(212, 175, 55, 0.05)",
+                      border: "1px solid rgba(212, 175, 55, 0.35)",
+                      borderRadius: 8,
+                      padding: "24px 20px",
+                      marginBottom: 20
+                    }}>
+                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
+                        <span style={{...S.fieldLabel, margin: 0, color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
+                          🔒 Mandatory Token Advance: ₹50 Fixed
+                        </span>
+                        <span style={{
+                          fontSize: 9, 
+                          background: "#d4af37", 
+                          color: "#000000", 
+                          fontWeight: 900, 
+                          padding: "4px 8px", 
+                          borderRadius: 4,
+                          letterSpacing: "0.15em", 
+                          textTransform: "uppercase"
+                        }}>
+                          REQUIRED
+                        </span>
+                      </div>
+
                       <div style={{
-                        textAlign: "center",
-                        padding: "36px 24px",
+                        background: "rgba(220, 38, 38, 0.12)",
+                        border: "1px solid rgba(220, 38, 38, 0.35)",
+                        borderRadius: 6,
+                        padding: "10px 12px",
+                        marginBottom: 16,
+                        fontSize: 11,
+                        color: "#fca5a5",
+                        lineHeight: 1.5
+                      }}>
+                        ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Kripya ₹50 pay karein aur 12-digit UTR number enter karein.
+                      </div>
+
+                      <p style={{fontSize: 12, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5}}>
+                        GPay, PhonePe, Paytm ya kisi bhi UPI app se ₹50 scan karein. Haircut ke baad bache hue <b>₹{remainingDue}</b> aap salon me cash ya UPI se de sakte hain.
+                      </p>
+
+                      <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 14,
+                        padding: "20px",
                         background: "var(--surface)",
                         border: "1px solid var(--line)",
+                        borderRadius: 6,
+                        marginBottom: 20
+                      }}>
+                        {/* DYNAMIC UPI QR CODE (FIXED TO ₹50) */}
+                        <div style={{background: "#ffffff", padding: 12, borderRadius: 6, display: "inline-block", border: "1px solid var(--line)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)"}}>
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`)}`}
+                            alt="Token Payment QR Code (Rs 50)"
+                            style={{width: 160, height: 160, display: "block"}}
+                          />
+                        </div>
+                        <span style={{fontSize: 11, fontWeight: 700, color: "#d4af37", letterSpacing: "0.08em"}}>
+                          SCAN TO PAY ₹50 TOKEN
+                        </span>
+
+                        <div style={{textAlign: "center", width: "100%"}}>
+                          <div style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4}}>Nash Studio UPI ID</div>
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 10,
+                            background: "var(--surface-hover)",
+                            padding: "8px 14px",
+                            border: "1px solid var(--line)",
+                            maxWidth: 280,
+                            margin: "0 auto",
+                            borderRadius: 4
+                          }}>
+                            <span style={{fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--paper)"}}>{settings.upiId || "nashstudio@upi"}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(settings.upiId || "nashstudio@upi");
+                                setCopiedUpi(true);
+                                setTimeout(() => setCopiedUpi(false), 2000);
+                              }}
+                              style={{background: "transparent", border: "none", color: "#d4af37", fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline"}}
+                            >
+                              {copiedUpi ? "COPIED!" : "COPY"}
+                            </button>
+                          </div>
+
+                          {/* MOBILE UPI APP LAUNCHER */}
+                          <div style={{marginTop: 12}}>
+                            <a
+                              href={`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                fontSize: 11,
+                                color: "#d4af37",
+                                fontWeight: 700,
+                                textDecoration: "underline",
+                                letterSpacing: "0.04em"
+                              }}
+                            >
+                              ⚡ Tap to Open UPI App (₹50 Pay)
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TRANSACTION ID INPUT (MANDATORY) */}
+                      <div>
+                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                          <label style={{...S.fieldLabel, margin: 0}}>
+                            12-Digit Transaction ID / UTR Number *
+                          </label>
+                          <span style={{fontSize: 10, color: txnId.trim().length >= 4 ? "#34A853" : "#f87171", fontWeight: 700}}>
+                            {txnId.trim().length >= 4 ? "✓ Entered" : "Required"}
+                          </span>
+                        </div>
+                        <input
+                          style={{
+                            ...S.input, 
+                            marginBottom: 6,
+                            borderColor: !txnId.trim() ? "rgba(220, 38, 38, 0.5)" : "rgba(52, 168, 83, 0.6)"
+                          }}
+                          type="text"
+                          required
+                          placeholder="e.g. 482910394820 (From Payment Receipt)"
+                          value={txnId}
+                          onChange={e => setTxnId(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                        />
+                        <span style={{fontSize: 11, color: "var(--muted)", display: "block"}}>
+                          UPI receipt (GPay / PhonePe / Paytm) se 12-digit UTR/Ref number yahan enter karein.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* =========================================================================
+                        CUSTOMER DETAILS & AUTHENTICATION
+                        ========================================================================= */}
+                    {!user ? (
+                      /* USER IS NOT LOGGED IN -> REQUIRE GOOGLE SIGN IN */
+                      <div style={{
+                        textAlign: "center",
+                        padding: "24px 20px",
+                        background: "var(--surface)",
+                        border: "1px solid var(--line)",
+                        borderRadius: 8,
                         marginBottom: 20
                       }} className="nash-expand-anim">
                         <div style={{
                           fontFamily: "var(--display)",
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: 700,
                           color: "var(--paper)",
                           letterSpacing: "0.08em",
                           textTransform: "uppercase",
-                          marginBottom: 8
+                          marginBottom: 6
                         }}>
-                          Sign In with ChuruOne ID
+                          Sign In with Google / ChuruOne ID
                         </div>
                         <p style={{
                           fontSize: 12,
                           color: "var(--muted)",
                           maxWidth: 380,
-                          margin: "0 auto 24px",
-                          lineHeight: 1.6
+                          margin: "0 auto 16px",
+                          lineHeight: 1.5
                         }}>
-                          Apne ChuruOne ID ya Google account se sign in karein aur appointment confirm karein.
+                          Appointment confirm karne aur slot lock karne ke liye Google account se sign in karein.
                         </p>
 
-                        {/* DIRECT CHURUONE SSO GOOGLE SIGN-IN BUTTON */}
                         <button
                           type="button"
                           onClick={handleGoogleAuth}
@@ -890,7 +1069,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             background: "var(--paper)",
                             color: "var(--ink)",
                             fontWeight: 700,
-                            padding: "16px 24px",
+                            padding: "14px 20px",
                             fontSize: 11,
                             border: "1px solid var(--line)",
                             cursor: googleLoading ? "wait" : "pointer",
@@ -901,7 +1080,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             justifyContent: "center",
                             gap: 12,
                             transition: "all 0.3s",
-                            marginBottom: domainNotice ? 14 : 0
+                            borderRadius: 4
                           }}
                           className="nash-btn-confirm"
                         >
@@ -913,59 +1092,14 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           </svg>
                           {googleLoading ? "OPENING CHURUONE AUTH..." : "CONTINUE WITH GOOGLE"}
                         </button>
-
-                        {/* DOMAIN AUTHORIZATION HELPER NOTICE (IF FIREBASE THROWS UNAUTHORIZED DOMAIN) */}
-                        {domainNotice && (
-                          <div style={{
-                            margin: "14px auto 0",
-                            maxWidth: 360,
-                            background: "rgba(234, 67, 53, 0.12)",
-                            border: "1px solid rgba(234, 67, 53, 0.4)",
-                            borderRadius: 8,
-                            padding: "14px 16px",
-                            fontSize: 11,
-                            color: "#ffffff",
-                            textAlign: "left",
-                            lineHeight: 1.6
-                          }}>
-                            <div style={{display: "flex", alignItems: "center", gap: 8, color: "#FF8A80", fontWeight: 700, marginBottom: 6}}>
-                              <span>⚙️</span>
-                              <span>Firebase Setup Step Required</span>
-                            </div>
-                            <p style={{margin: "0 0 10px", color: "rgba(255,255,255,0.8)"}}>
-                              Google security ke niyam anusaar, is domain ko Firebase Console me allow karna zaroori hai.
-                            </p>
-                            <a
-                              href="https://console.firebase.google.com/project/nash-studio-567ea/authentication/settings"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                display: "inline-block",
-                                background: "#4285F4",
-                                color: "#ffffff",
-                                padding: "8px 14px",
-                                borderRadius: 4,
-                                textDecoration: "none",
-                                fontWeight: 700,
-                                fontSize: 11,
-                                letterSpacing: "0.05em"
-                              }}
-                            >
-                              Open Firebase Settings ↗
-                            </a>
-                            <div style={{marginTop: 8, fontSize: 10, color: "rgba(255,255,255,0.6)"}}>
-                              Settings &gt; Authorized domains me <b>churuone.in</b> add karein.
-                            </div>
-                          </div>
-                        )}
                       </div>
                     ) : (
-                      /* USER IS LOGGED IN -> ENTER DETAILS & BOOK APPOINTMENT */
-                      <div className="nash-expand-anim">
+                      /* USER IS LOGGED IN -> ENTER DETAILS */
+                      <div className="nash-expand-anim" style={{marginBottom: 20}}>
                         <div style={S.fieldGroup}>
                           <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, padding:"10px 14px", background:"rgba(255,255,255,0.04)", borderRadius:8, border:"1px solid var(--line)"}}>
                             <div style={{display:"flex", alignItems:"center", gap:10}}>
-                              <img src={user.photoURL || user.picture} alt="" style={{width:32, height:32, borderRadius:"50%"}} />
+                              <img src={user.photoURL || user.picture || "/images/hero_fallback.jpg"} alt="" style={{width:32, height:32, borderRadius:"50%"}} />
                               <div>
                                 <div style={{fontWeight:700, fontSize:12, color:"var(--paper)"}}>{user.displayName || user.name}</div>
                                 <div style={{fontSize:10, color:"var(--muted)"}}>{user.email || user.phoneNumber || "ChuruOne Verified"}</div>
@@ -981,169 +1115,29 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             <input style={S.input} type="tel" placeholder="10-Digit Mobile Number (Mandatory) *" value={phone} onChange={e => setPhone(e.target.value)} required />
                           </div>
                         </div>
-
-                        {/* =========================================================================
-                            MANDATORY ONLINE TOKEN ADVANCE PAYMENT (₹50 FIXED)
-                            ========================================================================= */}
-                        <div style={{
-                          background: "rgba(212, 175, 55, 0.05)",
-                          border: "1px solid rgba(212, 175, 55, 0.35)",
-                          borderRadius: 8,
-                          padding: "24px 20px",
-                          marginBottom: 24
-                        }}>
-                          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
-                            <span style={{...S.fieldLabel, margin: 0, color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
-                              🔒 Mandatory Token Advance: ₹50 Fixed
-                            </span>
-                            <span style={{
-                              fontSize: 9, 
-                              background: "#d4af37", 
-                              color: "#000000", 
-                              fontWeight: 900, 
-                              padding: "4px 8px", 
-                              borderRadius: 4,
-                              letterSpacing: "0.15em", 
-                              textTransform: "uppercase"
-                            }}>
-                              REQUIRED
-                            </span>
-                          </div>
-
-                          <div style={{
-                            background: "rgba(220, 38, 38, 0.12)",
-                            border: "1px solid rgba(220, 38, 38, 0.35)",
-                            borderRadius: 6,
-                            padding: "10px 12px",
-                            marginBottom: 16,
-                            fontSize: 11,
-                            color: "#fca5a5",
-                            lineHeight: 1.5
-                          }}>
-                            ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Kripya ₹50 pay karein aur 12-digit UTR number enter karein.
-                          </div>
-
-                          <p style={{fontSize: 12, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5}}>
-                            GPay, PhonePe, Paytm ya kisi bhi UPI app se ₹50 scan karein. Haircut ke baad bache hue <b>₹{remainingDue}</b> aap salon me cash ya UPI se de sakte hain.
-                          </p>
-
-                          <div style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            gap: 14,
-                            padding: "20px",
-                            background: "var(--surface)",
-                            border: "1px solid var(--line)",
-                            borderRadius: 6,
-                            marginBottom: 20
-                          }}>
-                            {/* DYNAMIC UPI QR CODE (FIXED TO ₹50) */}
-                            <div style={{background: "#ffffff", padding: 12, borderRadius: 6, display: "inline-block", border: "1px solid var(--line)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)"}}>
-                              <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`)}`}
-                                alt="Token Payment QR Code (Rs 50)"
-                                style={{width: 160, height: 160, display: "block"}}
-                              />
-                            </div>
-                            <span style={{fontSize: 11, fontWeight: 700, color: "#d4af37", letterSpacing: "0.08em"}}>
-                              SCAN TO PAY ₹50 TOKEN
-                            </span>
-
-                            <div style={{textAlign: "center", width: "100%"}}>
-                              <div style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4}}>Nash Studio UPI ID</div>
-                              <div style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 10,
-                                background: "var(--surface-hover)",
-                                padding: "8px 14px",
-                                border: "1px solid var(--line)",
-                                maxWidth: 280,
-                                margin: "0 auto",
-                                borderRadius: 4
-                              }}>
-                                <span style={{fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--paper)"}}>{settings.upiId || "nashstudio@upi"}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(settings.upiId || "nashstudio@upi");
-                                    setCopiedUpi(true);
-                                    setTimeout(() => setCopiedUpi(false), 2000);
-                                  }}
-                                  style={{background: "transparent", border: "none", color: "#d4af37", fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline"}}
-                                >
-                                  {copiedUpi ? "COPIED!" : "COPY"}
-                                </button>
-                              </div>
-
-                              {/* MOBILE UPI APP LAUNCHER */}
-                              <div style={{marginTop: 12}}>
-                                <a
-                                  href={`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`}
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    fontSize: 11,
-                                    color: "#d4af37",
-                                    fontWeight: 700,
-                                    textDecoration: "underline",
-                                    letterSpacing: "0.04em"
-                                  }}
-                                >
-                                  ⚡ Tap to Open UPI App (₹50 Pay)
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* TRANSACTION ID INPUT (MANDATORY) */}
-                          <div>
-                            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
-                              <label style={{...S.fieldLabel, margin: 0}}>
-                                12-Digit Transaction ID / UTR Number *
-                              </label>
-                              <span style={{fontSize: 10, color: "#f87171", fontWeight: 700}}>Required</span>
-                            </div>
-                            <input
-                              style={{
-                                ...S.input, 
-                                marginBottom: 6,
-                                borderColor: !txnId.trim() ? "rgba(220, 38, 38, 0.5)" : "var(--line)"
-                              }}
-                              type="text"
-                              required
-                              placeholder="e.g. 482910394820 (From Payment Receipt)"
-                              value={txnId}
-                              onChange={e => setTxnId(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                            />
-                            <span style={{fontSize: 11, color: "var(--muted)", display: "block"}}>
-                              UPI receipt (GPay / PhonePe / Paytm) se 12-digit UTR/Ref number yahan enter karein.
-                            </span>
-                          </div>
-                        </div>
-
-                        <button 
-                          style={{
-                            ...S.btnConfirm,
-                            background: !txnId.trim() ? "rgba(212, 175, 55, 0.4)" : S.btnConfirm.background,
-                            color: !txnId.trim() ? "rgba(0,0,0,0.6)" : S.btnConfirm.color,
-                            cursor: !txnId.trim() ? "not-allowed" : "pointer"
-                          }} 
-                          className="nash-btn-confirm" 
-                          onClick={confirmBooking} 
-                          disabled={saving}
-                        >
-                          {saving 
-                            ? "CONFIRMING APPOINTMENT..." 
-                            : !txnId.trim()
-                            ? "PAY ₹50 & ENTER UTR TO CONFIRM BOOKING"
-                            : "CONFIRM APPOINTMENT (₹50 TOKEN PAID) →"}
-                        </button>
                       </div>
                     )}
+
+                    {/* CONFIRMATION / ACTION BUTTON */}
+                    <button 
+                      style={{
+                        ...S.btnConfirm,
+                        background: (!user || !txnId.trim() || txnId.trim().length < 4) ? "rgba(212, 175, 55, 0.4)" : S.btnConfirm.background,
+                        color: (!user || !txnId.trim() || txnId.trim().length < 4) ? "rgba(0,0,0,0.6)" : S.btnConfirm.color,
+                        cursor: saving ? "wait" : (!user ? "pointer" : (!txnId.trim() ? "not-allowed" : "pointer"))
+                      }} 
+                      className="nash-btn-confirm" 
+                      onClick={!user ? handleGoogleAuth : confirmBooking} 
+                      disabled={saving || (Boolean(user) && (!txnId.trim() || txnId.trim().length < 4))}
+                    >
+                      {saving 
+                        ? "CONFIRMING APPOINTMENT..." 
+                        : !user
+                        ? "1. SIGN IN WITH GOOGLE TO CONFIRM (₹50 TOKEN)"
+                        : !txnId.trim() || txnId.trim().length < 4
+                        ? "ENTER ₹50 UPI UTR / TXN ID TO CONFIRM"
+                        : "CONFIRM APPOINTMENT (₹50 TOKEN PAID) →"}
+                    </button>
                   </div>
                 )}
               </div>
