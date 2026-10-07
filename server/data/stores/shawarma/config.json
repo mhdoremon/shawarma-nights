@@ -33,6 +33,7 @@
     "minOrderAmount": 0,
     "maxOrdersPerHour": 100,
     "autoAcceptOrders": false,
+    "requirePhoneOtp": true,
     "enabledModules": [
       "catalog",
       "orders",

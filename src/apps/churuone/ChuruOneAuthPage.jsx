@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { ArrowLeft, CheckCircle2, ShieldCheck, Sparkles, Smartphone, Mail, User, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Sparkles, Smartphone, Mail, User, AlertCircle, KeyRound, RefreshCw, Lock } from 'lucide-react';
 import { firebaseConfig } from '../nash/firebase';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -37,8 +37,30 @@ export default function ChuruOneAuthPage() {
   const storeDisplayName = STORE_NAMES[storeId] || 'Partner Store';
   const isShawarma = storeId.includes('shawarma') || storeId === 'shawarma-nights';
 
+  // Store Phone OTP Policy (Default: Shawarma/food requires phone OTP, Salon does not)
+  const [storePolicyRequireOtp, setStorePolicyRequireOtp] = useState(() => {
+    const param = searchParams.get('requirePhoneOtp');
+    if (param === '1' || param === 'true') return true;
+    if (param === '0' || param === 'false') return false;
+    return isShawarma;
+  });
+
+  // Background store config check
+  useEffect(() => {
+    fetch(`/api/store-info?storeId=${storeId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.settings && typeof data.settings.requirePhoneOtp === 'boolean') {
+          if (!searchParams.get('requirePhoneOtp')) {
+            setStorePolicyRequireOtp(data.settings.requirePhoneOtp);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [storeId]);
+
   // Auth State
-  const [step, setStep] = useState(1); // 1: Google login, 2: Profile complete (phone mandatory)
+  const [step, setStep] = useState(1); // 1: Google login, 2: Profile & Phone, 3: Real SMS OTP Verify
   const [googleUser, setGoogleUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,14 +69,30 @@ export default function ChuruOneAuthPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Real SMS OTP States
+  const [otpInput, setOtpInput] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [devOtp, setDevOtp] = useState(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown(c => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   // Auto-finish if already logged in via ChuruOne session
   useEffect(() => {
     try {
       const existingRaw = localStorage.getItem('churuone_user') || localStorage.getItem('nash_user');
       if (existingRaw) {
         const parsed = JSON.parse(existingRaw);
-        if (parsed && parsed.phoneNumber && searchParams.get('auto') === '1') {
-          completeAndRedirect(parsed, localStorage.getItem('auth_token') || '');
+        if (parsed && (parsed.phoneNumber || parsed.phone) && searchParams.get('auto') === '1') {
+          if (!storePolicyRequireOtp || parsed.phoneVerified) {
+            completeAndRedirect(parsed, localStorage.getItem('auth_token') || '');
+          }
         }
       }
     } catch (e) {}
@@ -79,22 +117,27 @@ export default function ChuruOneAuthPage() {
       setFullName(gName);
       setEmail(gEmail);
 
-      // Check if user already exists on ChuruOne Smart Server with a phone number
+      // Check if user already exists on ChuruOne Smart Server with a verified phone number
       try {
         const checkRes = await fetch(`/api/auth/me?email=${encodeURIComponent(gEmail)}&storeId=${storeId}`);
         if (checkRes.ok) {
           const data = await checkRes.json();
           if (data.success && data.user && data.user.phone) {
-            // Already registered with phone -> complete immediately!
-            await finalizeServerSession({
-              googleId: user.uid,
-              email: gEmail,
-              name: data.user.name || gName,
-              picture: gPic,
-              phone: data.user.phone,
-              storeId
-            });
-            return;
+            if (!storePolicyRequireOtp || data.user.phoneVerified) {
+              // Already registered and verified -> complete immediately!
+              await finalizeServerSession({
+                googleId: user.uid,
+                email: gEmail,
+                name: data.user.name || gName,
+                picture: gPic,
+                phone: data.user.phone,
+                phoneVerified: Boolean(data.user.phoneVerified),
+                storeId
+              });
+              return;
+            } else {
+              setPhone(data.user.phone);
+            }
           }
         }
       } catch (checkErr) {
@@ -129,21 +172,95 @@ export default function ChuruOneAuthPage() {
       return;
     }
 
-    setLoading(true);
-    setErrorMsg('');
+    if (!storePolicyRequireOtp) {
+      // Store does NOT require phone verification (e.g. Salon / Nash Studio)
+      setLoading(true);
+      setErrorMsg('');
+      try {
+        await finalizeServerSession({
+          googleId: googleUser?.uid || `churu_${Date.now()}`,
+          email: email || googleUser?.email || '',
+          name: fullName.trim(),
+          picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
+          phone: cleanPhone,
+          phoneVerified: false,
+          storeId
+        });
+      } catch (err) {
+        setErrorMsg(err.message || "Profile save karne me error aaya.");
+        setLoading(false);
+      }
+      return;
+    }
 
+    // Store REQUIRES Real Phone OTP verification (e.g. Shawarma Nights food delivery)
+    await requestPhoneOtp(cleanPhone);
+  }
+
+  async function requestPhoneOtp(targetPhone) {
+    setIsSendingOtp(true);
+    setErrorMsg('');
     try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: targetPhone, storeId })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.message || 'OTP send fail ho gaya. Kripya dobara try karein.');
+        setIsSendingOtp(false);
+        return;
+      }
+
+      setCooldown(30);
+      if (data.devOtp) setDevOtp(data.devOtp);
+      setStep(3); // Go to OTP verification step!
+      setSuccessMsg(`SMS OTP dispatched via Dukandar App Gateway to +91 ${targetPhone}`);
+    } catch (err) {
+      setErrorMsg(err.message || 'Server se connect nahi ho paya.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  async function handleVerifyOtpSubmit(e) {
+    e.preventDefault();
+    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+    const cleanOtp = otpInput.trim();
+    if (cleanOtp.length !== 6) {
+      setErrorMsg("Kripya 6-digit ka sahi OTP enter karein.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cleanPhone, otp: cleanOtp, storeId })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setErrorMsg(data.message || 'Galat OTP! Kripya dobara try karein.');
+        setIsVerifyingOtp(false);
+        return;
+      }
+
+      // OTP is 100% verified! Finalize session with phoneVerified: true!
       await finalizeServerSession({
         googleId: googleUser?.uid || `churu_${Date.now()}`,
         email: email || googleUser?.email || '',
         name: fullName.trim(),
         picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
         phone: cleanPhone,
+        phoneVerified: true,
         storeId
       });
     } catch (err) {
-      setErrorMsg(err.message || "Profile save karne me error aaya.");
-      setLoading(false);
+      setErrorMsg(err.message || 'Verification fail hua. Kripya check karein.');
+      setIsVerifyingOtp(false);
     }
   }
 
@@ -169,7 +286,7 @@ export default function ChuruOneAuthPage() {
       photoURL: payload.picture,
       picture: payload.picture,
       authProvider: 'google',
-      phoneVerified: false // Saved on record, ready for later verification if needed
+      phoneVerified: Boolean(payload.phoneVerified)
     };
 
     localStorage.setItem('churuone_user', JSON.stringify(verifiedUser));
@@ -488,26 +605,37 @@ export default function ChuruOneAuthPage() {
               </div>
             </div>
 
-            {/* MANDATORY MOBILE NUMBER (NO OTP REQUIRED) */}
+            {/* MANDATORY MOBILE NUMBER & POLICY ADAPTATION */}
             <div style={{marginBottom: 20}}>
-              {isShawarma && (
+              {storePolicyRequireOtp ? (
                 <div style={{
-                  background: 'rgba(220, 38, 38, 0.12)',
-                  border: '1px solid rgba(220, 38, 38, 0.35)',
-                  borderRadius: 10,
-                  padding: '10px 12px',
-                  marginBottom: 12,
+                  background: 'rgba(220, 38, 38, 0.14)',
+                  border: '1px solid rgba(220, 38, 38, 0.45)',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  marginBottom: 14,
                   fontSize: 11,
                   color: '#fca5a5',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  textAlign: 'left'
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  textAlign: 'left',
+                  lineHeight: 1.5
                 }}>
-                  <AlertCircle size={16} color="#ef4444" style={{flexShrink: 0}} />
-                  <span><b>Delivery Rule:</b> Shawarma Nights delivery partner isi number par call karega. Kripya apna sahi 10-digit mobile number enter karein.</span>
+                  <AlertCircle size={18} color="#ef4444" style={{flexShrink: 0, marginTop: 1}} />
+                  <div>
+                    <strong style={{color: '#ffffff', display: 'block', fontSize: 12, marginBottom: 2}}>
+                      SMS OTP Verification Aniwarya Hai!
+                    </strong>
+                    {storeDisplayName} par order lene ke liye mobile verification zaroori hai. Dukandar Android App Gateway aapke mobile par SMS OTP bhejega.
+                  </div>
                 </div>
+              ) : (
+                <p style={{fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '0 0 12px', lineHeight: 1.4}}>
+                  Booking confirmation aur updates ke liye aapka mobile number add kiya ja raha hai. OTP verification zaroori nahi hai.
+                </p>
               )}
+
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
                 <label style={{
                   fontSize: 11,
@@ -516,9 +644,18 @@ export default function ChuruOneAuthPage() {
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em'
                 }}>
-                  Mobile Number (Mandatory) *
+                  {storePolicyRequireOtp ? "Mobile Number (OTP Required) *" : "Mobile Number (Mandatory) *"}
                 </label>
-                <span style={{fontSize: 10, color: 'rgba(255,255,255,0.4)'}}>No OTP Needed</span>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: storePolicyRequireOtp ? '#f87171' : 'rgba(255,255,255,0.4)',
+                  background: storePolicyRequireOtp ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                  padding: storePolicyRequireOtp ? '2px 6px' : '0',
+                  borderRadius: 6
+                }}>
+                  {storePolicyRequireOtp ? "SMS OTP via App Gateway" : "No OTP Needed"}
+                </span>
               </div>
               <div style={{display: 'flex', gap: 8}}>
                 <span style={{
@@ -556,15 +693,15 @@ export default function ChuruOneAuthPage() {
                 />
               </div>
               <p style={{fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: '6px 0 0', lineHeight: 1.4}}>
-                {isShawarma
-                  ? '* Food order verification aur rider tracking ke liye mobile number aniwarya hai.'
+                {storePolicyRequireOtp
+                  ? '* Food order verification aur rider tracking ke liye mobile number OTP verify hona aniwarya hai.'
                   : '* Booking confirmation & appointment status ke liye mobile number mandatory hai.'}
               </p>
             </div>
 
             <button
               type="submit"
-              disabled={loading || phone.replace(/\D/g, '').length !== 10}
+              disabled={loading || isSendingOtp || phone.replace(/\D/g, '').length !== 10}
               style={{
                 width: '100%',
                 background: phone.replace(/\D/g, '').length === 10 ? 'linear-gradient(135deg, #d4af37 0%, #aa8010 100%)' : 'rgba(255,255,255,0.1)',
@@ -581,8 +718,185 @@ export default function ChuruOneAuthPage() {
                 boxShadow: phone.replace(/\D/g, '').length === 10 ? '0 4px 18px rgba(212, 175, 55, 0.35)' : 'none'
               }}
             >
-              {loading ? "SAVING CHURUONE PROFILE..." : `COMPLETE & CONTINUE TO ${storeId.includes('nash') ? 'NASH STUDIO' : 'STORE'} →`}
+              {isSendingOtp
+                ? "SENDING SMS OTP..."
+                : storePolicyRequireOtp
+                  ? "SEND VERIFICATION SMS OTP →"
+                  : loading
+                    ? "SAVING CHURUONE PROFILE..."
+                    : `COMPLETE & CONTINUE TO ${storeDisplayName.toUpperCase()} →`}
             </button>
+          </form>
+        )}
+
+        {/* STEP 3: REAL SMS OTP VERIFICATION (POWERED BY DUKANDAR APP GATEWAY) */}
+        {step === 3 && (
+          <form onSubmit={handleVerifyOtpSubmit}>
+            {/* Mobile Header Info */}
+            <div style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 14,
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 16
+            }}>
+              <div>
+                <div style={{fontSize: 10, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em'}}>
+                  Verifying Number
+                </div>
+                <div style={{fontSize: 14, fontWeight: 800, color: '#ffffff', letterSpacing: '0.04em'}}>
+                  +91 {phone.replace(/\D/g, '').slice(-10)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  color: '#d4af37',
+                  padding: '5px 10px',
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Change Number
+              </button>
+            </div>
+
+            {/* Dukandar App Gateway Status Notice */}
+            <div style={{
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid rgba(59, 130, 246, 0.35)',
+              borderRadius: 12,
+              padding: '12px 14px',
+              marginBottom: 18,
+              fontSize: 11,
+              color: '#93c5fd',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              lineHeight: 1.5,
+              textAlign: 'left'
+            }}>
+              <ShieldCheck size={18} color="#60a5fa" style={{flexShrink: 0, marginTop: 1}} />
+              <div>
+                <strong style={{color: '#ffffff', display: 'block', fontSize: 12, marginBottom: 2}}>
+                  Dukandar Android App SMS Gateway
+                </strong>
+                SMS OTP Dukandar SIM Gateway ke dwara aapke mobile number par dispatch kiya gaya hai.
+              </div>
+            </div>
+
+            {/* Dev Test OTP Notice (if available) */}
+            {devOtp && (
+              <div style={{
+                background: 'rgba(234, 179, 8, 0.15)',
+                border: '1px dashed #eab308',
+                borderRadius: 10,
+                padding: '8px 12px',
+                marginBottom: 16,
+                fontSize: 11,
+                color: '#fef08a',
+                textAlign: 'center'
+              }}>
+                🔑 <b>Dev Test OTP:</b> <span style={{fontFamily: 'monospace', fontSize: 14, fontWeight: 800}}>{devOtp}</span>
+              </div>
+            )}
+
+            {/* OTP Input Field */}
+            <div style={{marginBottom: 20}}>
+              <label style={{
+                display: 'block',
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.7)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                marginBottom: 8,
+                textAlign: 'center'
+              }}>
+                Enter 6-Digit SMS OTP
+              </label>
+              <input
+                type="text"
+                autoFocus
+                required
+                maxLength={6}
+                value={otpInput}
+                onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                placeholder="• • • • • •"
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  borderRadius: 12,
+                  color: '#ffffff',
+                  fontSize: 24,
+                  fontWeight: 800,
+                  letterSpacing: '0.35em',
+                  textAlign: 'center',
+                  fontFamily: 'monospace',
+                  boxSizing: 'border-box',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Verify Submit Button */}
+            <button
+              type="submit"
+              disabled={isVerifyingOtp || otpInput.trim().length !== 6}
+              style={{
+                width: '100%',
+                background: otpInput.trim().length === 6 ? 'linear-gradient(135deg, #d4af37 0%, #aa8010 100%)' : 'rgba(255,255,255,0.1)',
+                color: otpInput.trim().length === 6 ? '#000000' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                borderRadius: 12,
+                padding: '15px 20px',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                cursor: otpInput.trim().length === 6 ? 'pointer' : 'not-allowed',
+                transition: 'all 0.25s',
+                boxShadow: otpInput.trim().length === 6 ? '0 4px 18px rgba(212, 175, 55, 0.35)' : 'none',
+                marginBottom: 16
+              }}
+            >
+              {isVerifyingOtp ? "VERIFYING SMS OTP..." : "VERIFY OTP & CONTINUE →"}
+            </button>
+
+            {/* Resend OTP */}
+            <div style={{textAlign: 'center', fontSize: 11}}>
+              {cooldown > 0 ? (
+                <span style={{color: 'rgba(255,255,255,0.45)'}}>
+                  Resend SMS OTP in <b>{cooldown}s</b>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => requestPhoneOtp(phone.replace(/\D/g, '').slice(-10))}
+                  disabled={isSendingOtp}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#d4af37',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  {isSendingOtp ? "Sending new OTP..." : "Resend SMS OTP"}
+                </button>
+              )}
+            </div>
           </form>
         )}
       </div>

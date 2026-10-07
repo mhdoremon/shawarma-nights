@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     const isLocal = window.location.hostname === 'localhost';
     const base = isLocal ? '' : 'https://churuone.in';
     const returnUrl = window.location.href;
-    const ssoUrl = `${base}/auth?storeId=shawarma&returnUrl=${encodeURIComponent(returnUrl)}`;
+    const ssoUrl = `${base}/auth?storeId=shawarma&returnUrl=${encodeURIComponent(returnUrl)}&requirePhoneOtp=true`;
     window.location.href = ssoUrl;
   };
 

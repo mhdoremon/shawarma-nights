@@ -147,6 +147,13 @@ export default function CartDrawer({ onOpenTracker }) {
       return;
     }
 
+    const cleanUserPhone = (currentUser?.phone || currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+    if (!currentUser?.phoneVerified || cleanUserPhone.length !== 10) {
+      alert("⚠️ Shawarma Nights food delivery ke liye mobile number OTP verify hona aniwarya hai. Kripya apna number verify karein.");
+      openAuthModal('phone');
+      return;
+    }
+
     const currentAddr = (typeof overrideAddress === 'string' ? overrideAddress : null) || (currentUser?.address || userAddress || '').trim();
     const activeGps = (gpsOverride && !gpsOverride.nativeEvent) ? gpsOverride : orderLiveGps;
 
@@ -660,16 +667,31 @@ export default function CartDrawer({ onOpenTracker }) {
                 {/* Delivery Address & Verification Card */}
                 <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">
                   {isAuthenticated ? (
-                    <>
-                      <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                        <span>Delivery Details:</span>
-                        <span className="text-emerald-600 font-extrabold flex items-center gap-1">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                          <span>Phone Verified</span>
-                        </span>
+                    currentUser?.phoneVerified ? (
+                      <>
+                        <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                          <span>Delivery Details:</span>
+                          <span className="text-emerald-600 font-extrabold flex items-center gap-1">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            <span>Phone OTP Verified</span>
+                          </span>
+                        </div>
+                        <div className="font-bold text-zinc-900 text-xs">{currentUser.name} (+91 {currentUser.phone})</div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-xl">
+                        <div>
+                          <div className="font-extrabold text-xs text-red-900">⚠️ Phone Not Verified!</div>
+                          <div className="text-[10px] text-red-700">Food delivery ke liye SMS OTP verify karein</div>
+                        </div>
+                        <button
+                          onClick={() => openAuthModal('phone')}
+                          className="px-3 py-1.5 rounded-xl bg-[#DC2626] text-white font-extrabold text-xs shadow-xs hover:bg-[#B91C1C]"
+                        >
+                          Verify OTP
+                        </button>
                       </div>
-                      <div className="font-bold text-zinc-900 text-xs">{currentUser.name} (+91 {currentUser.phone})</div>
-                    </>
+                    )
                   ) : (
                     <div className="flex items-center justify-between">
                       <div>
@@ -859,9 +881,13 @@ export default function CartDrawer({ onOpenTracker }) {
                   <span>
                     {isInitiatingPayment
                       ? 'Generating UPI...'
+                      : !isAuthenticated
+                      ? (paymentMethod === 'upi' ? 'Login & Pay' : 'Login & Place Order')
+                      : !currentUser?.phoneVerified
+                      ? 'Verify Phone to Order'
                       : paymentMethod === 'upi'
-                      ? (isAuthenticated ? 'Pay via UPI / QR' : 'Login & Pay')
-                      : (isAuthenticated ? 'Place COD Order' : 'Login & Place Order')}
+                      ? 'Pay via UPI / QR'
+                      : 'Place COD Order'}
                   </span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </div>

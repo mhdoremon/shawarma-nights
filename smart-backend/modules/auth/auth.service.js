@@ -233,7 +233,9 @@ export const googleLogin = async (req, res) => {
                 customer.phone = normalizePhone(phone);
             }
             customer.authProvider = 'google';
-            if (customer.phoneVerified === undefined) {
+            if (req.body.phoneVerified !== undefined) {
+                customer.phoneVerified = Boolean(req.body.phoneVerified);
+            } else if (customer.phoneVerified === undefined) {
                 customer.phoneVerified = false;
             }
             customer.lastLoginAt = now();
@@ -244,7 +246,7 @@ export const googleLogin = async (req, res) => {
                 name: userName || (normalizedEmail ? normalizedEmail.split('@')[0] : 'Google User'),
                 email: normalizedEmail,
                 phone: phone ? normalizePhone(phone) : '',
-                phoneVerified: false,
+                phoneVerified: req.body.phoneVerified !== undefined ? Boolean(req.body.phoneVerified) : false,
                 picture: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 photoURL: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 googleId: userGoogleId || '',
