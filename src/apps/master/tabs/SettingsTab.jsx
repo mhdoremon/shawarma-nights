@@ -20,6 +20,9 @@ import {
   Instagram, 
   MessageCircle,
   HelpCircle,
+  Video,
+  Play,
+  Upload,
   X
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
@@ -63,20 +66,27 @@ export default function SettingsTab() {
   // Store General & Operational Info Form
   const paymentObj = storeInfo?.payment || {};
   const socialsObj = storeInfo?.socials || {};
+  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
 
   const [operationalForm, setOperationalForm] = useState({
-    name: storeInfo?.name || 'Shawarma Nights',
-    tagline: storeInfo?.tagline || 'Original Charcoal Shawarma & Rolls',
-    timing: storeInfo?.timing || 'Open Daily: 12:00 PM – 04:00 AM',
-    address: storeInfo?.address || 'Near Railway Station, Churu, Rajasthan',
+    name: storeInfo?.name || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
+    tagline: storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
+    heroTagline: storeInfo?.heroTagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : ''),
+    heroButtonText: storeInfo?.heroButtonText || (isSalon ? 'BOOK APPOINTMENT NOW' : ''),
+    heroVideoUrl: storeInfo?.heroVideoUrl || '/video/hero.mp4',
+    bookingFee: storeInfo?.bookingFee !== undefined ? String(storeInfo.bookingFee) : '50',
+    monSatHours: storeInfo?.monSatHours || '11:00 AM to 11:00 PM',
+    sundayHours: storeInfo?.sundayHours || 'Closed',
+    timing: storeInfo?.timing || (isSalon ? 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed' : 'Open Daily: 12:00 PM – 04:00 AM'),
+    address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
     halalBadgeText: storeInfo?.halalBadgeText || '100% Halal Certified Fresh',
-    aboutText: storeInfo?.aboutText || 'Authentic Charcoal Shawarma grilled live with authentic Arabian Toum garlic sauce.',
-    upiId: paymentObj.upiId || storeInfo?.upiId || '7023963189@paytm',
-    payeeName: paymentObj.payeeName || 'Shawarma Nights',
+    aboutText: storeInfo?.aboutText || (isSalon ? 'Bespoke haircuts, luxury skin fades, hot towel razor shaves, and executive beard grooming.' : 'Authentic Charcoal Shawarma grilled live with authentic Arabian Toum garlic sauce.'),
+    upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
+    payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
     codEnabled: paymentObj.codEnabled !== false,
-    whatsapp: socialsObj.whatsapp || '7023963189',
-    instagram: socialsObj.instagram || 'https://instagram.com/shawarmanights_churu',
+    whatsapp: socialsObj.whatsapp || (isSalon ? '923001234567' : '7023963189'),
+    instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio' : 'https://instagram.com/shawarmanights_churu'),
     isOpen: storeInfo?.isOpen !== false,
     deliveryFee: storeInfo?.deliveryFee ?? 30
   });
@@ -108,6 +118,12 @@ export default function SettingsTab() {
         ...prev,
         name: storeInfo.name || prev.name,
         tagline: storeInfo.tagline || prev.tagline,
+        heroTagline: storeInfo.heroTagline || prev.heroTagline,
+        heroButtonText: storeInfo.heroButtonText || prev.heroButtonText,
+        heroVideoUrl: storeInfo.heroVideoUrl || prev.heroVideoUrl,
+        bookingFee: storeInfo.bookingFee !== undefined ? String(storeInfo.bookingFee) : prev.bookingFee,
+        monSatHours: storeInfo.monSatHours || prev.monSatHours,
+        sundayHours: storeInfo.sundayHours || prev.sundayHours,
         timing: storeInfo.timing || prev.timing,
         address: storeInfo.address || prev.address,
         deliveryNote: storeInfo.deliveryNote || prev.deliveryNote,
@@ -167,12 +183,58 @@ export default function SettingsTab() {
     showToast('Taxes & Packaging Charges Saved & Synced!', 'success');
   };
 
+  // Video file upload for salon hero background
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsVideoUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        const res = await fetch(`https://churuone-backend.onrender.com/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-store-id': storeId
+          },
+          body: JSON.stringify({
+            image: base64Data,
+            filename: file.name
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          setOperationalForm(prev => ({ ...prev, heroVideoUrl: data.url }));
+          showToast('Hero background video uploaded successfully!', 'success');
+        } else {
+          setOperationalForm(prev => ({ ...prev, heroVideoUrl: base64Data }));
+          showToast('Video loaded from device', 'info');
+        }
+      } catch (err) {
+        setOperationalForm(prev => ({ ...prev, heroVideoUrl: base64Data }));
+        showToast('Video loaded from device', 'info');
+      } finally {
+        setIsVideoUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // 3. SAVE OPERATIONAL SETTINGS
   const handleSaveOperational = async (e) => {
     e.preventDefault();
     await updateStoreSettings({
       name: operationalForm.name,
       tagline: operationalForm.tagline,
+      heroTagline: operationalForm.heroTagline,
+      heroButtonText: operationalForm.heroButtonText,
+      heroVideoUrl: operationalForm.heroVideoUrl,
+      bookingFee: Number(operationalForm.bookingFee) || 50,
+      monSatHours: operationalForm.monSatHours,
+      sundayHours: operationalForm.sundayHours,
       timing: operationalForm.timing,
       address: operationalForm.address,
       deliveryNote: operationalForm.deliveryNote,
@@ -191,7 +253,7 @@ export default function SettingsTab() {
         instagram: operationalForm.instagram.trim()
       }
     });
-    showToast('Store Operational Details & UPI Saved!', 'success');
+    showToast(isSalon ? 'Salon Settings & Hero Video Saved Live!' : 'Store Operational Details & UPI Saved!', 'success');
   };
 
   // 4. SAVE HERO & MARQUEE COPY
@@ -533,6 +595,35 @@ export default function SettingsTab() {
           </div>
         </div>
 
+        {/* Hero Tagline / Slogan & CTA Button Text */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Hero Tagline / Slogan (वेबसाइट स्लोगन)
+            </label>
+            <input
+              type="text"
+              value={operationalForm.heroTagline}
+              onChange={(e) => setOperationalForm({ ...operationalForm, heroTagline: e.target.value })}
+              placeholder={isSalon ? "e.g. PRECISION GROOMING. BINA INTEZAAR KE." : "e.g. Authentic Charcoal Shawarma"}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Hero CTA Button Text (मुख्य बटन का नाम)
+            </label>
+            <input
+              type="text"
+              value={operationalForm.heroButtonText}
+              onChange={(e) => setOperationalForm({ ...operationalForm, heroButtonText: e.target.value })}
+              placeholder={isSalon ? "e.g. BOOK APPOINTMENT NOW" : "e.g. ORDER NOW"}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+        </div>
+
         {/* UPI Payments & Payee Name */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div>
@@ -574,20 +665,63 @@ export default function SettingsTab() {
               type="text"
               value={operationalForm.timing}
               onChange={(e) => setOperationalForm({ ...operationalForm, timing: e.target.value })}
-              placeholder="Open Daily: 12:00 PM – 04:00 AM"
+              placeholder={isSalon ? "Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed" : "Open Daily: 12:00 PM – 04:00 AM"}
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
 
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Store Kitchen Address
+              Store Physical Address
             </label>
             <input
               type="text"
               value={operationalForm.address}
               onChange={(e) => setOperationalForm({ ...operationalForm, address: e.target.value })}
-              placeholder="Near Railway Station, Churu, Rajasthan"
+              placeholder={isSalon ? "Shop 12, Main Boulevard, Gulberg" : "Near Railway Station, Churu, Rajasthan"}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+        </div>
+
+        {/* Advance Chair Booking Fee (₹) & Day-Wise Timings */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Advance Chair Booking Fee (₹)
+            </label>
+            <input
+              type="number"
+              value={operationalForm.bookingFee}
+              onChange={(e) => setOperationalForm({ ...operationalForm, bookingFee: e.target.value })}
+              placeholder="50"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+            <span className="text-[10px] text-zinc-500 mt-1 block">Salon slot book karte waqt customer se li jane wali fee</span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Mon-Sat Hours
+            </label>
+            <input
+              type="text"
+              value={operationalForm.monSatHours}
+              onChange={(e) => setOperationalForm({ ...operationalForm, monSatHours: e.target.value })}
+              placeholder="11:00 AM to 11:00 PM"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Sunday Hours
+            </label>
+            <input
+              type="text"
+              value={operationalForm.sundayHours}
+              onChange={(e) => setOperationalForm({ ...operationalForm, sundayHours: e.target.value })}
+              placeholder="Closed"
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
@@ -686,6 +820,103 @@ export default function SettingsTab() {
           <span>SAVE & SYNC TO SERVER</span>
         </button>
       </form>
+
+      {/* CARD: HERO BACKGROUND VIDEO MANAGER (SALON / SHOWCASE SITES) */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+          <div>
+            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+              <Video className="w-5 h-5 text-indigo-600" />
+              <span>Hero Background Video Manager (हीरो वीडियो मैनेजर)</span>
+            </h3>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Website header me chalne wali background video set karein ya phone/device se upload karein
+            </p>
+          </div>
+          {operationalForm.heroVideoUrl && (
+            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center gap-1.5">
+              <Play className="w-3.5 h-3.5 fill-emerald-600" /> Live Video Set
+            </span>
+          )}
+        </div>
+
+        {/* Video Player Live Preview */}
+        <div className="relative rounded-2xl overflow-hidden bg-black aspect-video max-h-56 w-full flex items-center justify-center border border-zinc-200 shadow-inner">
+          {operationalForm.heroVideoUrl ? (
+            <video
+              key={operationalForm.heroVideoUrl}
+              src={operationalForm.heroVideoUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="text-zinc-400 text-xs flex flex-col items-center gap-2">
+              <Video className="w-8 h-8 opacity-40" />
+              <span>Koi video URL set nahi hai</span>
+            </div>
+          )}
+          <div className="absolute bottom-2 left-3 right-3 bg-black/60 backdrop-blur-xs text-white/90 px-3 py-1.5 rounded-lg text-[11px] font-mono truncate flex items-center justify-between">
+            <span className="truncate">Active Video: {operationalForm.heroVideoUrl || 'None'}</span>
+          </div>
+        </div>
+
+        {/* Video Controls & Inputs */}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Video Direct URL / File Path
+            </label>
+            <input
+              type="text"
+              value={operationalForm.heroVideoUrl}
+              onChange={(e) => setOperationalForm({ ...operationalForm, heroVideoUrl: e.target.value })}
+              placeholder="e.g. /video/hero.mp4 ya koi bhi direct .mp4 link"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-3">
+              <label className="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-xs">
+                <Upload className="w-4 h-4" />
+                <span>{isVideoUploading ? 'Uploading Video...' : 'Upload Video From Device (डिवाइस से चुनें)'}</span>
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={handleVideoUpload}
+                  className="hidden"
+                  disabled={isVideoUploading}
+                />
+              </label>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setOperationalForm(prev => ({ ...prev, heroVideoUrl: '/video/hero.mp4' }));
+                showToast('Reset to default /video/hero.mp4', 'info');
+              }}
+              className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors border-0 self-start sm:self-auto"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reset Default Video (डिफ़ॉल्ट रीसेट)</span>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSaveOperational}
+          className="w-full py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
+        >
+          <Check className="w-4 h-4 stroke-[2.5]" />
+          <span>SAVE HERO VIDEO LIVE TO SERVER</span>
+        </button>
+      </div>
 
       {/* CARD 6: HOMEPAGE HERO BANNER & MARQUEE STRIP COPY */}
       <form onSubmit={handleSaveHero} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">

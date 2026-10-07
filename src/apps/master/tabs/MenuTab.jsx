@@ -316,10 +316,29 @@ export default function MenuTab() {
                       {dish.name}
                     </h4>
 
-                    <div className="flex items-baseline gap-2 mt-0.5">
-                      <span className="text-base font-black text-[#DC2626]">
-                        ₹{dish.price}
-                      </span>
+                    {/* Quick In-line Price Edit on Card */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="inline-flex items-center bg-[#FFFBF7] rounded-xl px-2.5 py-0.5 border border-zinc-200/80 shadow-xs focus-within:border-[#DC2626] focus-within:ring-1 focus-within:ring-[#DC2626] transition-all" title="Quick edit price directly">
+                        <span className="text-xs font-black text-[#DC2626] mr-0.5">₹</span>
+                        <input
+                          type="number"
+                          defaultValue={dish.price}
+                          key={`${dish.id}-${dish.price}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          onBlur={async (e) => {
+                            const newPrice = Number(e.target.value);
+                            if (!isNaN(newPrice) && newPrice > 0 && newPrice !== Number(dish.price)) {
+                              await updateMenuItem({ ...dish, price: newPrice });
+                              showToast(`Price for "${dish.name}" updated to ₹${newPrice}!`, 'success');
+                            }
+                          }}
+                          className="w-14 text-sm font-black text-zinc-900 bg-transparent border-0 p-0 focus:outline-none"
+                        />
+                      </div>
                       {dish.originalPrice > 0 && (
                         <span className="text-xs text-zinc-400 line-through">
                           ₹{dish.originalPrice}

@@ -1,14 +1,106 @@
 import React, { useState, useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar } from 'lucide-react';
+import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar, Clock, ChevronDown, ChevronUp, Sparkles, User, ExternalLink } from 'lucide-react';
+
+const WORK_START = 11 * 60; // 11:00 AM (660 mins)
+const WORK_END = 23 * 60; // 11:00 PM (1380 mins)
+const ROW_STEP = 30; // 30 min intervals
+const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+function formatTimeLabel(h, m) {
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const match = String(timeStr).match(/(\d+):(\d+)\s*(AM|PM)?/i);
+  if (!match) return null;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const ampm = match[3] ? match[3].toUpperCase() : null;
+  if (ampm === "PM" && h < 12) h += 12;
+  if (ampm === "AM" && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+function printStandaloneTicket(b, storeInfo) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  const advanceFee = b.bookingFee || 50;
+  const remDue = b.remainingDue !== undefined ? b.remainingDue : Math.max(0, (b.totalPrice || b.total || 0) - advanceFee);
+  win.document.write(`
+    <html>
+      <head>
+        <title>Token Ticket - ${b.token || b.orderNumber || b.id}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; padding: 20px; max-width: 320px; margin: auto; }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .divider { border-top: 1px dashed #000; margin: 10px 0; }
+          .row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <h2 style="margin:4px 0;">${storeInfo?.name || "NASH STUDIO"}</h2>
+          <p style="margin:2px 0; font-size:12px; color:#555;">${storeInfo?.address || "Barbershop & Grooming Lounge"}</p>
+          <div class="divider"></div>
+          <h1 style="margin:8px 0; font-size:24px;">TOKEN: ${b.token || b.orderNumber || b.id?.slice(-4)}</h1>
+          <p style="margin:2px 0; font-size:12px;">DATE: ${b.dateISO || new Date().toISOString().split('T')[0]}</p>
+          <p style="margin:2px 0; font-size:12px;">TIME: ${b.timeLabel || "Appointment Slot"}</p>
+        </div>
+        <div class="divider"></div>
+        <div class="row"><span>Customer:</span><span class="bold">${b.name || "Client"}</span></div>
+        <div class="row"><span>Phone:</span><span>${b.phone || ""}</span></div>
+        <div class="row"><span>Service:</span><span class="bold">${b.styleName || "Grooming"}</span></div>
+        <div class="row"><span>Tier:</span><span>${b.tier === "premium" ? "✦ Premium (60m)" : "Standard (30m)"}</span></div>
+        <div class="divider"></div>
+        <div class="row"><span>Total Bill:</span><span class="bold">₹${b.totalPrice || 0}</span></div>
+        <div class="row"><span>Advance Paid:</span><span class="bold" style="color:green;">₹${advanceFee}</span></div>
+        <div class="row"><span>Remaining Due:</span><span class="bold" style="font-size:15px; color:#c2410c;">₹${remDue}</span></div>
+        <div class="divider"></div>
+        <div class="center" style="font-size:11px; color:#666; margin-top:10px;"><p>Thank you for visiting! Please arrive 5 mins early.</p></div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.print();
+}
 
 export default function OrdersTab() {
   const { orders, updateOrderStatus, verifyDeliveryOtp, showToast, storeInfo, storeId } = useMaster();
   const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
 
+  const [viewMode, setViewMode] = useState(isSalon ? 'timeline' : 'list'); // 'list' | 'timeline'
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
+  const [expandedRowId, setExpandedRowId] = useState(null);
+
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState(null);
+
+  // 10-day date tabs generator starting from today
+  const dateTabs = useMemo(() => {
+    const tabs = [];
+    const base = new Date();
+    for (let i = 0; i < 10; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      tabs.push(`${y}-${m}-${day}`);
+    }
+    return tabs;
+  }, []);
 
   // Delivery OTP Verification Dialog State (Same as Android App showDeliveryOtpDialog)
   const [deliveryOtpModalOrder, setDeliveryOtpModalOrder] = useState(null);
@@ -16,6 +108,81 @@ export default function OrdersTab() {
   const [cashConfirmed, setCashConfirmed] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Normalized bookings for the visual timeline grid
+  const dayBookings = useMemo(() => {
+    return (orders || []).map(o => {
+      const custName = o.customer?.name || o.customerName || o.name || 'Customer';
+      const custPhone = o.customer?.phone || o.customerPhone || o.phone || '';
+      const styleName = o.styleName || (o.items && o.items[0]?.name) || 'Salon Service';
+      const tier = o.tier || (styleName.toLowerCase().includes('premium') ? 'premium' : 'standard');
+      const totalMinutes = Number(o.totalMinutes || o.workMinutes || (tier === 'premium' ? 60 : 30));
+
+      let dateISO = o.dateISO || o.date;
+      if (!dateISO && o.createdAt) {
+        dateISO = new Date(o.createdAt).toISOString().split('T')[0];
+      }
+      if (!dateISO) {
+        dateISO = new Date().toISOString().split('T')[0];
+      }
+
+      let startMin = o.startMin;
+      if (startMin === undefined || startMin === null) {
+        startMin = parseTimeToMinutes(o.timeLabel || o.time);
+      }
+      if (startMin === null && o.createdAt) {
+        const cd = new Date(o.createdAt);
+        startMin = cd.getHours() * 60 + (cd.getMinutes() >= 30 ? 30 : 0);
+      }
+      if (startMin === null) {
+        startMin = 11 * 60;
+      }
+
+      const totalPrice = Number(o.totalPrice || o.total || o.grandTotal || 0);
+      const bookingFee = Number(o.bookingFee || 50);
+      const remainingDue = o.remainingDue !== undefined ? Number(o.remainingDue) : Math.max(0, totalPrice - bookingFee);
+      const token = o.token || o.orderNumber || (o.id ? 'NS-' + o.id.slice(-4).toUpperCase() : 'NS-001');
+
+      return {
+        ...o,
+        id: o.id || token,
+        token,
+        name: custName,
+        phone: custPhone,
+        styleName,
+        tier,
+        totalMinutes,
+        dateISO,
+        startMin,
+        totalPrice,
+        bookingFee,
+        remainingDue
+      };
+    }).filter(b => b.dateISO === selectedDate);
+  }, [orders, selectedDate]);
+
+  // Timeline rows: 11:00 AM to 11:00 PM in 30-minute rows
+  const timelineRows = useMemo(() => {
+    const rows = [];
+    for (let t = WORK_START; t < WORK_END; t += ROW_STEP) {
+      const label = formatTimeLabel(Math.floor(t / 60), t % 60);
+      let occupying = null;
+      let isStart = false;
+
+      for (const b of dayBookings) {
+        const bS = b.startMin;
+        const bE = b.startMin + (b.totalMinutes || 30);
+        if (bS <= t && bE > t) {
+          occupying = b;
+          isStart = bS >= t - ROW_STEP + 1 && bS <= t;
+          break;
+        }
+      }
+
+      rows.push({ t, label, booking: occupying, isStart });
+    }
+    return rows;
+  }, [dayBookings]);
 
   // Filtered orders list matching Android App filters: ALL, NEW, KITCHEN, DELIVERED
   const filteredOrders = useMemo(() => {
@@ -90,6 +257,41 @@ export default function OrdersTab() {
       {/* Search & Filter Bar */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
+        {/* VIEW MODE TOGGLE BUTTONS */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+                viewMode === 'list'
+                  ? 'bg-zinc-900 text-white shadow-md'
+                  : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              <span>📋 ORDER CARDS LIST</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+                viewMode === 'timeline'
+                  ? 'bg-[#DC2626] text-white shadow-md'
+                  : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>📅 30-MIN TIMELINE MATRIX (SALON SCHEDULE)</span>
+            </button>
+          </div>
+          {isSalon && (
+            <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 flex items-center gap-1.5">
+              <Scissors className="w-3.5 h-3.5" />
+              <span>Nash Studio Chair Schedule Matrix</span>
+            </span>
+          )}
+        </div>
+
         {/* Search Input */}
         <div className="relative">
           <Search className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -137,14 +339,296 @@ export default function OrdersTab() {
         </div>
       </div>
 
-      {/* Orders List */}
-      {filteredOrders.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
-          <p className="font-bold text-zinc-700">No orders in {statusFilter} queue</p>
-          <p className="text-xs">Naye orders aane par yahan real-time alert ke sath show honge.</p>
+      {/* VIEW MODE 1: TIMELINE MATRIX (30-MIN BARBER CHAIR GRID) */}
+      {viewMode === 'timeline' && (
+        <div className="space-y-4">
+          
+          {/* 10-DAY DATE PICKER CHIPS */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-3 border-0">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#DC2626]" />
+                <span>SELECT DATE (10-DAY APPOINTMENT SCHEDULE):</span>
+              </h3>
+              <span className="text-xs font-mono text-zinc-500 font-bold">
+                Selected: <strong className="text-zinc-900">{selectedDate}</strong>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+              {dateTabs.map(iso => {
+                const d = new Date(iso + 'T00:00:00');
+                const isSun = d.getDay() === 0;
+                const isSel = iso === selectedDate;
+                const cnt = dayBookings.length > 0 && iso === selectedDate
+                  ? dayBookings.length
+                  : (orders || []).filter(o => (o.dateISO === iso || o.date === iso || (o.createdAt && o.createdAt.startsWith(iso)))).length;
+
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    disabled={isSun}
+                    onClick={() => !isSun && setSelectedDate(iso)}
+                    className={`flex flex-col items-center justify-center min-w-[70px] px-3 py-2.5 rounded-2xl transition-all cursor-pointer border-0 shrink-0 ${
+                      isSel
+                        ? 'bg-[#DC2626] text-white shadow-lg scale-105'
+                        : isSun
+                          ? 'bg-zinc-100/60 text-zinc-400 opacity-60 cursor-not-allowed'
+                          : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                    }`}
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      {DOW[d.getDay()]}
+                    </span>
+                    <span className="text-lg font-black leading-tight mt-0.5">
+                      {d.getDate()}
+                    </span>
+                    {isSun ? (
+                      <span className="text-[9px] font-bold text-red-500 mt-1 uppercase">Closed</span>
+                    ) : cnt > 0 ? (
+                      <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full mt-1 ${isSel ? 'bg-white text-[#DC2626]' : 'bg-red-100 text-red-700'}`}>
+                        {cnt} Booked
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-zinc-400 mt-1">Open</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* DAY SUMMARY BANNER */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-0">
+            <div>
+              <h2 className="text-lg font-black text-zinc-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-[#DC2626]" />
+                <span>
+                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </h2>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Operating Hours: 11:00 AM – 11:00 PM (30-Minute Barber Chair Slots)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1.5 rounded-xl bg-zinc-100 text-zinc-800 text-xs font-black">
+                Total Booked: {dayBookings.length}
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-black flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                ✦ Premium: {dayBookings.filter(b => b.tier === 'premium').length}
+              </span>
+              <span className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-black">
+                Standard: {dayBookings.filter(b => b.tier !== 'premium').length}
+              </span>
+            </div>
+          </div>
+
+          {/* TIMELINE MATRIX ROWS */}
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden border-0">
+            <div className="grid grid-cols-12 bg-zinc-50 text-[11px] font-black uppercase tracking-wider text-zinc-500 p-4 border-b border-zinc-100">
+              <div className="col-span-3 sm:col-span-2 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Time (वक्त)</span>
+              </div>
+              <div className="col-span-3 sm:col-span-2">Status</div>
+              <div className="col-span-6 sm:col-span-8">Client / Chair Booking Details</div>
+            </div>
+
+            <div className="divide-y divide-zinc-100">
+              {timelineRows.map(row => {
+                const isBooked = Boolean(row.booking);
+                const b = row.booking;
+                const isPrem = b && b.tier === 'premium';
+                const tok = b ? b.token : null;
+                const rowId = b ? (b.id || b.token) : null;
+                const isExp = rowId && expandedRowId === rowId;
+                const isHour = row.t % 60 === 0;
+
+                return (
+                  <div
+                    key={row.t}
+                    onClick={() => {
+                      if (b && row.isStart) {
+                        setExpandedRowId(isExp ? null : rowId);
+                      }
+                    }}
+                    className={`grid grid-cols-12 p-3.5 sm:p-4 transition-colors ${
+                      isHour ? 'bg-zinc-50/60' : 'bg-white'
+                    } ${
+                      isBooked
+                        ? isPrem
+                          ? 'hover:bg-amber-50/50 cursor-pointer'
+                          : 'hover:bg-red-50/40 cursor-pointer'
+                        : 'hover:bg-zinc-50/40'
+                    }`}
+                  >
+                    {/* Time Col */}
+                    <div className="col-span-3 sm:col-span-2 flex items-center gap-2">
+                      <span className={`text-xs font-black ${isHour ? 'text-zinc-900 font-black' : 'text-zinc-500'}`}>
+                        {row.label}
+                      </span>
+                      {isHour && <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />}
+                    </div>
+
+                    {/* Status Col */}
+                    <div className="col-span-3 sm:col-span-2 flex items-center">
+                      {isBooked ? (
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                          isPrem ? 'bg-zinc-900 text-amber-300' : 'bg-red-100 text-[#DC2626]'
+                        }`}>
+                          {isPrem ? '✦ PREMIUM' : 'STANDARD'}
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700">
+                          AVAILABLE
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Details Col */}
+                    <div className="col-span-6 sm:col-span-8">
+                      {isBooked && row.isStart ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-zinc-900">{b.name}</span>
+                              <span className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 font-mono text-[10px] font-bold">
+                                #{tok}
+                              </span>
+                              <span className="text-xs text-zinc-400 font-medium">
+                                ({b.totalMinutes} min)
+                              </span>
+                            </div>
+                            <span className="text-[11px] font-bold text-zinc-400 flex items-center gap-1">
+                              {isExp ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              <span>{isExp ? 'Hide Details' : 'View Details'}</span>
+                            </span>
+                          </div>
+
+                          {/* Expanded Details Card */}
+                          {isExp && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-3 p-4 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-3"
+                            >
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-3.5 h-3.5 text-zinc-400" />
+                                  <span className="text-zinc-500">Phone:</span>
+                                  <a href={`tel:${b.phone}`} className="font-bold text-zinc-900 hover:text-[#DC2626]">
+                                    {b.phone || 'N/A'}
+                                  </a>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <Scissors className="w-3.5 h-3.5 text-zinc-400" />
+                                  <span className="text-zinc-500">Service:</span>
+                                  <span className="font-bold text-zinc-900">{b.styleName}</span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+                                  <span className="text-zinc-500">Total Bill:</span>
+                                  <span className="font-bold text-zinc-900">₹{b.totalPrice}</span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="w-3.5 h-3.5 text-center text-emerald-600 font-bold">✓</span>
+                                  <span className="text-zinc-500">Advance Paid:</span>
+                                  <span className="font-bold text-emerald-600">₹{b.bookingFee}</span>
+                                </div>
+
+                                <div className="sm:col-span-2 flex items-center gap-2 pt-1 border-t border-zinc-200/60">
+                                  <span className="text-zinc-500">Remaining Due at Salon:</span>
+                                  <span className="text-sm font-black text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-lg">
+                                    ₹{b.remainingDue}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Quick Action Buttons */}
+                              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                                {b.phone && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const cleanPhone = (b.phone || '').replace(/[^0-9]/g, '');
+                                      const text = `Hi ${b.name}, your slot at ${storeInfo?.name || 'Nash Studio'} is confirmed for ${row.label} (Token #${tok})! Advance ₹${b.bookingFee} received. Remaining at salon: ₹${b.remainingDue}.`;
+                                      window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer border-0 shadow-xs"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>WhatsApp</span>
+                                  </button>
+                                )}
+
+                                {b.phone && (
+                                  <a
+                                    href={`tel:${b.phone}`}
+                                    className="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs flex items-center gap-1.5 text-decoration-none shadow-xs"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" />
+                                    <span>Call Client</span>
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => printStandaloneTicket(b, storeInfo)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-900 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer border-0 shadow-xs"
+                                >
+                                  <Printer className="w-3.5 h-3.5" />
+                                  <span>Print Ticket</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    await updateOrderStatus(b.id, 'delivered');
+                                    showToast(`Appointment #${tok} marked as completed!`, 'success');
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-xl bg-zinc-200 hover:bg-emerald-100 hover:text-emerald-800 text-zinc-700 font-black text-xs flex items-center gap-1.5 cursor-pointer border-0 transition-colors"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Mark Done</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : isBooked && !row.isStart ? (
+                        <span className="text-xs text-zinc-400 italic">
+                          {b.name} ka session jari hai...
+                        </span>
+                      ) : (
+                        <span className="text-xs text-emerald-600 font-medium">
+                          Chair Available (कुर्सी खाली है)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      )}
+
+      {/* VIEW MODE 2: ORDERS CARDS LIST */}
+      {viewMode === 'list' && (
+        <>
+          {filteredOrders.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
+              <p className="font-bold text-zinc-700">No orders in {statusFilter} queue</p>
+              <p className="text-xs">Naye orders aane par yahan real-time alert ke sath show honge.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredOrders.map(order => {
             const customerName = order.customer?.name || order.customerName || 'Customer';
             const customerPhone = order.customer?.phone || order.customerPhone || '';
@@ -430,6 +914,8 @@ export default function OrdersTab() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* DELIVERY OTP VERIFICATION DIALOG (Exact Android App showDeliveryOtpDialog) */}
