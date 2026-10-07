@@ -1,16 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import {
   subscribeToBookingsForDate,
-  subscribeToAllBookings,
   createBookingWithTransaction,
   subscribeToHairstyles,
-  saveHairstyle,
-  deleteHairstyle,
-  resetHairstylesToDefault,
   subscribeToSiteSettings,
-  saveSiteSettings,
   subscribeToCustomCSS,
-  saveCustomCSS,
   isFirebaseConfigured,
   subscribeToAuth,
   loginWithGoogle,
@@ -31,7 +25,6 @@ import FeedbackModal from "./FeedbackModal";
 const ENABLE_ONLINE_PAYMENT = false; // <<< CHANGE TO `true` TO ACTIVATE UPI ADVANCE PAYMENT
 
 const BUFFER = 5;
-const OWNER_PASSWORD = "nash2024";
 const WORK_START = 11 * 60;
 const WORK_END   = 23 * 60;
 const ROW_STEP   = 30;
@@ -52,7 +45,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_HAIRSTYLES = [
-  // PREMIUM (60 min • Rs 1500)
+  // PREMIUM (60 min â€¢ Rs 1500)
   { id: 'hs1', name: 'Messy Spiky Undercut', type: 'premium', img: '/images/10-messy-spiky-undercut-for-men.webp', time: 60, price: 1500, desc: 'High-texture spiky top with ultra-sharp disconnected fade.' },
   { id: 'hs2', name: 'Messy Flow & Texture', type: 'premium', img: '/images/Messy_Hairstyles_For_Men_76d77f7a-be86-4de0-802f-5fd01f933356.webp', time: 60, price: 1500, desc: 'Natural flow length with textured layers and soft taper.' },
   { id: 'hs3', name: 'Royal Pompadour Fade', type: 'premium', img: '/images/hs_pompadour_fade.jpg', time: 60, price: 1500, desc: 'Voluminous high pompadour with seamless skin fade.' },
@@ -63,7 +56,7 @@ const DEFAULT_HAIRSTYLES = [
   { id: 'hs8', name: 'Voluminous Quiff Fade', type: 'premium', img: '/images/hs_quiff_fade.jpg', time: 60, price: 1500, desc: 'Lifted textured quiff with high contrast side taper.' },
   { id: 'hs9', name: 'Executive Contour Fade', type: 'premium', img: '/images/images.jfif', time: 60, price: 1500, desc: 'Sharp silhouette contoured to head shape with beard blend.' },
 
-  // STANDARD (30 min • Rs 800 / Rs 500)
+  // STANDARD (30 min â€¢ Rs 800 / Rs 500)
   { id: 'hs10', name: 'Soft Taper Skin Fade', type: 'standard', img: '/images/Soft-fade-edit.webp', time: 30, price: 800, desc: 'Everyday clean skin taper with natural top finish.' },
   { id: 'hs11', name: 'Textured Crop Fade', type: 'standard', img: '/images/images (2).jfif', time: 30, price: 800, desc: 'Blunt matte crop fringe with sharp temple taper.' },
   { id: 'hs12', name: 'Military Precision Buzz', type: 'standard', img: '/images/images (3).jfif', time: 30, price: 500, desc: 'Ultra-clean uniform military buzz with edge lineup.' },
@@ -148,7 +141,6 @@ function printStandaloneTicket(b, settings = DEFAULT_SETTINGS) {
 }
 
 export default function App() {
-  const [view, setView] = useState("site");
   const [hairstyles, setHairstyles] = useState(DEFAULT_HAIRSTYLES);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [user, setUser] = useState(null);
@@ -191,12 +183,10 @@ export default function App() {
     styleEl.textContent = customCss;
   }, [customCss]);
 
-  return view === "dashboard"
-    ? <DevAdminDashboard onBack={() => setView("site")} hairstyles={hairstyles} settings={settings} customCss={customCss} />
-    : <SiteView onOwner={() => setView("dashboard")} hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} />;
+  return <SiteView hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} />;
 }
 
-/* FloatingParticles removed — clean design */
+/* FloatingParticles removed â€” clean design */
 
 function Reveal({ children, delay = 0 }) {
   const ref = useRef(null);
@@ -215,7 +205,7 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
-function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
+function SiteView({ hairstyles, settings, user, setUser }) {
   const [step, setStep] = useState(1);
   const [selectedStyle, setSelectedStyle] = useState(null);
   const [searchQ, setSearchQ] = useState("");
@@ -574,7 +564,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                     }}
                   />
                   {searchQ && (
-                    <button onClick={() => setSearchQ("")} style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:11}}>✕</button>
+                    <button onClick={() => setSearchQ("")} style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:11}}>âœ•</button>
                   )}
                 </div>
               </div>
@@ -652,7 +642,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                               borderTop:"1px solid rgba(255,255,255,0.1)"
                             }}>
                               <div style={{fontFamily:"var(--body)", fontSize:14, fontWeight:700, color:"#ffffff", letterSpacing:"0.05em"}}>
-                                Rs {Number(h.price||0).toLocaleString()} <span style={{fontSize:11, color:"rgba(255,255,255,0.65)", fontWeight:400}}>• {h.time}m</span>
+                                Rs {Number(h.price||0).toLocaleString()} <span style={{fontSize:11, color:"rgba(255,255,255,0.65)", fontWeight:400}}>â€¢ {h.time}m</span>
                               </div>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                             </div>
@@ -698,11 +688,11 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                   )}
                   <div>
                     <div style={{fontSize:15, fontWeight:700, color:"var(--paper)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{selectedStyle?.name}</div>
-                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>Rs {selectedStyle?.price} • {selectedStyle?.time}m session</div>
+                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>Rs {selectedStyle?.price} â€¢ {selectedStyle?.time}m session</div>
                   </div>
                 </div>
                 <button onClick={() => goStep(1)} style={{background:"transparent", border:"none", color:"var(--muted)", fontSize:11, letterSpacing:"0.15em", cursor:"pointer", textTransform:"uppercase", padding:"6px 0", transition:"color 0.3s"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                  ← CHANGE
+                  â† CHANGE
                 </button>
               </div>
 
@@ -862,7 +852,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                               textTransform: "uppercase"
                             }}
                           >
-                            CONTINUE WITH NAME & MOBILE →
+                            CONTINUE WITH NAME & MOBILE â†’
                           </button>
                         </div>
                       </div>
@@ -873,7 +863,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                           <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14}}>
                             <span style={{...S.fieldLabel, margin:0}}>Customer Details</span>
                             <span style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:8}}>
-                              <span style={{color:"#25D366", fontSize:12}}>●</span>
+                              <span style={{color:"#25D366", fontSize:12}}>â—</span>
                               {user.displayName}
                             </span>
                           </div>
@@ -968,7 +958,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                                       fontWeight:600
                                     }}
                                   >
-                                    ⚡ Tap to Pay via UPI App (Mobile)
+                                    âš¡ Tap to Pay via UPI App (Mobile)
                                   </a>
                                 </div>
                               </div>
@@ -1032,7 +1022,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                       <div style={{fontFamily:"var(--display)",fontSize:15,fontWeight:700,color:"var(--paper)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.name}</div>
                       <div style={{display:"flex",gap:2}}>
                         {[1,2,3,4,5].map(s => (
-                          <span key={s} style={{fontSize:13,color:s <= (r.rating||0) ? "var(--star-color, #E5A93B)" : "var(--star-empty, var(--line))"}}>★</span>
+                          <span key={s} style={{fontSize:13,color:s <= (r.rating||0) ? "var(--star-color, #E5A93B)" : "var(--star-empty, var(--line))"}}>â˜…</span>
                         ))}
                       </div>
                     </div>
@@ -1094,7 +1084,7 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                             transition:"color 0.15s",
                             display:"inline-block",
                           }}
-                        >★</span>
+                        >â˜…</span>
                       ))}
                     </div>
                   </div>
@@ -1154,15 +1144,20 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                 <p style={S.footAddr}>{settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore"}</p>
               </div>
               <div style={S.footHours}>
-                <div>Mon-Sat • {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
-                <div>Sunday • {settings.sundayHours || "Closed"}</div>
+                <div>Mon-Sat â€¢ {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
+                <div>Sunday â€¢ {settings.sundayHours || "Closed"}</div>
                 <div>{settings.phoneDisplay || "0300-1234567"}</div>
               </div>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, borderTop:"1px solid var(--line)", paddingTop:20}}>
                 <div style={{display:"flex", alignItems:"center", gap:16}}>
-                  <button onClick={onOwner} style={S.footOwnerBtn}>
-                    Staff Portal
-                  </button>
+                  <a
+                    href="https://churuone.in/admin?storeId=nash-studio"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4}}
+                  >
+                    Dukandar Login â†—
+                  </a>
 
                   {/* BOTTOM THEME TOGGLE BUTTON */}
                   <button
@@ -1184,14 +1179,14 @@ function SiteView({ onOwner, hairstyles, settings, user, setUser }) {
                     }}
                     className="nash-btn-confirm"
                   >
-                    {theme === "dark" ? "☀️ Day Mode (White)" : "🌙 Night Mode (Dark)"}
+                    {theme === "dark" ? "â˜€ï¸ Day Mode (White)" : "ðŸŒ™ Night Mode (Dark)"}
                   </button>
                 </div>
 
                 {user && (
                   <div style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:10}}>
                     <span>{user.displayName}</span>
-                    <span>•</span>
+                    <span>â€¢</span>
                     <button onClick={handleLogout} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, textDecoration:"underline"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
                       Sign Out
                     </button>
@@ -1263,1012 +1258,6 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
       <button style={!slot?{...S.btnConfirm,...S.btnDisabled}:S.btnConfirm} className="nash-btn-confirm" disabled={!slot} onClick={onNext}>
         CONTINUE
       </button>
-    </div>
-  );
-}
-
-/**
- * ====================================================================
- * DEVELOPER / STUDIO ADMIN CMS DASHBOARD
- * Live Management of:
- * 1. Hairstyles & Pricing (Add, Edit, Delete, Photos)
- * 2. Site Content & Settings (Studio Info, WhatsApp, Timings, Hero)
- * 3. Daily Bookings & Schedule Management
- * 4. Custom CSS Code Editor (Live UI Customization)
- * ====================================================================
- */
-function DevAdminDashboard({ onBack, hairstyles, settings, customCss }) {
-  const [authed, setAuthed] = useState(false);
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState("");
-  const [activeTab, setActiveTab] = useState("hairstyles"); // 'hairstyles' | 'settings' | 'bookings' | 'customcss'
-  const [toast, setToast] = useState("");
-
-  // Custom CSS Editor states
-  const [customCssCode, setCustomCssCode] = useState("");
-  const [customCssSaving, setCustomCssSaving] = useState(false);
-  const [cssPreviewOpen, setCssPreviewOpen] = useState(false);
-
-  // Booking schedule states
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
-
-  // Hairstyle form / modal states
-  const [editingStyle, setEditingStyle] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formName, setFormName] = useState("");
-  const [formType, setFormType] = useState("premium");
-  const [formPrice, setFormPrice] = useState(1500);
-  const [formTime, setFormTime] = useState(60);
-  const [formDesc, setFormDesc] = useState("");
-  const [formImg, setFormImg] = useState("");
-
-  // Settings form states
-  const [settName, setSettName] = useState(settings.studioName || "Nash Studio");
-  const [settTagline, setSettTagline] = useState(settings.heroTagline || "PRECISION GROOMING. BINA INTEZAAR KE.");
-  const [settBtnText, setSettBtnText] = useState(settings.heroButtonText || "DISCOVER PURE BEAUTY");
-  const [settVideoUrl, setSettVideoUrl] = useState(settings.heroVideoUrl || "/video/hero.mp4");
-  const [settWa, setSettWa] = useState(settings.shopWhatsapp || "923001234567");
-  const [settPhone, setSettPhone] = useState(settings.phoneDisplay || "0300-1234567");
-  const [settAddress, setSettAddress] = useState(settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore");
-  const [settMonSat, setSettMonSat] = useState(settings.monSatHours || "11:00 AM to 11:00 PM");
-  const [settSun, setSettSun] = useState(settings.sundayHours || "Closed");
-  const [settBookingFee, setSettBookingFee] = useState(settings.bookingFee || 50);
-  const [settUpiId, setSettUpiId] = useState(settings.upiId || "nashstudio@upi");
-  const [settAccTitle, setSettAccTitle] = useState(settings.accountTitle || "Nash Studio");
-
-  useEffect(() => {
-    setSettName(settings.studioName || "Nash Studio");
-    setSettTagline(settings.heroTagline || "PRECISION GROOMING. BINA INTEZAAR KE.");
-    setSettBtnText(settings.heroButtonText || "DISCOVER PURE BEAUTY");
-    setSettVideoUrl(settings.heroVideoUrl || "/video/hero.mp4");
-    setSettWa(settings.shopWhatsapp || "923001234567");
-    setSettPhone(settings.phoneDisplay || "0300-1234567");
-    setSettAddress(settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore");
-    setSettMonSat(settings.monSatHours || "11:00 AM to 11:00 PM");
-    setSettSun(settings.sundayHours || "Closed");
-    setSettBookingFee(settings.bookingFee || 50);
-    setSettUpiId(settings.upiId || "nashstudio@upi");
-    setSettAccTitle(settings.accountTitle || "Nash Studio");
-  }, [settings]);
-
-  useEffect(() => {
-    if (!authed) return;
-    setLoading(true);
-    const unsub = subscribeToAllBookings((all) => { setBookings(all); setLoading(false); });
-    return () => { if (typeof unsub === "function") unsub(); };
-  }, [authed]);
-
-  // Sync CSS from parent prop whenever it changes (live Firebase updates)
-  useEffect(() => {
-    setCustomCssCode(customCss || "");
-  }, [customCss]);
-
-  async function handleSaveCustomCSS() {
-    setCustomCssSaving(true);
-    try {
-      await saveCustomCSS(customCssCode);
-      showToast("🎨 Custom CSS live website par apply ho gayi!");
-    } catch (e) {
-      showToast("⚠️ CSS save karne mein error aa gaya.");
-    } finally {
-      setCustomCssSaving(false);
-    }
-  }
-
-  function handleClearCustomCSS() {
-    if (confirm("Kya aap saari Custom CSS hata dena chahte hain? Website default design par wapas aa jayegi.")) {
-      setCustomCssCode("");
-      saveCustomCSS("").then(() => showToast("🗑️ Custom CSS clear kar di gayi."));
-    }
-  }
-
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3500);
-  }
-
-  function login(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    if (pw === OWNER_PASSWORD) { setAuthed(true); setErr(""); }
-    else setErr("Password ghalat hai. (Default: nash2024)");
-  }
-
-  // --- HAIRSTYLE ACTIONS ---
-  function openAddModal() {
-    setEditingStyle(null);
-    setFormName("");
-    setFormType("premium");
-    setFormPrice(1500);
-    setFormTime(60);
-    setFormDesc("");
-    setFormImg("/images/10-messy-spiky-undercut-for-men.webp");
-    setIsModalOpen(true);
-  }
-
-  function openEditModal(h) {
-    setEditingStyle(h);
-    setFormName(h.name || "");
-    setFormType(h.type || "premium");
-    setFormPrice(h.price || 1500);
-    setFormTime(h.time || 60);
-    setFormDesc(h.desc || "");
-    setFormImg(h.img || "");
-    setIsModalOpen(true);
-  }
-
-  async function handleSaveStyle(e) {
-    e.preventDefault();
-    if (!formName.trim()) { alert("Hairstyle name zaroori hai!"); return; }
-    
-    const payload = {
-      id: editingStyle ? editingStyle.id : `hs_${Date.now()}`,
-      name: formName.trim(),
-      type: formType,
-      price: Number(formPrice) || 0,
-      time: Number(formTime) || (formType === "premium" ? 60 : 30),
-      desc: formDesc.trim(),
-      img: formImg.trim() || "/images/Soft-fade-edit.webp"
-    };
-
-    await saveHairstyle(payload);
-    setIsModalOpen(false);
-    showToast(editingStyle ? "✅ Style details live update ho gayi hain!" : "✨ Nayi Hairstyle live add ho gayi!");
-  }
-
-  async function handleDeleteStyle(h) {
-    if (confirm(`Kya aap waqai "${h.name}" ko website se delete karna chahte hain?`)) {
-      await deleteHairstyle(h.id);
-      showToast("🗑️ Hairstyle delete kar di gayi.");
-    }
-  }
-
-  async function handleQuickPriceChange(h, newPrice) {
-    const p = Number(newPrice);
-    if (!isNaN(p) && p > 0) {
-      await saveHairstyle({ ...h, price: p });
-      showToast(`💰 ${h.name} ki price Rs ${p} update ho gayi!`);
-    }
-  }
-
-  async function handleResetCatalog() {
-    if (confirm("Kya aap default 18 curated hairstyles wapas restore karna chahte hain?")) {
-      await resetHairstylesToDefault(DEFAULT_HAIRSTYLES);
-      showToast("↺ Default catalog restore ho gaya!");
-    }
-  }
-
-  function handleImageUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormImg(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  // --- SETTINGS ACTIONS ---
-  function handleVideoUpload(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const videoBlobUrl = URL.createObjectURL(file);
-      setSettVideoUrl(videoBlobUrl);
-      showToast("🎥 Video upload ho gayi (Preview niche dekhein)!");
-    }
-  }
-
-  async function handleSaveSettings(e) {
-    e.preventDefault();
-    const payload = {
-      studioName: settName.trim() || "Nash Studio",
-      heroTagline: settTagline.trim(),
-      heroButtonText: settBtnText.trim(),
-      heroVideoUrl: settVideoUrl.trim() || "/video/hero.mp4",
-      shopWhatsapp: settWa.trim(),
-      phoneDisplay: settPhone.trim(),
-      address: settAddress.trim(),
-      monSatHours: settMonSat.trim(),
-      sundayHours: settSun.trim(),
-      bookingFee: Number(settBookingFee) || 50,
-      upiId: settUpiId.trim() || "nashstudio@upi",
-      accountTitle: settAccTitle.trim() || "Nash Studio",
-    };
-
-    await saveSiteSettings(payload);
-    showToast("💾 Studio Settings & Payment info live update ho gayi hain!");
-  }
-
-  if (!authed) {
-    return (
-      <div style={S.body}>
-        <style>{GLOBAL_CSS}</style>
-        <div style={S.loginWrap}>
-          <div style={S.loginBox}>
-            <div style={{textAlign:"center", marginBottom:28}}>
-              <div style={{fontFamily:"var(--display)", fontSize:20, fontWeight:700, letterSpacing:"0.25em", color:"var(--paper)", textTransform:"uppercase"}}>NASH STUDIO</div>
-              <div style={{fontSize:10, color:"var(--muted)", letterSpacing:"0.3em", textTransform:"uppercase", marginTop:8}}>STAFF PORTAL</div>
-            </div>
-            
-            <form onSubmit={login}>
-              <input 
-                style={{...S.input, marginBottom:16}} 
-                type="password" 
-                placeholder="Access Password" 
-                value={pw}
-                onChange={e => setPw(e.target.value)} 
-                autoFocus
-              />
-              {err && <p style={{color:"#ff4d4d", fontSize:11, marginTop:-8, marginBottom:16, textAlign:"center"}}>{err}</p>}
-              <button type="submit" style={S.btnConfirm} className="nash-btn-confirm">
-                ENTER DASHBOARD
-              </button>
-            </form>
-
-            <button onClick={onBack} style={{...S.btnGhostBtn, marginTop:12, width:"100%", textAlign:"center"}}>
-              ← BACK TO SITE
-            </button>
-            <p style={{fontSize:11, color:"var(--muted)", marginTop:20, textAlign:"center", letterSpacing:"0.05em"}}>Default Password: <code style={{color:"var(--paper)", background:"var(--surface-hover)", padding:"2px 6px", border:"1px solid var(--line)"}}>nash2024</code></p>
-
-            {/* ChuruOne Master Dukandar OS Link */}
-            <div style={{marginTop:24, paddingTop:16, borderTop:"1px solid var(--line)", textAlign:"center"}}>
-              <div style={{fontSize:10, color:"#d4af37", fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", marginBottom:8}}>
-                CHURU ONE MERCHANT OS
-              </div>
-              <a 
-                href="https://churuone.in/admin?storeId=nash-studio" 
-                target="_blank" 
-                rel="noreferrer"
-                style={{
-                  display:"flex",
-                  alignItems:"center",
-                  justifyContent:"center",
-                  gap:8,
-                  padding:"10px 14px",
-                  borderRadius:6,
-                  background:"linear-gradient(135deg, #1e3a8a, #2563eb)",
-                  color:"#ffffff",
-                  fontSize:11,
-                  fontWeight:700,
-                  letterSpacing:"0.05em",
-                  textDecoration:"none",
-                  boxShadow:"0 2px 10px rgba(37,99,235,0.3)"
-                }}
-              >
-                <span>🚀 OPEN CHURUONE MASTER PORTAL</span>
-              </a>
-              <div style={{fontSize:10, color:"var(--muted)", marginTop:8, lineHeight:1.4}}>
-                Store ID: <strong style={{color:"var(--paper)"}}>nash-studio</strong> • User: <strong style={{color:"var(--paper)"}}>nash_studio</strong>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const dateTabs = Array.from({ length: 10 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() + i); return d.toISOString().slice(0, 10);
-  });
-
-  const filteredBookings = bookings.filter(b => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const tok = (b.token || ("NS-" + (b.id ? b.id.slice(-6).toUpperCase() : ""))).toLowerCase();
-    return (b.name && b.name.toLowerCase().includes(q)) || (b.phone && b.phone.includes(q)) || tok.includes(q);
-  });
-
-  const dayBookings = filteredBookings.filter(b => b.dateISO === selectedDate);
-  const fa = isFirebaseConfigured();
-
-  return (
-    <div style={S.body}>
-      <style>{GLOBAL_CSS}</style>
-
-      {/* TOAST NOTIFICATION */}
-      {toast && (
-        <div style={{
-          position:"fixed", top:24, right:24, zIndex:9999,
-          background:"var(--paper)", color:"var(--ink)", padding:"14px 24px",
-          border:"1px solid var(--line)", fontWeight:700, fontSize:13, letterSpacing:"0.05em",
-          boxShadow:"0 10px 40px rgba(0,0,0,0.3)", animation:"nashPassReveal 0.3s ease-out"
-        }}>
-          {toast}
-        </div>
-      )}
-
-      {/* ADMIN HEADER */}
-      <nav style={S.nav}>
-        <div className="nash-dash-nav-wrap">
-          {/* Top Row: Brand & Status + Live Site Button */}
-          <div className="nash-dash-top-bar">
-            <div style={{display:"flex", alignItems:"center", gap:10}}>
-              <div style={S.brandNash}>NASH</div>
-              <span style={{fontSize:10, background:"var(--paper)", color:"var(--ink)", padding:"3px 8px", fontWeight:700, letterSpacing:"0.1em", borderRadius:2}}>CMS</span>
-              <span style={{fontSize:10, color:"#2e7d32", background:"var(--surface-hover)", border:"1px solid var(--line)", padding:"3px 8px", borderRadius:4, fontFamily:"var(--mono)"}}>
-                🟢 ChuruOne Smart Server
-              </span>
-            </div>
-
-            <div style={{display:"flex", alignItems:"center", gap:8}}>
-              <a 
-                href="https://churuone.in/admin?storeId=nash-studio" 
-                target="_blank" 
-                rel="noreferrer"
-                style={{
-                  ...S.btnGhostBtn, 
-                  padding:"6px 12px", 
-                  fontSize:10, 
-                  background:"#1e3a8a", 
-                  color:"#ffffff", 
-                  border:"none",
-                  textDecoration:"none",
-                  fontWeight:700,
-                  display:"inline-flex",
-                  alignItems:"center",
-                  gap:4
-                }}
-              >
-                <span>ChuruOne Master OS ↗</span>
-              </a>
-              <button style={{...S.btnGhostBtn, padding:"6px 14px", fontSize:10}} onClick={onBack}>
-                ← Live Site
-              </button>
-            </div>
-          </div>
-
-          {/* CMS TABS (Scrollable on Mobile) */}
-          <div className="nash-dash-tabs">
-            {[
-              { id: "hairstyles", label: `💈 Hairstyles (${hairstyles.length})` },
-              { id: "settings", label: "⚙️ Studio Settings" },
-              { id: "bookings", label: `📅 Schedule (${bookings.length})` },
-              { id: "customcss", label: "🎨 Custom CSS" },
-            ].map(tab => {
-              const isSel = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className="nash-dash-tab-btn"
-                  style={{
-                    background: isSel ? "var(--paper)" : "var(--surface)",
-                    color: isSel ? "var(--ink)" : "var(--muted)",
-                    border: isSel ? "1px solid var(--paper)" : "1px solid var(--line)",
-                  }}>
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
-
-      {/* DASHBOARD BODY */}
-      <div style={{...S.wrap, padding:"36px 20px 80px"}}>
-
-        {/* TAB 1: HAIRSTYLES & PRICING MANAGER */}
-        {activeTab === "hairstyles" && (
-          <div className="nash-expand-anim">
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, marginBottom:28, borderBottom:"1px solid var(--line)", paddingBottom:20}}>
-              <div>
-                <h2 style={{fontFamily:"var(--display)", fontSize:28, fontWeight:700, color:"var(--paper)", margin:0}}>Hairstyles & Live Pricing Manager</h2>
-                <p style={{color:"var(--muted)", fontSize:13, marginTop:6}}>Yahan se aap kisi bhi cutting ka rate, photo, category ya naam direct live website par change kar sakte hain.</p>
-              </div>
-
-              <div style={{display:"flex", gap:10}}>
-                <button onClick={openAddModal} style={{background:"var(--paper)", color:"var(--ink)", border:"none", padding:"12px 24px", fontWeight:700, fontSize:11, letterSpacing:"0.15em", cursor:"pointer", borderRadius:4, textTransform:"uppercase"}} className="nash-btn-confirm">
-                  ➕ Add New Hairstyle
-                </button>
-                <button onClick={handleResetCatalog} style={{background:"transparent", color:"var(--muted)", border:"1px solid var(--line)", padding:"12px 18px", fontSize:11, cursor:"pointer", borderRadius:4, textTransform:"uppercase"}}>
-                  ↺ Restore Defaults
-                </button>
-              </div>
-            </div>
-
-            {/* STYLES LIST */}
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(320px, 1fr))", gap:20}}>
-              {hairstyles.map((h) => {
-                const isPrem = h.type === "premium";
-                return (
-                  <div key={h.id} style={{background:"var(--surface)", border:"1px solid var(--line)", borderRadius:6, overflow:"hidden", display:"flex", flexDirection:"column", justifyContent:"space-between", padding:16}}>
-                    <div style={{display:"flex", gap:16}}>
-                      <img src={h.img} alt={h.name} style={{width:80, height:80, objectFit:"cover", borderRadius:4, border:"1px solid var(--line)", flexShrink:0}} />
-                      <div style={{flexGrow:1}}>
-                        <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start"}}>
-                          <span style={{
-                            background: isPrem ? "var(--prem-badge-bg)" : "var(--std-badge-bg)",
-                            color: isPrem ? "var(--prem-badge-color)" : "var(--std-badge-color)",
-                            border: "1px solid var(--line)",
-                            fontSize: 9, fontWeight: 700, padding: "3px 8px", letterSpacing: "0.1em", textTransform: "uppercase", borderRadius: 2
-                          }}>
-                            {isPrem ? "✦ PREMIUM (60m)" : "STANDARD (30m)"}
-                          </span>
-                          <button onClick={() => handleDeleteStyle(h)} title="Delete style" style={{background:"transparent", border:"none", color:"#ff4d4d", cursor:"pointer", fontSize:14}}>🗑️</button>
-                        </div>
-                        <h3 style={{fontFamily:"var(--display)", fontSize:16, fontWeight:700, color:"var(--paper)", marginTop:8, margin:"8px 0 4px"}}>{h.name}</h3>
-                        <p style={{fontSize:11, color:"var(--muted)", lineHeight:1.4, margin:0}}>{h.desc || "No description."}</p>
-                      </div>
-                    </div>
-
-                    {/* LIVE PRICE & EDIT CONTROLS */}
-                    <div style={{marginTop:16, paddingTop:12, borderTop:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                      <div style={{display:"flex", alignItems:"center", gap:8}}>
-                        <span style={{fontSize:12, color:"var(--muted)", fontWeight:500}}>Price:</span>
-                        <div style={{display:"flex", alignItems:"center", gap:4}}>
-                          <span style={{fontSize:12, color:"var(--paper)", fontWeight:700}}>Rs</span>
-                          <input
-                            type="number"
-                            defaultValue={h.price}
-                            onBlur={(e) => handleQuickPriceChange(h, e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter") handleQuickPriceChange(h, e.target.value); }}
-                            style={{
-                              width: 80,
-                              background: "var(--surface-hover)",
-                              border: "1px solid var(--line)",
-                              color: "var(--paper)",
-                              padding: "4px 8px",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              borderRadius: 3,
-                              outline: "none"
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <button onClick={() => openEditModal(h)} style={{background:"transparent", border:"1px solid var(--line)", color:"var(--paper)", padding:"6px 14px", fontSize:10, fontWeight:600, letterSpacing:"0.1em", cursor:"pointer", borderRadius:3, textTransform:"uppercase"}}>
-                        ✏️ Edit All
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: STUDIO SETTINGS & CONTACT */}
-        {activeTab === "settings" && (
-          <div className="nash-expand-anim" style={{maxWidth:760, margin:"0 auto"}}>
-            <div style={{marginBottom:28, borderBottom:"1px solid var(--line)", paddingBottom:16}}>
-              <h2 style={{fontFamily:"var(--display)", fontSize:28, fontWeight:700, color:"var(--paper)", margin:0}}>Studio Info, Hero Video & Site Settings</h2>
-              <p style={{color:"var(--muted)", fontSize:13, marginTop:6}}>Yahan se aap website ki Premium Background Video, Brand Name, WhatsApp number aur saari details live change kar sakte hain.</p>
-            </div>
-
-            <form onSubmit={handleSaveSettings} style={{display:"flex", flexDirection:"column", gap:24}}>
-              
-              {/* HERO BACKGROUND VIDEO CMS SECTION */}
-              <div style={{background:"var(--surface)", border:"1px solid var(--line)", borderRadius:8, padding:24}}>
-                <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:8}}>
-                  <div>
-                    <label style={{...S.fieldLabel, margin:0, fontSize:13, color:"var(--paper)", display:"flex", alignItems:"center", gap:8}}>
-                      🎥 Hero Background Video (Live Changer)
-                    </label>
-                    <span style={{fontSize:11, color:"var(--muted)", marginTop:4, display:"block"}}>
-                      Website ke front-end par jo luxury background video play hoti hai usse yahan se badlein.
-                    </span>
-                  </div>
-                  <span style={{fontSize:10, background:"var(--paper)", color:"var(--ink)", fontWeight:700, padding:"3px 8px", letterSpacing:"0.1em", borderRadius:2}}>
-                    LIVE HERO MEDIA
-                  </span>
-                </div>
-
-                {/* LIVE VIDEO PREVIEW */}
-                <div style={{position:"relative", width:"100%", height:200, background:"#000000", borderRadius:6, overflow:"hidden", border:"1px solid var(--line)", marginBottom:16}}>
-                  <video
-                    key={settVideoUrl}
-                    src={settVideoUrl || "/video/hero.mp4"}
-                    style={{width:"100%", height:"100%", objectFit:"cover"}}
-                    autoPlay loop muted playsInline
-                  />
-                  <div style={{position:"absolute", top:10, left:10, background:"rgba(0,0,0,0.75)", color:"#ffffff", padding:"4px 10px", fontSize:10, fontWeight:600, letterSpacing:"0.1em", borderRadius:4, backdropFilter:"blur(4px)"}}>
-                    LIVE PREVIEW
-                  </div>
-                  <div style={{position:"absolute", bottom:10, left:10, right:10, background:"rgba(0,0,0,0.65)", color:"#ffffff", padding:"6px 10px", fontSize:11, borderRadius:4, textOverflow:"ellipsis", overflow:"hidden", whiteSpace:"nowrap", fontFamily:"var(--mono)"}}>
-                    URL: {settVideoUrl || "/video/hero.mp4"}
-                  </div>
-                </div>
-
-                {/* VIDEO URL & UPLOAD CONTROLS */}
-                <div style={{display:"flex", flexDirection:"column", gap:12}}>
-                  <div>
-                    <label style={{fontSize:11, color:"var(--paper)", fontWeight:600, display:"block", marginBottom:6, letterSpacing:"0.05em"}}>
-                      Video URL / File Path:
-                    </label>
-                    <input
-                      style={{...S.input, marginBottom:8, fontSize:13}}
-                      type="text"
-                      value={settVideoUrl}
-                      onChange={e => setSettVideoUrl(e.target.value)}
-                      placeholder="e.g. /video/hero.mp4 ya koi bhi direct .mp4 link"
-                    />
-                  </div>
-
-                  <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12, paddingTop:8, borderTop:"1px solid var(--line)"}}>
-                    <div style={{display:"flex", alignItems:"center", gap:8}}>
-                      <span style={{fontSize:11, color:"var(--muted)"}}>Ya Phone/PC se Video File chunein:</span>
-                      <input
-                        type="file"
-                        accept="video/mp4,video/webm,video/quicktime"
-                        onChange={handleVideoUpload}
-                        style={{fontSize:11, color:"var(--paper)"}}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => { setSettVideoUrl("/video/hero.mp4"); showToast("↺ Default video select ho gayi!"); }}
-                      style={{background:"transparent", border:"1px solid var(--line)", color:"var(--muted)", padding:"6px 12px", fontSize:10, cursor:"pointer", borderRadius:3, textTransform:"uppercase"}}>
-                      ↺ Reset Default Video
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={S.fieldLabel}>Studio Brand Name</label>
-                <input style={S.input} type="text" value={settName} onChange={e => setSettName(e.target.value)} placeholder="e.g. Nash Studio" />
-              </div>
-
-              <div>
-                <label style={S.fieldLabel}>Hero Tagline / Slogan</label>
-                <input style={S.input} type="text" value={settTagline} onChange={e => setSettTagline(e.target.value)} placeholder="e.g. PRECISION GROOMING. BINA INTEZAAR KE." />
-              </div>
-
-              <div>
-                <label style={S.fieldLabel}>Hero Button Text</label>
-                <input style={S.input} type="text" value={settBtnText} onChange={e => setSettBtnText(e.target.value)} placeholder="e.g. DISCOVER PURE BEAUTY" />
-              </div>
-
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-                <div>
-                  <label style={S.fieldLabel}>Shop WhatsApp (without +)</label>
-                  <input style={S.input} type="text" value={settWa} onChange={e => setSettWa(e.target.value)} placeholder="923001234567" />
-                </div>
-                <div>
-                  <label style={S.fieldLabel}>Display Contact Number</label>
-                  <input style={S.input} type="text" value={settPhone} onChange={e => setSettPhone(e.target.value)} placeholder="0300-1234567" />
-                </div>
-              </div>
-
-              <div>
-                <label style={S.fieldLabel}>Shop Physical Address</label>
-                <input style={S.input} type="text" value={settAddress} onChange={e => setSettAddress(e.target.value)} placeholder="Shop 12, Main Boulevard, Gulberg, Lahore" />
-              </div>
-
-              {/* ONLINE PAYMENT & BOOKING FEE SETTINGS */}
-              <div style={{background:"var(--surface)", border:"1px solid var(--line)", borderRadius:8, padding:24}}>
-                <label style={{...S.fieldLabel, margin:0, fontSize:13, color:"var(--paper)", display:"flex", alignItems:"center", gap:8, marginBottom:16}}>
-                  💳 Online Payment & Booking Fee Settings
-                </label>
-                <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16}}>
-                  <div>
-                    <label style={S.fieldLabel}>Advance Booking Fee (Rs)</label>
-                    <input style={S.input} type="number" value={settBookingFee} onChange={e => setSettBookingFee(e.target.value)} placeholder="50" />
-                    <span style={{fontSize:11, color:"var(--muted)"}}>Customer ko slot book karte waqt ye fee pay karni hogi.</span>
-                  </div>
-                  <div>
-                    <label style={S.fieldLabel}>UPI ID / Payment ID</label>
-                    <input style={S.input} type="text" value={settUpiId} onChange={e => setSettUpiId(e.target.value)} placeholder="nashstudio@upi" />
-                    <span style={{fontSize:11, color:"var(--muted)"}}>Aapka GPay / PhonePe / Paytm / Bank UPI handle.</span>
-                  </div>
-                </div>
-                <div>
-                  <label style={S.fieldLabel}>Payment Account / Business Title</label>
-                  <input style={S.input} type="text" value={settAccTitle} onChange={e => setSettAccTitle(e.target.value)} placeholder="Nash Studio" />
-                </div>
-              </div>
-
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-                <div>
-                  <label style={S.fieldLabel}>Mon-Sat Timings</label>
-                  <input style={S.input} type="text" value={settMonSat} onChange={e => setSettMonSat(e.target.value)} placeholder="11:00 AM to 11:00 PM" />
-                </div>
-                <div>
-                  <label style={S.fieldLabel}>Sunday Timings</label>
-                  <input style={S.input} type="text" value={settSun} onChange={e => setSettSun(e.target.value)} placeholder="Closed" />
-                </div>
-              </div>
-
-              <button type="submit" style={{...S.btnConfirm, padding:"18px", marginTop:10}} className="nash-btn-confirm">
-                💾 Save All Settings Live
-              </button>
-            </form>
-          </div>
-        )}
-
-        {/* TAB 3: BOOKINGS & APPOINTMENT SCHEDULE */}
-        {activeTab === "bookings" && (
-          <div className="nash-expand-anim">
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, marginBottom:24}}>
-              <div>
-                <h2 style={{fontFamily:"var(--display)", fontSize:28, fontWeight:700, color:"var(--paper)", margin:0}}>Customer Bookings & Schedule</h2>
-                <p style={{color:"var(--muted)", fontSize:13, marginTop:6}}>Live synchronized appointments with token verification.</p>
-              </div>
-            </div>
-
-            <div style={{marginBottom:20}}>
-              <input
-                style={{...S.input, fontSize:14, padding:"12px 16px", borderColor:"var(--line)", background:"var(--surface)", color:"var(--paper)", marginBottom:0}}
-                type="text" placeholder="Search customer (Token ID / Mobile / Naam)..."
-                value={search} onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-
-            <div style={S.dashDateTabs}>
-              {dateTabs.map(iso => {
-                const d = new Date(iso + "T00:00:00");
-                const isSun = d.getDay() === 0, isSel = iso === selectedDate;
-                const cnt = filteredBookings.filter(b => b.dateISO === iso).length;
-                return (
-                  <button key={iso}
-                    style={{...S.dashDateTab,...(isSel?S.dashDateTabSelected:{}),...(isSun?S.dashDateTabSunday:{})}}
-                    className="nash-date-chip" onClick={() => !isSun && setSelectedDate(iso)} disabled={isSun}>
-                    <span style={S.dashTabDow}>{DOW[d.getDay()]}</span>
-                    <span style={S.dashTabDate}>{d.getDate()}</span>
-                    {cnt>0 && <span style={S.dashTabBadge}>{cnt}</span>}
-                    {isSun && <span style={S.dashTabClosed}>Closed</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {!loading && (
-              <>
-                <div style={S.dashDayHeader}>
-                  <span style={S.dashDayTitle}>
-                    {new Date(selectedDate+"T00:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
-                  </span>
-                  <div style={S.dashDayStats}>
-                    <span style={S.dashStatPill}>Total Booked: {dayBookings.length}</span>
-                    <span style={{...S.dashStatPill, color:"var(--ink)", background:"var(--paper)"}}>✦ Premium: {dayBookings.filter(b=>b.tier==="premium").length}</span>
-                  </div>
-                </div>
-                <DashboardTimeGrid bookings={dayBookings} settings={settings} />
-              </>
-            )}
-
-            {loading && (
-              <div style={{textAlign:"center", padding:60}}>
-                <div className="nash-spinner" />
-                <p style={{color:"var(--muted)", marginTop:16}}>Appointments load ho rahi hain...</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 4: CUSTOM CSS CODE EDITOR */}
-        {activeTab === "customcss" && (
-          <div className="nash-expand-anim">
-
-            {/* Header */}
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, marginBottom:28, borderBottom:"1px solid var(--line)", paddingBottom:20}}>
-              <div>
-                <h2 style={{fontFamily:"var(--display)", fontSize:28, fontWeight:700, color:"var(--paper)", margin:0}}>🎨 Custom CSS Editor</h2>
-                <p style={{color:"var(--muted)", fontSize:13, marginTop:6}}>
-                  Yahan apna CSS code likhein — Save karte hi <strong style={{color:"var(--paper)"}}>puri website ka UI live update</strong> ho jayega. Koi reload ki zaroorat nahi.
-                </p>
-              </div>
-              <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
-                <button
-                  onClick={handleSaveCustomCSS}
-                  disabled={customCssSaving}
-                  style={{background:"var(--paper)", color:"var(--ink)", border:"none", padding:"12px 24px", fontWeight:700, fontSize:11, letterSpacing:"0.15em", cursor: customCssSaving ? "wait" : "pointer", borderRadius:4, textTransform:"uppercase", opacity: customCssSaving ? 0.7 : 1}}
-                  className="nash-btn-confirm"
-                >
-                  {customCssSaving ? "⏳ Saving..." : "💾 Save & Apply Live"}
-                </button>
-                <button
-                  onClick={handleClearCustomCSS}
-                  style={{background:"transparent", color:"var(--muted)", border:"1px solid var(--line)", padding:"12px 18px", fontSize:11, cursor:"pointer", borderRadius:4, textTransform:"uppercase"}}
-                >
-                  🗑️ Clear All CSS
-                </button>
-              </div>
-            </div>
-
-            {/* Info Banner */}
-            <div style={{background:"rgba(212,175,55,0.08)", border:"1px solid rgba(212,175,55,0.25)", borderRadius:6, padding:"14px 20px", marginBottom:24, display:"flex", gap:14, alignItems:"flex-start"}}>
-              <span style={{fontSize:20}}>💡</span>
-              <div>
-                <p style={{color:"var(--paper)", fontWeight:700, fontSize:13, margin:"0 0 4px"}}>Kaise Kaam Karta Hai?</p>
-                <p style={{color:"var(--muted)", fontSize:12, margin:0, lineHeight:1.6}}>
-                  Niche CSS code likhein (e.g. <code style={{background:"var(--surface-hover)", padding:"1px 5px", borderRadius:2, color:"var(--paper)"}}>body {"{"} background: red {"}"}</code>). 
-                  <strong style={{color:"var(--paper)"}}> "Save & Apply Live"</strong> dabayen — Firebase mein save hoga aur <strong style={{color:"var(--paper)"}}>turant</strong> website par apply ho jayega. Sab visitors ko bhi nayi design nazar aayegi!
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Snippet Buttons */}
-            <div style={{marginBottom:12}}>
-              <p style={{color:"var(--muted)", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8}}>Quick Snippets (click to insert):</p>
-              <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
-                {[
-                  { label:"🌈 Background Color", snippet:"body {\n  background-color: #1a1a2e;\n}\n" },
-                  { label:"🔤 Font Change", snippet:":root {\n  --display: 'Georgia', serif;\n}\n" },
-                  { label:"🎨 Button Color", snippet:".nash-btn-confirm {\n  background: #e63946 !important;\n}\n" },
-                  { label:"📐 Card Style", snippet:".nash-card {\n  border-radius: 16px !important;\n  box-shadow: 0 8px 32px rgba(0,0,0,0.3);\n}\n" },
-                  { label:"🔆 Hero Overlay", snippet:".nash-hero-overlay {\n  background: rgba(0,0,0,0.6) !important;\n}\n" },
-                ].map(s => (
-                  <button
-                    key={s.label}
-                    onClick={() => setCustomCssCode(prev => prev + (prev && !prev.endsWith("\n") ? "\n" : "") + s.snippet)}
-                    style={{background:"var(--surface-hover)", color:"var(--paper)", border:"1px solid var(--line)", padding:"6px 12px", fontSize:11, cursor:"pointer", borderRadius:4, transition:"all 0.2s"}}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = "var(--paper)"}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = "var(--line)"}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Code Editor Area */}
-            <div style={{position:"relative", borderRadius:6, overflow:"hidden", border:"1px solid var(--line)", marginBottom:20}}>
-              {/* Editor Top Bar */}
-              <div style={{background:"var(--surface-hover)", padding:"8px 16px", display:"flex", justifyContent:"space-between", alignItems:"center", borderBottom:"1px solid var(--line)"}}>
-                <div style={{display:"flex", gap:8, alignItems:"center"}}>
-                  <span style={{width:10, height:10, borderRadius:"50%", background:"#ff5f57", display:"inline-block"}}></span>
-                  <span style={{width:10, height:10, borderRadius:"50%", background:"#febc2e", display:"inline-block"}}></span>
-                  <span style={{width:10, height:10, borderRadius:"50%", background:"#28c840", display:"inline-block"}}></span>
-                  <span style={{marginLeft:8, fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"}}>custom-styles.css</span>
-                </div>
-                <span style={{fontFamily:"var(--mono)", fontSize:11, color:"var(--muted)"}}>
-                  {customCssCode.length} chars · {customCssCode.split("\n").length} lines
-                </span>
-              </div>
-              {/* Textarea */}
-              <textarea
-                value={customCssCode}
-                onChange={e => setCustomCssCode(e.target.value)}
-                placeholder={`/* Yahan apna custom CSS likhein */\n\n/* Misaal: */\nbody {\n  background-color: #0d0d0d;\n}\n\n.nash-hero-section {\n  min-height: 80vh;\n}\n\n/* Aap koi bhi CSS property change kar sakte hain! */`}
-                spellCheck={false}
-                style={{
-                  width:"100%",
-                  minHeight:380,
-                  background:"#0d1117",
-                  color:"#e6edf3",
-                  fontFamily:"'Fira Code', 'Cascadia Code', 'Courier New', monospace",
-                  fontSize:13,
-                  lineHeight:1.7,
-                  padding:"20px",
-                  border:"none",
-                  outline:"none",
-                  resize:"vertical",
-                  boxSizing:"border-box",
-                  tabSize:2,
-                }}
-                onKeyDown={e => {
-                  // Tab key inserts 2 spaces instead of leaving the textarea
-                  if (e.key === "Tab") {
-                    e.preventDefault();
-                    const start = e.target.selectionStart;
-                    const end = e.target.selectionEnd;
-                    const newVal = customCssCode.substring(0, start) + "  " + customCssCode.substring(end);
-                    setCustomCssCode(newVal);
-                    setTimeout(() => { e.target.selectionStart = e.target.selectionEnd = start + 2; }, 0);
-                  }
-                  // Ctrl+S saves
-                  if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-                    e.preventDefault();
-                    handleSaveCustomCSS();
-                  }
-                }}
-              />
-            </div>
-
-            {/* Keyboard shortcuts hint */}
-            <p style={{color:"var(--muted)", fontSize:11, marginBottom:20, letterSpacing:"0.05em"}}>
-              ⌨️ <strong>Ctrl+S</strong> se seedha save karein · <strong>Tab</strong> key = 2 spaces indent
-            </p>
-
-            {/* Live Preview Toggle */}
-            <div style={{borderTop:"1px solid var(--line)", paddingTop:20}}>
-              <button
-                onClick={() => setCssPreviewOpen(p => !p)}
-                style={{background:"var(--surface-hover)", color:"var(--paper)", border:"1px solid var(--line)", padding:"10px 20px", fontSize:11, cursor:"pointer", borderRadius:4, textTransform:"uppercase", letterSpacing:"0.1em", display:"flex", alignItems:"center", gap:8, fontWeight:700}}
-              >
-                <span style={{transition:"transform 0.3s", display:"inline-block", transform: cssPreviewOpen ? "rotate(90deg)" : "rotate(0deg)"}}>▶</span>
-                {cssPreviewOpen ? "Preview Band Karein" : "👁️ Live Preview Dekhein (Current Site)"}
-              </button>
-
-              {cssPreviewOpen && (
-                <div style={{marginTop:16, borderRadius:6, overflow:"hidden", border:"1px solid var(--line)", position:"relative"}} className="nash-expand-anim">
-                  <div style={{background:"var(--surface-hover)", padding:"8px 16px", borderBottom:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center"}}>
-                    <span style={{fontSize:11, color:"var(--muted)", fontFamily:"var(--mono)"}}>🌐 Live Site Preview (aapki saved CSS apply hai)</span>
-                    <span style={{fontSize:11, color:"var(--muted)"}}>↗ Pura dekhne k liye Live Site button use karein</span>
-                  </div>
-                  <iframe
-                    src="/"
-                    title="Live Site Preview"
-                    style={{width:"100%", height:520, border:"none", background:"#fff"}}
-                    sandbox="allow-scripts allow-same-origin"
-                  />
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-      </div>
-
-      {/* ADD / EDIT HAIRSTYLE MODAL */}
-      {isModalOpen && (
-        <div style={{
-          position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.75)", backdropFilter:"blur(10px)",
-          display:"flex", alignItems:"center", justifyContent:"center", padding:20
-        }}>
-          <div style={{
-            background:"var(--surface)", border:"1px solid var(--line)", borderRadius:6,
-            width:"100%", maxWidth:560, padding:32, maxHeight:"90vh", overflowY:"auto", boxShadow:"var(--card-shadow)"
-          }} className="nash-expand-anim">
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24, borderBottom:"1px solid var(--line)", paddingBottom:16}}>
-              <h3 style={{fontFamily:"var(--display)", fontSize:22, fontWeight:700, color:"var(--paper)", margin:0}}>
-                {editingStyle ? `Edit: ${editingStyle.name}` : "Add New Hairstyle"}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{background:"transparent", border:"none", color:"var(--muted)", fontSize:18, cursor:"pointer"}}>✕</button>
-            </div>
-
-            <form onSubmit={handleSaveStyle} style={{display:"flex", flexDirection:"column", gap:16}}>
-              <div>
-                <label style={S.fieldLabel}>Hairstyle Name *</label>
-                <input style={S.input} type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Royal Skin Fade Pompadour" required />
-              </div>
-
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-                <div>
-                  <label style={S.fieldLabel}>Category / Tier</label>
-                  <select
-                    value={formType}
-                    onChange={e => {
-                      const t = e.target.value;
-                      setFormType(t);
-                      setFormTime(t === "premium" ? 60 : 30);
-                      if (!editingStyle) setFormPrice(t === "premium" ? 1500 : 800);
-                    }}
-                    style={{...S.input, background:"var(--surface)", color:"var(--paper)", cursor:"pointer"}}>
-                    <option value="premium">✦ Premium (60 Min)</option>
-                    <option value="standard">Standard (30 Min)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={S.fieldLabel}>Price (Rs) *</label>
-                  <input style={S.input} type="number" value={formPrice} onChange={e => setFormPrice(e.target.value)} placeholder="1500" required />
-                </div>
-              </div>
-
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:16}}>
-                <div>
-                  <label style={S.fieldLabel}>Duration (Minutes)</label>
-                  <input style={S.input} type="number" value={formTime} onChange={e => setFormTime(e.target.value)} placeholder="60" />
-                </div>
-                <div>
-                  <label style={S.fieldLabel}>Short Description</label>
-                  <input style={S.input} type="text" value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="e.g. Sharp silhouette with beard blend" />
-                </div>
-              </div>
-
-              {/* PHOTO UPLOAD & URL */}
-              <div>
-                <label style={S.fieldLabel}>Hairstyle Photo</label>
-                <div style={{display:"flex", gap:16, alignItems:"center", marginBottom:12}}>
-                  {formImg && (
-                    <img src={formImg} alt="Preview" style={{width:70, height:70, objectFit:"cover", borderRadius:4, border:"1px solid var(--line)"}} />
-                  )}
-                  <div style={{flexGrow:1}}>
-                    <input style={{...S.input, marginBottom:8, fontSize:12}} type="text" value={formImg} onChange={e => setFormImg(e.target.value)} placeholder="Enter Image URL or Path (/images/...)" />
-                    <div style={{display:"flex", alignItems:"center", gap:8}}>
-                      <span style={{fontSize:11, color:"var(--muted)"}}>Ya File Upload Karein:</span>
-                      <input type="file" accept="image/*" onChange={handleImageUpload} style={{fontSize:11, color:"var(--paper)"}} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{display:"flex", gap:12, marginTop:16}}>
-                <button type="submit" style={{...S.btnConfirm, flex:1}} className="nash-btn-confirm">
-                  💾 {editingStyle ? "Update Style Live" : "Add to Live Website"}
-                </button>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{...S.btnGhostBtn, padding:"16px 24px"}}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-function DashboardTimeGrid({ bookings, settings }) {
-  const [expandedId, setExpandedId] = useState(null);
-  const rows = [];
-  for (let t = WORK_START; t < WORK_END; t += ROW_STEP) {
-    const label = formatTime(Math.floor(t/60), t%60);
-    let occupying = null, isStart = false;
-    for (const b of bookings) {
-      const bS = b.startMin, bE = b.startMin + (b.totalMinutes||30);
-      if (bS <= t && bE > t) {
-        occupying = b;
-        isStart = bS >= t - ROW_STEP + 1 && bS <= t;
-        break;
-      }
-    }
-    rows.push({ t, label, booking: occupying, isStart });
-  }
-  return (
-    <div style={S.timeGrid}>
-      <div style={S.timeGridHeader}>
-        <div style={S.timeGridHeaderTime}>Waqt</div>
-        <div style={S.timeGridHeaderStatus}>Status</div>
-        <div style={S.timeGridHeaderDetails}>Customer / Details</div>
-      </div>
-      {rows.map((row) => {
-        const isBooked = !!row.booking;
-        const b = row.booking;
-        const isPrem = b && b.tier === "premium";
-        const tok = b ? (b.token || ("NS-" + (b.id ? b.id.slice(-6).toUpperCase() : "------"))) : null;
-        const rowId = b ? (b.id || b.token) : null;
-        const isExp = rowId && expandedId === rowId;
-        const isHour = row.t % 60 === 0;
-        return (
-          <div key={row.t}
-            style={{...S.timeGridRow,...(isHour?S.timeGridHourMark:{}),...(isBooked?(isPrem?S.timeGridRowPremium:S.timeGridRowBooked):S.timeGridRowFree),cursor:isBooked?"pointer":"default"}}
-            className={isBooked?"nash-grid-row-hover":""}
-            onClick={() => { if (b) setExpandedId(isExp ? null : rowId); }}>
-            <div style={S.timeGridTimeCol}>
-              <span style={{...S.timeGridTimeLabel,...(isHour?S.timeGridHourLabel:{})}}>{row.label}</span>
-              {isHour && <span style={S.timeGridHourDot} />}
-            </div>
-            <div style={S.timeGridStatusCol}>
-              {isBooked ? (
-                <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                  <span style={isPrem?S.statusBadgePremium:S.statusBadgeStd}>{isPrem?"PREMIUM":"STD"}</span>
-                  {row.isStart && <span style={S.statusLiveLabel}>BOOKED</span>}
-                </div>
-              ) : <span style={S.statusBadgeFree}>FREE</span>}
-            </div>
-            <div style={S.timeGridDetailsCol}>
-              {isBooked && row.isStart ? (
-                <div style={{width:"100%"}}>
-                  <div style={S.gridCustName}>{b.name}</div>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
-                    <span style={S.gridTokenBadge}>{tok}</span>
-                    <span style={S.gridDuration}>{b.totalMinutes} min</span>
-                  </div>
-                  {isExp && (
-                    <div style={S.gridExpandDetails} className="nash-expand-anim" onClick={e => e.stopPropagation()}>
-                      <div style={S.gridExpandRow}><span>Mobile:</span><a href={`tel:${b.phone}`} style={{color:"var(--paper)",fontWeight:700,textDecoration:"none"}}>{b.phone}</a></div>
-                      <div style={S.gridExpandRow}><span>Style / Service:</span><b style={{color:"var(--paper)"}}>{b.styleName || "--"} ({b.tier==="premium"?"✦ Premium":"Standard"})</b></div>
-                      <div style={S.gridExpandRow}><span>Total Service Bill:</span><b style={{color:"var(--paper)",fontSize:14,fontWeight:700}}>Rs {b.totalPrice||"--"}</b></div>
-                      <div style={S.gridExpandRow}><span style={{color:"#25D366"}}>Advance Booking Fee:</span><b style={{color:"#25D366"}}>Rs {b.bookingFee||50} {b.txnId ? `(UTR: ${b.txnId})` : "(Paid)"}</b></div>
-                      <div style={S.gridExpandRow}><span style={{color:"#D97706", fontWeight:600}}>Remaining Due at Salon:</span><b style={{color:"#D97706", fontSize:15, fontWeight:700}}>Rs {b.remainingDue !== undefined ? b.remainingDue : Math.max(0, (b.totalPrice||0) - (b.bookingFee||50))}</b></div>
-                      <div style={{display:"flex",gap:8,marginTop:12}}>
-                        <button style={S.gridWaBtn} onClick={() => {
-                          const msg = `Hi ${b.name}, ${settings?.studioName || "Nash Studio"} slot (${b.timeLabel}) Token ${tok} confirm hai! Advance Rs ${b.bookingFee||50} received. Remaining at salon: Rs ${b.remainingDue !== undefined ? b.remainingDue : Math.max(0, (b.totalPrice||0) - (b.bookingFee||50))}.`;
-                          window.open(`https://wa.me/${(b.phone||"").replace(/[^0-9]/g,"")}?text=${encodeURIComponent(msg)}`,"_blank");
-                        }}>WhatsApp</button>
-                        <button style={S.gridPrintBtn} onClick={() => printStandaloneTicket(b, settings)}>Print Ticket</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : isBooked && !row.isStart ? (
-                <span style={S.gridContinued}>{b.name} ka session jari...</span>
-              ) : (
-                <span style={S.gridFreeSlot}>Available</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -2347,7 +1336,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-fo
 .nash-pass-reveal{animation:nashScaleIn 0.6s cubic-bezier(.16,1,.3,1);}
 .nash-spinner{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--paper);animation:nashSpin 0.6s linear infinite;margin:0 auto;}
 
-/* Card hover — buttery lift */
+/* Card hover â€” buttery lift */
 .nash-hs-hover{cursor:pointer;position:relative;transition:transform 0.5s cubic-bezier(.16,1,.3,1),box-shadow 0.5s cubic-bezier(.16,1,.3,1),border-color 0.4s;}
 .nash-hs-hover img{transition:transform 6s cubic-bezier(0.05,1,0.3,1);}
 .nash-hs-hover:hover{transform:translateY(-6px);box-shadow:var(--card-shadow);border-color:var(--paper) !important;}
