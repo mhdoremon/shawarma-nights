@@ -42,6 +42,7 @@
     "monSatHours": "11:00 AM to 11:00 PM",
     "sundayHours": "Closed",
     "bookingFee": 50,
+    "requireTokenPayment": true,
     "upiId": "nashstudio@upi",
     "accountTitle": "Nash Studio",
     "freeDeliveryThreshold": 0,

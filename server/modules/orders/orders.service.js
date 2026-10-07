@@ -47,6 +47,18 @@ export const placeOrder = async (req, res) => {
             }
         }
 
+        // Strict Validation: Nash Studio appointments MUST have ₹50 Token Advance Payment
+        if (storeId === 'nash-studio' || (storeConfig?.settings && storeConfig?.settings?.requireTokenPayment)) {
+            const bookingFee = safeNum(payload.bookingFee);
+            const txnId = (payload.txnId || payload.utr || '').trim();
+            if (bookingFee < 50 || !txnId || txnId.length < 4) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Nash Studio me bina ₹50 Token Payment ke slot booking sambhav nahi hai. Kripya ₹50 UPI pay karke valid UTR number enter karein.'
+                });
+            }
+        }
+
         const prefix = (storeConfig.slug || storeId).split('-').map(s => s[0]).join('').toUpperCase().slice(0, 3) || 'ORD';
         const orderNumCount = orders.length + 1;
         const defaultOrderNum = `${prefix}-${String(orderNumCount).padStart(4, '0')}`;
@@ -85,8 +97,8 @@ export const placeOrder = async (req, res) => {
             lat: payload.orderGps?.lat || payload.lat || null,
             lng: payload.orderGps?.lng || payload.lng || null,
             orderGps: payload.orderGps || null,
-            paymentMethod: payload.paymentMethod || 'cod',
-            paymentStatus: payload.paymentStatus || (payload.paymentMethod === 'cod' ? 'pending' : 'pending'),
+            paymentMethod: storeId === 'nash-studio' ? 'UPI Token Advance' : (payload.paymentMethod || 'cod'),
+            paymentStatus: storeId === 'nash-studio' ? 'Token Paid (₹50 Advance)' : (payload.paymentStatus || (payload.paymentMethod === 'cod' ? 'pending' : 'pending')),
             utr: payload.utr || payload.txnId || null,
             couponCode: payload.couponCode || null,
             subtotal: safeNum(payload.subtotal) || safeNum(payload.totalPrice) || 0,
@@ -107,8 +119,8 @@ export const placeOrder = async (req, res) => {
             totalMinutes: payload.totalMinutes ? Number(payload.totalMinutes) : null,
             styleName: payload.styleName || (items[0]?.name || null),
             tier: payload.tier || null,
-            bookingFee: safeNum(payload.bookingFee) || 0,
-            remainingDue: safeNum(payload.remainingDue) || 0,
+            bookingFee: storeId === 'nash-studio' ? 50 : (safeNum(payload.bookingFee) || 0),
+            remainingDue: storeId === 'nash-studio' ? Math.max(0, (safeNum(payload.totalPrice) || safeNum(payload.total) || 0) - 50) : (safeNum(payload.remainingDue) || 0),
             deliveryBoyId: null,
             deliveryOtp,
             createdAt: now(),

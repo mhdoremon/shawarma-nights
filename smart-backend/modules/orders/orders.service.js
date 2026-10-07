@@ -17,6 +17,18 @@ export const placeOrder = async (req, res) => {
         const orders = DataLayer.read(storeId, 'orders') || [];
         const payload = req.body;
 
+        // Strict Validation: Nash Studio appointments MUST have ₹50 Token Advance Payment
+        if (storeId === 'nash-studio') {
+            const bookingFee = safeNum(payload.bookingFee);
+            const txnId = (payload.txnId || payload.utr || '').trim();
+            if (bookingFee < 50 || !txnId || txnId.length < 4) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Nash Studio me bina ₹50 Token Payment ke slot booking sambhav nahi hai. Kripya ₹50 UPI pay karke valid UTR number enter karein.'
+                });
+            }
+        }
+
         const orderNumCount = orders.length + 1;
         const orderNumber = `SN-${String(orderNumCount).padStart(4, '0')}`;
         

@@ -165,7 +165,7 @@ export async function createBookingWithTransaction(bookingData) {
 
     return confirmed;
   } catch (err) {
-    if (err.message === "SLOT_ALREADY_TAKEN") {
+    if (err.message === "SLOT_ALREADY_TAKEN" || err.status === 400 || (err.message && err.message.includes("Token Payment"))) {
       throw err;
     }
     console.warn("Smart Server direct booking fallback to local:", err.message);

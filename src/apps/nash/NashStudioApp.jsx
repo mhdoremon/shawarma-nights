@@ -17,11 +17,10 @@ import FeedbackModal from "./FeedbackModal";
 
 
 // =========================================================================
-// ONLINE ADVANCE PAYMENT SYSTEM TOGGLE
-// Set this to `true` to re-enable UPI QR code advance booking fee payment.
-// Set this to `false` (current) to allow 100% direct booking with 0 advance fee.
+// Set to `true`: UPI QR code advance booking token fee payment is 100% mandatory.
+// Slot CANNOT be booked without paying the ₹50 token payment.
 // =========================================================================
-const ENABLE_ONLINE_PAYMENT = false; // <<< CHANGE TO `true` TO ACTIVATE UPI ADVANCE PAYMENT
+const ENABLE_ONLINE_PAYMENT = true; // MANDATORY TOKEN ADVANCE PAYMENT (₹50 FIXED)
 
 const BUFFER = 5;
 const WORK_START = 11 * 60;
@@ -357,7 +356,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const totalPrice = selectedStyle ? selectedStyle.price : 0;
   const tier = selectedStyle ? selectedStyle.type : "standard";
 
-  const bookingFee = Number(settings.bookingFee || 50);
+  const bookingFee = 50; // Fixed ₹50 Token Advance Payment
   const remainingDue = Math.max(0, totalPrice - bookingFee);
 
   function scrollToBook() { bookRef.current?.scrollIntoView({ behavior: "smooth" }); }
@@ -381,18 +380,18 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     const contactEmail = (user?.email || "").trim();
     const currentUserObj = user;
     if (!slot) { alert("Slot select karein."); return; }
-    if (ENABLE_ONLINE_PAYMENT && !txnId.trim()) {
-      alert("Please UPI / Online Payment ka Transaction ID / UTR number enter karein.");
+    if (!txnId.trim() || txnId.trim().length < 4) {
+      alert("⚠️ Mandatory Token Payment: Nash Studio me slot book karne ke liye ₹50 Token advance pay karna aniwarya hai. Kripya ₹50 UPI pay karein aur 12-digit UTR number enter karein. Bina Token payment ke booking sambhav nahi hai.");
       return;
     }
     setSaving(true);
     const d = dates[dateIndex];
     const bookingToken = "NS-" + Math.floor(100000 + Math.random() * 900000);
-    const activeBookingFee = ENABLE_ONLINE_PAYMENT ? Number(settings.bookingFee || 50) : 0;
-    const activeRemainingDue = Math.max(0, totalPrice - activeBookingFee);
-    const activePaymentStatus = ENABLE_ONLINE_PAYMENT ? "Paid Advance" : "Pay at Salon";
-    const activePaymentMethod = ENABLE_ONLINE_PAYMENT ? "UPI / Online QR" : "Pay in Person at Salon";
-    const activeTxnId = ENABLE_ONLINE_PAYMENT ? txnId.trim() : "Pay at Salon";
+    const activeBookingFee = 50;
+    const activeRemainingDue = Math.max(0, totalPrice - 50);
+    const activePaymentStatus = "Token Paid (₹50 Advance)";
+    const activePaymentMethod = "UPI Token Advance (₹50)";
+    const activeTxnId = txnId.trim();
 
     const payload = {
       token: bookingToken,
@@ -984,116 +983,164 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         </div>
 
                         {/* =========================================================================
-                            ONLINE ADVANCE PAYMENT GATEWAY COMPONENT (CURRENTLY DISABLED)
-                            To re-enable: Set `ENABLE_ONLINE_PAYMENT = true` at top of App.jsx
-                            This section contains Dynamic UPI QR Code, UPI ID Copy, Mobile Intent,
-                            and 12-digit UTR verification.
+                            MANDATORY ONLINE TOKEN ADVANCE PAYMENT (₹50 FIXED)
                             ========================================================================= */}
-                        {ENABLE_ONLINE_PAYMENT && (
-                          <div style={{
-                            background:"rgba(255,255,255,0.02)",
-                            border:"1px solid var(--line)",
-                            padding:"28px 24px",
-                            marginBottom:24
-                          }}>
-                            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16}}>
-                              <span style={{...S.fieldLabel, margin:0, color:"var(--paper)", fontSize:12, fontWeight:700}}>
-                                Pay Booking Fee: Rs {bookingFee}
-                              </span>
-                              <span style={{fontSize:9, background:"var(--prem-badge-bg)", color:"var(--prem-badge-color)", fontWeight:800, padding:"3px 8px", letterSpacing:"0.15em", textTransform:"uppercase"}}>
-                                ADVANCE
-                              </span>
-                            </div>
-
-                            <p style={{fontSize:12, color:"var(--muted)", marginBottom:20, lineHeight:1.5}}>
-                              Scan the QR code with any UPI app (GPay, PhonePe, Paytm) or transfer to the UPI ID. Once paid, enter your 12-digit Transaction ID (UTR) below to generate your Token Pass.
-                            </p>
-
-                            <div style={{
-                              display:"flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: 16,
-                              padding: "20px",
-                              background: "var(--surface)",
-                              border: "1px solid var(--line)",
-                              marginBottom: 20
+                        <div style={{
+                          background: "rgba(212, 175, 55, 0.05)",
+                          border: "1px solid rgba(212, 175, 55, 0.35)",
+                          borderRadius: 8,
+                          padding: "24px 20px",
+                          marginBottom: 24
+                        }}>
+                          <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
+                            <span style={{...S.fieldLabel, margin: 0, color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
+                              🔒 Mandatory Token Advance: ₹50 Fixed
+                            </span>
+                            <span style={{
+                              fontSize: 9, 
+                              background: "#d4af37", 
+                              color: "#000000", 
+                              fontWeight: 900, 
+                              padding: "4px 8px", 
+                              borderRadius: 4,
+                              letterSpacing: "0.15em", 
+                              textTransform: "uppercase"
                             }}>
-                              {/* DYNAMIC UPI QR CODE */}
-                              <div style={{background:"#ffffff", padding:12, borderRadius:4, display:"inline-block", border:"1px solid var(--line)"}}>
-                                <img
-                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=${bookingFee}&cu=INR`)}`}
-                                  alt="Payment QR Code"
-                                  style={{width:160, height:160, display:"block"}}
-                                />
-                              </div>
+                              REQUIRED
+                            </span>
+                          </div>
 
-                              <div style={{textAlign:"center", width:"100%"}}>
-                                <div style={{fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em", marginBottom:4}}>UPI ID</div>
-                                <div style={{
-                                  display:"flex",
-                                  alignItems:"center",
-                                  justifyContent:"center",
-                                  gap:10,
-                                  background:"var(--surface-hover)",
-                                  padding:"8px 14px",
-                                  border:"1px solid var(--line)",
-                                  maxWidth:280,
-                                  margin:"0 auto"
-                                }}>
-                                  <span style={{fontFamily:"var(--mono)", fontSize:12, fontWeight:600, color:"var(--paper)"}}>{settings.upiId || "nashstudio@upi"}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(settings.upiId || "nashstudio@upi");
-                                      setCopiedUpi(true);
-                                      setTimeout(() => setCopiedUpi(false), 2000);
-                                    }}
-                                    style={{background:"transparent", border:"none", color:"var(--paper)", fontSize:11, cursor:"pointer", textDecoration:"underline"}}
-                                  >
-                                    {copiedUpi ? "COPIED!" : "COPY"}
-                                  </button>
-                                </div>
+                          <div style={{
+                            background: "rgba(220, 38, 38, 0.12)",
+                            border: "1px solid rgba(220, 38, 38, 0.35)",
+                            borderRadius: 6,
+                            padding: "10px 12px",
+                            marginBottom: 16,
+                            fontSize: 11,
+                            color: "#fca5a5",
+                            lineHeight: 1.5
+                          }}>
+                            ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Kripya ₹50 pay karein aur 12-digit UTR number enter karein.
+                          </div>
 
-                                {/* MOBILE UPI APP LAUNCHER */}
-                                <div style={{marginTop:12}}>
-                                  <a
-                                    href={`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=${bookingFee}&cu=INR`}
-                                    style={{
-                                      fontSize:11,
-                                      color:"var(--paper)",
-                                      textDecoration:"underline",
-                                      letterSpacing:"0.05em",
-                                      fontWeight:600
-                                    }}
-                                  >
-                                    âš¡ Tap to Pay via UPI App (Mobile)
-                                  </a>
-                                </div>
-                              </div>
-                            </div>
+                          <p style={{fontSize: 12, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5}}>
+                            GPay, PhonePe, Paytm ya kisi bhi UPI app se ₹50 scan karein. Haircut ke baad bache hue <b>₹{remainingDue}</b> aap salon me cash ya UPI se de sakte hain.
+                          </p>
 
-                            {/* TRANSACTION ID INPUT */}
-                            <div>
-                              <label style={{...S.fieldLabel, marginBottom:8}}>
-                                Transaction ID / UTR Number *
-                              </label>
-                              <input
-                                style={{...S.input, marginBottom:4}}
-                                type="text"
-                                placeholder="e.g. 12-digit UTR (482910394820)"
-                                value={txnId}
-                                onChange={e => setTxnId(e.target.value)}
+                          <div style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 14,
+                            padding: "20px",
+                            background: "var(--surface)",
+                            border: "1px solid var(--line)",
+                            borderRadius: 6,
+                            marginBottom: 20
+                          }}>
+                            {/* DYNAMIC UPI QR CODE (FIXED TO ₹50) */}
+                            <div style={{background: "#ffffff", padding: 12, borderRadius: 6, display: "inline-block", border: "1px solid var(--line)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)"}}>
+                              <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`)}`}
+                                alt="Token Payment QR Code (Rs 50)"
+                                style={{width: 160, height: 160, display: "block"}}
                               />
-                              <span style={{fontSize:11, color:"var(--muted)", display:"block", marginTop:4}}>
-                                Payment receipt se UTR number ya Reference ID yahan enter karein.
-                              </span>
+                            </div>
+                            <span style={{fontSize: 11, fontWeight: 700, color: "#d4af37", letterSpacing: "0.08em"}}>
+                              SCAN TO PAY ₹50 TOKEN
+                            </span>
+
+                            <div style={{textAlign: "center", width: "100%"}}>
+                              <div style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4}}>Nash Studio UPI ID</div>
+                              <div style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 10,
+                                background: "var(--surface-hover)",
+                                padding: "8px 14px",
+                                border: "1px solid var(--line)",
+                                maxWidth: 280,
+                                margin: "0 auto",
+                                borderRadius: 4
+                              }}>
+                                <span style={{fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--paper)"}}>{settings.upiId || "nashstudio@upi"}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(settings.upiId || "nashstudio@upi");
+                                    setCopiedUpi(true);
+                                    setTimeout(() => setCopiedUpi(false), 2000);
+                                  }}
+                                  style={{background: "transparent", border: "none", color: "#d4af37", fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline"}}
+                                >
+                                  {copiedUpi ? "COPIED!" : "COPY"}
+                                </button>
+                              </div>
+
+                              {/* MOBILE UPI APP LAUNCHER */}
+                              <div style={{marginTop: 12}}>
+                                <a
+                                  href={`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    color: "#d4af37",
+                                    fontWeight: 700,
+                                    textDecoration: "underline",
+                                    letterSpacing: "0.04em"
+                                  }}
+                                >
+                                  ⚡ Tap to Open UPI App (₹50 Pay)
+                                </a>
+                              </div>
                             </div>
                           </div>
-                        )}
 
-                        <button style={S.btnConfirm} className="nash-btn-confirm" onClick={confirmBooking} disabled={saving}>
-                          {saving ? "CONFIRMING APPOINTMENT..." : (ENABLE_ONLINE_PAYMENT ? `CONFIRM BOOKING (RS ${bookingFee} PAID)` : "CONFIRM APPOINTMENT")}
+                          {/* TRANSACTION ID INPUT (MANDATORY) */}
+                          <div>
+                            <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
+                              <label style={{...S.fieldLabel, margin: 0}}>
+                                12-Digit Transaction ID / UTR Number *
+                              </label>
+                              <span style={{fontSize: 10, color: "#f87171", fontWeight: 700}}>Required</span>
+                            </div>
+                            <input
+                              style={{
+                                ...S.input, 
+                                marginBottom: 6,
+                                borderColor: !txnId.trim() ? "rgba(220, 38, 38, 0.5)" : "var(--line)"
+                              }}
+                              type="text"
+                              required
+                              placeholder="e.g. 482910394820 (From Payment Receipt)"
+                              value={txnId}
+                              onChange={e => setTxnId(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                            />
+                            <span style={{fontSize: 11, color: "var(--muted)", display: "block"}}>
+                              UPI receipt (GPay / PhonePe / Paytm) se 12-digit UTR/Ref number yahan enter karein.
+                            </span>
+                          </div>
+                        </div>
+
+                        <button 
+                          style={{
+                            ...S.btnConfirm,
+                            background: !txnId.trim() ? "rgba(212, 175, 55, 0.4)" : S.btnConfirm.background,
+                            color: !txnId.trim() ? "rgba(0,0,0,0.6)" : S.btnConfirm.color,
+                            cursor: !txnId.trim() ? "not-allowed" : "pointer"
+                          }} 
+                          className="nash-btn-confirm" 
+                          onClick={confirmBooking} 
+                          disabled={saving}
+                        >
+                          {saving 
+                            ? "CONFIRMING APPOINTMENT..." 
+                            : !txnId.trim()
+                            ? "PAY ₹50 & ENTER UTR TO CONFIRM BOOKING"
+                            : "CONFIRM APPOINTMENT (₹50 TOKEN PAID) →"}
                         </button>
                       </div>
                     )}
