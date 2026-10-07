@@ -148,23 +148,46 @@ export default function ChuruOneHomePage() {
             </span>
           </div>
 
+          {/* Keyframes for Continuous Brand Shimmer Animation */}
+          <style>{`
+            @keyframes churuBrandShimmer {
+              0% { background-position: 0% center; }
+              100% { background-position: 200% center; }
+            }
+          `}</style>
+
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-zinc-950 leading-[1.12]">
-              Curated Local Establishments.
-            </h1>
-
-            {/* CHURUONE & CITY DIRECTORY positioned right below the curated line */}
-            <div className="mt-3.5 sm:mt-4 flex flex-col items-center justify-center">
-              <span className="text-sm sm:text-base font-bold tracking-[0.28em] uppercase text-zinc-950">
+            {/* Main Brand Title with Continuous Animated Metallic Sheen + Gentle Float */}
+            <motion.div
+              animate={{ y: [0, -3, 0] }}
+              transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
+              className="inline-block"
+            >
+              <h1 
+                className="text-5xl sm:text-7xl md:text-8xl font-black tracking-tight uppercase leading-none select-none"
+                style={{
+                  background: 'linear-gradient(90deg, #09090b 0%, #18181b 25%, #71717a 50%, #18181b 75%, #09090b 100%)',
+                  backgroundSize: '200% auto',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  animation: 'churuBrandShimmer 5s linear infinite'
+                }}
+              >
                 CHURUONE
-              </span>
-              <span className="text-[10px] sm:text-xs font-semibold tracking-[0.35em] uppercase text-zinc-400 mt-1">
+              </h1>
+            </motion.div>
+
+            {/* City Directory Subtitle with Editorial Hairline Dividers */}
+            <div className="flex items-center justify-center gap-3 mt-3 sm:mt-4">
+              <span className="h-[1px] w-6 sm:w-12 bg-zinc-300"></span>
+              <span className="text-xs sm:text-sm font-semibold tracking-[0.35em] uppercase text-zinc-400">
                 CITY DIRECTORY
               </span>
+              <span className="h-[1px] w-6 sm:w-12 bg-zinc-300"></span>
             </div>
           </motion.div>
 
