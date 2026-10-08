@@ -14,6 +14,7 @@ import {
   subscribeToReviews
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
+import LegalPoliciesModal from "../../components/LegalPoliciesModal";
 
 
 // =========================================================================
@@ -147,6 +148,13 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [user, setUser] = useState(null);
   const [customCss, setCustomCss] = useState("");
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('terms');
+
+  const openLegalModal = (tab = 'terms') => {
+    setLegalTab(tab);
+    setLegalModalOpen(true);
+  };
 
   useEffect(() => {
     const unsubH = subscribeToHairstyles((list) => {
@@ -1336,12 +1344,32 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                 {user && (
                   <div style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:10}}>
                     <span>{user.displayName}</span>
-                    <span>â€¢</span>
+                    <span>•</span>
                     <button onClick={handleLogout} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, textDecoration:"underline"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
                       Sign Out
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* LEGAL POLICIES STRIP */}
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:14, borderTop:"1px solid var(--line)", paddingTop:16, marginTop:8}}>
+                <div style={{display:"flex", alignItems:"center", flexWrap:"wrap", gap:14, fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em"}}>
+                  <button onClick={() => openLegalModal('terms')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
+                    Terms & Conditions
+                  </button>
+                  <span>•</span>
+                  <button onClick={() => openLegalModal('privacy')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
+                    Privacy Policy
+                  </button>
+                  <span>•</span>
+                  <button onClick={() => openLegalModal('refund')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0, fontWeight:700}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
+                    Refund & Cancellation
+                  </button>
+                </div>
+                <div style={{fontSize:10, color:"var(--muted)", fontFamily:"var(--body)", letterSpacing:"0.05em"}}>
+                  Token advance ₹50 refundable up to 1 hr prior • Refund processed in 2-3 days
+                </div>
               </div>
             </div>
           </Reveal>
@@ -1378,7 +1406,13 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         </div>
       )}
 
-      {/* END STICKY CTA */}
+      {/* Legal Policies Modal */}
+      <LegalPoliciesModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalTab}
+        entity="nash-studio"
+      />
     </div>
   );
 }

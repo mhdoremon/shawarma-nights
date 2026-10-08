@@ -14,10 +14,18 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import LegalPoliciesModal from '../../components/LegalPoliciesModal';
 
 export default function ChuruOneHomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('terms');
+
+  const openLegalModal = (tab = 'terms') => {
+    setLegalTab(tab);
+    setLegalModalOpen(true);
+  };
 
   // Resolve store destination URL dynamically based on environment
   const getStoreUrl = (storeId) => {
@@ -533,33 +541,74 @@ export default function ChuruOneHomePage() {
       </section>
 
       {/* ─── Architectural Minimal Footer ───────────────────────── */}
-      <footer className="border-t border-zinc-200 bg-white py-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 text-xs text-zinc-400">
-          <div>
-            <div className="font-semibold tracking-widest uppercase text-zinc-900">
-              CHURUONE
+      <footer className="border-t border-zinc-200 bg-white py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 text-xs text-zinc-400">
+            <div>
+              <div className="font-bold tracking-widest uppercase text-zinc-900">
+                CHURUONE
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                Churu, Rajasthan 331001 • Direct Commerce Infrastructure
+              </p>
             </div>
-            <p className="text-[11px] text-zinc-400 mt-1">
-              Churu, Rajasthan 331001 • Direct Commerce Infrastructure
-            </p>
+
+            <div className="flex items-center flex-wrap gap-5 text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+              <a href={getStoreUrl('shawarma')} className="hover:text-zinc-950 transition-colors">
+                Shawarma Nights
+              </a>
+              <a href={getStoreUrl('nash-studio')} className="hover:text-zinc-950 transition-colors">
+                Nash Studio
+              </a>
+              <Link to="/admin" className="hover:text-zinc-950 transition-colors">
+                Merchant OS
+              </Link>
+              <Link to="/auth" className="hover:text-zinc-950 transition-colors">
+                Account
+              </Link>
+            </div>
           </div>
 
-          <div className="flex items-center flex-wrap gap-5 text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
-            <a href={getStoreUrl('shawarma')} className="hover:text-zinc-950 transition-colors">
-              Shawarma Nights
-            </a>
-            <a href={getStoreUrl('nash-studio')} className="hover:text-zinc-950 transition-colors">
-              Nash Studio
-            </a>
-            <Link to="/admin" className="hover:text-zinc-950 transition-colors">
-              Merchant OS
-            </Link>
-            <Link to="/auth" className="hover:text-zinc-950 transition-colors">
-              Account
-            </Link>
+          {/* Legal Compliance Policy Links */}
+          <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[11px] text-zinc-400">
+            <div className="flex items-center flex-wrap gap-4 sm:gap-6 font-medium">
+              <button 
+                type="button"
+                onClick={() => openLegalModal('terms')} 
+                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              >
+                Terms & Conditions
+              </button>
+              <button 
+                type="button"
+                onClick={() => openLegalModal('privacy')} 
+                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+              <button 
+                type="button"
+                onClick={() => openLegalModal('refund')} 
+                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              >
+                Refund & Cancellation Policy
+              </button>
+            </div>
+
+            <div className="text-zinc-400 text-[10px] font-mono">
+              Orders can be cancelled within 10 minutes, refund processed in 2-3 days
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Legal Policies Modal */}
+      <LegalPoliciesModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalTab}
+        entity="churuone"
+      />
 
     </div>
   );

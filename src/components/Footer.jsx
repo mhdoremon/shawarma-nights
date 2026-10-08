@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Clock, 
   MapPin, 
@@ -12,14 +12,23 @@ import {
   Phone,
   ExternalLink,
   Navigation,
-  Store
+  Store,
+  FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
+import LegalPoliciesModal from './LegalPoliciesModal';
 
 export default function Footer({ onOpenFranchise }) {
   const { storeInfo } = useRealtimeDB();
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('terms');
+
+  const openLegalModal = (tab = 'terms') => {
+    setLegalTab(tab);
+    setLegalModalOpen(true);
+  };
 
   // Dynamic Dukandar Data with robust fallbacks
   const info = {
@@ -270,8 +279,39 @@ export default function Footer({ onOpenFranchise }) {
 
         </div>
 
+        {/* Legal Policies & Compliance Strip */}
+        <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 font-medium">
+            <button
+              type="button"
+              onClick={() => openLegalModal('terms')}
+              className="hover:text-red-600 transition-colors cursor-pointer"
+            >
+              Terms & Conditions
+            </button>
+            <button
+              type="button"
+              onClick={() => openLegalModal('privacy')}
+              className="hover:text-red-600 transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => openLegalModal('refund')}
+              className="hover:text-red-600 transition-colors cursor-pointer font-bold text-zinc-700"
+            >
+              Refund & Cancellation Policy
+            </button>
+          </div>
+
+          <div className="text-[11px] font-mono text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200">
+            Orders can be cancelled within 10 minutes, refund processed in 2-3 days
+          </div>
+        </div>
+
         {/* Accepted Payment Modes & Bottom Strip */}
-        <div className="mt-12 pt-8 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-2">
               Payment Modes:
@@ -301,6 +341,14 @@ export default function Footer({ onOpenFranchise }) {
         </div>
 
       </div>
+
+      {/* Legal Policies Modal */}
+      <LegalPoliciesModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalTab}
+        entity="shawarma"
+      />
     </footer>
   );
 }

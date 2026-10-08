@@ -6,6 +6,7 @@ import AppStorePage from './apps/hub/AppStorePage';
 import ChuruOneHomePage from './apps/churuone/ChuruOneHomePage';
 import ChuruOneAuthPage from './apps/churuone/ChuruOneAuthPage';
 import NashStudioApp from './apps/nash/NashStudioApp';
+import LegalPage from './apps/legal/LegalPage';
 
 function RootEntry() {
   const location = useLocation();
@@ -13,6 +14,11 @@ function RootEntry() {
   const path = location.pathname.toLowerCase();
   const params = new URLSearchParams(location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
+
+  // Legal Policies (Terms, Privacy, Refund)
+  if (path.startsWith('/terms') || path.startsWith('/privacy') || path.startsWith('/refund') || path.startsWith('/cancellation') || path.startsWith('/policies') || path.startsWith('/legal')) {
+    return <LegalPage />;
+  }
 
   // 0. Unified ChuruOne SSO Authentication Portal (/auth or /login)
   if (path.startsWith('/auth') || path.startsWith('/login') || path.startsWith('/signup')) {
@@ -47,6 +53,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Legal Policies: Terms, Privacy, Refund */}
+        <Route path="/terms/*" element={<LegalPage />} />
+        <Route path="/privacy/*" element={<LegalPage />} />
+        <Route path="/refund/*" element={<LegalPage />} />
+        <Route path="/refund-policy/*" element={<LegalPage />} />
+        <Route path="/cancellation/*" element={<LegalPage />} />
+        <Route path="/cancellation-policy/*" element={<LegalPage />} />
+        <Route path="/policies/*" element={<LegalPage />} />
+        <Route path="/legal/*" element={<LegalPage />} />
+
         {/* ChuruOne Unified SSO Auth Portal */}
         <Route path="/auth/*" element={<ChuruOneAuthPage />} />
         <Route path="/login/*" element={<ChuruOneAuthPage />} />
