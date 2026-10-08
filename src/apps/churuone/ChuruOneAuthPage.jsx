@@ -94,14 +94,14 @@ export default function ChuruOneAuthPage() {
       const existingRaw = localStorage.getItem('churuone_user') || localStorage.getItem('nash_user');
       if (existingRaw) {
         const parsed = JSON.parse(existingRaw);
-        if (parsed && (parsed.phoneNumber || parsed.phone) && searchParams.get('auto') === '1') {
-          if (!storePolicyRequireOtp || parsed.phoneVerified) {
+        if (parsed && searchParams.get('auto') === '1') {
+          if (!storePolicyRequireOtp || (parsed.phoneVerified && parsed.phone)) {
             completeAndRedirect(parsed, localStorage.getItem('auth_token') || '');
           }
         }
       }
     } catch (e) {}
-  }, []);
+  }, [storePolicyRequireOtp]);
 
   async function handleGoogleSignIn() {
     setLoading(true);
@@ -122,7 +122,23 @@ export default function ChuruOneAuthPage() {
       setFullName(gName);
       setEmail(gEmail);
 
-      // Check if user already exists on ChuruOne Smart Server with a verified phone number
+      // SITUATION 1: Normal Google login on ChuruOne portal (general directory / non-food store)
+      // NEVER prompt for phone number! 100% 1-click Google Sign-In!
+      if (!isShawarma && !storePolicyRequireOtp) {
+        setSuccessMsg("Signed in successfully with Google! Redirecting...");
+        await finalizeServerSession({
+          googleId: user.uid,
+          email: gEmail,
+          name: gName,
+          picture: gPic,
+          phone: '',
+          phoneVerified: false,
+          storeId: storeId || 'churuone'
+        });
+        return;
+      }
+
+      // SITUATION 2: Shawarma Nights / Food store with mandatory OTP policy
       try {
         const queryParam = storeId ? `?storeId=${storeId}` : '';
         const checkRes = await fetch(`/api/auth/google${queryParam}`, {
@@ -133,7 +149,7 @@ export default function ChuruOneAuthPage() {
             email: gEmail,
             name: gName,
             picture: gPic,
-            storeId: storeId || 'churuone'
+            storeId: storeId || 'shawarma'
           })
         });
 
@@ -141,15 +157,18 @@ export default function ChuruOneAuthPage() {
         if (checkData.success && checkData.user) {
           const sUser = checkData.user;
           const userPhone = sUser.phone || sUser.phoneNumber;
+          const cleanPhone = (userPhone || '').replace(/\D/g, '').slice(-10);
 
-          if (userPhone && (!storePolicyRequireOtp || sUser.phoneVerified)) {
+          // For Shawarma Nights, phone must be genuinely OTP-verified!
+          if (cleanPhone.length === 10 && sUser.phoneVerified === true) {
             const verifiedPayload = {
               ...sUser,
               displayName: sUser.name || gName,
               photoURL: sUser.picture || gPic,
               authProvider: 'google',
-              phone: userPhone,
-              phoneNumber: userPhone
+              phone: cleanPhone,
+              phoneNumber: cleanPhone,
+              phoneVerified: true
             };
             setSuccessMsg("Account verified! Redirecting...");
             setTimeout(() => {
@@ -158,14 +177,15 @@ export default function ChuruOneAuthPage() {
             return;
           }
 
-          if (userPhone) {
-            setPhone(userPhone);
+          if (cleanPhone.length === 10) {
+            setPhone(cleanPhone);
           }
         }
       } catch (err) {
-        console.warn("Backend pre-check skipped, moving to profile step:", err);
+        console.warn("Backend pre-check skipped, moving to phone OTP verification:", err);
       }
 
+      // If phone is not yet verified for food delivery, proceed to SMS OTP flow
       setStep(2);
     } catch (err) {
       console.error("ChuruOne Google Sign-In Error:", err);

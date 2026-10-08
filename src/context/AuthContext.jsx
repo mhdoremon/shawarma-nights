@@ -8,6 +8,21 @@ import { getChuruOneSession, setChuruOneSession, clearChuruOneSession } from '..
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  // Helper to ensure user session is clean, structured, and phoneVerified is strictly validated
+  const sanitizeUser = (u) => {
+    if (!u || typeof u !== 'object') return null;
+    const rawPhone = u.phone || u.phoneNumber || '';
+    const cleanPhone = String(rawPhone).replace(/\D/g, '').slice(-10);
+    const phoneVerified = Boolean(u.phoneVerified === true && cleanPhone.length === 10);
+    return {
+      ...u,
+      phone: cleanPhone,
+      phoneNumber: cleanPhone,
+      phoneVerified,
+      name: u.name || u.displayName || 'Foodie'
+    };
+  };
+
   // Helper to load persistent user session from localStorage or cross-domain SSO cookie
   const loadSavedUser = () => {
     try {
@@ -15,13 +30,13 @@ export function AuthProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object' && (parsed.phone || parsed.phoneNumber || parsed.id || parsed.name || parsed.email)) {
-          return parsed;
+          return sanitizeUser(parsed);
         }
       }
       // Check cross-domain SSO session cookie (.churuone.in)
       const session = getChuruOneSession();
       if (session && session.user) {
-        return session.user;
+        return sanitizeUser(session.user);
       }
     } catch (e) {
       console.warn('Failed to parse saved session:', e);
@@ -62,11 +77,10 @@ export function AuthProvider({ children }) {
     if (ssoUserRaw) {
       try {
         const parsed = JSON.parse(decodeURIComponent(ssoUserRaw));
-        const formattedUser = {
+        const formattedUser = sanitizeUser({
           ...parsed,
-          phone: parsed.phone || parsed.phoneNumber || '',
           name: parsed.name || parsed.displayName || 'Foodie'
-        };
+        });
         setCurrentUser(formattedUser);
         localStorage.setItem('sn_session', JSON.stringify(formattedUser));
         localStorage.setItem('sn_current_user', JSON.stringify(formattedUser));
@@ -91,11 +105,10 @@ export function AuthProvider({ children }) {
       if (event.data && event.data.type === 'CHURUONE_AUTH_SUCCESS') {
         const { user: ssoUser, token } = event.data;
         if (ssoUser) {
-          const formattedUser = {
+          const formattedUser = sanitizeUser({
             ...ssoUser,
-            phone: ssoUser.phone || ssoUser.phoneNumber || '',
             name: ssoUser.name || ssoUser.displayName || 'Foodie'
-          };
+          });
           setCurrentUser(formattedUser);
           localStorage.setItem('sn_session', JSON.stringify(formattedUser));
           localStorage.setItem('sn_current_user', JSON.stringify(formattedUser));
@@ -362,10 +375,19 @@ export function AuthProvider({ children }) {
           // Existing User -> Login Directly!
           console.log('🔥 Welcome back, existing user!');
           sounds.playSuccessFanfare();
-          setCurrentUser(sData.user);
+          const verifiedUser = sanitizeUser({
+            ...(currentUser || {}),
+            ...sData.user,
+            phone: pendingPhone || sData.user?.phone,
+            phoneVerified: true
+          });
+          setCurrentUser(verifiedUser);
           localStorage.setItem('auth_token', sData.token);
+          localStorage.setItem('sn_session', JSON.stringify(verifiedUser));
+          localStorage.setItem('sn_current_user', JSON.stringify(verifiedUser));
+          localStorage.setItem('churuone_user', JSON.stringify(verifiedUser));
           closeAuthModal();
-          return { success: true, isNewUser: false, user: sData.user };
+          return { success: true, isNewUser: false, user: verifiedUser };
         } else {
           // New User -> Prompt for Registration
           setActiveStep('register');
@@ -401,8 +423,8 @@ export function AuthProvider({ children }) {
         },
         body: JSON.stringify({
           phone: pendingPhone,
-          name: profileData.name || 'Foodie',
-          email: profileData.email || '',
+          name: profileData.name || (currentUser?.name) || 'Foodie',
+          email: profileData.email || (currentUser?.email) || '',
           address: profileData.address || '',
           tempToken,
           storeId: activeStoreId
@@ -411,12 +433,21 @@ export function AuthProvider({ children }) {
       const data = await res.json();
       
       if (data.success) {
-        setCurrentUser(data.user);
+        const registeredUser = sanitizeUser({
+          ...(currentUser || {}),
+          ...data.user,
+          phone: pendingPhone || data.user?.phone,
+          phoneVerified: true
+        });
+        setCurrentUser(registeredUser);
         localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('sn_session', JSON.stringify(registeredUser));
+        localStorage.setItem('sn_current_user', JSON.stringify(registeredUser));
+        localStorage.setItem('churuone_user', JSON.stringify(registeredUser));
         localStorage.removeItem('temp_reg_token');
         sounds.playSuccessFanfare();
         closeAuthModal();
-        return { success: true, user: data.user };
+        return { success: true, user: registeredUser };
       }
       return { success: false, message: data.message };
     } catch (e) {

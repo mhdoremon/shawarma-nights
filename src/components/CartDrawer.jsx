@@ -16,7 +16,8 @@ import {
   Flame,
   MapPin,
   QrCode,
-  ShieldCheck
+  ShieldCheck,
+  Banknote
 } from 'lucide-react';
 import UpiPaymentModal from './UpiPaymentModal';
 import { useCart } from '../context/CartContext';
@@ -24,6 +25,14 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 import { getImageUrl, handleImageError } from '../utils/imageHelper';
+
+// =========================================================================
+// PAYMENT MODE TOGGLE:
+// Set to `false` per store requirement: UPI is dummy/simulated, so show
+// Cash on Delivery (COD) as the active payment method.
+// (UPI code is preserved intact below for future live PG activation)
+// =========================================================================
+const ENABLE_UPI = false;
 
 export default function CartDrawer({ onOpenTracker }) {
   const { currentUser, isAuthenticated, openAuthModal, updateUserProfile } = useAuth();
@@ -59,7 +68,7 @@ export default function CartDrawer({ onOpenTracker }) {
   const [couponFeedback, setCouponFeedback] = useState(null);
 
   // Direct UPI vs Cash On Delivery (COD)
-  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' or 'cod'
+  const [paymentMethod, setPaymentMethod] = useState(ENABLE_UPI ? 'upi' : 'cod'); // 'upi' or 'cod'
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState(null);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
@@ -71,6 +80,10 @@ export default function CartDrawer({ onOpenTracker }) {
   const [landmark, setLandmark] = useState('');
   const [gpsError, setGpsError] = useState('');
   const [manualAddress, setManualAddress] = useState('');
+
+  // Strictly validate phone OTP verification status
+  const cleanUserPhone = (currentUser?.phone || currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+  const isPhoneOtpVerified = Boolean(currentUser?.phoneVerified && cleanUserPhone.length === 10);
 
   const handleCaptureGPS = () => {
     setIsCapturingGps(true);
@@ -147,7 +160,8 @@ export default function CartDrawer({ onOpenTracker }) {
     }
 
     const cleanUserPhone = (currentUser?.phone || currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
-    if (!currentUser?.phoneVerified || cleanUserPhone.length !== 10) {
+    const isPhoneOtpVerified = Boolean(currentUser?.phoneVerified && cleanUserPhone.length === 10);
+    if (!isPhoneOtpVerified) {
       alert("⚠️ Shawarma Nights food delivery ke liye mobile number OTP verify hona aniwarya hai. Kripya apna number verify karein.");
       openAuthModal('phone');
       return;
@@ -666,7 +680,7 @@ export default function CartDrawer({ onOpenTracker }) {
                 {/* Delivery Address & Verification Card */}
                 <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">
                   {isAuthenticated ? (
-                    currentUser?.phoneVerified ? (
+                    isPhoneOtpVerified ? (
                       <>
                         <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                           <span>Delivery Details:</span>
@@ -678,14 +692,14 @@ export default function CartDrawer({ onOpenTracker }) {
                         <div className="font-bold text-zinc-900 text-xs">{currentUser.name} (+91 {currentUser.phone})</div>
                       </>
                     ) : (
-                      <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded-xl">
+                      <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-200 rounded-xl">
                         <div>
                           <div className="font-extrabold text-xs text-red-900">⚠️ Phone Not Verified!</div>
                           <div className="text-[10px] text-red-700">Food delivery ke liye SMS OTP verify karein</div>
                         </div>
                         <button
                           onClick={() => openAuthModal('phone')}
-                          className="px-3 py-1.5 rounded-xl bg-[#DC2626] text-white font-extrabold text-xs shadow-xs hover:bg-[#B91C1C]"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#DC2626] text-white font-extrabold text-xs shadow-xs hover:bg-[#B91C1C]"
                         >
                           Verify OTP
                         </button>
@@ -729,34 +743,55 @@ export default function CartDrawer({ onOpenTracker }) {
                   })()}
                 </div>
 
-                {/* Payment Option Selector - UPI Only */}
+                {/* Payment Option Selector - Cash on Delivery (Active) vs UPI (Preserved) */}
                 <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">
                   <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                    <span>Payment Mode (Exclusive)</span>
+                    <span>Payment Mode</span>
                     <span className="text-emerald-600 font-extrabold flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Direct UPI Only • 100% Safe</span>
+                      <span>{ENABLE_UPI ? 'Direct UPI Only • 100% Safe' : 'Cash on Delivery (COD) Active'}</span>
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl border-2 border-[#DC2626] bg-red-50/40 text-left relative flex items-center justify-between shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#DC2626] text-white flex items-center justify-center shrink-0 shadow-xs">
-                        <QrCode className="w-5 h-5 stroke-[2.2]" />
-                      </div>
-                      <div>
-                        <div className="font-black text-xs text-zinc-900 leading-tight flex items-center gap-2">
-                          Direct UPI / Instant QR
-                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                            Auto-Verify
-                          </span>
+                  {ENABLE_UPI ? (
+                    <div className="p-3.5 rounded-xl border-2 border-[#DC2626] bg-red-50/40 text-left relative flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#DC2626] text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <QrCode className="w-5 h-5 stroke-[2.2]" />
                         </div>
-                        <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
-                          Google Pay, PhonePe, Paytm, BHIM, Cred (Any UPI App)
+                        <div>
+                          <div className="font-black text-xs text-zinc-900 leading-tight flex items-center gap-2">
+                            Direct UPI / Instant QR
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              Auto-Verify
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
+                            Google Pay, PhonePe, Paytm, BHIM, Cred (Any UPI App)
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-3.5 rounded-xl border-2 border-emerald-600 bg-emerald-50/40 text-left relative flex items-center justify-between shadow-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Banknote className="w-5 h-5 stroke-[2.2]" />
+                        </div>
+                        <div>
+                          <div className="font-black text-xs text-zinc-900 leading-tight flex items-center gap-2">
+                            Cash on Delivery (COD)
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              Pay at Doorstep
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
+                            Ghar par order deliver hone ke waqt delivery rider ko cash dein
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -844,12 +879,12 @@ export default function CartDrawer({ onOpenTracker }) {
                 <div className="flex items-center gap-1.5">
                   <span>
                     {isInitiatingPayment
-                      ? 'Generating UPI...'
+                      ? (ENABLE_UPI ? 'Generating UPI...' : 'Placing Order...')
                       : !isAuthenticated
-                      ? 'Login & Pay with UPI'
-                      : !currentUser?.phoneVerified
+                      ? (ENABLE_UPI ? 'Login & Pay with UPI' : 'Login & Place COD Order')
+                      : !isPhoneOtpVerified
                       ? 'Verify Phone to Order'
-                      : 'Pay via UPI / QR'}
+                      : (ENABLE_UPI ? 'Pay via UPI / QR' : 'Place Order (Cash on Delivery)')}
                   </span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </div>

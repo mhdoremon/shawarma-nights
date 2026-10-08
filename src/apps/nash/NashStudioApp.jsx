@@ -149,13 +149,6 @@ export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [user, setUser] = useState(null);
   const [customCss, setCustomCss] = useState("");
-  const [legalModalOpen, setLegalModalOpen] = useState(false);
-  const [legalTab, setLegalTab] = useState('terms');
-
-  const openLegalModal = (tab = 'terms') => {
-    setLegalTab(tab);
-    setLegalModalOpen(true);
-  };
 
   useEffect(() => {
     const unsubH = subscribeToHairstyles((list) => {
@@ -231,6 +224,13 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [domainNotice, setDomainNotice] = useState(null);
   const [toast, setToast] = useState(null);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState('terms');
+
+  const openLegalModal = (tab = 'terms') => {
+    setLegalTab(tab);
+    setLegalModalOpen(true);
+  };
 
   function showToast(msg, type = "success") {
     setToast({ msg, type, id: Date.now() });

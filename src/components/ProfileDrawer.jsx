@@ -18,6 +18,7 @@ import {
   Clock, 
   Trash2,
   AlertTriangle,
+  AlertCircle,
   User,
   MessageCircle,
   HelpCircle
@@ -30,7 +31,8 @@ export default function ProfileDrawer() {
     currentUser, 
     updateUserProfile, 
     deleteUserAccount, 
-    logout 
+    logout,
+    openAuthModal
   } = useAuth();
 
   const { orders, storeInfo, menu } = useRealtimeDB();
@@ -150,15 +152,26 @@ export default function ProfileDrawer() {
                     <h2 className="text-lg sm:text-xl font-black text-stone-900 tracking-tight">
                       My Profile
                     </h2>
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                      Verified
-                    </span>
+                    {currentUser.phoneVerified && currentUser.phone ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                        Verified
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full shrink-0">
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        Phone Unverified
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-stone-500 font-medium truncate mt-0.5">
                     <span className="font-bold text-stone-800">{currentUser.name}</span>
                     <span className="mx-1.5 text-stone-300">•</span>
-                    <span className="font-mono text-stone-600">+91 {currentUser.phone}</span>
+                    {currentUser.phone ? (
+                      <span className="font-mono text-stone-600">+91 {currentUser.phone}</span>
+                    ) : (
+                      <span className="text-amber-700 font-bold">No mobile added</span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -243,14 +256,26 @@ export default function ProfileDrawer() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                              Phone Number (SMS Verified)
+                              Phone Number {currentUser.phoneVerified && currentUser.phone ? '(SMS Verified)' : '(Verification Pending)'}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-sm font-mono font-bold text-stone-900">+91 {currentUser.phone}</span>
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                                <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                                Verified
+                              <span className="text-sm font-mono font-bold text-stone-900">
+                                {currentUser.phone ? `+91 ${currentUser.phone}` : 'Not provided'}
                               </span>
+                              {currentUser.phoneVerified && currentUser.phone ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                                  Verified
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => { setIsProfileOpen(false); openAuthModal('phone'); }}
+                                  className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#DC2626] bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-0.5 rounded-full transition-colors cursor-pointer"
+                                >
+                                  Verify OTP
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -317,15 +342,30 @@ export default function ProfileDrawer() {
 
                       <div>
                         <label className="text-[11px] font-black text-stone-700 uppercase tracking-wider block mb-1">
-                          Verified Phone (Cannot be changed)
+                          Mobile Number
                         </label>
-                        <div className="flex items-center justify-between bg-[#F5F2EC] border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-stone-500">
-                          <span>+91 {currentUser.phone}</span>
-                          <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-sans font-bold border border-emerald-200">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                            Verified
-                          </span>
-                        </div>
+                        {currentUser.phoneVerified && currentUser.phone ? (
+                          <div className="flex items-center justify-between bg-[#F5F2EC] border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-stone-500">
+                            <span>+91 {currentUser.phone}</span>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-sans font-bold border border-emerald-200">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                              Verified
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between bg-amber-50/70 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs">
+                            <span className="font-mono font-bold text-amber-900">
+                              {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => { setIsProfileOpen(false); openAuthModal('phone'); }}
+                              className="text-[10px] font-extrabold text-[#DC2626] hover:underline"
+                            >
+                              Verify OTP
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div>
