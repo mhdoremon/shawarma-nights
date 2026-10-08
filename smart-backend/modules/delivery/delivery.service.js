@@ -115,7 +115,7 @@ export function login(req, res) {
 
     console.log(`[DELIVERY LOGIN] Store: ${req.storeId}, Phone: ${normPhone}, OTP: ${otp}`);
     
-    return res.json({ success: true, message: 'OTP sent', devOtp: otp, token: boy.token });
+    return res.json({ success: true, message: 'OTP sent', token: boy.token });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

@@ -4,6 +4,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { ArrowLeft, CheckCircle2, ShieldCheck, User, AlertCircle, Phone, ArrowRight, Store } from 'lucide-react';
 import { firebaseConfig } from '../nash/firebase';
 import { setChuruOneSession } from '../../utils/ssoHelper';
+import { API_URL } from '../../config/api';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
@@ -52,7 +53,9 @@ export default function ChuruOneAuthPage() {
   // Background store config check (only if storeId is provided)
   useEffect(() => {
     if (!storeId) return;
-    fetch(`/api/store-info?storeId=${storeId}`)
+    fetch(`${API_URL}/api/store-info?storeId=${storeId}`, {
+      headers: { 'x-store-id': storeId }
+    })
       .then(res => res.json())
       .then(data => {
         if (data && data.settings && typeof data.settings.requirePhoneOtp === 'boolean') {
@@ -79,7 +82,6 @@ export default function ChuruOneAuthPage() {
   const [cooldown, setCooldown] = useState(0);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [devOtp, setDevOtp] = useState(null);
 
   // Cooldown timer
   useEffect(() => {
@@ -141,9 +143,12 @@ export default function ChuruOneAuthPage() {
       // SITUATION 2: Shawarma Nights / Food store with mandatory OTP policy
       try {
         const queryParam = storeId ? `?storeId=${storeId}` : '';
-        const checkRes = await fetch(`/api/auth/google${queryParam}`, {
+        const checkRes = await fetch(`${API_URL}/api/auth/google${queryParam}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-store-id': storeId || 'shawarma'
+          },
           body: JSON.stringify({
             googleId: user.uid,
             email: gEmail,
@@ -242,10 +247,14 @@ export default function ChuruOneAuthPage() {
     setIsSendingOtp(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const activeStore = storeId || 'shawarma';
+      const res = await fetch(`${API_URL}/api/auth/send-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: targetPhone, storeId: storeId || 'shawarma' })
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStore
+        },
+        body: JSON.stringify({ phone: targetPhone, storeId: activeStore })
       });
       const data = await res.json();
       if (!data.success) {
@@ -255,7 +264,6 @@ export default function ChuruOneAuthPage() {
       }
 
       setCooldown(30);
-      if (data.devOtp) setDevOtp(data.devOtp);
       setStep(3);
       setSuccessMsg(`SMS OTP sent to +91 ${targetPhone}`);
     } catch (err) {
@@ -277,10 +285,14 @@ export default function ChuruOneAuthPage() {
     setIsVerifyingOtp(true);
     setErrorMsg('');
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const activeStore = storeId || 'shawarma';
+      const res = await fetch(`${API_URL}/api/auth/verify-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cleanPhone, otp: cleanOtp, storeId: storeId || 'shawarma' })
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-store-id': activeStore
+        },
+        body: JSON.stringify({ phone: cleanPhone, otp: cleanOtp, storeId: activeStore })
       });
       const data = await res.json();
       if (!data.success) {
@@ -296,7 +308,7 @@ export default function ChuruOneAuthPage() {
         picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
         phone: cleanPhone,
         phoneVerified: true,
-        storeId: storeId || 'shawarma'
+        storeId: activeStore
       });
     } catch (err) {
       setErrorMsg(err.message || 'Verification failed. Please try again.');
@@ -305,9 +317,13 @@ export default function ChuruOneAuthPage() {
   }
 
   async function finalizeServerSession(payload) {
-    const res = await fetch('/api/auth/google', {
+    const activeStore = payload.storeId || storeId || 'shawarma';
+    const res = await fetch(`${API_URL}/api/auth/google`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-store-id': activeStore
+      },
       body: JSON.stringify(payload)
     });
 
@@ -541,12 +557,6 @@ export default function ChuruOneAuthPage() {
                 Verification code dispatched to: <strong className="text-zinc-950">+91 {phone}</strong>
               </span>
             </div>
-
-            {devOtp && (
-              <div className="p-2.5 border border-dashed border-zinc-300 text-center text-xs font-mono text-zinc-600">
-                DEV OTP: <strong>{devOtp}</strong>
-              </div>
-            )}
 
             <div>
               <input

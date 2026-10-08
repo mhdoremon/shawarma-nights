@@ -53,7 +53,6 @@ export const sendOtp = (req, res) => {
         res.json({ 
             success: true, 
             message: 'OTP bhej diya gaya hai.', 
-            devOtp: otp,
             storeId: targetStoreId 
         });
     } catch (error) {
