@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Star } from 'lucide-react';
 
 // Simple Feedback Modal component
 // Props: booking (object), onClose (function), onSubmit (function rating, comment)
 export default function FeedbackModal({ booking, onClose, onSubmit }) {
   const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
 
   const handleSubmit = () => {
@@ -21,11 +23,21 @@ export default function FeedbackModal({ booking, onClose, onSubmit }) {
         <p style={styles.subtitle}>Your booking: {booking?.token || booking?.id}</p>
         <div style={styles.ratingContainer}>
           {[1,2,3,4,5].map(star => (
-            <span
+            <button
               key={star}
-              style={star <= rating ? styles.starSelected : styles.star}
+              type="button"
               onClick={() => setRating(star)}
-            >★</span>
+              onMouseEnter={() => setHoverRating(star)}
+              onMouseLeave={() => setHoverRating(0)}
+              style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', lineHeight: 0 }}
+            >
+              <Star
+                size={26}
+                fill={star <= (hoverRating || rating) ? "#E5A93B" : "none"}
+                color={star <= (hoverRating || rating) ? "#E5A93B" : "var(--line, #162234)"}
+                strokeWidth={1.5}
+              />
+            </button>
           ))}
         </div>
         <textarea

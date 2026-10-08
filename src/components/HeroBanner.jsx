@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Star } from 'lucide-react';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { MENU_ITEMS } from '../data/menuData';
 import { getImageUrl, handleImageError } from '../utils/imageHelper';
@@ -45,17 +45,17 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish, onOpen
   // If featuredItem?.rating exists, use it. Else if server reviews exist, calculate average rating. Fallback to clean rating.
   const displayRating = useMemo(() => {
     if (featuredItem?.rating) {
-      return `${Number(featuredItem.rating).toFixed(1)} ★`;
+      return Number(featuredItem.rating).toFixed(1);
     }
     const reviewsList = Array.isArray(reviews) ? reviews : [];
     if (reviewsList.length > 0) {
       const avg = reviewsList.reduce((acc, r) => acc + (Number(r.rating) || 5), 0) / reviewsList.length;
-      return `${avg.toFixed(1)} ★`;
+      return avg.toFixed(1);
     }
-    if (heroBanner?.ratingText && !heroBanner.ratingText.includes('4.9')) {
-      return heroBanner.ratingText;
+    if (heroBanner?.ratingText) {
+      return heroBanner.ratingText.replace(/[^0-9.]/g, '') || '4.9';
     }
-    return '4.9 ★';
+    return '4.9';
   }, [featuredItem?.rating, reviews, heroBanner?.ratingText]);
 
   // Real review count: Never show fake "15K+ Reviews"
@@ -215,8 +215,11 @@ export default function HeroBanner({ onExploreMenu, onSelectFeaturedDish, onOpen
 
               {/* Rating floating pill */}
               <div className="absolute top-2 -left-4 sm:top-6 sm:-left-6 bg-white text-zinc-900 px-3 py-2 rounded-2xl shadow-xl rotate-[-5deg] group-hover:rotate-[-3deg] transition-transform">
-                <div className="text-lg font-black text-zinc-900">{displayRating}</div>
-                <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{displayReviewsCount}</div>
+                <div className="text-lg font-black text-zinc-900 flex items-center gap-1 leading-none">
+                  <span>{displayRating}</span>
+                  <Star className="w-4 h-4 fill-amber-400 stroke-amber-400" />
+                </div>
+                <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1">{displayReviewsCount}</div>
               </div>
             </motion.div>
           </motion.div>

@@ -16,6 +16,7 @@ import {
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
 import { getChuruOneSession, setChuruOneSession } from "../../utils/ssoHelper";
+import { Star, Moon, Sun, ArrowUpRight, ArrowLeft, X, Check, Lock, AlertTriangle, Zap, Sparkles } from 'lucide-react';
 
 
 // =========================================================================
@@ -49,7 +50,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_HAIRSTYLES = [
-  // PREMIUM (60 min â€¢ Rs 1500)
+  // PREMIUM (60 min • Rs 1500)
   { id: 'hs1', name: 'Messy Spiky Undercut', type: 'premium', img: '/images/10-messy-spiky-undercut-for-men.webp', time: 60, price: 1500, desc: 'High-texture spiky top with ultra-sharp disconnected fade.' },
   { id: 'hs2', name: 'Messy Flow & Texture', type: 'premium', img: '/images/Messy_Hairstyles_For_Men_76d77f7a-be86-4de0-802f-5fd01f933356.webp', time: 60, price: 1500, desc: 'Natural flow length with textured layers and soft taper.' },
   { id: 'hs3', name: 'Royal Pompadour Fade', type: 'premium', img: '/images/hs_pompadour_fade.jpg', time: 60, price: 1500, desc: 'Voluminous high pompadour with seamless skin fade.' },
@@ -60,7 +61,7 @@ const DEFAULT_HAIRSTYLES = [
   { id: 'hs8', name: 'Voluminous Quiff Fade', type: 'premium', img: '/images/hs_quiff_fade.jpg', time: 60, price: 1500, desc: 'Lifted textured quiff with high contrast side taper.' },
   { id: 'hs9', name: 'Executive Contour Fade', type: 'premium', img: '/images/images.jfif', time: 60, price: 1500, desc: 'Sharp silhouette contoured to head shape with beard blend.' },
 
-  // STANDARD (30 min â€¢ Rs 800 / Rs 500)
+  // STANDARD (30 min • Rs 800 / Rs 500)
   { id: 'hs10', name: 'Soft Taper Skin Fade', type: 'standard', img: '/images/Soft-fade-edit.webp', time: 30, price: 800, desc: 'Everyday clean skin taper with natural top finish.' },
   { id: 'hs11', name: 'Textured Crop Fade', type: 'standard', img: '/images/images (2).jfif', time: 30, price: 800, desc: 'Blunt matte crop fringe with sharp temple taper.' },
   { id: 'hs12', name: 'Military Precision Buzz', type: 'standard', img: '/images/images (3).jfif', time: 30, price: 500, desc: 'Ultra-clean uniform military buzz with edge lineup.' },
@@ -190,7 +191,7 @@ export default function App() {
   return <SiteView hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} />;
 }
 
-/* FloatingParticles removed â€” clean design */
+/* FloatingParticles removed - clean design */
 
 function Reveal({ children, delay = 0 }) {
   const ref = useRef(null);
@@ -585,8 +586,9 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"30px 20px"}}>
           <div style={{maxWidth:1100, margin:"0 auto"}}>
             <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-              <span style={{fontSize:12, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--paper)"}}>
-                ★ SPECIAL SALON PACKAGES & DEALS
+              <span style={{fontSize:12, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--paper)", display:"inline-flex", alignItems:"center", gap:6}}>
+                <Sparkles size={14} color="#d4af37" />
+                <span>SPECIAL SALON PACKAGES & DEALS</span>
               </span>
               <span style={{fontSize:11, color:"#d4af37", fontWeight:600}}>Limited Slots</span>
             </div>
@@ -727,7 +729,13 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     }}
                   />
                   {searchQ && (
-                    <button onClick={() => setSearchQ("")} style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:11}}>âœ•</button>
+                    <button 
+                      onClick={() => setSearchQ("")} 
+                      style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:4}}
+                      title="Clear Search"
+                    >
+                      <X size={14} strokeWidth={2} />
+                    </button>
                   )}
                 </div>
               </div>
@@ -805,7 +813,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                               borderTop:"1px solid rgba(255,255,255,0.1)"
                             }}>
                               <div style={{fontFamily:"var(--body)", fontSize:14, fontWeight:700, color:"#ffffff", letterSpacing:"0.05em"}}>
-                                Rs {Number(h.price||0).toLocaleString()} <span style={{fontSize:11, color:"rgba(255,255,255,0.65)", fontWeight:400}}>â€¢ {h.time}m</span>
+                                Rs {Number(h.price||0).toLocaleString()} <span style={{fontSize:11, color:"rgba(255,255,255,0.65)", fontWeight:400}}>• {h.time}m</span>
                               </div>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                             </div>
@@ -851,11 +859,12 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                   )}
                   <div>
                     <div style={{fontSize:15, fontWeight:700, color:"var(--paper)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{selectedStyle?.name}</div>
-                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>Rs {selectedStyle?.price} â€¢ {selectedStyle?.time}m session</div>
+                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>Rs {selectedStyle?.price} • {selectedStyle?.time}m session</div>
                   </div>
                 </div>
-                <button onClick={() => goStep(1)} style={{background:"transparent", border:"none", color:"var(--muted)", fontSize:11, letterSpacing:"0.15em", cursor:"pointer", textTransform:"uppercase", padding:"6px 0", transition:"color 0.3s"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                  â† CHANGE
+                <button onClick={() => goStep(1)} style={{background:"transparent", border:"none", color:"var(--muted)", fontSize:11, letterSpacing:"0.15em", cursor:"pointer", textTransform:"uppercase", padding:"6px 0", transition:"color 0.3s", display:"inline-flex", alignItems:"center", gap:6}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
+                  <ArrowLeft size={13} strokeWidth={2} />
+                  <span>CHANGE</span>
                 </button>
               </div>
 
@@ -1191,9 +1200,15 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                   }}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                       <div style={{fontFamily:"var(--display)",fontSize:15,fontWeight:700,color:"var(--paper)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.name}</div>
-                      <div style={{display:"flex",gap:2}}>
+                      <div style={{display:"flex",gap:3,alignItems:"center"}}>
                         {[1,2,3,4,5].map(s => (
-                          <span key={s} style={{fontSize:13,color:s <= (r.rating||0) ? "var(--star-color, #E5A93B)" : "var(--star-empty, var(--line))"}}>â˜…</span>
+                          <Star 
+                            key={s} 
+                            size={14} 
+                            fill={s <= (r.rating || 0) ? "#E5A93B" : "none"} 
+                            color={s <= (r.rating || 0) ? "#E5A93B" : "var(--star-empty, #CBD5E1)"}
+                            strokeWidth={1.5}
+                          />
                         ))}
                       </div>
                     </div>
@@ -1241,21 +1256,31 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                 }} className="nash-expand-anim">
                   {/* Star rating */}
                   <div style={{marginBottom:24}}>
-                    <div style={{display:"flex",gap:8}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       {[1,2,3,4,5].map(s => (
-                        <span
+                        <button
                           key={s}
+                          type="button"
                           onClick={() => setReviewRating(s)}
                           onMouseEnter={() => setReviewHover(s)}
                           onMouseLeave={() => setReviewHover(0)}
                           style={{
-                            fontSize:24,
+                            background:"transparent",
+                            border:"none",
+                            padding:0,
                             cursor:"pointer",
-                            color: s <= (reviewHover || reviewRating) ? "var(--star-color, #E5A93B)" : "var(--star-empty, var(--line))",
-                            transition:"color 0.15s",
-                            display:"inline-block",
+                            lineHeight:0,
+                            display:"inline-flex",
+                            alignItems:"center"
                           }}
-                        >â˜…</span>
+                        >
+                          <Star 
+                            size={24} 
+                            fill={s <= (reviewHover || reviewRating) ? "#E5A93B" : "none"} 
+                            color={s <= (reviewHover || reviewRating) ? "#E5A93B" : "var(--star-empty, #CBD5E1)"}
+                            strokeWidth={1.5}
+                          />
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1315,8 +1340,8 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                 <p style={S.footAddr}>{settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore"}</p>
               </div>
               <div style={S.footHours}>
-                <div>Mon-Sat â€¢ {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
-                <div>Sunday â€¢ {settings.sundayHours || "Closed"}</div>
+                <div>Mon-Sat • {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
+                <div>Sunday • {settings.sundayHours || "Closed"}</div>
                 <div>{settings.phoneDisplay || "0300-1234567"}</div>
               </div>
               <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, borderTop:"1px solid var(--line)", paddingTop:20}}>
@@ -1325,9 +1350,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     href="https://churuone.in/admin?storeId=nash-studio"
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:4}}
+                    style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:6}}
                   >
-                    Dukandar Login â†—
+                    <span>Dukandar Login</span>
+                    <ArrowUpRight size={13} strokeWidth={2} />
                   </a>
 
                   {/* BOTTOM THEME TOGGLE BUTTON */}
@@ -1350,7 +1376,17 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     }}
                     className="nash-btn-confirm"
                   >
-                    {theme === "dark" ? "â˜€ï¸ Day Mode (White)" : "ðŸŒ™ Night Mode (Dark)"}
+                    {theme === "dark" ? (
+                      <>
+                        <Sun size={13} strokeWidth={2} />
+                        <span>Day Mode (White)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon size={13} strokeWidth={2} />
+                        <span>Night Mode (Dark)</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -1414,7 +1450,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
           gap: 10,
           boxShadow: "0 10px 30px rgba(0,0,0,0.6)"
         }}>
-          <span>{toast.type === "error" ? "⚠️" : "✓"}</span>
+          {toast.type === "error" ? <AlertTriangle size={15} color="#ffffff" /> : <Check size={15} color="#34A853" />}
           <span>{toast.msg}</span>
         </div>
       )}
@@ -1560,7 +1596,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-fo
 .nash-pass-reveal{animation:nashScaleIn 0.6s cubic-bezier(.16,1,.3,1);}
 .nash-spinner{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--paper);animation:nashSpin 0.6s linear infinite;margin:0 auto;}
 
-/* Card hover â€” buttery lift */
+/* Card hover - buttery lift */
 .nash-hs-hover{cursor:pointer;position:relative;transition:transform 0.5s cubic-bezier(.16,1,.3,1),box-shadow 0.5s cubic-bezier(.16,1,.3,1),border-color 0.4s;}
 .nash-hs-hover img{transition:transform 6s cubic-bezier(0.05,1,0.3,1);}
 .nash-hs-hover:hover{transform:translateY(-6px);box-shadow:var(--card-shadow);border-color:var(--paper) !important;}
