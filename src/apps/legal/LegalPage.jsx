@@ -125,17 +125,17 @@ export default function LegalPage() {
         {activeTab === 'refund' && (
           <div className="mb-8 p-5 border border-zinc-900 bg-zinc-950 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] uppercase font-mono tracking-widest text-emerald-400 font-bold block">
+              <span className={`text-[10px] uppercase font-mono tracking-widest ${entity === 'nash-studio' ? 'text-amber-400' : 'text-emerald-400'} font-bold block`}>
                 CANCELLATION & REFUND GUARANTEE
               </span>
               <p className="text-xs sm:text-sm font-semibold tracking-wide">
                 {entity === 'nash-studio'
-                  ? 'Appointments eligible for cancellation up to 1 hr prior • Token refund processed in 2-3 business days'
-                  : 'Orders can be cancelled within 10 minutes • Refund processed in 2-3 business days'}
+                  ? 'No refund on booking cancellation (only token money ₹50 charged to reserve slot)'
+                  : 'Orders can be cancelled within 10 minutes (Refund in 2-3 business days) • 2–3 KM Self-Return eligible'}
               </p>
             </div>
             <div className="shrink-0 bg-white/10 px-3 py-1 text-[11px] font-mono tracking-wider text-zinc-300 border border-white/20">
-              DIRECT BANK UPI
+              {entity === 'nash-studio' ? 'NOMINAL ₹50 TOKEN' : 'DIRECT UPI ONLY'}
             </div>
           </div>
         )}

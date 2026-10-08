@@ -107,15 +107,15 @@ export default function LegalPoliciesModal({
         {activeTab === 'refund' && (
           <div className="bg-zinc-950 text-white px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className={`w-2 h-2 rounded-full ${key === 'nash-studio' ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`}></span>
               <span className="font-semibold tracking-wide">
                 {key === 'nash-studio'
-                  ? 'Cancellations eligible up to 1 hr prior • Token refund processed in 2-3 business days'
-                  : 'Orders can be cancelled within 10 minutes • Refund processed in 2-3 business days'}
+                  ? 'No refund on booking cancellation (only token money ₹50 charged to reserve slot)'
+                  : 'Orders can be cancelled within 10 minutes (Refund in 2-3 days) • 2–3 KM Self-Return eligible'}
               </span>
             </div>
             <span className="text-[10px] uppercase tracking-widest text-zinc-400 font-mono">
-              DIRECT UPI BANK SETTLEMENT
+              {key === 'nash-studio' ? 'NOMINAL ₹50 TOKEN' : 'DIRECT UPI ONLY'}
             </span>
           </div>
         )}

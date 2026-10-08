@@ -926,7 +926,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         color: "#fca5a5",
                         lineHeight: 1.5
                       }}>
-                        ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Kripya ₹50 pay karein aur 12-digit UTR number enter karein.
+                        ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Booking cancel karne par token money refund nahi hoga kyunki sirf seat confirm karne ke liye nominal token charge kiya jata hai. Kripya ₹50 pay karein aur 12-digit UTR enter karein.
                       </div>
 
                       <p style={{fontSize: 12, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5}}>
@@ -1368,7 +1368,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                   </button>
                 </div>
                 <div style={{fontSize:10, color:"var(--muted)", fontFamily:"var(--body)", letterSpacing:"0.05em"}}>
-                  Token advance ₹50 refundable up to 1 hr prior • Refund processed in 2-3 days
+                  No refund on booking cancellation (only ₹50 token money charged to reserve slot)
                 </div>
               </div>
             </div>

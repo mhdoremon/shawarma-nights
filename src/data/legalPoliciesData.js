@@ -130,8 +130,8 @@ export const LEGAL_POLICIES = {
           content: `Our kitchen operates daily with midnight delivery hours (typically 12:00 PM to 04:00 AM). Delivery services are provided within a designated 10 KM delivery corridor across Churu city. Delivery estimates (typically 20–30 minutes) are subject to weather, peak traffic, and order volumes.`
         },
         {
-          heading: '3. Pricing & Payment Terms',
-          content: `All prices listed on our menu reflect authentic in-store pricing with zero hidden aggregator surcharges. Payment options include Direct UPI (Google Pay, PhonePe, Paytm, BHIM), Net Banking, and Cash on Delivery (COD) as available.`
+          heading: '3. Pricing & Exclusive UPI Payment Policy',
+          content: `All prices listed on our menu reflect authentic in-store pricing with zero hidden aggregator surcharges. Payment is accepted exclusively via Direct UPI through any UPI application (Google Pay, PhonePe, Paytm, BHIM, Cred, etc.). Debit/credit cards, net banking, and Cash on Delivery (COD) are not supported. Every order must be prepaid directly to the merchant's verified UPI account.`
         },
         {
           heading: '4. Food Preparation & Allergen Disclosure',
@@ -184,8 +184,8 @@ export const LEGAL_POLICIES = {
           content: `When an order is cancelled within the eligible 10-minute window, a 100% refund is initiated immediately and processed in 2-3 business days directly to the customer's original UPI ID or bank account.`
         },
         {
-          heading: '3. Order Quality & Missing Item Disputes',
-          content: `We stand behind the quality of every meal. If an incorrect item is delivered, an item is missing, or there is an issue with food packaging/quality, please notify our kitchen hotline via WhatsApp (+91 70239 63189) within 2 hours of delivery with a photograph of the bill and food. Following verification, an immediate free re-delivery or a full refund processed in 2-3 days will be issued.`
+          heading: '3. Product Return Policy (Self-Return within 2–3 KM)',
+          content: `Product Return & Exchange Policy: For food quality disputes, incorrect dishes, or packaging concerns, customers residing within a 2 to 3 km radius of the kitchen are eligible for direct self-return / exchange at the kitchen outlet within 2 hours of delivery. Customers may also report any issue via our WhatsApp hotline (+91 70239 63189) with a photo of the item and bill for prompt re-dispatch or refund processed in 2-3 days.`
         },
         {
           heading: '4. Ineligible Cancellation Scenarios',
@@ -218,8 +218,8 @@ export const LEGAL_POLICIES = {
           content: `To guarantee an exclusive lounge experience with zero wait-time, all appointments are scheduled for specific dedicated time blocks. Clients are requested to arrive at the studio 5 minutes prior to their reserved slot.`
         },
         {
-          heading: '3. ₹50 Advance Token Policy',
-          content: `A non-refundable reservation token of ₹50 is required at the time of online slot booking. This token is fully adjusted against the final service bill at the counter. The remaining balance is payable upon completion of services via Cash or UPI.`
+          heading: '3. ₹50 Advance Token Policy (Non-Refundable on Cancellation)',
+          content: `A reservation token of ₹50 is required at the time of online slot booking. This token is fully adjusted against the final service bill at the counter. Booking cancellation par token money ka koi refund nahi milega kyunki customer se sirf seat confirm karne ke liye nominal token charge kiya gaya hai.`
         },
         {
           heading: '4. Late Arrival Policy',
@@ -259,20 +259,20 @@ export const LEGAL_POLICIES = {
       effectiveDate: 'October 1, 2026',
       sections: [
         {
-          heading: '1. Appointment Cancellation & Rescheduling Window',
-          content: `Appointments can be cancelled or rescheduled up to 1 hour before the reserved slot time directly through the appointment portal or via WhatsApp (+91 70239 63189).`
+          heading: '1. No Refund on Booking Cancellation Policy',
+          content: `Please note that NO refunds are issued upon appointment cancellation. Only a nominal token money (₹50) is charged to secure and reserve the exclusive barber chair and grooming slot. Booking cancel karne par token money ka koi refund nahi milega kyunki customer se sirf seat confirm karne ke liye nominal token charge kiya gaya hai.`
         },
         {
-          heading: '2. Token Refund Process (2-3 Business Days)',
-          content: `If an appointment is cancelled at least 1 hour prior to the scheduled slot time, the ₹50 advance reservation token is 100% refundable. The refund is processed in 2-3 business days directly to the client's original UPI ID or bank account.`
+          heading: '2. Nominal Token Money Justification',
+          content: `Because a dedicated stylist, barber chair, and time slot are reserved exclusively for you with a zero wait-time guarantee, the ₹50 token money covers the slot commitment and prevents ghost reservations. Cancellations or slot relinquishments will not be refunded.`
         },
         {
-          heading: '3. Late Cancellation & No-Show Terms',
-          content: `Because a dedicated barber chair and stylist time are reserved exclusively for you, cancellations made less than 1 hour before the appointment or no-shows are not eligible for a token refund.`
+          heading: '3. Rescheduling Window',
+          content: `While token fees are strictly non-refundable upon cancellation, clients may reschedule their appointment slot up to 2 hours prior to the booked time without forfeiting their token, subject to barber availability.`
         },
         {
           heading: '4. Studio Cancellation Guarantee',
-          content: `In the rare event that Nash Studio must cancel or reschedule an appointment due to unforeseen studio maintenance or barber emergency, clients will receive an immediate full refund processed in 2-3 days, plus priority booking for their next preferred slot.`
+          content: `In the rare event that Nash Studio must cancel an appointment due to unforeseen studio maintenance or emergency, clients will receive an immediate full ₹50 token refund processed in 2-3 business days plus priority re-booking.`
         }
       ]
     }

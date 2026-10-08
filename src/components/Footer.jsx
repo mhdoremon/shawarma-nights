@@ -305,8 +305,8 @@ export default function Footer({ onOpenFranchise }) {
             </button>
           </div>
 
-          <div className="text-[11px] font-mono text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200">
-            Orders can be cancelled within 10 minutes, refund processed in 2-3 days
+          <div className="text-[11px] font-mono text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200 text-center">
+            Orders can be cancelled within 10 minutes, refund in 2-3 days • Self-return eligible under 2–3 KM
           </div>
         </div>
 
@@ -314,9 +314,9 @@ export default function Footer({ onOpenFranchise }) {
         <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-2">
-              Payment Modes:
+              Payment Modes (UPI Only):
             </span>
-            {['UPI', 'GPay', 'PhonePe', 'Cards', 'Cash on Delivery'].map((mode) => (
+            {['UPI (Any App)', 'Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map((mode) => (
               <span 
                 key={mode} 
                 className="bg-white border border-zinc-200 text-zinc-700 px-3 py-1 rounded-full text-xs font-medium shadow-xs"
