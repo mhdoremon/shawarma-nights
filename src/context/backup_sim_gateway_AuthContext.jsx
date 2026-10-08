@@ -4,13 +4,6 @@ import { sounds } from '../utils/soundEffects';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { getChuruOneSession, setChuruOneSession, clearChuruOneSession } from '../utils/ssoHelper';
-import { 
-  initMsg91Widget, 
-  sendOtpViaMsg91, 
-  verifyOtpViaMsg91, 
-  retryOtpViaMsg91, 
-  isMsg91Ready 
-} from '../utils/msg91OtpHelper';
 
 const AuthContext = createContext(null);
 
@@ -65,11 +58,6 @@ export function AuthProvider({ children }) {
 
   // New State for Profile VIP Pass Modal
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-
-  // Initialize MSG91 SendOTP Widget SDK on mount
-  useEffect(() => {
-    initMsg91Widget();
-  }, []);
 
   // Unified ChuruOne SSO Launcher
   const handleChuruOneSSO = () => {
@@ -243,31 +231,6 @@ export function AuthProvider({ children }) {
     setPendingPhone(cleanPhone);
     setIsSendingOtp(true);
 
-    // 0. Primary SMS Engine: MSG91 SendOTP Widget SDK (Zero-DLT SMS)
-    if (isMsg91Ready()) {
-      try {
-        console.log(`📡 [MSG91] Sending OTP via widget to +91${cleanPhone}...`);
-        const msgRes = await sendOtpViaMsg91(cleanPhone);
-        if (msgRes && msgRes.success) {
-          setIsSendingOtp(false);
-          setActiveStep('otp');
-          setGatewayInfo({
-            isDispatched: true,
-            dispatchMethod: 'msg91_widget',
-            message: `OTP sent via MSG91 to +91 ${cleanPhone}`,
-          });
-          sounds.playPop();
-          return {
-            success: true,
-            message: `OTP sent to +91 ${cleanPhone} via MSG91!`,
-            provider: 'msg91'
-          };
-        }
-      } catch (mErr) {
-        console.warn('⚠️ [MSG91] Send failed, falling back to backend SIM Gateway:', mErr.message);
-      }
-    }
-
     // 1. Send OTP via Backend SMS Engine (Priority 1: Private SIM Gateway, Priority 2: Fast2SMS)
     try {
       const activeStoreId = getStoreId();
@@ -388,27 +351,14 @@ export function AuthProvider({ children }) {
     };
   };
 
-  // Step 2: Verify Real OTP (Backed by Server & MSG91)
+  // Step 2: Verify Real OTP (Backed by Server)
   const verifyPhoneOtp = async (enteredOtp) => {
     const cleanOtp = (enteredOtp || '').trim();
-    if (!cleanOtp || cleanOtp.length < 4) {
-      return { success: false, message: 'Kripya valid OTP code dalein.' };
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      return { success: false, message: 'Kripya 6-digit ka valid OTP dalein.' };
     }
 
     try {
-      let isVerifiedViaMsg91 = false;
-      if (isMsg91Ready()) {
-        try {
-          console.log('📡 [MSG91] Verifying OTP via widget...');
-          const mVerify = await verifyOtpViaMsg91(cleanOtp);
-          if (mVerify && mVerify.success) {
-            isVerifiedViaMsg91 = true;
-          }
-        } catch (mErr) {
-          console.warn('⚠️ [MSG91] Widget verify failed, checking backend:', mErr.message);
-        }
-      }
-
       const activeStoreId = getStoreId();
       const sRes = await fetch(`${API_URL}/api/auth/verify-otp`, {
         method: 'POST',
@@ -416,13 +366,7 @@ export function AuthProvider({ children }) {
           'Content-Type': 'application/json',
           'x-store-id': activeStoreId
         },
-        body: JSON.stringify({ 
-          phone: pendingPhone, 
-          otp: cleanOtp, 
-          storeId: activeStoreId,
-          preVerified: isVerifiedViaMsg91,
-          provider: isVerifiedViaMsg91 ? 'msg91' : 'sim_gateway'
-        }),
+        body: JSON.stringify({ phone: pendingPhone, otp: cleanOtp, storeId: activeStoreId }),
       });
       const sData = await sRes.json();
       

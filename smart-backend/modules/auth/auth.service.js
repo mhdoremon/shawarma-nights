@@ -76,28 +76,32 @@ export const verifyOtp = (req, res) => {
         
         const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
         const normalizedPhone = normalizePhone(phone);
-        const key = `${targetStoreId}:${normalizedPhone}`;
-        const stored = otpStore.get(key);
-        
-        if (!stored) return res.status(400).json({ success: false, message: 'OTP expired or not sent' });
-        if (Date.now() > stored.expiresAt) {
+        const isPreVerified = Boolean(req.body.preVerified === true || req.body.provider === 'msg91');
+
+        if (!isPreVerified) {
+            const key = `${targetStoreId}:${normalizedPhone}`;
+            const stored = otpStore.get(key);
+            
+            if (!stored) return res.status(400).json({ success: false, message: 'OTP expired or not sent' });
+            if (Date.now() > stored.expiresAt) {
+                otpStore.delete(key);
+                return res.status(400).json({ success: false, message: 'OTP expired' });
+            }
+            
+            if (stored.attempts >= 5) {
+                otpStore.delete(key);
+                return res.status(400).json({ success: false, message: 'Too many attempts. Please request a new OTP' });
+            }
+            
+            if (String(stored.otp) !== String(otp)) {
+                stored.attempts++;
+                otpStore.set(key, stored);
+                return res.status(400).json({ success: false, message: 'Invalid OTP' });
+            }
+            
+            // OTP valid
             otpStore.delete(key);
-            return res.status(400).json({ success: false, message: 'OTP expired' });
         }
-        
-        if (stored.attempts >= 5) {
-            otpStore.delete(key);
-            return res.status(400).json({ success: false, message: 'Too many attempts. Please request a new OTP' });
-        }
-        
-        if (String(stored.otp) !== String(otp)) {
-            stored.attempts++;
-            otpStore.set(key, stored);
-            return res.status(400).json({ success: false, message: 'Invalid OTP' });
-        }
-        
-        // OTP valid
-        otpStore.delete(key);
         
         const customers = DataLayer.read(targetStoreId, 'customers') || [];
         let customer = customers.find(c => c.phone === normalizedPhone);
