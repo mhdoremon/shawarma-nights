@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowUpRight, 
   Search, 
@@ -10,11 +10,20 @@ import {
   ArrowRight,
   SlidersHorizontal,
   Star,
-  User
+  User,
+  LogOut,
+  ChevronDown,
+  CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import LegalPoliciesModal from '../../components/LegalPoliciesModal';
+import { 
+  getChuruOneSession, 
+  setChuruOneSession, 
+  clearChuruOneSession, 
+  attachSsoParams 
+} from '../../utils/ssoHelper';
 
 export default function ChuruOneHomePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,12 +31,69 @@ export default function ChuruOneHomePage() {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState('terms');
 
+  // Unified ChuruOne SSO User State
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authToken, setAuthToken] = useState('');
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef(null);
+
+  // Sync SSO session on mount (from URL redirect, Cookie or LocalStorage)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlUserRaw = params.get('churuone_user');
+      const urlToken = params.get('churuone_token');
+
+      if (urlUserRaw) {
+        const parsed = JSON.parse(decodeURIComponent(urlUserRaw));
+        setCurrentUser(parsed);
+        setAuthToken(urlToken || '');
+        setChuruOneSession(parsed, urlToken || '');
+
+        // Clean query params from URL without refreshing
+        params.delete('churuone_user');
+        params.delete('churuone_token');
+        params.delete('account_created');
+        const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, document.title, cleanUrl);
+        return;
+      }
+
+      // Check existing cross-domain session
+      const session = getChuruOneSession();
+      if (session && session.user) {
+        setCurrentUser(session.user);
+        setAuthToken(session.token || '');
+      }
+    } catch (err) {
+      console.warn('SSO sync warning in ChuruOneHomePage:', err);
+    }
+  }, []);
+
+  // Close account dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) {
+        setIsAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    clearChuruOneSession();
+    setCurrentUser(null);
+    setAuthToken('');
+    setIsAccountMenuOpen(false);
+  };
+
   const openLegalModal = (tab = 'terms') => {
     setLegalTab(tab);
     setLegalModalOpen(true);
   };
 
-  // Resolve store destination URL dynamically based on environment
+  // Resolve store destination URL dynamically based on environment with SSO params
   const getStoreUrl = (storeId) => {
     const isLocal = typeof window !== 'undefined' && (
       window.location.hostname === 'localhost' || 
@@ -35,13 +101,17 @@ export default function ChuruOneHomePage() {
       window.location.hostname.includes('.onrender.com')
     );
 
+    let base = `/?storeId=${storeId}`;
     if (storeId === 'shawarma') {
-      return isLocal ? '/?storeId=shawarma' : 'https://shawarma.churuone.in';
+      base = isLocal ? '/?storeId=shawarma' : 'https://shawarma.churuone.in';
+    } else if (storeId === 'nash-studio') {
+      base = isLocal ? '/?storeId=nash-studio' : 'https://nash.churuone.in';
     }
-    if (storeId === 'nash-studio') {
-      return isLocal ? '/?storeId=nash-studio' : 'https://nash.churuone.in';
+
+    if (currentUser) {
+      return attachSsoParams(base, currentUser, authToken);
     }
-    return `/?storeId=${storeId}`;
+    return base;
   };
 
   // Only the authentic, active city partners (no dummy upcoming data)
@@ -102,15 +172,89 @@ export default function ChuruOneHomePage() {
             </div>
           </Link>
 
-          {/* Clean Action Button */}
-          <div className="flex items-center gap-4">
-            <Link 
-              to="/auth" 
-              className="bg-zinc-950 hover:bg-black text-white text-xs uppercase tracking-widest font-medium px-4 py-2 transition-colors inline-flex items-center gap-2"
-            >
-              <User className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span>Create</span>
-            </Link>
+          {/* Clean Action Button / Unified Account Pill */}
+          <div className="flex items-center gap-4 relative" ref={accountMenuRef}>
+            {currentUser ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsAccountMenuOpen(prev => !prev)}
+                  className="bg-zinc-950 hover:bg-black text-white text-xs tracking-wider font-medium px-3.5 py-2 transition-all inline-flex items-center gap-2 cursor-pointer border border-zinc-900"
+                >
+                  {currentUser.picture || currentUser.photoURL ? (
+                    <img 
+                      src={currentUser.picture || currentUser.photoURL} 
+                      alt="" 
+                      className="w-4 h-4 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-3.5 h-3.5 stroke-[1.5]" />
+                  )}
+                  <span className="font-semibold max-w-[120px] truncate">
+                    {(currentUser.name || currentUser.displayName || 'Account').split(' ')[0]}
+                  </span>
+                  <ChevronDown className={`w-3 h-3 text-zinc-400 transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Quiet Luxury Account Dropdown */}
+                <AnimatePresence>
+                  {isAccountMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute right-0 mt-2 w-64 bg-white border border-zinc-200 shadow-xl z-50 p-4 text-left"
+                    >
+                      <div className="pb-3 border-b border-zinc-100">
+                        <div className="flex items-center gap-2 mb-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-[10px] uppercase font-mono tracking-widest text-zinc-400 font-bold">
+                            ChuruOne Unified ID
+                          </span>
+                        </div>
+                        <div className="font-bold text-sm text-zinc-900 truncate">
+                          {currentUser.name || currentUser.displayName || 'Customer'}
+                        </div>
+                        {currentUser.email && (
+                          <div className="text-xs text-zinc-500 font-mono truncate mt-0.5">
+                            {currentUser.email}
+                          </div>
+                        )}
+                        {(currentUser.phone || currentUser.phoneNumber) && (
+                          <div className="text-xs text-zinc-600 font-mono mt-0.5">
+                            📱 {currentUser.phone || currentUser.phoneNumber}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="py-2.5 text-[11px] text-zinc-500 leading-snug">
+                        Aapka yeh account Shawarma Nights aur Nash Studio par automatically connected hai.
+                      </div>
+
+                      <div className="pt-2 border-t border-zinc-100">
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="w-full text-left py-2 px-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-between cursor-pointer"
+                        >
+                          <span>Sign Out from ChuruOne</span>
+                          <LogOut className="w-3.5 h-3.5 stroke-[2]" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link 
+                to="/auth" 
+                className="bg-zinc-950 hover:bg-black text-white text-xs uppercase tracking-widest font-medium px-4 py-2 transition-colors inline-flex items-center gap-2"
+              >
+                <User className="w-3.5 h-3.5 stroke-[1.5]" />
+                <span>Create</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

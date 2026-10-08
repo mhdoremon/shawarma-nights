@@ -15,6 +15,7 @@ import {
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
+import { getChuruOneSession, setChuruOneSession } from "../../utils/ssoHelper";
 
 
 // =========================================================================
@@ -261,6 +262,18 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       } catch (e) {
         console.warn("SSO payload parse warning:", e);
       }
+    } else {
+      // Check cross-domain SSO cookie or local session
+      try {
+        const session = getChuruOneSession();
+        if (session && session.user) {
+          const sUser = session.user;
+          setUser(sUser);
+          if (sUser.displayName || sUser.name) setName(sUser.displayName || sUser.name);
+          if (sUser.phoneNumber || sUser.phone) setPhone(sUser.phoneNumber || sUser.phone);
+          if (session.token) localStorage.setItem("auth_token", session.token);
+        }
+      } catch (e) {}
     }
 
     // Listen for postMessage from popup SSO window

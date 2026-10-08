@@ -3,6 +3,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { ArrowLeft, CheckCircle2, ShieldCheck, User, AlertCircle, Phone, ArrowRight, Store } from 'lucide-react';
 import { firebaseConfig } from '../nash/firebase';
+import { setChuruOneSession } from '../../utils/ssoHelper';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
@@ -308,11 +309,8 @@ export default function ChuruOneAuthPage() {
       phoneVerified: Boolean(payload.phoneVerified)
     };
 
-    localStorage.setItem('churuone_user', JSON.stringify(verifiedUser));
-    localStorage.setItem('nash_user', JSON.stringify(verifiedUser));
-    localStorage.setItem('sn_session', JSON.stringify(verifiedUser));
-    localStorage.setItem('sn_current_user', JSON.stringify(verifiedUser));
-    if (data.token) localStorage.setItem('auth_token', data.token);
+    // Persist session across origins & subdomains
+    setChuruOneSession(verifiedUser, data.token || '');
 
     const redirectTarget = isStoreContext ? storeDisplayName : 'ChuruOne';
     setSuccessMsg(`Welcome, ${payload.name}! Redirecting to ${redirectTarget}...`);
@@ -337,7 +335,7 @@ export default function ChuruOneAuthPage() {
 
     if (rawReturnUrl) {
       const url = new URL(rawReturnUrl, window.location.origin);
-      url.searchParams.set('churuone_token', token);
+      if (token) url.searchParams.set('churuone_token', token);
       url.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(userObj)));
       window.location.href = url.toString();
       return;
@@ -345,14 +343,15 @@ export default function ChuruOneAuthPage() {
 
     if (isStoreContext) {
       const redirectUrl = new URL(destination, window.location.origin);
-      redirectUrl.searchParams.set('churuone_token', token);
+      if (token) redirectUrl.searchParams.set('churuone_token', token);
       redirectUrl.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(userObj)));
       window.location.href = redirectUrl.toString();
       return;
     }
 
-    // Direct ChuruOne Registration -> redirect to ChuruOne home
-    window.location.href = `/?account_created=1&churuone_user=${encodeURIComponent(JSON.stringify(userObj))}`;
+    // Direct ChuruOne Registration -> redirect to ChuruOne home with token & user
+    const tokenParam = token ? `&churuone_token=${encodeURIComponent(token)}` : '';
+    window.location.href = `/?account_created=1&churuone_user=${encodeURIComponent(JSON.stringify(userObj))}${tokenParam}`;
   }
 
   return (

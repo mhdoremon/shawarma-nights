@@ -3,11 +3,12 @@ import { API_URL, getStoreId } from '../config/api';
 import { sounds } from '../utils/soundEffects';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getChuruOneSession, setChuruOneSession, clearChuruOneSession } from '../utils/ssoHelper';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Helper to load persistent user session from localStorage
+  // Helper to load persistent user session from localStorage or cross-domain SSO cookie
   const loadSavedUser = () => {
     try {
       const saved = localStorage.getItem('sn_session') || localStorage.getItem('sn_current_user') || localStorage.getItem('churuone_user');
@@ -16,6 +17,11 @@ export function AuthProvider({ children }) {
         if (parsed && typeof parsed === 'object' && (parsed.phone || parsed.phoneNumber || parsed.id || parsed.name || parsed.email)) {
           return parsed;
         }
+      }
+      // Check cross-domain SSO session cookie (.churuone.in)
+      const session = getChuruOneSession();
+      if (session && session.user) {
+        return session.user;
       }
     } catch (e) {
       console.warn('Failed to parse saved session:', e);
