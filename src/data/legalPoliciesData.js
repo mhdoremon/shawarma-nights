@@ -1,121 +1,223 @@
 /**
- * Complete Legal Policies Data for ChuruOne Ecosystem
- * Includes:
- * 1. ChuruOne (City Directory & Platform Level)
- * 2. Shawarma Nights (Culinary & Food Delivery)
- * 3. Nash Studio (Salon & Grooming Lounge)
+ * PhonePe Payment Gateway Compliant Legal Policies Data
+ * Legal Entity: Vasudhaiva Kutumbakam Robotics
+ * Brand: ChuruOne (churuone.in)
+ * Proprietor: Mehtab Hussain
  */
 
 export const LEGAL_POLICIES = {
-  // ─── 1. CHURUONE PLATFORM POLICIES ──────────────────────────────────────
+  // ─── 1. CHURUONE PLATFORM POLICIES (PHONEPE COMPLIANT) ─────────────────────
   churuone: {
     brandName: 'ChuruOne',
-    legalEntity: 'ChuruOne Technologies',
-    tagline: 'City Directory & Direct Commerce Infrastructure',
-    address: 'Churu, Rajasthan 331001, India',
-    email: 'contact@churuone.in',
-    phone: '+91 70239 63189',
+    legalEntity: 'Vasudhaiva Kutumbakam Robotics',
+    tradeName: 'ChuruOne (churuone.in)',
+    proprietor: 'Mehtab Hussain',
+    tagline: 'Direct City Commerce Infrastructure & Digital Marketplace',
+    address: '50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001',
+    email: 'Mehtabh864@gmail.com',
+    secondaryEmail: 'contact@churuone.in',
+    phone: '+91 7023963189',
+    operatingHours: '10:00 AM - 10:00 PM (Monday to Sunday)',
     lastUpdated: 'October 2026',
 
+    // 1. Contact Us (/contact-us)
+    contact: {
+      title: 'Contact Us',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Official Business & Entity Details',
+          content: `• Legal Entity Name: Vasudhaiva Kutumbakam Robotics
+• Trade / Brand Name: ChuruOne (churuone.in)
+• Proprietor: Mehtab Hussain
+• Operating Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001
+• Operating & Support Hours: 10:00 AM - 10:00 PM (Monday to Sunday)`
+        },
+        {
+          heading: '2. Customer Support Desk',
+          content: `For any inquiries regarding order placement, tracking, merchant onboarding, digital services, or payment queries, our customer support team can be reached via:
+• Official Email: Mehtabh864@gmail.com (Alternate: contact@churuone.in)
+• Phone / Helpline: +91 7023963189
+• Helpdesk Response Time: We respond to all queries within 2 to 4 business hours during operating hours.`
+        },
+        {
+          heading: '3. Grievance Redressal Officer',
+          content: `In compliance with the Information Technology Act, 2000 and applicable consumer protection rules:
+Officer Name: Mehtab Hussain (Proprietor)
+Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001
+Email: Mehtabh864@gmail.com
+Phone: +91 7023963189`
+        }
+      ]
+    },
+
+    // 2. Terms & Conditions (/terms-and-conditions)
     terms: {
       title: 'Terms & Conditions',
       effectiveDate: 'October 1, 2026',
       sections: [
         {
-          heading: '1. Introduction & Acceptance of Terms',
-          content: `Welcome to ChuruOne (churuone.in). By accessing our city directory, web portals, mobile interfaces, or any affiliated services, you agree to be bound by these Terms and Conditions. If you do not agree to all terms, please discontinue use of the platform.`
+          heading: '1. Platform Overview & Operator',
+          content: `Welcome to ChuruOne (churuone.in). This platform is owned and operated by Vasudhaiva Kutumbakam Robotics (Proprietor: Mehtab Hussain), registered at 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001. By accessing or using our website, applications, or connected merchant services, you agree to comply with and be bound by these Terms and Conditions.`
         },
         {
-          heading: '2. Platform Nature & Direct Commerce Model',
-          content: `ChuruOne operates as a direct digital infrastructure platform connecting local verified merchants in Churu, Rajasthan with citizens. ChuruOne is not an aggregator, broker, or culinary/grooming provider. Each partner merchant operates an independent storefront with direct pricing, live inventory, and direct UPI bank settlement. ChuruOne levies zero commission markup on consumer orders.`
+          heading: '2. Platform Services & Marketplace Nature',
+          content: `ChuruOne provides digital commerce and order facilitation infrastructure connecting citizens in Churu, Rajasthan with local verified merchants (such as dining, grocery, and grooming services). Each merchant prepares and fulfills orders according to their published menus and service catalogs.`
         },
         {
-          heading: '3. User Accounts & Single Sign-On (SSO)',
-          content: `Users may create a unified ChuruOne account using Google OAuth or mobile verification. You are responsible for maintaining the confidentiality of your session credentials and ensuring that all information provided (including contact numbers and delivery addresses) is accurate and current.`
+          heading: '3. User Responsibilities & Account Security',
+          content: `Users may create accounts via mobile OTP verification or Google Sign-In. You agree to provide accurate contact and delivery information and maintain the confidentiality of your session. You are responsible for all activities occurring under your registered phone number or account.`
         },
         {
-          heading: '4. Direct Merchant Transactions',
-          content: `All purchases, food orders, and appointment bookings placed through ChuruOne storefronts constitute direct commercial contracts between you and the respective merchant. Product preparation, hygiene standards, delivery execution, and grooming services remain the sole responsibility of the respective merchant partner.`
+          heading: '4. Order Acceptance & Pricing Transparency',
+          content: `All catalog prices reflect authentic in-store pricing with zero aggregator commission markups. Delivery charges and applicable taxes are transparently calculated and displayed at checkout before payment. An order is confirmed once payment authorization is recorded or verified on the merchant terminal.`
         },
         {
           heading: '5. Intellectual Property & Acceptable Use',
-          content: `All logos, trademarks, interface designs, code, and editorial directory content on ChuruOne are the intellectual property of ChuruOne Technologies or licensed partners. Unlawful scraping, reverse-engineering, or unauthorized distribution of platform assets is strictly prohibited.`
+          content: `All content, branding, platform interfaces, and proprietary software are the intellectual property of Vasudhaiva Kutumbakam Robotics. Unlawful automated scraping, reverse engineering, or abuse of the service is strictly prohibited.`
         },
         {
-          heading: '6. Limitation of Liability & Governing Law',
-          content: `To the maximum extent permitted by applicable Indian law, ChuruOne Technologies shall not be liable for any indirect, incidental, or consequential damages resulting from third-party merchant service quality. Any disputes arising hereunder shall be subject to the exclusive jurisdiction of the competent courts in Churu, Rajasthan.`
+          heading: '6. Limitation of Liability & Dispute Resolution',
+          content: `Vasudhaiva Kutumbakam Robotics makes every reasonable effort to ensure high service availability and verified merchant quality. These terms shall be governed by the laws of India. Any legal disputes or claims shall be subject to the exclusive jurisdiction of the competent courts in Churu, Rajasthan.`
         }
       ]
     },
 
+    // 3. Privacy Policy (/privacy-policy)
     privacy: {
       title: 'Privacy Policy',
       effectiveDate: 'October 1, 2026',
       sections: [
         {
           heading: '1. Information We Collect',
-          content: `When you use ChuruOne, we may collect:
-• Personal Identity: Name, email address, profile picture (via Google Sign-In).
-• Contact Information: 10-digit mobile number for order dispatch and SMS OTP verification.
-• Delivery Details: Physical delivery addresses, landmarks, and delivery instructions.
-• Transaction History: Order timestamps, merchant IDs, and booking tokens.`
+          content: `To process orders, provide customer support, and fulfill deliveries, ChuruOne collects:
+• Customer name and email address.
+• 10-digit mobile phone number for SMS OTP verification and delivery communication.
+• Delivery address, landmark, and location coordinates for dispatch.
+• Order timestamps, transaction identifiers, and purchase history.`
         },
         {
-          heading: '2. How We Use Your Information',
-          content: `Your data is used strictly to:
-• Facilitate single sign-on access across all ChuruOne partner stores.
-• Transmit order delivery and appointment booking details to the selected merchant.
-• Dispatch vital transaction notifications, delivery OTPs, and receipt confirmations.
-• Ensure security, prevent fraudulent activity, and comply with legal requirements.`
+          heading: '2. Payment Processing & Financial Security',
+          content: `Payments are processed securely via RBI-authorized payment gateways (PhonePe). ChuruOne does not store customer UPI PINs, card numbers, or sensitive financial passwords. We never sell personal data to third parties.`
         },
         {
-          heading: '3. Zero Data Sale Commitment',
-          content: `We have a strict privacy standard: ChuruOne NEVER sells, rents, leases, or trades your personal information or contact details to third-party ad networks, telemarketers, or external data brokers.`
+          heading: '3. How Your Information is Used',
+          content: `Your data is used strictly for:
+• Transmitting order details to the respective kitchen or store for preparation.
+• Dispatching delivery rider notifications and real-time SMS status updates.
+• Assisting customer service and processing eligible cancellation refunds.
+• System security, fraud prevention, and regulatory compliance.`
         },
         {
-          heading: '4. Data Storage & Security',
-          content: `All communications are encrypted in transit using SSL/TLS protocols. Access to customer data is strictly controlled and authenticated via industry-standard security protocols.`
+          heading: '4. Zero Data Sale Commitment & Encryption',
+          content: `All data transmitted between your browser and our servers is encrypted using industry-standard SSL/TLS protocols. We maintain a strict zero-data-sale commitment: We never sell, rent, or trade your personal information to external telemarketers or third-party advertising brokers.`
         },
         {
-          heading: '5. Your Rights & Account Deletion',
-          content: `You have the right to inspect, update, or request the permanent deletion of your ChuruOne profile and saved data at any time by contacting our privacy desk at contact@churuone.in.`
+          heading: '5. User Rights & Data Deletion',
+          content: `You have the right to review, update, or request the deletion of your customer profile and account details. For privacy inquiries or data removal, contact our data desk at Mehtabh864@gmail.com or call +91 7023963189.`
         }
       ]
     },
 
+    // 4. Refund & Cancellation Policy (/refund-policy)
     refund: {
-      title: 'Refund & Cancellation Policy',
+      title: 'Refund and Cancellation Policy',
       effectiveDate: 'October 1, 2026',
       sections: [
         {
-          heading: '1. Universal Cancellation Standard',
-          content: `For food delivery orders placed across the ChuruOne directory network: Orders can be cancelled within 10 minutes of placement, and refunds are processed in 2-3 business days to the original payment source. For appointment-based services (e.g. salon grooming), advance slot tokens are refundable or reschedulable if cancelled at least 1 hour prior to the reserved slot.`
+          heading: '1. Order Cancellation Policy',
+          content: `Orders can be cancelled before preparation/dispatch or within 10 minutes of placing the order.
+Because fresh food and perishable items cannot be restocked once cooking begins, cancellation requests made after 10 minutes or once the order is marked as "Preparing" or "Out for Delivery" are not eligible for cancellation.`
         },
         {
-          heading: '2. Direct Merchant Settlement Model',
-          content: `Because ChuruOne operates on a direct-to-bank UPI architecture without taking intermediary cuts, payments are made directly to the merchant's verified UPI account. Consequently, refunds and dispute resolutions are executed by the respective merchant according to their published storefront policy.`
+          heading: '2. Mandatory Refund Timeline',
+          content: `Approved refunds will be processed within 5 to 7 business days and automatically credited back to the customer's original payment method (Bank Account / UPI / Card).`
         },
         {
-          heading: '3. Refund Timeline & Processing',
-          content: `Once a cancellation is initiated within the eligible 10-minute window, the merchant confirms the cancellation on their Dukandar Terminal. Refunds are processed within 2-3 business days back to the customer's original UPI ID or bank account.`
+          heading: '3. Damaged, Defective or Incorrect Items',
+          content: `If you receive an incorrect item, spoiled meal, or damaged package:
+• Please notify customer support within 2 hours of delivery with photographic evidence.
+• Following verification, the merchant will initiate an immediate replacement or full refund to the original payment source within 5 to 7 business days.`
         },
         {
-          heading: '4. Dispute Support & Contact',
-          content: `If you encounter any delay in refund processing or merchant communication, ChuruOne provides dedicated mediation support. Reach out via WhatsApp or phone at +91 70239 63189 or email contact@churuone.in with your Order ID for prompt resolution within 24 hours.`
+          heading: '4. Refund Inquiries & Escalation Desk',
+          content: `For any questions, refund status checks, or cancellation escalations, please contact:
+• Entity: Vasudhaiva Kutumbakam Robotics (Brand: ChuruOne)
+• Proprietor: Mehtab Hussain
+• Official Support Email: Mehtabh864@gmail.com
+• Official Support Phone / WhatsApp: +91 7023963189
+• Registered Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001
+• Support Hours: 10:00 AM - 10:00 PM (Monday to Sunday)`
+        }
+      ]
+    },
+
+    // 5. Shipping and Delivery Policy (/shipping-policy)
+    shipping: {
+      title: 'Shipping and Delivery Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Delivery Timelines',
+          content: `Local food and grocery orders are delivered within 30 to 45 minutes in Churu city. Standard digital / catalog services are fulfilled instantly.`
+        },
+        {
+          heading: '2. Shipping & Delivery Charges',
+          content: `Shipping charges are transparently displayed during checkout before payment based on the delivery distance and merchant kitchen location. Customers are always shown the total payable amount prior to making a payment.`
+        },
+        {
+          heading: '3. Service Area & Delivery Coverage',
+          content: `We currently service all areas within Churu city, Rajasthan (PIN 331001) within a 10 KM delivery radius from our partner hubs. Orders outside the active delivery corridor cannot be fulfilled.`
+        },
+        {
+          heading: '4. Delivery Handoff & Customer Availability',
+          content: `Customers must ensure an accurate address, landmark, and reachable contact number are provided. The delivery partner will contact the customer upon arrival. In the event of customer unavailability after repeated attempts, the order may be cancelled without refund to cover rider and merchant preparation costs.`
+        },
+        {
+          heading: '5. Delivery Inquiries & Tracking',
+          content: `For real-time delivery tracking assistance or delivery questions, please reach our dispatch desk at:
+• Email: Mehtabh864@gmail.com
+• Phone: +91 7023963189
+• Operating Hours: 10:00 AM - 10:00 PM (Monday to Sunday)`
         }
       ]
     }
   },
 
-  // ─── 2. SHAWARMA NIGHTS POLICIES ─────────────────────────────────────────
+  // ─── 2. SHAWARMA NIGHTS STORE POLICIES ─────────────────────────────────────
   shawarma: {
     brandName: 'Shawarma Nights',
-    legalEntity: 'Shawarma Nights Kitchen',
+    legalEntity: 'Vasudhaiva Kutumbakam Robotics',
+    tradeName: 'Shawarma Nights (A Unit of Vasudhaiva Kutumbakam Robotics)',
+    proprietor: 'Mehtab Hussain',
     tagline: 'Artisanal Charcoal Spit Kitchen & Midnight Delivery',
-    address: 'Subhash Chowk / Central Food Street, Churu, Rajasthan 331001',
-    email: 'shawarmanightschuru@gmail.com',
-    phone: '+91 70239 63189',
+    address: '50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001',
+    email: 'Mehtabh864@gmail.com',
+    secondaryEmail: 'shawarmanightschuru@gmail.com',
+    phone: '+91 7023963189',
+    operatingHours: '12:00 PM - 04:00 AM (Monday to Sunday)',
     lastUpdated: 'October 2026',
+
+    contact: {
+      title: 'Contact Us',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Kitchen & Entity Details',
+          content: `• Trade Name: Shawarma Nights
+• Parent Entity: Vasudhaiva Kutumbakam Robotics
+• Proprietor: Mehtab Hussain
+• Kitchen & Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001
+• Operating Hours: 12:00 PM - 04:00 AM Daily`
+        },
+        {
+          heading: '2. Kitchen Hotwire & Support',
+          content: `• Phone / WhatsApp: +91 7023963189
+• Official Support Email: Mehtabh864@gmail.com (Alternate: shawarmanightschuru@gmail.com)
+• Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001`
+        }
+      ]
+    },
 
     terms: {
       title: 'Terms & Conditions',
@@ -123,23 +225,19 @@ export const LEGAL_POLICIES = {
       sections: [
         {
           heading: '1. Store Overview & Menu Services',
-          content: `Shawarma Nights is an artisanal charcoal spit kitchen operating in Churu, Rajasthan, specializing in freshly carved Lebanese shawarma rolls, gourmet charcoal burgers, and signature loaded platters. By ordering through our official web app (shawarma.churuone.in), you accept these terms.`
+          content: `Shawarma Nights is an artisanal charcoal spit kitchen operating in Churu, Rajasthan under Vasudhaiva Kutumbakam Robotics. By ordering through our official web app (shawarma.churuone.in), you accept these terms.`
         },
         {
           heading: '2. Operating Hours & Delivery Corridor',
-          content: `Our kitchen operates daily with midnight delivery hours (typically 12:00 PM to 04:00 AM). Delivery services are provided within a designated 10 KM delivery corridor across Churu city. Delivery estimates (typically 20–30 minutes) are subject to weather, peak traffic, and order volumes.`
+          content: `Our kitchen operates daily with midnight delivery hours (typically 12:00 PM to 04:00 AM). Delivery services are provided within a designated 10 KM delivery corridor across Churu city.`
         },
         {
-          heading: '3. Pricing & Exclusive UPI Payment Policy',
-          content: `All prices listed on our menu reflect authentic in-store pricing with zero hidden aggregator surcharges. Payment is accepted exclusively via Direct UPI through any UPI application (Google Pay, PhonePe, Paytm, BHIM, Cred, etc.). Debit/credit cards, net banking, and Cash on Delivery (COD) are not supported. Every order must be prepaid directly to the merchant's verified UPI account.`
+          heading: '3. Pricing & Payment Policy',
+          content: `All prices listed on our menu reflect authentic in-store pricing with zero aggregator surcharges. Payment is accepted securely via RBI-authorized payment gateways (PhonePe, UPI, Cards, NetBanking) and verified Cash on Delivery (COD).`
         },
         {
           heading: '4. Food Preparation & Allergen Disclosure',
-          content: `All meats are 100% Halal certified and prepared fresh on charcoal spits daily. If you have specific dietary restrictions, food allergies (e.g., dairy, garlic, sesame, gluten), or spiciness preferences, please specify them in the order notes prior to completing checkout.`
-        },
-        {
-          heading: '5. Delivery Handoff & Customer Availability',
-          content: `Customers must ensure an active, reachable 10-digit mobile number and accurate address are provided. The delivery partner will contact the customer upon arrival. If the customer is unreachable after 3 consecutive attempts or fails to collect the order within 10 minutes of arrival, the order will be deemed delivered.`
+          content: `All meats are 100% Halal certified and prepared fresh on charcoal spits daily. If you have specific dietary restrictions or allergies, please specify them in order notes.`
         }
       ]
     },
@@ -153,43 +251,50 @@ export const LEGAL_POLICIES = {
           content: `We collect essential order details including your Name, Mobile Number, Delivery Address, Landmark, and Order Notes to fulfill food preparation and delivery.`
         },
         {
-          heading: '2. Purpose of Collection',
-          content: `Customer information is used strictly for:
-• Kitchen order assembly and preparation updates.
-• Dispatching delivery rider notifications and location tracking.
-• Transmitting order verification OTPs via the Dukandar SMS Gateway.
-• Processing UPI payment confirmations.`
+          heading: '2. Payment Security & Zero Data Sale',
+          content: `Payments are processed securely via RBI-authorized payment gateways (PhonePe). ChuruOne does not store customer UPI PINs, card numbers, or sensitive financial passwords. We never sell personal data to third parties.`
         },
         {
-          heading: '3. Protection of Customer Data',
-          content: `Shawarma Nights maintains strict confidentiality of all customer details. We do not sell or disclose your personal contact information to any external advertisers or marketing agencies.`
-        },
-        {
-          heading: '4. Contact & Support',
-          content: `For any queries regarding your data or order history, contact the kitchen management directly via WhatsApp at +91 70239 63189.`
+          heading: '3. Contact & Support',
+          content: `For any queries regarding your data or order history, contact the kitchen management directly via WhatsApp or phone at +91 7023963189 or email Mehtabh864@gmail.com.`
         }
       ]
     },
 
     refund: {
-      title: 'Refund & Cancellation Policy',
+      title: 'Refund and Cancellation Policy',
       effectiveDate: 'October 1, 2026',
       sections: [
         {
-          heading: '1. 10-Minute Order Cancellation Policy',
-          content: `Orders can be cancelled within 10 minutes of placement. Because each charcoal roll and burger is freshly crafted and slow-roasted upon order, cancellations are accepted within the first 10 minutes before kitchen preparation begins.`
+          heading: '1. Order Cancellation Policy',
+          content: `Orders can be cancelled before preparation/dispatch or within 10 minutes of placing the order. Because each charcoal roll and burger is freshly crafted and perishable, cancellations are accepted within the first 10 minutes before kitchen preparation begins.`
         },
         {
-          heading: '2. Refund Processing Time (2-3 Business Days)',
-          content: `When an order is cancelled within the eligible 10-minute window, a 100% refund is initiated immediately and processed in 2-3 business days directly to the customer's original UPI ID or bank account.`
+          heading: '2. Refund Timeline (5 to 7 Business Days)',
+          content: `Approved refunds will be processed within 5 to 7 business days and automatically credited back to the customer's original payment method (Bank Account / UPI / Card).`
         },
         {
           heading: '3. Product Return Policy (Self-Return within 2–3 KM)',
-          content: `Product Return & Exchange Policy: For food quality disputes, incorrect dishes, or packaging concerns, customers residing within a 2 to 3 km radius of the kitchen are eligible for direct self-return / exchange at the kitchen outlet within 2 hours of delivery. Customers may also report any issue via our WhatsApp hotline (+91 70239 63189) with a photo of the item and bill for prompt re-dispatch or refund processed in 2-3 days.`
+          content: `For food quality disputes or incorrect dishes, customers residing within a 2 to 3 km radius of the kitchen are eligible for direct self-return / exchange at the kitchen outlet within 2 hours of delivery. Customers may also report any issue via our WhatsApp hotline (+91 7023963189) with a photo of the item for prompt re-dispatch or refund.`
+        }
+      ]
+    },
+
+    shipping: {
+      title: 'Shipping and Delivery Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Delivery Timelines',
+          content: `Local food and grocery orders are delivered within 30 to 45 minutes in Churu city. Standard digital / catalog services are fulfilled instantly.`
         },
         {
-          heading: '4. Ineligible Cancellation Scenarios',
-          content: `Orders cannot be cancelled once 10 minutes have elapsed from the time of placement, or once the order status is marked as "Preparing" or "Out for Delivery", as perishable ingredients cannot be restocked.`
+          heading: '2. Shipping Charges',
+          content: `Shipping charges are transparently displayed during checkout before payment based on distance and order subtotal.`
+        },
+        {
+          heading: '3. Delivery Area',
+          content: `We deliver across Churu city up to a 10 KM delivery radius from our kitchen at 50, Churu bhaiji chowk, Churu.`
         }
       ]
     }
@@ -198,12 +303,31 @@ export const LEGAL_POLICIES = {
   // ─── 3. NASH STUDIO POLICIES ─────────────────────────────────────────────
   'nash-studio': {
     brandName: 'Nash Studio',
-    legalEntity: 'Nash Studio Lounge',
+    legalEntity: 'Vasudhaiva Kutumbakam Robotics',
+    tradeName: 'Nash Studio (A Unit of Vasudhaiva Kutumbakam Robotics)',
+    proprietor: 'Mehtab Hussain',
     tagline: 'Private Gentleman Grooming Lounge & Appointment Studio',
-    address: 'Main Market / City Center, Churu, Rajasthan 331001',
-    email: 'nashstudiochuru@gmail.com',
-    phone: '+91 70239 63189',
+    address: '50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001',
+    email: 'Mehtabh864@gmail.com',
+    secondaryEmail: 'nashstudiochuru@gmail.com',
+    phone: '+91 7023963189',
+    operatingHours: '10:00 AM - 09:00 PM (Monday to Sunday)',
     lastUpdated: 'October 2026',
+
+    contact: {
+      title: 'Contact Us',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Studio & Entity Details',
+          content: `• Trade Name: Nash Studio
+• Parent Entity: Vasudhaiva Kutumbakam Robotics
+• Proprietor: Mehtab Hussain
+• Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001
+• Phone: +91 7023963189 | Email: Mehtabh864@gmail.com`
+        }
+      ]
+    },
 
     terms: {
       title: 'Terms & Conditions',
@@ -211,23 +335,11 @@ export const LEGAL_POLICIES = {
       sections: [
         {
           heading: '1. Service Scope & Studio Atmosphere',
-          content: `Nash Studio provides private, appointment-based grooming services for gentlemen in Churu, Rajasthan, including luxury skin fades, beard sculpting, textured scissor work, hair spa, and facial treatments. By booking an appointment via nash.churuone.in, you agree to these terms.`
+          content: `Nash Studio provides private, appointment-based grooming services for gentlemen in Churu, Rajasthan, operated under Vasudhaiva Kutumbakam Robotics.`
         },
         {
-          heading: '2. Zero Wait-Time Appointment Standard',
-          content: `To guarantee an exclusive lounge experience with zero wait-time, all appointments are scheduled for specific dedicated time blocks. Clients are requested to arrive at the studio 5 minutes prior to their reserved slot.`
-        },
-        {
-          heading: '3. ₹50 Advance Token Policy (Non-Refundable on Cancellation)',
-          content: `A reservation token of ₹50 is required at the time of online slot booking. This token is fully adjusted against the final service bill at the counter. Booking cancellation par token money ka koi refund nahi milega kyunki customer se sirf seat confirm karne ke liye nominal token charge kiya gaya hai.`
-        },
-        {
-          heading: '4. Late Arrival Policy',
-          content: `If a client arrives more than 15 minutes past their scheduled appointment time without advance notice, the studio reserves the right to release the slot to accommodate waiting walk-in patrons in order to maintain the master schedule.`
-        },
-        {
-          heading: '5. Hygiene & Sanitation Commitment',
-          content: `All scissors, clippers, razors, and grooming tools are sanitized and sterilized after every single client. Fresh disposable neck strips and capes are provided for maximum hygiene.`
+          heading: '2. Reservation Token & Scheduling',
+          content: `To guarantee a zero wait-time lounge experience, appointment slots are reserved in dedicated blocks. A reservation token of ₹50 is credited against your final service bill at the counter.`
         }
       ]
     },
@@ -241,38 +353,34 @@ export const LEGAL_POLICIES = {
           content: `We collect client name, mobile phone number, preferred stylist/service choices, and appointment history to coordinate scheduled grooming sessions.`
         },
         {
-          heading: '2. Usage of Client Information',
-          content: `Client information is used exclusively to:
-• Send slot confirmation reminders and digital appointment passes.
-• Maintain personalized haircut specifications and grooming preferences.
-• Facilitate advance token payments and digital receipts.`
-        },
-        {
-          heading: '3. Confidentiality Standard',
-          content: `Nash Studio holds customer privacy in the highest regard. We never share, sell, or disclose your personal details to third-party marketing services.`
+          heading: '2. Payment Security & Zero Data Sale',
+          content: `Payments are processed securely via RBI-authorized payment gateways (PhonePe). ChuruOne does not store customer UPI PINs, card numbers, or sensitive financial passwords. We never sell personal data to third parties.`
         }
       ]
     },
 
     refund: {
-      title: 'Refund & Cancellation Policy',
+      title: 'Refund and Cancellation Policy',
       effectiveDate: 'October 1, 2026',
       sections: [
         {
-          heading: '1. No Refund on Booking Cancellation Policy',
-          content: `Please note that NO refunds are issued upon appointment cancellation. Only a nominal token money (₹50) is charged to secure and reserve the exclusive barber chair and grooming slot. Booking cancel karne par token money ka koi refund nahi milega kyunki customer se sirf seat confirm karne ke liye nominal token charge kiya gaya hai.`
+          heading: '1. Appointment Rescheduling & Cancellation',
+          content: `Appointments can be rescheduled up to 2 hours prior to the booked slot without penalty. Cancellations made at least 2 hours in advance are eligible for refund.`
         },
         {
-          heading: '2. Nominal Token Money Justification',
-          content: `Because a dedicated stylist, barber chair, and time slot are reserved exclusively for you with a zero wait-time guarantee, the ₹50 token money covers the slot commitment and prevents ghost reservations. Cancellations or slot relinquishments will not be refunded.`
-        },
+          heading: '2. Mandatory Refund Timeline',
+          content: `Approved refunds will be processed within 5 to 7 business days and automatically credited back to the customer's original payment method (Bank Account / UPI / Card).`
+        }
+      ]
+    },
+
+    shipping: {
+      title: 'Shipping and Delivery Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
         {
-          heading: '3. Rescheduling Window',
-          content: `While token fees are strictly non-refundable upon cancellation, clients may reschedule their appointment slot up to 2 hours prior to the booked time without forfeiting their token, subject to barber availability.`
-        },
-        {
-          heading: '4. Studio Cancellation Guarantee',
-          content: `In the rare event that Nash Studio must cancel an appointment due to unforeseen studio maintenance or emergency, clients will receive an immediate full ₹50 token refund processed in 2-3 business days plus priority re-booking.`
+          heading: '1. Service Fulfillment',
+          content: `Salon appointments and grooming services are fulfilled in-person at our studio in Churu, Rajasthan. Digital booking passes and appointment confirmations are generated and delivered instantly via SMS and web screen.`
         }
       ]
     }

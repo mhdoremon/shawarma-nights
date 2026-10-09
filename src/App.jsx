@@ -15,13 +15,28 @@ function RootEntry() {
   const params = new URLSearchParams(location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
 
-  // Legal Policies (Terms, Privacy, Refund)
-  if (path.startsWith('/terms') || path.startsWith('/privacy') || path.startsWith('/refund') || path.startsWith('/cancellation') || path.startsWith('/policies') || path.startsWith('/legal')) {
+  // PhonePe Compliant Legal Policies (Contact Us, Terms, Privacy, Refund, Shipping)
+  if (
+    path.startsWith('/contact-us') ||
+    path.startsWith('/contact') ||
+    path.startsWith('/terms-and-conditions') ||
+    path.startsWith('/terms') ||
+    path.startsWith('/privacy-policy') ||
+    path.startsWith('/privacy') ||
+    path.startsWith('/refund-policy') ||
+    path.startsWith('/refund') ||
+    path.startsWith('/cancellation') ||
+    path.startsWith('/shipping-policy') ||
+    path.startsWith('/shipping') ||
+    path.startsWith('/delivery-policy') ||
+    path.startsWith('/policies') ||
+    path.startsWith('/legal')
+  ) {
     return <LegalPage />;
   }
 
-  // About & Contact Portal
-  if (path.startsWith('/about') || path.startsWith('/contact')) {
+  // About Portal
+  if (path.startsWith('/about')) {
     return <ChuruOneHomePage />;
   }
 
@@ -58,13 +73,20 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Legal Policies: Terms, Privacy, Refund */}
+        {/* PhonePe Compliant Legal & Compliance Routes */}
+        <Route path="/contact-us/*" element={<LegalPage />} />
+        <Route path="/contact/*" element={<LegalPage />} />
+        <Route path="/terms-and-conditions/*" element={<LegalPage />} />
         <Route path="/terms/*" element={<LegalPage />} />
+        <Route path="/privacy-policy/*" element={<LegalPage />} />
         <Route path="/privacy/*" element={<LegalPage />} />
-        <Route path="/refund/*" element={<LegalPage />} />
         <Route path="/refund-policy/*" element={<LegalPage />} />
-        <Route path="/cancellation/*" element={<LegalPage />} />
+        <Route path="/refund/*" element={<LegalPage />} />
         <Route path="/cancellation-policy/*" element={<LegalPage />} />
+        <Route path="/cancellation/*" element={<LegalPage />} />
+        <Route path="/shipping-policy/*" element={<LegalPage />} />
+        <Route path="/shipping/*" element={<LegalPage />} />
+        <Route path="/delivery-policy/*" element={<LegalPage />} />
         <Route path="/policies/*" element={<LegalPage />} />
         <Route path="/legal/*" element={<LegalPage />} />
 
@@ -78,7 +100,6 @@ export default function App() {
         <Route path="/churuone-home/*" element={<ChuruOneHomePage />} />
         <Route path="/city/*" element={<ChuruOneHomePage />} />
         <Route path="/about/*" element={<ChuruOneHomePage />} />
-        <Route path="/contact/*" element={<ChuruOneHomePage />} />
 
         {/* ChuruOne App Hub & Downloads Page (Google Play Store style) */}
         <Route path="/apps/*" element={<AppStorePage />} />

@@ -279,34 +279,43 @@ export default function Footer({ onOpenFranchise }) {
 
         </div>
 
-        {/* Legal Policies & Compliance Strip */}
+        {/* Legal Policies & PhonePe Compliance Strip */}
         <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 font-medium">
-            <button
-              type="button"
-              onClick={() => openLegalModal('terms')}
-              className="hover:text-red-600 transition-colors cursor-pointer"
+            <a
+              href="/contact-us"
+              className="hover:text-red-600 transition-colors"
+            >
+              Contact Us
+            </a>
+            <a
+              href="/terms-and-conditions"
+              className="hover:text-red-600 transition-colors"
             >
               Terms & Conditions
-            </button>
-            <button
-              type="button"
-              onClick={() => openLegalModal('privacy')}
-              className="hover:text-red-600 transition-colors cursor-pointer"
+            </a>
+            <a
+              href="/privacy-policy"
+              className="hover:text-red-600 transition-colors"
             >
               Privacy Policy
-            </button>
-            <button
-              type="button"
-              onClick={() => openLegalModal('refund')}
-              className="hover:text-red-600 transition-colors cursor-pointer font-bold text-zinc-700"
+            </a>
+            <a
+              href="/refund-policy"
+              className="hover:text-red-600 transition-colors font-bold text-zinc-700"
             >
               Refund & Cancellation Policy
-            </button>
+            </a>
+            <a
+              href="/shipping-policy"
+              className="hover:text-red-600 transition-colors"
+            >
+              Shipping Policy
+            </a>
           </div>
 
-          <div className="text-[11px] font-mono text-zinc-400 bg-zinc-100 px-3 py-1 rounded-full border border-zinc-200 text-center">
-            Orders can be cancelled within 10 minutes, refund in 2-3 days • Self-return eligible under 2–3 KM
+          <div className="text-[11px] font-mono text-zinc-500 bg-zinc-100 px-3.5 py-1.5 rounded-full border border-zinc-200 text-center">
+            Approved refunds processed in 5 to 7 business days • Local delivery in 30 to 45 mins
           </div>
         </div>
 
@@ -314,9 +323,9 @@ export default function Footer({ onOpenFranchise }) {
         <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-2">
-              Payment Modes (UPI Only):
+              Payment Modes:
             </span>
-            {['UPI (Any App)', 'Google Pay', 'PhonePe', 'Paytm', 'BHIM UPI'].map((mode) => (
+            {['UPI (Any App)', 'Google Pay', 'PhonePe', 'Paytm', 'Cash on Delivery'].map((mode) => (
               <span 
                 key={mode} 
                 className="bg-white border border-zinc-200 text-zinc-700 px-3 py-1 rounded-full text-xs font-medium shadow-xs"
@@ -328,7 +337,7 @@ export default function Footer({ onOpenFranchise }) {
 
           <div className="flex items-center gap-4">
             <span className="text-xs text-zinc-500 font-medium">
-              © {new Date().getFullYear()} Shawarma Nights • Sultan of Charcoal Wraps
+              © 2026 Shawarma Nights. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.
             </span>
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}

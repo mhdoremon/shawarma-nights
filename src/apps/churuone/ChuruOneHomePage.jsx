@@ -679,34 +679,40 @@ export default function ChuruOneHomePage() {
             </div>
           </div>
 
-          {/* ─── Official Desk & Direct Contact Card ─────────────────── */}
+          {/* ─── Official Desk & Direct Contact Card (PhonePe Compliant) ─── */}
           <div className="mt-12 border border-zinc-200 bg-white p-7 sm:p-10 shadow-2xs">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div>
                 <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-zinc-400 block mb-1">
-                  OFFICIAL DESK & DIRECT CONTACT
+                  OFFICIAL DESK & LEGAL ENTITY DETAILS
                 </span>
                 <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-950">
                   ChuruOne Headquarters & Support Desk
                 </h3>
                 <p className="text-xs sm:text-sm text-zinc-500 mt-2 max-w-xl leading-relaxed">
-                  For citizen inquiries, merchant onboarding, store partnerships, or order assistance, connect directly with our Churu operations team.
+                  Owned and operated by <strong className="text-zinc-900 font-semibold">Vasudhaiva Kutumbakam Robotics</strong> (Proprietor: <strong className="text-zinc-900 font-semibold">Mehtab Hussain</strong>). For citizen inquiries, merchant onboarding, or order assistance, connect directly with our Churu operations desk.
                 </p>
-                <div className="flex items-center gap-2 mt-3 text-xs text-zinc-400 font-mono">
-                  <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                  <span>Churu, Rajasthan 331001, India</span>
+                <div className="mt-3.5 space-y-1 text-xs text-zinc-600">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-zinc-500 font-mono text-[11px]">
+                    <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                    <span>Operating Hours: 10:00 AM - 10:00 PM (Monday to Sunday)</span>
+                  </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-4 sm:gap-5">
                 <a
-                  href="mailto:contact@churuone.in"
+                  href="mailto:Mehtabh864@gmail.com"
                   className="group flex items-center gap-3 px-5 py-3.5 border border-zinc-200 bg-zinc-50 hover:bg-zinc-950 hover:border-zinc-950 hover:text-white transition-all text-xs font-semibold text-zinc-900"
                 >
                   <Mail className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
                   <div className="text-left">
                     <span className="text-[10px] text-zinc-400 group-hover:text-zinc-300 block font-normal uppercase tracking-wider">Official Email</span>
-                    <span className="font-mono">contact@churuone.in</span>
+                    <span className="font-mono">Mehtabh864@gmail.com</span>
                   </div>
                 </a>
 
@@ -790,35 +796,49 @@ export default function ChuruOneHomePage() {
             </div>
           </div>
 
-          {/* Legal Compliance Policy Links */}
-          <div className="pt-6 border-t border-zinc-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[11px] text-zinc-400">
+          {/* Legal Compliance Policy Links with Bot-Crawlable Standard Anchor Tags */}
+          <div className="pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-500">
             <div className="flex items-center flex-wrap gap-4 sm:gap-6 font-medium">
-              <button 
-                type="button"
-                onClick={() => openLegalModal('terms')} 
-                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              <a 
+                href="/contact-us" 
+                className="hover:text-zinc-950 transition-colors"
+              >
+                Contact Us
+              </a>
+              <a 
+                href="/terms-and-conditions" 
+                className="hover:text-zinc-950 transition-colors"
               >
                 Terms & Conditions
-              </button>
-              <button 
-                type="button"
-                onClick={() => openLegalModal('privacy')} 
-                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              </a>
+              <a 
+                href="/privacy-policy" 
+                className="hover:text-zinc-950 transition-colors"
               >
                 Privacy Policy
-              </button>
-              <button 
-                type="button"
-                onClick={() => openLegalModal('refund')} 
-                className="hover:text-zinc-950 transition-colors cursor-pointer"
+              </a>
+              <a 
+                href="/refund-policy" 
+                className="hover:text-zinc-950 transition-colors"
               >
-                Refund & Cancellation Policy
-              </button>
+                Refund & Cancellation
+              </a>
+              <a 
+                href="/shipping-policy" 
+                className="hover:text-zinc-950 transition-colors"
+              >
+                Shipping Policy
+              </a>
             </div>
 
-            <div className="text-zinc-400 text-[10px] font-mono">
-              Orders can be cancelled within 10 minutes, refund processed in 2-3 days
+            <div className="text-zinc-400 text-[11px] font-mono">
+              Approved refunds processed in 5 to 7 business days • Delivery in 30 to 45 mins
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-400">
+            <span>© 2026 ChuruOne. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.</span>
+            <span className="font-mono text-[11px]">Registered Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001</span>
           </div>
         </div>
       </footer>
