@@ -13,7 +13,9 @@ import {
   User,
   LogOut,
   ChevronDown,
-  CheckCircle2
+  CheckCircle2,
+  Phone,
+  Mail
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -79,6 +81,16 @@ export default function ChuruOneHomePage() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-scroll to #about section if URL path or hash contains about/contact
+  useEffect(() => {
+    if (window.location.hash === '#about' || window.location.pathname.includes('/about') || window.location.pathname.includes('/contact')) {
+      setTimeout(() => {
+        const el = document.getElementById('about');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
   }, []);
 
   const handleLogout = () => {
@@ -173,7 +185,13 @@ export default function ChuruOneHomePage() {
           </Link>
 
           {/* Clean Action Button / Unified Account Pill */}
-          <div className="flex items-center gap-4 relative" ref={accountMenuRef}>
+          <div className="flex items-center gap-5 sm:gap-6 relative" ref={accountMenuRef}>
+            <a
+              href="#about"
+              className="text-xs uppercase tracking-widest font-semibold text-zinc-500 hover:text-zinc-950 transition-colors hidden sm:block"
+            >
+              About & Contact
+            </a>
             {currentUser ? (
               <div className="relative">
                 <button
@@ -551,13 +569,13 @@ export default function ChuruOneHomePage() {
       </section>
 
       {/* ─── Elevated Editorial About Section ───────────────────── */}
-      <section className="py-20 sm:py-24 bg-[#FAFAFA] border-t border-zinc-200">
+      <section id="about" className="py-20 sm:py-24 bg-[#FAFAFA] border-t border-zinc-200 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
           {/* Section Header */}
           <div className="max-w-2xl mb-14">
             <span className="text-[10px] font-semibold tracking-[0.3em] uppercase text-zinc-400 block mb-2">
-              01 / PLATFORM ARCHITECTURE
+              01 / PLATFORM ARCHITECTURE & ABOUT US
             </span>
             <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-zinc-950">
               Direct City Commerce Protocol.
@@ -661,6 +679,51 @@ export default function ChuruOneHomePage() {
             </div>
           </div>
 
+          {/* ─── Official Desk & Direct Contact Card ─────────────────── */}
+          <div className="mt-12 border border-zinc-200 bg-white p-7 sm:p-10 shadow-2xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div>
+                <span className="text-[10px] font-semibold tracking-[0.25em] uppercase text-zinc-400 block mb-1">
+                  OFFICIAL DESK & DIRECT CONTACT
+                </span>
+                <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-950">
+                  ChuruOne Headquarters & Support Desk
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-500 mt-2 max-w-xl leading-relaxed">
+                  For citizen inquiries, merchant onboarding, store partnerships, or order assistance, connect directly with our Churu operations team.
+                </p>
+                <div className="flex items-center gap-2 mt-3 text-xs text-zinc-400 font-mono">
+                  <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                  <span>Churu, Rajasthan 331001, India</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+                <a
+                  href="mailto:contact@churuone.in"
+                  className="group flex items-center gap-3 px-5 py-3.5 border border-zinc-200 bg-zinc-50 hover:bg-zinc-950 hover:border-zinc-950 hover:text-white transition-all text-xs font-semibold text-zinc-900"
+                >
+                  <Mail className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+                  <div className="text-left">
+                    <span className="text-[10px] text-zinc-400 group-hover:text-zinc-300 block font-normal uppercase tracking-wider">Official Email</span>
+                    <span className="font-mono">contact@churuone.in</span>
+                  </div>
+                </a>
+
+                <a
+                  href="tel:+917023963189"
+                  className="group flex items-center gap-3 px-5 py-3.5 border border-zinc-200 bg-zinc-50 hover:bg-zinc-950 hover:border-zinc-950 hover:text-white transition-all text-xs font-semibold text-zinc-900"
+                >
+                  <Phone className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+                  <div className="text-left">
+                    <span className="text-[10px] text-zinc-400 group-hover:text-zinc-300 block font-normal uppercase tracking-wider">Direct Helpline</span>
+                    <span className="font-mono">+91 70239 63189</span>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Minimal Merchant Access Link */}
           <div className="mt-12 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -689,15 +752,29 @@ export default function ChuruOneHomePage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 text-xs text-zinc-400">
             <div>
-              <div className="font-bold tracking-widest uppercase text-zinc-900">
+              <div className="font-bold tracking-widest uppercase text-zinc-950 text-sm">
                 CHURUONE
               </div>
-              <p className="text-[11px] text-zinc-400 mt-1">
+              <p className="text-[11px] text-zinc-500 mt-1">
                 Churu, Rajasthan 331001 • Direct Commerce Infrastructure
               </p>
+              <div className="flex items-center flex-wrap gap-4 mt-2.5 text-xs text-zinc-600">
+                <a href="mailto:contact@churuone.in" className="inline-flex items-center gap-1.5 hover:text-zinc-950 font-medium transition-colors">
+                  <Mail className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>contact@churuone.in</span>
+                </a>
+                <span className="text-zinc-300">•</span>
+                <a href="tel:+917023963189" className="inline-flex items-center gap-1.5 hover:text-zinc-950 font-medium transition-colors">
+                  <Phone className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>+91 70239 63189</span>
+                </a>
+              </div>
             </div>
 
             <div className="flex items-center flex-wrap gap-5 text-zinc-500 text-[11px] font-medium uppercase tracking-wider">
+              <a href="#about" className="hover:text-zinc-950 transition-colors">
+                About & Contact
+              </a>
               <a href={getStoreUrl('shawarma')} className="hover:text-zinc-950 transition-colors">
                 Shawarma Nights
               </a>

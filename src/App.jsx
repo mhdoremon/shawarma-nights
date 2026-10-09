@@ -20,6 +20,11 @@ function RootEntry() {
     return <LegalPage />;
   }
 
+  // About & Contact Portal
+  if (path.startsWith('/about') || path.startsWith('/contact')) {
+    return <ChuruOneHomePage />;
+  }
+
   // 0. Unified ChuruOne SSO Authentication Portal (/auth or /login)
   if (path.startsWith('/auth') || path.startsWith('/login') || path.startsWith('/signup')) {
     return <ChuruOneAuthPage />;
@@ -72,6 +77,8 @@ export default function App() {
         <Route path="/portal/*" element={<ChuruOneHomePage />} />
         <Route path="/churuone-home/*" element={<ChuruOneHomePage />} />
         <Route path="/city/*" element={<ChuruOneHomePage />} />
+        <Route path="/about/*" element={<ChuruOneHomePage />} />
+        <Route path="/contact/*" element={<ChuruOneHomePage />} />
 
         {/* ChuruOne App Hub & Downloads Page (Google Play Store style) */}
         <Route path="/apps/*" element={<AppStorePage />} />

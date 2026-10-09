@@ -13,7 +13,7 @@ export const LEGAL_POLICIES = {
     legalEntity: 'ChuruOne Technologies',
     tagline: 'City Directory & Direct Commerce Infrastructure',
     address: 'Churu, Rajasthan 331001, India',
-    email: 'support@churuone.in',
+    email: 'contact@churuone.in',
     phone: '+91 70239 63189',
     lastUpdated: 'October 2026',
 
@@ -78,7 +78,7 @@ export const LEGAL_POLICIES = {
         },
         {
           heading: '5. Your Rights & Account Deletion',
-          content: `You have the right to inspect, update, or request the permanent deletion of your ChuruOne profile and saved data at any time by contacting our privacy desk at support@churuone.in.`
+          content: `You have the right to inspect, update, or request the permanent deletion of your ChuruOne profile and saved data at any time by contacting our privacy desk at contact@churuone.in.`
         }
       ]
     },
@@ -101,7 +101,7 @@ export const LEGAL_POLICIES = {
         },
         {
           heading: '4. Dispute Support & Contact',
-          content: `If you encounter any delay in refund processing or merchant communication, ChuruOne provides dedicated mediation support. Reach out via WhatsApp or phone at +91 70239 63189 or email support@churuone.in with your Order ID for prompt resolution within 24 hours.`
+          content: `If you encounter any delay in refund processing or merchant communication, ChuruOne provides dedicated mediation support. Reach out via WhatsApp or phone at +91 70239 63189 or email contact@churuone.in with your Order ID for prompt resolution within 24 hours.`
         }
       ]
     }
