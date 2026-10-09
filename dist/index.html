@@ -11,8 +11,44 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- MSG91 OTP Widget SDK (Zero DLT SMS Delivery) -->
-    <script src="https://verify.msg91.com/otp-provider.js"></script>
-    <script type="module" crossorigin src="/assets/index-DCIsn17K.js"></script>
+    <script type="text/javascript">
+      window.configuration = {
+        widgetId: "366a696c357a333532393739",
+        tokenAuth: "579831T8ey9mcpYIc6ac8e57dP1",
+        exposeMethods: true,
+        success: function(data) {
+          console.log('✅ [MSG91] Global Success:', data);
+        },
+        failure: function(error) {
+          console.warn('⚠️ [MSG91] Global Failure:', error);
+        }
+      };
+      (function loadOtpScript(urls) {
+        var i = 0;
+        function attempt() {
+          var s = document.createElement('script');
+          s.src = urls[i];
+          s.async = true;
+          s.onload = function() {
+            if (typeof window.initSendOTP === 'function' && window.configuration) {
+              window.initSendOTP(window.configuration);
+            }
+          };
+          s.onerror = function() {
+            i++;
+            if (i < urls.length) {
+              attempt();
+            }
+          };
+          document.head.appendChild(s);
+        }
+        attempt();
+      })([
+        'https://verify.msg91.com/otp-provider.js',
+        'https://verify.phone91.com/otp-provider.js'
+      ]);
+    </script>
+    <script type="module" crossorigin src="/assets/index-ajwSxjCl.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-DCPjtgdL.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-ui-vqZuttT2.js">
     <link rel="stylesheet" crossorigin href="/assets/index-CazBnhJw.css">

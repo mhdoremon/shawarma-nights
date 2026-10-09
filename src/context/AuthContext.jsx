@@ -244,28 +244,26 @@ export function AuthProvider({ children }) {
     setIsSendingOtp(true);
 
     // 0. Primary SMS Engine: MSG91 SendOTP Widget SDK (Zero-DLT SMS)
-    if (isMsg91Ready()) {
-      try {
-        console.log(`📡 [MSG91] Sending OTP via widget to +91${cleanPhone}...`);
-        const msgRes = await sendOtpViaMsg91(cleanPhone);
-        if (msgRes && msgRes.success) {
-          setIsSendingOtp(false);
-          setActiveStep('otp');
-          setGatewayInfo({
-            isDispatched: true,
-            dispatchMethod: 'msg91_widget',
-            message: `OTP sent via MSG91 to +91 ${cleanPhone}`,
-          });
-          sounds.playPop();
-          return {
-            success: true,
-            message: `OTP sent to +91 ${cleanPhone} via MSG91!`,
-            provider: 'msg91'
-          };
-        }
-      } catch (mErr) {
-        console.warn('⚠️ [MSG91] Send failed, falling back to backend SIM Gateway:', mErr.message);
+    try {
+      console.log(`📡 [MSG91] Sending OTP via widget to +91${cleanPhone}...`);
+      const msgRes = await sendOtpViaMsg91(cleanPhone);
+      if (msgRes && msgRes.success) {
+        setIsSendingOtp(false);
+        setActiveStep('otp');
+        setGatewayInfo({
+          isDispatched: true,
+          dispatchMethod: 'msg91_widget',
+          message: `OTP sent via MSG91 to +91 ${cleanPhone}`,
+        });
+        sounds.playPop();
+        return {
+          success: true,
+          message: `OTP sent to +91 ${cleanPhone} via MSG91!`,
+          provider: 'msg91'
+        };
       }
+    } catch (mErr) {
+      console.warn('⚠️ [MSG91] Send failed, falling back to backend SIM Gateway:', mErr.message);
     }
 
     // 1. Send OTP via Backend SMS Engine (Priority 1: Private SIM Gateway, Priority 2: Fast2SMS)
@@ -397,16 +395,14 @@ export function AuthProvider({ children }) {
 
     try {
       let isVerifiedViaMsg91 = false;
-      if (isMsg91Ready()) {
-        try {
-          console.log('📡 [MSG91] Verifying OTP via widget...');
-          const mVerify = await verifyOtpViaMsg91(cleanOtp);
-          if (mVerify && mVerify.success) {
-            isVerifiedViaMsg91 = true;
-          }
-        } catch (mErr) {
-          console.warn('⚠️ [MSG91] Widget verify failed, checking backend:', mErr.message);
+      try {
+        console.log('📡 [MSG91] Verifying OTP...');
+        const mVerify = await verifyOtpViaMsg91(cleanOtp);
+        if (mVerify && mVerify.success) {
+          isVerifiedViaMsg91 = true;
         }
+      } catch (mErr) {
+        console.warn('⚠️ [MSG91] Verification notice:', mErr.message);
       }
 
       const activeStoreId = getStoreId();

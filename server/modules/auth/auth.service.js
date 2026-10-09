@@ -46,6 +46,26 @@ export const sendOtp = (req, res) => {
         const sent = WebSocketHub.broadcastToGateway(targetStoreId, smsPayload);
         if (!sent) {
             WebSocketHub.queueGatewaySms(targetStoreId, smsPayload);
+            // Fallback: Dispatch via MSG91 SendOTP Widget API if SIM gateway phone is offline/asleep
+            try {
+                const cleanDigits = normalizedPhone.replace(/\D/g, '').slice(-10);
+                if (cleanDigits.length === 10) {
+                    fetch("https://control.msg91.com/api/v5/widget/sendOtp", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                        body: JSON.stringify({
+                            widgetId: "366a696c357a333532393739",
+                            tokenAuth: "579831T8ey9mcpYIc6ac8e57dP1",
+                            identifier: `91${cleanDigits}`
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(mRes => {
+                        console.log(`📱 [MSG91 Server Backup] Dispatched to 91${cleanDigits}:`, mRes?.type || mRes);
+                    })
+                    .catch(e => console.warn(`⚠️ [MSG91 Server Backup] Error:`, e.message));
+                }
+            } catch (err) {}
         }
 
         console.log(`📱 [OTP] Generated 6-digit OTP for ${formattedPhone} on store "${targetStoreId}": ${otp} (Gateway sent count: ${sent})`);
