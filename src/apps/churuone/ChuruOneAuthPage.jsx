@@ -271,17 +271,19 @@ export default function ChuruOneAuthPage() {
     try {
       const cleanPhone = String(targetPhone).replace(/\D/g, '').slice(-10);
       let dispatched = false;
+      let msg91Error = null;
 
       // 1. Send OTP via MSG91 SendOTP Widget SDK (Zero-DLT SMS)
       try {
-        console.log(`📡 [MSG91] Sending OTP to +91${cleanPhone}...`);
+        console.log(`📡 [MSG91] Sending OTP to 91${cleanPhone}...`);
         const msgRes = await sendOtpViaMsg91(cleanPhone);
         if (msgRes && msgRes.success) {
           dispatched = true;
           console.log('✅ [MSG91] OTP Dispatched successfully:', msgRes);
         }
       } catch (mErr) {
-        console.warn('⚠️ [MSG91] sendOtp error, attempting backend SIM fallback:', mErr.message);
+        msg91Error = mErr.message || 'MSG91 dispatch error';
+        console.warn('⚠️ [MSG91] sendOtp error:', mErr.message);
       }
 
       // 2. If MSG91 failed or wasn't loaded, fallback to Backend SIM Gateway
@@ -296,6 +298,14 @@ export default function ChuruOneAuthPage() {
           body: JSON.stringify({ phone: cleanPhone, storeId: activeStore })
         });
         const data = await res.json();
+        
+        // If MSG91 failed and SIM is offline, show exact MSG91 error so user knows what's wrong in dashboard
+        if (msg91Error && !data.isSmsDispatched) {
+          setErrorMsg(`MSG91 Error: ${msg91Error}`);
+          setIsSendingOtp(false);
+          return;
+        }
+
         if (!data.success) {
           setErrorMsg(data.message || 'OTP dispatch failed. Please try again.');
           setIsSendingOtp(false);
@@ -567,6 +577,9 @@ export default function ChuruOneAuthPage() {
                   <span>10 Digits</span>
                 </div>
               </div>
+
+              {/* MSG91 Captcha Container (if enabled in widget settings) */}
+              <div id="msg91-captcha-container" className="my-1 flex justify-center"></div>
 
               <button
                 type="submit"

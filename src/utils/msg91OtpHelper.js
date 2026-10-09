@@ -38,6 +38,7 @@ export function initMsg91Widget({ onSuccess, onFailure } = {}) {
           widgetId: MSG91_WIDGET_ID,
           tokenAuth: MSG91_TOKEN_AUTH,
           exposeMethods: true,
+          captchaRenderId: 'msg91-captcha-container',
           success: (data) => {
             console.log('✅ [MSG91] OTP Verified Successfully:', data);
             if (typeof activeCallbacks.onSuccess === 'function') {
@@ -52,6 +53,7 @@ export function initMsg91Widget({ onSuccess, onFailure } = {}) {
           }
         };
 
+        window.configuration = configuration;
         window.initSendOTP(configuration);
         isInitialized = true;
         console.log('🚀 [MSG91] Widget Initialized with ID:', MSG91_WIDGET_ID);
@@ -85,7 +87,7 @@ export function isMsg91Ready() {
 
 /**
  * Send OTP via MSG91
- * @param {string} phone - 10-digit mobile number or +91 number
+ * @param {string} phone - 10-digit mobile number
  * @returns {Promise<{ success: boolean, message: string, provider: string }>}
  */
 export async function sendOtpViaMsg91(phone) {
@@ -94,7 +96,8 @@ export async function sendOtpViaMsg91(phone) {
     throw new Error('Please enter a valid 10-digit mobile number.');
   }
 
-  const formattedPhone = `+91${cleanPhone}`;
+  // Official MSG91 Spec: Country code WITHOUT + (e.g. 919999999999)
+  const formattedPhone = `91${cleanPhone}`;
 
   // Ensure widget is initialized
   if (!isInitialized && typeof window !== 'undefined' && typeof window.initSendOTP === 'function') {
@@ -104,28 +107,21 @@ export async function sendOtpViaMsg91(phone) {
   return new Promise((resolve, reject) => {
     if (typeof window !== 'undefined' && typeof window.sendOtp === 'function') {
       try {
-        // MSG91 window.sendOtp supports both callback style and direct execution
-        const handled = false;
-        
-        try {
-          window.sendOtp(
-            formattedPhone,
-            (res) => {
-              console.log('📱 [MSG91] OTP Dispatched via callback:', res);
-              resolve({ success: true, message: `OTP sent to ${formattedPhone}`, provider: 'msg91', data: res });
-            },
-            (err) => {
-              console.warn('⚠️ [MSG91] sendOtp callback error:', err);
-              reject(new Error(err?.message || 'Failed to dispatch OTP via MSG91'));
-            }
-          );
-          return;
-        } catch (callErr) {
-          // If signature is window.sendOtp(phone) without callbacks
-          window.sendOtp(formattedPhone);
-          resolve({ success: true, message: `OTP sent to ${formattedPhone}`, provider: 'msg91' });
-        }
+        console.log(`📡 [MSG91] Calling window.sendOtp with identifier: ${formattedPhone}`);
+        window.sendOtp(
+          formattedPhone,
+          (res) => {
+            console.log('📱 [MSG91] OTP Dispatched successfully:', res);
+            resolve({ success: true, message: `OTP sent to ${cleanPhone}`, provider: 'msg91', data: res });
+          },
+          (err) => {
+            console.warn('⚠️ [MSG91] sendOtp error callback:', err);
+            const errMsg = typeof err === 'string' ? err : (err?.message || err?.msg || JSON.stringify(err) || 'Failed to dispatch OTP via MSG91');
+            reject(new Error(errMsg));
+          }
+        );
       } catch (e) {
+        console.warn('⚠️ [MSG91] sendOtp exception:', e);
         reject(e);
       }
     } else {
@@ -158,28 +154,24 @@ export async function verifyOtpViaMsg91(otp) {
 
       activeCallbacks.onFailure = (err) => {
         if (prevFailure) prevFailure(err);
-        reject(new Error(err?.message || 'Invalid or expired OTP. Please try again.'));
+        const errMsg = typeof err === 'string' ? err : (err?.message || err?.msg || 'Invalid or expired OTP. Please try again.');
+        reject(new Error(errMsg));
       };
 
       try {
-        // Try calling verifyOtp with callbacks if supported
         window.verifyOtp(
           cleanOtp,
           (res) => {
             resolve({ success: true, message: 'OTP verified successfully!', data: res });
           },
           (err) => {
-            reject(new Error(err?.message || 'Invalid or expired OTP code.'));
+            const errMsg = typeof err === 'string' ? err : (err?.message || err?.msg || 'Invalid or expired OTP code.');
+            reject(new Error(errMsg));
           }
         );
       } catch (callErr) {
-        // If verifyOtp takes only (otp), the widget configuration success/failure handler will resolve
         try {
           window.verifyOtp(cleanOtp);
-          // Safety timeout in case no hook fires
-          setTimeout(() => {
-            // Note: If no error was thrown, widget will fire success callback
-          }, 5000);
         } catch (e) {
           reject(e);
         }
@@ -192,11 +184,16 @@ export async function verifyOtpViaMsg91(otp) {
 
 /**
  * Resend OTP via MSG91
+ * Channel is null by default for widget default SMS channel
  */
-export function retryOtpViaMsg91() {
+export function retryOtpViaMsg91(channel = null) {
   if (typeof window !== 'undefined' && typeof window.retryOtp === 'function') {
     try {
-      window.retryOtp();
+      window.retryOtp(
+        channel,
+        (data) => console.log('📱 [MSG91] retryOtp success:', data),
+        (err) => console.warn('⚠️ [MSG91] retryOtp error:', err)
+      );
       return true;
     } catch (e) {
       console.warn('⚠️ [MSG91] retryOtp error:', e);
