@@ -45,7 +45,12 @@
     "minOrderAmount": 299,
     "maxOrdersPerHour": 50,
     "autoAcceptOrders": true,
-    "requirePhoneOtp": false,
+    "requirePhoneOtp": true,
+    "authPolicy": {
+      "requireAuth": true,
+      "requirePhone": true,
+      "requireGoogle": false
+    },
     "packagingCharge": 0,
     "deliveryFee": 70,
     "enabledModules": [

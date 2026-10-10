@@ -131,6 +131,9 @@ export const verifyOtp = (req, res) => {
             // Existing customer
             customer.authProvider = customer.authProvider || 'phone';
             customer.phoneVerified = true;
+            if (req.body.name) customer.name = req.body.name;
+            if (req.body.gender) customer.gender = req.body.gender;
+            if (req.body.address) customer.address = req.body.address;
             customer.lastLoginAt = now();
             DataLayer.writeSync(targetStoreId, 'customers', customers);
             return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
@@ -141,9 +144,10 @@ export const verifyOtp = (req, res) => {
                 id: generateId('cust'),
                 phone: normalizedPhone,
                 token: generateUUID(),
-                name: '',
-                address: '',
-                email: '',
+                name: req.body.name || '',
+                gender: req.body.gender || '',
+                address: req.body.address || '',
+                email: req.body.email || '',
                 authProvider: 'phone',
                 phoneVerified: true,
                 createdAt: now(),
@@ -153,6 +157,54 @@ export const verifyOtp = (req, res) => {
             DataLayer.writeSync(targetStoreId, 'customers', customers);
             return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         }
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const checkAccount = (req, res) => {
+    try {
+        const { phone, email } = req.query;
+        if (!phone && !email) {
+            return res.status(400).json({ success: false, message: 'Phone ya Email zaroori hai' });
+        }
+        const normalizedPhone = phone ? normalizePhone(phone) : '';
+        const normalizedEmail = email ? email.toLowerCase().trim() : '';
+
+        const allStoreIds = DataLayer.listStoreIds();
+        let matchedCustomer = null;
+
+        for (const sId of allStoreIds) {
+            const customers = DataLayer.read(sId, 'customers') || [];
+            const found = customers.find(c => 
+                (normalizedPhone && c.phone && normalizePhone(c.phone) === normalizedPhone) ||
+                (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+            );
+            if (found) {
+                matchedCustomer = found;
+                break;
+            }
+        }
+
+        if (matchedCustomer) {
+            return res.json({
+                success: true,
+                exists: true,
+                user: {
+                    name: matchedCustomer.name,
+                    phone: matchedCustomer.phone,
+                    phoneVerified: Boolean(matchedCustomer.phoneVerified),
+                    email: matchedCustomer.email,
+                    authProvider: matchedCustomer.authProvider
+                }
+            });
+        }
+
+        return res.json({
+            success: true,
+            exists: false,
+            message: 'Is mobile/email se koi account nahi mila.'
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -320,6 +372,8 @@ export const googleLogin = async (req, res) => {
             if (phone) {
                 customer.phone = normalizePhone(phone);
             }
+            if (req.body.gender) customer.gender = req.body.gender;
+            if (req.body.address) customer.address = req.body.address;
             customer.authProvider = 'google';
             if (req.body.phoneVerified !== undefined) {
                 customer.phoneVerified = Boolean(req.body.phoneVerified);
@@ -335,6 +389,8 @@ export const googleLogin = async (req, res) => {
                 email: normalizedEmail,
                 phone: phone ? normalizePhone(phone) : '',
                 phoneVerified: req.body.phoneVerified !== undefined ? Boolean(req.body.phoneVerified) : false,
+                gender: req.body.gender || '',
+                address: req.body.address || '',
                 picture: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 photoURL: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 googleId: userGoogleId || '',

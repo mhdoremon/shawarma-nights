@@ -473,6 +473,12 @@ export default function SkylineApp() {
   // ─── CHECKOUT & ORDER SUBMISSION ──────────────────────────────
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+    if (!currentUser) {
+      showToast('✦ Order karne ke liye ChuruOne account me sign in karein');
+      setIsCheckoutOpen(false);
+      navigateToChuruOneAuth('login');
+      return;
+    }
     if (!checkoutName.trim()) {
       showToast('Please enter your full name');
       return;
@@ -480,6 +486,12 @@ export default function SkylineApp() {
     const cleanPhone = checkoutPhone.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length !== 10) {
       showToast('Please enter a valid 10-digit mobile number');
+      return;
+    }
+    if (!currentUser.phone && !currentUser.phoneVerified && cleanPhone.length !== 10) {
+      showToast('✦ Wardrobe delivery ke liye mobile number verify karein');
+      setIsCheckoutOpen(false);
+      navigateToChuruOneAuth('login');
       return;
     }
     if (deliveryType === 'delivery') {
@@ -522,7 +534,13 @@ export default function SkylineApp() {
         tip: 0,
         total: grandTotal,
         notes: checkoutNotes.trim(),
-        source: 'slick_web'
+        source: 'slick_web',
+        customerToken: currentUser?.token || localStorage.getItem('auth_token') || '',
+        authToken: currentUser?.token || localStorage.getItem('auth_token') || '',
+        phoneVerified: Boolean(currentUser?.phoneVerified || cleanPhone.length === 10),
+        userEmail: currentUser?.email || '',
+        authProvider: currentUser?.authProvider || 'churuone',
+        authenticated: true
       };
 
       const res = await placeSkylineOrder(orderPayload);
@@ -1522,6 +1540,12 @@ export default function SkylineApp() {
                   {/* Checkout Button */}
                   <button
                     onClick={() => {
+                      if (!currentUser) {
+                        showToast('✦ Order karne ke liye ChuruOne account me sign in karein');
+                        setIsCartOpen(false);
+                        navigateToChuruOneAuth('login');
+                        return;
+                      }
                       setIsCartOpen(false);
                       setIsCheckoutOpen(true);
                     }}
@@ -1563,50 +1587,66 @@ export default function SkylineApp() {
                 </h3>
               </div>
 
-              {/* ChuruOne SSO Quick Sync Banner */}
-              {currentUser ? (
-                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between text-xs text-emerald-900">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <div>
-                      <span className="font-bold">{currentUser.name || 'Friend'}</span>
-                      <span className="text-[10px] text-emerald-700 block font-mono">
-                        Verified via ChuruOne SSO (+91 {currentUser.phone || checkoutPhone})
-                      </span>
-                    </div>
+              {/* ChuruOne SSO Authentication Gate & Verification */}
+              {!currentUser ? (
+                <div className="bg-stone-50 border border-stone-200 p-8 rounded-2xl text-center space-y-5 my-2">
+                  <div className="w-14 h-14 rounded-full bg-black text-white flex items-center justify-center mx-auto shadow-md">
+                    <ShieldCheck className="w-7 h-7 text-amber-400" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => navigateToChuruOneAuth('login')}
-                    className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
-                  >
-                    Switch User
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-stone-900 block">ChuruOne Unified Identity</span>
-                    <span className="text-[10px] text-stone-500">Sign in to auto-fill your saved address and sync orders.</span>
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                      CHURUONE SINGLE SIGN-ON REQUIRED
+                    </span>
+                    <h4 className="text-xl font-bold text-stone-950">
+                      Sign In to Place Your Order
+                    </h4>
+                    <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
+                      Skyline Premium Outfits requires verified ChuruOne authentication to coordinate sizing and doorstep delivery in Churu.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="grid grid-cols-2 gap-3 pt-3 max-w-xs mx-auto">
                     <button
                       type="button"
-                      onClick={() => navigateToChuruOneAuth('login')}
-                      className="border border-stone-300 text-stone-800 px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer hover:border-black"
+                      onClick={() => {
+                        setIsCheckoutOpen(false);
+                        navigateToChuruOneAuth('login');
+                      }}
+                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer shadow-md"
                     >
                       Sign In
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigateToChuruOneAuth('signup')}
-                      className="bg-black text-white px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer hover:bg-stone-800"
+                      onClick={() => {
+                        setIsCheckoutOpen(false);
+                        navigateToChuruOneAuth('signup');
+                      }}
+                      className="w-full border border-stone-300 hover:border-black text-stone-800 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
                     >
-                      Sign Up
+                      Create Account
                     </button>
                   </div>
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-bold">{currentUser.name || 'Friend'}</span>
+                        <span className="text-[10px] text-emerald-700 block font-mono">
+                          Verified via ChuruOne SSO (+91 {currentUser.phone || checkoutPhone})
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigateToChuruOneAuth('login')}
+                      className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
+                    >
+                      Switch User
+                    </button>
+                  </div>
 
               {/* Delivery vs Store Pickup Tabs */}
               <div>
@@ -1951,6 +1991,8 @@ export default function SkylineApp() {
                 </div>
 
               </form>
+                </>
+              )}
 
             </div>
           </div>

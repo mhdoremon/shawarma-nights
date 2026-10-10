@@ -59,6 +59,76 @@ export const placeOrder = async (req, res) => {
             }
         }
 
+        // ─── UNIVERSAL SMART AUTHENTICATION POLICY ENFORCEMENT ───
+        const authPolicy = storeConfig?.settings?.authPolicy || {};
+        const requireAuth = authPolicy.requireAuth !== false; // Default: true (Bina auth ke order allow nahi)
+        const requirePhone = authPolicy.requirePhone || storeConfig?.settings?.requirePhoneOtp || (storeId === 'shawarma' || storeId === 'skyline');
+
+        // Extract customer identifiers from headers / payload
+        const rawPhone = payload.customer?.phone || payload.customerPhone || payload.phone || '';
+        const cleanPhone = normalizePhone(rawPhone);
+        const customerEmail = (payload.customer?.email || payload.userEmail || payload.email || '').toLowerCase().trim();
+        const customerToken = req.headers['x-auth-token'] || 
+                              (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null) ||
+                              payload.customerToken || payload.authToken || payload.token;
+
+        // Lookup registered customer across store or platform
+        const storeCustomers = DataLayer.read(storeId, 'customers') || [];
+        let authenticatedUser = storeCustomers.find(c => 
+            (customerToken && c.token === customerToken) ||
+            (cleanPhone && c.phone && normalizePhone(c.phone) === cleanPhone) ||
+            (customerEmail && c.email && c.email.toLowerCase() === customerEmail)
+        );
+
+        // Fallback: If not found in current store, check across all platform stores
+        if (!authenticatedUser) {
+            const allStoreIds = DataLayer.listStoreIds();
+            for (const sId of allStoreIds) {
+                if (sId === storeId) continue;
+                const otherCusts = DataLayer.read(sId, 'customers') || [];
+                const found = otherCusts.find(c => 
+                    (customerToken && c.token === customerToken) ||
+                    (cleanPhone && c.phone && normalizePhone(c.phone) === cleanPhone) ||
+                    (customerEmail && c.email && c.email.toLowerCase() === customerEmail)
+                );
+                if (found) {
+                    authenticatedUser = found;
+                    // Auto-sync customer to this store's customer database
+                    storeCustomers.push({ ...found, id: generateId('cust'), createdAt: now() });
+                    DataLayer.writeSync(storeId, 'customers', storeCustomers);
+                    break;
+                }
+            }
+        }
+
+        // 1. Mandatory Auth Enforcement: Ghost/Anonymous orders strictly blocked
+        const isPosExempt = payload.source === 'pos_terminal' || payload.source === 'admin_gateway';
+        if (requireAuth && !isPosExempt) {
+            const hasVerifiedToken = customerToken && String(customerToken).length > 5;
+            const hasVerifiedSession = payload.authenticated === true || payload.isVerified === true;
+            
+            if (!authenticatedUser && !hasVerifiedToken && !hasVerifiedSession) {
+                return res.status(401).json({
+                    success: false,
+                    requireAuth: true,
+                    message: 'Order place karne ke liye ChuruOne account me Login / Sign Up hona anivarya (mandatory) hai. Kripya pehle authenticate karein.'
+                });
+            }
+        }
+
+        // 2. Mandatory Phone Verification Enforcement (For Delivery Stores like Skyline & Shawarma)
+        if (requirePhone && !isPosExempt) {
+            const isPhoneVerified = authenticatedUser?.phoneVerified === true || payload.phoneVerified === true || payload.customer?.phoneVerified === true;
+
+            if (!isPhoneVerified) {
+                return res.status(403).json({
+                    success: false,
+                    requirePhoneOtp: true,
+                    message: `${storeConfig?.settings?.storeName || storeId} par delivery ke liye Mobile Number OTP verify hona anivarya hai. Kripya apna mobile number verify karein.`
+                });
+            }
+        }
+
         const prefix = (storeConfig.slug || storeId).split('-').map(s => s[0]).join('').toUpperCase().slice(0, 3) || 'ORD';
         const orderNumCount = orders.length + 1;
         const defaultOrderNum = `${prefix}-${String(orderNumCount).padStart(4, '0')}`;

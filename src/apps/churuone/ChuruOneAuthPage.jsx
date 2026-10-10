@@ -35,10 +35,11 @@ export default function ChuruOneAuthPage() {
 
   const isStoreContext = Boolean(storeId);
   const storeDisplayName = STORE_NAMES[storeId] || (storeId ? 'Partner Store' : '');
+  const isSkyline = storeId.includes('skyline');
   const isShawarma = storeId.includes('shawarma') || storeId === 'shawarma-nights';
 
-  const mode = (searchParams.get('mode') || (window.location.pathname.includes('/signup') ? 'signup' : 'login')).toLowerCase();
-  const isSignUp = mode === 'signup';
+  const [authMode, setAuthMode] = useState(() => (searchParams.get('mode') || (window.location.pathname.includes('/signup') ? 'signup' : 'login')).toLowerCase());
+  const isSignUp = authMode === 'signup';
 
   // Calculate destination URL
   function getDestinationUrl() {
@@ -57,13 +58,15 @@ export default function ChuruOneAuthPage() {
 
   const destination = getDestinationUrl();
 
-  // Store Phone OTP Policy (Default: Shawarma/food requires phone OTP, general ChuruOne / salon does not)
+  // Store Phone OTP Policy (Default: Shawarma & Skyline require phone OTP, general ChuruOne / salon does not)
   const [storePolicyRequireOtp, setStorePolicyRequireOtp] = useState(() => {
     const param = searchParams.get('requirePhoneOtp');
     if (param === '1' || param === 'true') return true;
     if (param === '0' || param === 'false') return false;
-    return isShawarma;
+    return isShawarma || isSkyline;
   });
+
+  const storeRequiresPhone = isShawarma || isSkyline || storePolicyRequireOtp;
 
   // Background store config check (only if storeId is provided)
   useEffect(() => {
@@ -83,11 +86,13 @@ export default function ChuruOneAuthPage() {
   }, [storeId]);
 
   // Auth State
-  const [step, setStep] = useState(1); // 1: Google login, 2: Profile & Phone, 3: Real SMS OTP Verify
+  const [step, setStep] = useState(1); // 1: Google/Phone, 2: Profile & Phone, 3: Real SMS OTP Verify
   const [googleUser, setGoogleUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -132,6 +137,26 @@ export default function ChuruOneAuthPage() {
       setErrorMsg("Please enter a valid 10-digit mobile number.");
       return;
     }
+
+    if (!isSignUp) {
+      // In Sign In mode: verify account exists before sending OTP
+      setLoading(true);
+      setErrorMsg('');
+      try {
+        const checkRes = await fetch(`${API_URL}/api/auth/check-account?phone=${cleanPhone}`);
+        const checkData = await checkRes.json();
+        if (checkData.success && !checkData.exists) {
+          setErrorMsg(`No account found with +91 ${cleanPhone}. Please switch to "Create Account" tab above to sign up.`);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Account check failed, proceeding with OTP fallback:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     await requestPhoneOtp(cleanPhone);
   }
 
@@ -154,9 +179,24 @@ export default function ChuruOneAuthPage() {
       setFullName(gName);
       setEmail(gEmail);
 
+      // In Sign In mode: verify account exists
+      if (!isSignUp) {
+        try {
+          const checkRes = await fetch(`${API_URL}/api/auth/check-account?email=${encodeURIComponent(gEmail)}`);
+          const checkData = await checkRes.json();
+          if (checkData.success && !checkData.exists) {
+            setErrorMsg(`No account found with Google email (${gEmail}). Please switch to "Create Account" tab above to sign up.`);
+            setLoading(false);
+            return;
+          }
+        } catch (cErr) {
+          console.warn("Account check error, continuing:", cErr);
+        }
+      }
+
       // SITUATION 1: Normal Google login on ChuruOne portal (general directory / non-food store)
-      // NEVER prompt for phone number! 100% 1-click Google Sign-In!
-      if (!isShawarma && !storePolicyRequireOtp) {
+      // If store does not require phone OTP: 100% 1-click Google Sign-In!
+      if (!storeRequiresPhone) {
         setSuccessMsg("Signed in successfully with Google! Redirecting...");
         await finalizeServerSession({
           googleId: user.uid,
@@ -165,12 +205,14 @@ export default function ChuruOneAuthPage() {
           picture: gPic,
           phone: '',
           phoneVerified: false,
+          gender: gender || '',
+          address: address || '',
           storeId: storeId || 'churuone'
         });
         return;
       }
 
-      // SITUATION 2: Shawarma Nights / Food store with mandatory OTP policy
+      // SITUATION 2: Shawarma Nights / Skyline / Stores with mandatory OTP policy
       try {
         const queryParam = storeId ? `?storeId=${storeId}` : '';
         const checkRes = await fetch(`${API_URL}/api/auth/google${queryParam}`, {
@@ -194,7 +236,7 @@ export default function ChuruOneAuthPage() {
           const userPhone = sUser.phone || sUser.phoneNumber;
           const cleanPhone = (userPhone || '').replace(/\D/g, '').slice(-10);
 
-          // For Shawarma Nights, phone must be genuinely OTP-verified!
+          // For stores requiring phone, if phone is already genuinely OTP-verified:
           if (cleanPhone.length === 10 && sUser.phoneVerified === true) {
             const verifiedPayload = {
               ...sUser,
@@ -220,7 +262,7 @@ export default function ChuruOneAuthPage() {
         console.warn("Backend pre-check skipped, moving to phone OTP verification:", err);
       }
 
-      // If phone is not yet verified for food delivery, proceed to SMS OTP flow
+      // If phone is not yet verified for this store, proceed to Step 2 (Profile & Phone OTP)
       setStep(2);
     } catch (err) {
       console.error("ChuruOne Google Sign-In Error:", err);
@@ -236,41 +278,40 @@ export default function ChuruOneAuthPage() {
     }
   }
 
-  async function handleProfileSubmit(e) {
-    e.preventDefault();
+  async function handleProfileSubmit(e, isSkip = false) {
+    if (e && e.preventDefault) e.preventDefault();
     const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    if (cleanPhone.length !== 10) {
-      setErrorMsg("Please enter a valid 10-digit mobile number.");
-      return;
-    }
-    if (!fullName.trim()) {
-      setErrorMsg("Please enter your full name.");
-      return;
-    }
 
-    if (!storePolicyRequireOtp) {
-      // General ChuruOne Account or Salon: does not require SMS OTP
-      setLoading(true);
-      setErrorMsg('');
-      try {
-        await finalizeServerSession({
-          googleId: googleUser?.uid || `churu_${Date.now()}`,
-          email: email || googleUser?.email || '',
-          name: fullName.trim(),
-          picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim())}`,
-          phone: cleanPhone,
-          phoneVerified: false,
-          storeId: storeId || 'churuone'
-        });
-      } catch (err) {
-        setErrorMsg(err.message || "Failed to save profile.");
-        setLoading(false);
+    // If store requires verified phone (Shawarma / Skyline):
+    if (storeRequiresPhone) {
+      if (cleanPhone.length !== 10) {
+        setErrorMsg(`A verified 10-digit mobile number is mandatory to order on ${storeDisplayName || 'this store'}.`);
+        return;
       }
+      // Proceed to send SMS OTP for phone verification
+      await requestPhoneOtp(cleanPhone);
       return;
     }
 
-    // Food delivery (Shawarma Nights): requires SMS OTP verification via Dukandar App Gateway
-    await requestPhoneOtp(cleanPhone);
+    // If store does not require phone (general ChuruOne / Nash Studio):
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      await finalizeServerSession({
+        googleId: googleUser?.uid || `churu_${Date.now()}`,
+        email: email || googleUser?.email || '',
+        name: isSkip ? (googleUser?.displayName || 'Customer') : (fullName.trim() || googleUser?.displayName || 'Customer'),
+        picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fullName.trim() || 'C')}`,
+        phone: cleanPhone || '',
+        phoneVerified: false,
+        gender: isSkip ? '' : gender,
+        address: isSkip ? '' : address,
+        storeId: storeId || 'churuone'
+      });
+    } catch (err) {
+      setErrorMsg(err.message || "Failed to save profile.");
+      setLoading(false);
+    }
   }
 
   async function requestPhoneOtp(targetPhone) {
@@ -389,6 +430,8 @@ export default function ChuruOneAuthPage() {
         picture: googleUser?.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}`,
         phone: cleanPhone,
         phoneVerified: true,
+        gender: gender || '',
+        address: address || '',
         storeId: activeStore
       });
     } catch (err) {
@@ -420,9 +463,11 @@ export default function ChuruOneAuthPage() {
       displayName: payload.name,
       name: payload.name,
       email: payload.email,
+      gender: payload.gender || data.user?.gender || gender || '',
+      address: payload.address || data.user?.address || address || '',
       photoURL: payload.picture,
       picture: payload.picture,
-      authProvider: 'google',
+      authProvider: payload.googleId?.startsWith('churu_phone_') ? 'phone' : 'google',
       phoneVerified: Boolean(payload.phoneVerified)
     };
 
@@ -489,7 +534,7 @@ export default function ChuruOneAuthPage() {
       <div className="max-w-md w-full mx-auto my-8 border border-zinc-200 bg-white p-8 sm:p-10 shadow-sm">
         
         {/* Brand Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-block text-[9px] font-semibold tracking-[0.25em] uppercase text-zinc-400 mb-2">
             {isStoreContext ? 'CHURUONE SINGLE SIGN-ON' : 'CHURUONE UNIFIED ID'}
           </div>
@@ -505,6 +550,28 @@ export default function ChuruOneAuthPage() {
               ? `Unified authentication verified securely for ${storeDisplayName}.`
               : 'One verified account across all ChuruOne stores and services.'}
           </p>
+        </div>
+
+        {/* Segmented Auth Mode Switcher (Sign In vs Create Account) */}
+        <div className="flex border border-zinc-200 p-1 mb-6 bg-zinc-50">
+          <button
+            type="button"
+            onClick={() => { setAuthMode('login'); setErrorMsg(''); setSuccessMsg(''); }}
+            className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              !isSignUp ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200' : 'text-zinc-500 hover:text-zinc-950'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => { setAuthMode('signup'); setErrorMsg(''); setSuccessMsg(''); }}
+            className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+              isSignUp ? 'bg-white text-zinc-950 shadow-sm border border-zinc-200' : 'text-zinc-500 hover:text-zinc-950'
+            }`}
+          >
+            Create Account
+          </button>
         </div>
 
         {/* Error / Success Notifications */}
@@ -525,10 +592,10 @@ export default function ChuruOneAuthPage() {
         {/* STEP 1: DUAL-OPTION AUTHENTICATION (GOOGLE OR MOBILE OTP) */}
         {step === 1 && (
           <div className="space-y-6">
-            {isShawarma && (
+            {storeRequiresPhone && (
               <div className="p-3.5 border border-zinc-200 bg-zinc-50 text-zinc-700 text-xs leading-relaxed">
-                <span className="font-semibold text-zinc-950 block mb-0.5">Mobile Verification Required</span>
-                Shawarma Nights food delivery requires a verified 10-digit mobile number for dispatch.
+                <span className="font-semibold text-zinc-950 block mb-0.5">Mobile OTP Verification Required</span>
+                {storeDisplayName || 'This store'} requires a verified 10-digit mobile number for order delivery & status updates.
               </div>
             )}
 
@@ -546,7 +613,7 @@ export default function ChuruOneAuthPage() {
                   <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                 </svg>
-                <span>{loading ? "Authenticating..." : "Continue with Google"}</span>
+                <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
               </button>
             </div>
 
@@ -557,7 +624,7 @@ export default function ChuruOneAuthPage() {
               </div>
               <div className="relative flex justify-center text-xs">
                 <span className="bg-white px-3 text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
-                  OR SIGN IN WITH MOBILE OTP
+                  OR {isSignUp ? "SIGN UP WITH MOBILE OTP" : "SIGN IN WITH MOBILE OTP"}
                 </span>
               </div>
             </div>
@@ -596,7 +663,7 @@ export default function ChuruOneAuthPage() {
                 disabled={loading || isSendingOtp}
                 className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
-                <span>{isSendingOtp ? "Dispatching SMS OTP..." : "Get OTP via SMS →"}</span>
+                <span>{isSendingOtp ? "Dispatching SMS OTP..." : isSignUp ? "Verify Mobile & Create Account →" : "Get OTP via SMS →"}</span>
               </button>
             </form>
 
@@ -609,7 +676,7 @@ export default function ChuruOneAuthPage() {
 
         {/* STEP 2: PROFILE & MOBILE NUMBER */}
         {step === 2 && (
-          <form onSubmit={handleProfileSubmit} className="space-y-5">
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
             {/* User Verified Card */}
             <div className="p-3.5 border border-zinc-200 bg-zinc-50 flex items-center gap-3">
               <img
@@ -626,18 +693,22 @@ export default function ChuruOneAuthPage() {
                 </div>
               </div>
               <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5">
-                Verified
+                Google Verified
               </span>
+            </div>
+
+            <div className="text-left">
+              <span className="text-[11px] font-semibold text-zinc-900 block">Personal Profile (Optional)</span>
+              <span className="text-[10px] text-zinc-500">Only mobile verification is required for orders. Name, gender, and address are optional.</span>
             </div>
 
             {/* Name Input */}
             <div>
-              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1.5">
-                Full Name
+              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                Full Name (Optional)
               </label>
               <input
                 type="text"
-                required
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Your full name"
@@ -645,11 +716,43 @@ export default function ChuruOneAuthPage() {
               />
             </div>
 
+            {/* Gender Select */}
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                Gender (Optional)
+              </label>
+              <select
+                value={gender}
+                onChange={e => setGender(e.target.value)}
+                className="w-full border border-zinc-200 focus:border-zinc-950 px-3 py-2.5 text-xs text-zinc-900 outline-none bg-white transition-colors"
+              >
+                <option value="">Select Gender (Optional)</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+
+            {/* Address Textarea */}
+            <div>
+              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                Delivery / Street Address (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+                placeholder="House / Flat No., Landmark, Ward, Area, Churu"
+                className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2 text-xs text-zinc-900 placeholder-zinc-400 outline-none resize-none transition-colors"
+              />
+            </div>
+
             {/* Phone Input */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="text-[10px] uppercase tracking-widest font-semibold text-zinc-500">
-                  Mobile Number {storePolicyRequireOtp ? '(OTP Required)' : '(Mandatory)'}
+                  Mobile Number {storeRequiresPhone ? '(OTP Required for Orders)' : '(Optional)'}
                 </label>
                 <span className="text-[10px] text-zinc-400">10 Digits</span>
               </div>
@@ -659,7 +762,7 @@ export default function ChuruOneAuthPage() {
                 </span>
                 <input
                   type="tel"
-                  required
+                  required={storeRequiresPhone}
                   maxLength={10}
                   value={phone}
                   onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
@@ -669,19 +772,33 @@ export default function ChuruOneAuthPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading || isSendingOtp}
-              className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 mt-2"
-            >
-              <span>
-                {loading || isSendingOtp 
-                  ? "Saving Profile..." 
-                  : storePolicyRequireOtp 
-                  ? "Send SMS Verification Code →" 
-                  : "Complete & Continue →"}
-              </span>
-            </button>
+            {/* Submit & Skip buttons */}
+            <div className="space-y-2 pt-2">
+              <button
+                type="submit"
+                disabled={loading || isSendingOtp}
+                className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <span>
+                  {loading || isSendingOtp 
+                    ? "Processing..." 
+                    : storeRequiresPhone 
+                    ? "Verify Mobile Number via SMS →" 
+                    : "Save Profile & Continue →"}
+                </span>
+              </button>
+
+              {!storeRequiresPhone && (
+                <button
+                  type="button"
+                  onClick={() => handleProfileSubmit(null, true)}
+                  disabled={loading}
+                  className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 py-2.5 px-4 text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer"
+                >
+                  Skip & Continue →
+                </button>
+              )}
+            </div>
           </form>
         )}
 

@@ -12,6 +12,7 @@ router.post('/register', service.register);
 router.post('/update-profile', service.updateProfile);
 router.post('/delete-account', service.deleteAccount);
 router.get('/me', service.getMe);
+router.get('/check-account', service.checkAccount);
 router.post('/google', service.googleLogin);
 router.post('/direct', service.directLogin);
 
