@@ -115,9 +115,9 @@ export default function ChuruOneHomePage() {
 
     let base = `/?storeId=${storeId}`;
     if (storeId === 'shawarma') {
-      base = isLocal ? '/?storeId=shawarma' : 'https://shawarma.churuone.in';
+      base = '/shawarma';
     } else if (storeId === 'nash-studio') {
-      base = isLocal ? '/?storeId=nash-studio' : 'https://nash.churuone.in';
+      base = '/nash';
     }
 
     if (currentUser) {

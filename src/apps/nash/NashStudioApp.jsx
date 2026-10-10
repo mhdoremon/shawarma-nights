@@ -16,7 +16,8 @@ import {
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
 import { getChuruOneSession, setChuruOneSession } from "../../utils/ssoHelper";
-import { Star, Moon, Sun, ArrowUpRight, ArrowLeft, X, Check, Lock, AlertTriangle, Zap, Sparkles } from 'lucide-react';
+import { smartFetch } from "./smartServerClient";
+import { Star, Moon, Sun, ArrowUpRight, ArrowLeft, X, Check, Lock, AlertTriangle, Zap, Sparkles, ShieldCheck } from 'lucide-react';
 
 
 // =========================================================================
@@ -301,6 +302,9 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackTimeouts, setFeedbackTimeouts] = useState([]);
   const [txnId, setTxnId] = useState("");
+  const [isOpeningCashfree, setIsOpeningCashfree] = useState(false);
+  const [cashfreePaid, setCashfreePaid] = useState(false);
+  const [cashfreeTxnId, setCashfreeTxnId] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("nash_theme") || "light";
@@ -415,11 +419,70 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   function scrollToBook() { bookRef.current?.scrollIntoView({ behavior: "smooth" }); }
   function goStep(n) { setStep(n); setTimeout(() => bookRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
 
-  async function confirmBooking() {
-    if (!user) {
-      alert("Kripya pehle Google account se Sign In karein.");
+  async function handlePayWithCashfree() {
+    if (!name.trim()) {
+      alert("Kripya pehle apna naam darj karein.");
       return;
     }
+    const contactPhone = (phone || user?.phoneNumber || user?.phone || "").trim();
+    const cleanDigits = contactPhone.replace(/\D/g, '').slice(-10);
+    if (!contactPhone || cleanDigits.length < 10) {
+      alert("Kripya apna 10-digit mobile number zaroor darj karein.");
+      return;
+    }
+    if (!slot) {
+      alert("Slot select karein.");
+      return;
+    }
+
+    setIsOpeningCashfree(true);
+    try {
+      const orderId = "NS_APPT_" + Date.now();
+      const res = await smartFetch('/api/create-order', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: 50,
+          customerPhone: cleanDigits || '7023963189',
+          customerName: name.trim() || 'Client',
+          orderId: orderId,
+        })
+      });
+
+      if (!res.paymentSessionId) {
+        throw new Error(res.error || res.details?.message || "Cashfree payment session generate nahi ho saka.");
+      }
+
+      const { load } = await import('@cashfreepayments/cashfree-js');
+      const cashfree = await load({ mode: 'sandbox' });
+      if (!cashfree) throw new Error("Cashfree SDK load nahi ho saka.");
+
+      await cashfree.checkout({
+        paymentSessionId: res.paymentSessionId,
+        redirectTarget: '_modal',
+      });
+
+      // Verify payment after modal closes
+      try {
+        const verifyRes = await smartFetch(`/api/payment/cashfree/verify/${res.orderId}`);
+        if (verifyRes.isPaid || verifyRes.status === 'PAID') {
+          const verifiedId = verifyRes.paymentId || res.orderId;
+          setCashfreePaid(true);
+          setCashfreeTxnId(verifiedId);
+          setTxnId(verifiedId);
+          await confirmBooking(verifiedId);
+        }
+      } catch (ve) {
+        console.warn("Cashfree verification warning:", ve);
+      }
+    } catch (err) {
+      console.error("Cashfree booking error:", err);
+      alert("Cashfree Gateway Error: " + (err.message || "Failed to open gateway"));
+    } finally {
+      setIsOpeningCashfree(false);
+    }
+  }
+
+  async function confirmBooking(verifiedTxnId = null) {
     if (!name.trim()) { 
       alert("Kripya apna naam zaroor darj karein."); 
       return; 
@@ -431,10 +494,12 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       return; 
     }
     const contactEmail = (user?.email || "").trim();
-    const currentUserObj = user;
+    const currentUserObj = user || { uid: 'guest_' + cleanDigits, name: name.trim(), email: contactEmail, phone: contactPhone };
     if (!slot) { alert("Slot select karein."); return; }
-    if (!txnId.trim() || txnId.trim().length < 4) {
-      alert("⚠️ Mandatory Token Payment: Nash Studio me slot book karne ke liye ₹50 Token advance pay karna aniwarya hai. Kripya ₹50 UPI pay karein aur 12-digit UTR number enter karein. Bina Token payment ke booking sambhav nahi hai.");
+    
+    const activeTxn = verifiedTxnId || cashfreeTxnId || txnId.trim();
+    if (!activeTxn || activeTxn.length < 4) {
+      await handlePayWithCashfree();
       return;
     }
     setSaving(true);
@@ -442,9 +507,9 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     const bookingToken = "NS-" + Math.floor(100000 + Math.random() * 900000);
     const activeBookingFee = 50;
     const activeRemainingDue = Math.max(0, totalPrice - 50);
-    const activePaymentStatus = "Token Paid (₹50 Advance)";
-    const activePaymentMethod = "UPI Token Advance (₹50)";
-    const activeTxnId = txnId.trim();
+    const activePaymentStatus = "Token Paid (₹50 Advance - Cashfree)";
+    const activePaymentMethod = "Cashfree UPI (₹50 Token)";
+    const activeTxnId = activeTxn;
 
     const payload = {
       token: bookingToken,
@@ -911,14 +976,15 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     </div>
 
                     {/* =========================================================================
-                        MANDATORY ₹50 ONLINE TOKEN ADVANCE PAYMENT (ALWAYS VISIBLE AT STEP 3)
+                        CASHFREE INSTANT UPI ADVANCE TOKEN PAYMENT (₹50 FIXED)
                         ========================================================================= */}
                     <div style={{
-                      background: "rgba(212, 175, 55, 0.05)",
-                      border: "1px solid rgba(212, 175, 55, 0.35)",
-                      borderRadius: 8,
+                      background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(20, 20, 20, 0.95) 100%)",
+                      border: cashfreePaid ? "1px solid #10b981" : "1px solid rgba(212, 175, 55, 0.4)",
+                      borderRadius: 12,
                       padding: "24px 20px",
-                      marginBottom: 20
+                      marginBottom: 20,
+                      boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
                     }}>
                       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
                         <span style={{...S.fieldLabel, margin: 0, color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
@@ -926,7 +992,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         </span>
                         <span style={{
                           fontSize: 9, 
-                          background: "#d4af37", 
+                          background: cashfreePaid ? "#10b981" : "#d4af37", 
                           color: "#000000", 
                           fontWeight: 900, 
                           padding: "4px 8px", 
@@ -934,125 +1000,75 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           letterSpacing: "0.15em", 
                           textTransform: "uppercase"
                         }}>
-                          REQUIRED
+                          {cashfreePaid ? "VERIFIED ✓" : "REQUIRED"}
                         </span>
                       </div>
 
-                      <div style={{
-                        background: "rgba(220, 38, 38, 0.12)",
-                        border: "1px solid rgba(220, 38, 38, 0.35)",
-                        borderRadius: 6,
-                        padding: "10px 12px",
-                        marginBottom: 16,
-                        fontSize: 11,
-                        color: "#fca5a5",
-                        lineHeight: 1.5
-                      }}>
-                        ⚠️ <b>Nash Studio Booking Rule:</b> Bina ₹50 Token payment ke slot book nahi ho sakta. Booking cancel karne par token money refund nahi hoga kyunki sirf seat confirm karne ke liye nominal token charge kiya jata hai. Kripya ₹50 pay karein aur 12-digit UTR enter karein.
-                      </div>
-
-                      <p style={{fontSize: 12, color: "var(--muted)", marginBottom: 18, lineHeight: 1.5}}>
-                        GPay, PhonePe, Paytm ya kisi bhi UPI app se ₹50 scan karein. Haircut ke baad bache hue <b>₹{remainingDue}</b> aap salon me cash ya UPI se de sakte hain.
-                      </p>
-
-                      <div style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 14,
-                        padding: "20px",
-                        background: "var(--surface)",
-                        border: "1px solid var(--line)",
-                        borderRadius: 6,
-                        marginBottom: 20
-                      }}>
-                        {/* DYNAMIC UPI QR CODE (FIXED TO ₹50) */}
-                        <div style={{background: "#ffffff", padding: 12, borderRadius: 6, display: "inline-block", border: "1px solid var(--line)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)"}}>
-                          <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`)}`}
-                            alt="Token Payment QR Code (Rs 50)"
-                            style={{width: 160, height: 160, display: "block"}}
-                          />
+                      {cashfreePaid ? (
+                        <div style={{
+                          background: "rgba(16, 185, 129, 0.15)",
+                          border: "1px solid rgba(16, 185, 129, 0.4)",
+                          borderRadius: 8,
+                          padding: "16px",
+                          textAlign: "center"
+                        }}>
+                          <div style={{fontSize: 14, fontWeight: 800, color: "#10b981", marginBottom: 4}}>
+                            ✓ ₹50 Token Advance Paid & Verified
+                          </div>
+                          <div style={{fontSize: 11, color: "var(--paper)", fontFamily: "var(--mono)"}}>
+                            Cashfree Txn Ref: #{cashfreeTxnId}
+                          </div>
+                          <div style={{fontSize: 11, color: "var(--muted)", marginTop: 6}}>
+                            Remaining balance ₹{remainingDue} appointment ke baad salon me pay karein.
+                          </div>
                         </div>
-                        <span style={{fontSize: 11, fontWeight: 700, color: "#d4af37", letterSpacing: "0.08em"}}>
-                          SCAN TO PAY ₹50 TOKEN
-                        </span>
-
-                        <div style={{textAlign: "center", width: "100%"}}>
-                          <div style={{fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4}}>Nash Studio UPI ID</div>
+                      ) : (
+                        <>
                           <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 10,
-                            background: "var(--surface-hover)",
-                            padding: "8px 14px",
-                            border: "1px solid var(--line)",
-                            maxWidth: 280,
-                            margin: "0 auto",
-                            borderRadius: 4
+                            background: "rgba(212, 175, 55, 0.08)",
+                            border: "1px solid rgba(212, 175, 55, 0.25)",
+                            borderRadius: 8,
+                            padding: "12px 14px",
+                            marginBottom: 16,
+                            fontSize: 11,
+                            color: "#e5e5e5",
+                            lineHeight: 1.5
                           }}>
-                            <span style={{fontFamily: "var(--mono)", fontSize: 12, fontWeight: 700, color: "var(--paper)"}}>{settings.upiId || "nashstudio@upi"}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(settings.upiId || "nashstudio@upi");
-                                setCopiedUpi(true);
-                                setTimeout(() => setCopiedUpi(false), 2000);
-                              }}
-                              style={{background: "transparent", border: "none", color: "#d4af37", fontSize: 11, fontWeight: 700, cursor: "pointer", textDecoration: "underline"}}
-                            >
-                              {copiedUpi ? "COPIED!" : "COPY"}
-                            </button>
+                            💡 <b>Instant Auto-Verification:</b> GPay, PhonePe, Paytm, BHIM ya kisi bhi UPI app se ₹50 advance pay karein. Cashfree modal screen par hi khulega aur payment karte hi slot instant confirm ho jayega. (Test Mode me <b>"Simulate Success"</b> click karein).
                           </div>
 
-                          {/* MOBILE UPI APP LAUNCHER */}
-                          <div style={{marginTop: 12}}>
-                            <a
-                              href={`upi://pay?pa=${settings.upiId||"nashstudio@upi"}&pn=${encodeURIComponent(settings.studioName||"Nash Studio")}&am=50&cu=INR`}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                fontSize: 11,
-                                color: "#d4af37",
-                                fontWeight: 700,
-                                textDecoration: "underline",
-                                letterSpacing: "0.04em"
-                              }}
-                            >
-                              ⚡ Tap to Open UPI App (₹50 Pay)
-                            </a>
-                          </div>
-                        </div>
-                      </div>
+                          <button
+                            type="button"
+                            disabled={isOpeningCashfree}
+                            onClick={handlePayWithCashfree}
+                            style={{
+                              width: "100%",
+                              padding: "16px",
+                              borderRadius: 8,
+                              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                              color: "#ffffff",
+                              fontWeight: 900,
+                              fontSize: 13,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                              border: "none",
+                              cursor: isOpeningCashfree ? "wait" : "pointer",
+                              boxShadow: "0 4px 16px rgba(16, 185, 129, 0.35)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 8,
+                              transition: "all 0.2s ease"
+                            }}
+                          >
+                            {isOpeningCashfree ? "Opening Cashfree Gateway..." : "⚡ Pay ₹50 via Cashfree (UPI / QR / Test)"}
+                          </button>
 
-                      {/* TRANSACTION ID INPUT (MANDATORY) */}
-                      <div>
-                        <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6}}>
-                          <label style={{...S.fieldLabel, margin: 0}}>
-                            12-Digit Transaction ID / UTR Number *
-                          </label>
-                          <span style={{fontSize: 10, color: txnId.trim().length >= 4 ? "#34A853" : "#f87171", fontWeight: 700}}>
-                            {txnId.trim().length >= 4 ? "✓ Entered" : "Required"}
-                          </span>
-                        </div>
-                        <input
-                          style={{
-                            ...S.input, 
-                            marginBottom: 6,
-                            borderColor: !txnId.trim() ? "rgba(220, 38, 38, 0.5)" : "rgba(52, 168, 83, 0.6)"
-                          }}
-                          type="text"
-                          required
-                          placeholder="e.g. 482910394820 (From Payment Receipt)"
-                          value={txnId}
-                          onChange={e => setTxnId(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                        />
-                        <span style={{fontSize: 11, color: "var(--muted)", display: "block"}}>
-                          UPI receipt (GPay / PhonePe / Paytm) se 12-digit UTR/Ref number yahan enter karein.
-                        </span>
-                      </div>
+                          <div style={{fontSize: 10, color: "var(--muted)", textAlign: "center", marginTop: 10}}>
+                            RBI-Authorized Cashfree Payment Gateway • 100% Secure SSL 256-bit Encrypted
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* =========================================================================
@@ -1152,21 +1168,21 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     <button 
                       style={{
                         ...S.btnConfirm,
-                        background: (!user || !txnId.trim() || txnId.trim().length < 4) ? "rgba(212, 175, 55, 0.4)" : S.btnConfirm.background,
-                        color: (!user || !txnId.trim() || txnId.trim().length < 4) ? "rgba(0,0,0,0.6)" : S.btnConfirm.color,
-                        cursor: saving ? "wait" : (!user ? "pointer" : (!txnId.trim() ? "not-allowed" : "pointer"))
+                        background: cashfreePaid ? "#10b981" : S.btnConfirm.background,
+                        color: cashfreePaid ? "#ffffff" : S.btnConfirm.color,
+                        cursor: (saving || isOpeningCashfree) ? "wait" : "pointer"
                       }} 
                       className="nash-btn-confirm" 
-                      onClick={!user ? handleGoogleAuth : confirmBooking} 
-                      disabled={saving || (Boolean(user) && (!txnId.trim() || txnId.trim().length < 4))}
+                      onClick={cashfreePaid ? () => confirmBooking(cashfreeTxnId) : handlePayWithCashfree} 
+                      disabled={saving || isOpeningCashfree}
                     >
                       {saving 
                         ? "CONFIRMING APPOINTMENT..." 
-                        : !user
-                        ? "1. SIGN IN WITH GOOGLE TO CONFIRM (₹50 TOKEN)"
-                        : !txnId.trim() || txnId.trim().length < 4
-                        ? "ENTER ₹50 UPI UTR / TXN ID TO CONFIRM"
-                        : "CONFIRM APPOINTMENT (₹50 TOKEN PAID) →"}
+                        : isOpeningCashfree
+                        ? "OPENING GATEWAY..."
+                        : cashfreePaid
+                        ? "CONFIRM APPOINTMENT (₹50 TOKEN VERIFIED) ✓"
+                        : "PAY ₹50 VIA CASHFREE & CONFIRM APPOINTMENT"}
                     </button>
                   </div>
                 )}

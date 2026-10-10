@@ -32,7 +32,7 @@ import { getImageUrl, handleImageError } from '../utils/imageHelper';
 // Cash on Delivery (COD) as the active payment method.
 // (UPI code is preserved intact below for future live PG activation)
 // =========================================================================
-const ENABLE_UPI = false;
+const ENABLE_UPI = true;
 
 export default function CartDrawer({ onOpenTracker }) {
   const { currentUser, isAuthenticated, openAuthModal, updateUserProfile } = useAuth();
@@ -743,55 +743,56 @@ export default function CartDrawer({ onOpenTracker }) {
                   })()}
                 </div>
 
-                {/* Payment Option Selector - Cash on Delivery (Active) vs UPI (Preserved) */}
+                {/* Payment Option Selector - Cashfree UPI vs Cash on Delivery (COD) */}
                 <div className="p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200/80 space-y-2">
                   <div className="flex justify-between items-center text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
                     <span>Payment Mode</span>
                     <span className="text-emerald-600 font-extrabold flex items-center gap-1">
                       <ShieldCheck className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>{ENABLE_UPI ? 'Direct UPI Only • 100% Safe' : 'Cash on Delivery (COD) Active'}</span>
+                      <span>{paymentMethod === 'upi' ? 'Cashfree UPI (Instant Verified)' : 'Cash on Delivery (COD)'}</span>
                     </span>
                   </div>
 
-                  {ENABLE_UPI ? (
-                    <div className="p-3.5 rounded-xl border-2 border-[#DC2626] bg-red-50/40 text-left relative flex items-center justify-between shadow-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#DC2626] text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <QrCode className="w-5 h-5 stroke-[2.2]" />
-                        </div>
-                        <div>
-                          <div className="font-black text-xs text-zinc-900 leading-tight flex items-center gap-2">
-                            Direct UPI / Instant QR
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                              Auto-Verify
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
-                            Google Pay, PhonePe, Paytm, BHIM, Cred (Any UPI App)
-                          </div>
-                        </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('upi')}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        paymentMethod === 'upi'
+                          ? 'border-[#DC2626] bg-red-50/50 shadow-xs ring-1 ring-red-500/20'
+                          : 'border-zinc-200 bg-white hover:border-zinc-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <QrCode className={`w-4 h-4 ${paymentMethod === 'upi' ? 'text-[#DC2626]' : 'text-zinc-400'}`} />
+                        <span className="font-black text-xs text-zinc-900">UPI / QR</span>
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 ml-auto">
+                          Auto-Pay
+                        </span>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="p-3.5 rounded-xl border-2 border-emerald-600 bg-emerald-50/40 text-left relative flex items-center justify-between shadow-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                          <Banknote className="w-5 h-5 stroke-[2.2]" />
-                        </div>
-                        <div>
-                          <div className="font-black text-xs text-zinc-900 leading-tight flex items-center gap-2">
-                            Cash on Delivery (COD)
-                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                              Pay at Doorstep
-                            </span>
-                          </div>
-                          <div className="text-[10px] text-zinc-500 mt-0.5 leading-snug">
-                            Ghar par order deliver hone ke waqt delivery rider ko cash dein
-                          </div>
-                        </div>
+                      <div className="text-[10px] text-zinc-500 leading-tight">
+                        Cashfree Gateway (GPay, PhonePe, Paytm, QR)
                       </div>
-                    </div>
-                  )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        paymentMethod === 'cod'
+                          ? 'border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-500/20'
+                          : 'border-zinc-200 bg-white hover:border-zinc-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Banknote className={`w-4 h-4 ${paymentMethod === 'cod' ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                        <span className="font-black text-xs text-zinc-900">Cash (COD)</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-500 leading-tight">
+                        Pay cash to rider at doorstep
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </>
             )}
@@ -879,12 +880,12 @@ export default function CartDrawer({ onOpenTracker }) {
                 <div className="flex items-center gap-1.5">
                   <span>
                     {isInitiatingPayment
-                      ? (ENABLE_UPI ? 'Generating UPI...' : 'Placing Order...')
+                      ? (paymentMethod === 'upi' ? 'Opening Cashfree Gateway...' : 'Placing Order...')
                       : !isAuthenticated
-                      ? (ENABLE_UPI ? 'Login & Pay with UPI' : 'Login & Place COD Order')
+                      ? (paymentMethod === 'upi' ? 'Login & Pay with UPI' : 'Login & Place COD Order')
                       : !isPhoneOtpVerified
                       ? 'Verify Phone to Order'
-                      : (ENABLE_UPI ? 'Pay via UPI / QR' : 'Place Order (Cash on Delivery)')}
+                      : (paymentMethod === 'upi' ? 'Pay via UPI / QR (Cashfree)' : 'Place Order (Cash on Delivery)')}
                   </span>
                   <ArrowRight className="w-4 h-4 stroke-[2.5]" />
                 </div>
