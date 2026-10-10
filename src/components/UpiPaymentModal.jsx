@@ -57,11 +57,59 @@ export default function UpiPaymentModal({
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [confirmedPayload, setConfirmedPayload] = useState(null);
   const [activeAppClicked, setActiveAppClicked] = useState(null);
+  const [isOpeningCashfree, setIsOpeningCashfree] = useState(false);
 
   const hasConfirmedRef = useRef(false);
   const pollingIntervalRef = useRef(null);
   const wsRef = useRef(null);
   const broadcastChannelRef = useRef(null);
+
+  const handlePayWithCashfree = async () => {
+    setIsOpeningCashfree(true);
+    try {
+      const baseUrl = API_URL || '';
+      const res = await fetch(`${baseUrl}/api/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: grandTotal || 120,
+          customerPhone: (effectiveData.customerPhone || '').replace(/\D/g, '').slice(-10) || '7023963189',
+          customerName: effectiveData.customerName || 'Customer',
+          orderId: orderId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.paymentSessionId) {
+        throw new Error(data.error || data.details?.message || 'Cashfree payment session nahi mila');
+      }
+
+      const { load } = await import('@cashfreepayments/cashfree-js');
+      const cashfree = await load({ mode: 'sandbox' });
+      if (!cashfree) throw new Error('Cashfree JS SDK load nahi ho saka');
+
+      await cashfree.checkout({
+        paymentSessionId: data.paymentSessionId,
+        redirectTarget: '_modal',
+      });
+
+      // Verify payment status after modal interaction
+      try {
+        const verifyRes = await fetch(`${baseUrl}/api/payment/cashfree/verify/${data.orderId}`);
+        const verifyData = await verifyRes.json();
+        if (verifyData.isPaid || verifyData.status === 'PAID') {
+          triggerSuccessSequence(verifyData.order || verifyData || { orderId: data.orderId, amount: grandTotal });
+        }
+      } catch (e) {
+        console.log('Verification check notice:', e.message);
+      }
+    } catch (err) {
+      console.error('Cashfree launch error:', err);
+      alert('Cashfree Gateway error: ' + (err.message || 'Check console'));
+    } finally {
+      setIsOpeningCashfree(false);
+    }
+  };
 
   // Trigger Celebration Sequence
   const triggerSuccessSequence = useCallback(
@@ -383,6 +431,40 @@ export default function UpiPaymentModal({
                     {effectiveData.customerName && (
                       <span className="ml-2 text-zinc-400">({effectiveData.customerName})</span>
                     )}
+                  </p>
+                </div>
+
+                {/* CASHFREE GATEWAY INSTANT CHECKOUT (SANDBOX / LIVE TEST) */}
+                <div className="bg-gradient-to-r from-emerald-950/70 via-zinc-900 to-emerald-950/70 border border-emerald-500/50 rounded-2xl p-4 space-y-2.5 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider font-mono">
+                        Cashfree PG (Sandbox Mode)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-bold">
+                      Instant Verification
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isOpeningCashfree}
+                    onClick={handlePayWithCashfree}
+                    className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-950 transition-all active:scale-98 cursor-pointer disabled:opacity-75"
+                  >
+                    {isOpeningCashfree ? (
+                      <span>Opening Cashfree Gateway...</span>
+                    ) : (
+                      <>
+                        <span>Pay ₹{grandTotal.toFixed(0)} via Cashfree (UPI / QR / Test)</span>
+                        <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                      </>
+                    )}
+                  </button>
+                  <p className="text-[10px] text-zinc-400 text-center leading-normal">
+                    💡 Test karne ke liye button dabayein, popup me <strong>"Simulate Success"</strong> click karte hi order auto-paid ho jayega.
                   </p>
                 </div>
 

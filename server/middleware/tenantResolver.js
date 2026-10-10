@@ -20,8 +20,8 @@ export function tenantResolver(req, res, next) {
     return next();
   }
 
-  // Skip for health check
-  if (req.path === '/' || req.path === '/healthz' || req.path === '/api/health') {
+  // Skip for health check and webhooks
+  if (req.path === '/' || req.path === '/healthz' || req.path === '/api/health' || req.path.startsWith('/api/cashfree-webhook')) {
     return next();
   }
 

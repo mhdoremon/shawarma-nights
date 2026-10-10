@@ -13,7 +13,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.7",
     "canvas-confetti": "^1.9.4",
+    "cashfree-pg": "^6.0.6",
     "concurrently": "^9.1.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",

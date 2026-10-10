@@ -3,6 +3,17 @@ import * as service from './payments.service.js';
 
 const router = Router();
 
+// ─── Cashfree PG Endpoints ─────────────────────────────────────
+router.post('/create-order', service.createCashfreeOrder);
+router.post('/payment/cashfree/create-order', service.createCashfreeOrder);
+
+router.post('/cashfree-webhook', service.handleCashfreeWebhook);
+router.post('/payment/cashfree-webhook', service.handleCashfreeWebhook);
+
+router.get('/payment/cashfree/verify/:orderId', service.verifyCashfreeOrder);
+router.post('/payment/cashfree/verify', service.verifyCashfreeOrder);
+
+// ─── Existing Manual UPI Endpoints ─────────────────────────────
 router.get('/payment/config', service.getPaymentConfig);
 router.post('/payment/initiate', service.initiatePayment);
 router.post('/payment/verify-sms', service.verifySms);
