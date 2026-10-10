@@ -129,14 +129,11 @@ export const verifyOtp = (req, res) => {
         
         if (customer) {
             // Existing customer
-            customer.authProvider = customer.authProvider || 'phone';
-            customer.phoneVerified = true;
             if (req.body.name) customer.name = req.body.name;
             if (req.body.gender) customer.gender = req.body.gender;
             if (req.body.address) customer.address = req.body.address;
+            if (req.body.email && !customer.email) customer.email = req.body.email.toLowerCase().trim();
             customer.lastLoginAt = now();
-            DataLayer.writeSync(targetStoreId, 'customers', customers);
-            return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         } else {
             // New customer
             isNewUser = true;
@@ -147,16 +144,70 @@ export const verifyOtp = (req, res) => {
                 name: req.body.name || '',
                 gender: req.body.gender || '',
                 address: req.body.address || '',
-                email: req.body.email || '',
-                authProvider: 'phone',
-                phoneVerified: true,
+                email: req.body.email ? req.body.email.toLowerCase().trim() : '',
                 createdAt: now(),
                 lastLoginAt: now()
             };
             customers.push(customer);
-            DataLayer.writeSync(targetStoreId, 'customers', customers);
-            return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
         }
+
+        const hasGoogle = Boolean(
+            (customer.googleId && !customer.googleId.startsWith('churu_phone_')) ||
+            (customer.email && customer.email.includes('@'))
+        );
+        customer.phoneVerified = true;
+        customer.isPhoneAuth = true;
+        customer.isGoogleAuth = hasGoogle;
+        customer.authMethod = hasGoogle ? 'both' : 'phone';
+        customer.authMethods = hasGoogle ? ['google', 'phone'] : ['phone'];
+        customer.authProvider = customer.authMethod;
+
+        DataLayer.writeSync(targetStoreId, 'customers', customers);
+
+        // Universal Cross-Store ChuruOne Customer Registry Sync: "Aik ID me login mtlb sab website me login"
+        try {
+            const platformData = DataLayer.readPlatform('customers') || { customers: [] };
+            const list = Array.isArray(platformData.customers) ? platformData.customers : [];
+            const existingGlobal = list.find(c => 
+                (c.phone && normalizePhone(c.phone) === normalizedPhone) ||
+                (customer.email && c.email && c.email.toLowerCase() === customer.email.toLowerCase())
+            );
+            if (existingGlobal) {
+                existingGlobal.lastStoreId = targetStoreId;
+                existingGlobal.lastLoginAt = now();
+                existingGlobal.phone = normalizedPhone;
+                existingGlobal.phoneVerified = true;
+                existingGlobal.isPhoneAuth = true;
+                existingGlobal.isGoogleAuth = hasGoogle;
+                existingGlobal.authMethod = hasGoogle ? 'both' : 'phone';
+                existingGlobal.authMethods = hasGoogle ? ['google', 'phone'] : ['phone'];
+                if (customer.name) existingGlobal.name = customer.name;
+            } else {
+                list.push({
+                    churuOneId: `churu_cust_${Date.now()}`,
+                    googleId: customer.googleId || '',
+                    email: customer.email || '',
+                    name: customer.name || `Customer +91${normalizedPhone.slice(-4)}`,
+                    phone: normalizedPhone,
+                    phoneVerified: true,
+                    isPhoneAuth: true,
+                    isGoogleAuth: hasGoogle,
+                    authMethod: hasGoogle ? 'both' : 'phone',
+                    authMethods: hasGoogle ? ['google', 'phone'] : ['phone'],
+                    authProvider: hasGoogle ? 'both' : 'phone',
+                    picture: customer.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(customer.name || 'C')}`,
+                    registeredStoreId: targetStoreId,
+                    createdAt: now(),
+                    lastLoginAt: now()
+                });
+            }
+            platformData.customers = list;
+            DataLayer.writePlatform('customers', platformData);
+        } catch (globalErr) {
+            console.warn('⚠️ [AUTH] Universal customer sync note in verifyOtp:', globalErr.message);
+        }
+
+        return res.json({ success: true, token: customer.token, isNewUser, user: customer, storeId: targetStoreId });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -348,10 +399,12 @@ export const googleLogin = async (req, res) => {
         const normalizedEmail = (userEmail || '').toLowerCase().trim();
         const customers = DataLayer.read(targetStoreId, 'customers') || [];
 
-        // Check if customer already exists by Google ID or Email
+        const normalizedPhone = phone ? normalizePhone(phone) : '';
+        // Check if customer already exists by Google ID, Email, or Phone
         let customer = customers.find(c => 
             (userGoogleId && c.googleId && c.googleId === userGoogleId) ||
-            (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+            (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail) ||
+            (normalizedPhone && c.phone && normalizePhone(c.phone) === normalizedPhone)
         );
 
         let isNewUser = false;
@@ -369,16 +422,13 @@ export const googleLogin = async (req, res) => {
             if (userGoogleId && !customer.googleId) {
                 customer.googleId = userGoogleId;
             }
-            if (phone) {
-                customer.phone = normalizePhone(phone);
+            if (normalizedPhone) {
+                customer.phone = normalizedPhone;
             }
             if (req.body.gender) customer.gender = req.body.gender;
             if (req.body.address) customer.address = req.body.address;
-            customer.authProvider = 'google';
             if (req.body.phoneVerified !== undefined) {
                 customer.phoneVerified = Boolean(req.body.phoneVerified);
-            } else if (customer.phoneVerified === undefined) {
-                customer.phoneVerified = false;
             }
             customer.lastLoginAt = now();
         } else {
@@ -387,14 +437,13 @@ export const googleLogin = async (req, res) => {
                 id: generateId('cust'),
                 name: userName || (normalizedEmail ? normalizedEmail.split('@')[0] : 'Google User'),
                 email: normalizedEmail,
-                phone: phone ? normalizePhone(phone) : '',
+                phone: normalizedPhone,
                 phoneVerified: req.body.phoneVerified !== undefined ? Boolean(req.body.phoneVerified) : false,
                 gender: req.body.gender || '',
                 address: req.body.address || '',
                 picture: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 photoURL: userPicture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'U')}`,
                 googleId: userGoogleId || '',
-                authProvider: 'google',
                 token: customerToken,
                 createdAt: now(),
                 lastLoginAt: now()
@@ -402,15 +451,25 @@ export const googleLogin = async (req, res) => {
             customers.push(customer);
         }
 
+        const cleanDigits = (customer.phone || '').replace(/\D/g, '').slice(-10);
+        const isPhoneVerified = Boolean(customer.phoneVerified && cleanDigits.length === 10);
+        customer.phoneVerified = isPhoneVerified;
+        customer.isPhoneAuth = isPhoneVerified;
+        customer.isGoogleAuth = true;
+        customer.authMethod = isPhoneVerified ? 'both' : 'google';
+        customer.authMethods = isPhoneVerified ? ['google', 'phone'] : ['google'];
+        customer.authProvider = customer.authMethod;
+
         DataLayer.writeSync(targetStoreId, 'customers', customers);
 
-        // Universal Cross-Store ChuruOne Customer Registry Sync
+        // Universal Cross-Store ChuruOne Customer Registry Sync: "Aik ID me login mtlb sab website me login"
         try {
             const platformData = DataLayer.readPlatform('customers') || { customers: [] };
             const list = Array.isArray(platformData.customers) ? platformData.customers : [];
             const existingGlobal = list.find(c => 
                 (userGoogleId && c.googleId === userGoogleId) || 
-                (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail)
+                (normalizedEmail && c.email && c.email.toLowerCase() === normalizedEmail) ||
+                (normalizedPhone && c.phone && normalizePhone(c.phone) === normalizedPhone)
             );
             if (existingGlobal) {
                 existingGlobal.lastStoreId = targetStoreId;
@@ -418,8 +477,12 @@ export const googleLogin = async (req, res) => {
                 if (userName) existingGlobal.name = userName;
                 if (userPicture) existingGlobal.picture = userPicture;
                 if (customer.phone) existingGlobal.phone = customer.phone;
-                existingGlobal.phoneVerified = Boolean(customer.phoneVerified);
-                existingGlobal.authProvider = 'google';
+                existingGlobal.phoneVerified = isPhoneVerified;
+                existingGlobal.isPhoneAuth = isPhoneVerified;
+                existingGlobal.isGoogleAuth = true;
+                existingGlobal.authMethod = isPhoneVerified ? 'both' : 'google';
+                existingGlobal.authMethods = isPhoneVerified ? ['google', 'phone'] : ['google'];
+                existingGlobal.authProvider = existingGlobal.authMethod;
             } else {
                 list.push({
                     churuOneId: `churu_cust_${Date.now()}`,
@@ -427,8 +490,12 @@ export const googleLogin = async (req, res) => {
                     email: normalizedEmail,
                     name: userName || customer.name,
                     phone: customer.phone || '',
-                    phoneVerified: Boolean(customer.phoneVerified),
-                    authProvider: 'google',
+                    phoneVerified: isPhoneVerified,
+                    isPhoneAuth: isPhoneVerified,
+                    isGoogleAuth: true,
+                    authMethod: isPhoneVerified ? 'both' : 'google',
+                    authMethods: isPhoneVerified ? ['google', 'phone'] : ['google'],
+                    authProvider: isPhoneVerified ? 'both' : 'google',
                     picture: userPicture || customer.picture,
                     registeredStoreId: targetStoreId,
                     createdAt: now(),

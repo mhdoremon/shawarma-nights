@@ -44,7 +44,13 @@ import {
   initiateSkylineUpiPayment,
   updateSkylineOrderStatus
 } from './skylineApiClient';
-import { getChuruOneSession, setChuruOneSession } from '../../utils/ssoHelper';
+import { 
+  getChuruOneSession, 
+  setChuruOneSession, 
+  clearChuruOneSession, 
+  sanitizeChuruOneUser, 
+  subscribeToChuruOneAuth 
+} from '../../utils/ssoHelper';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 
 const CHURU_POPULAR_LANDMARKS = [
@@ -192,7 +198,7 @@ export default function SkylineApp() {
     // 2. Listen for cross-window / popup SSO completion
     const handleSsoMessage = (e) => {
       if (e.data && e.data.type === 'CHURUONE_AUTH_SUCCESS') {
-        const u = e.data.user;
+        const u = e.data.user ? sanitizeChuruOneUser(e.data.user) : null;
         if (u) {
           setCurrentUser(u);
           setChuruOneSession(u, e.data.token || '');
@@ -207,10 +213,28 @@ export default function SkylineApp() {
     };
     window.addEventListener('message', handleSsoMessage);
 
-    // 3. Fetch live catalog data from Smart Backend
+    // 3. Cross-app reactive Single Sign-On listener: "Aik ID me login mtlb sab website me login"
+    const unsubscribeSso = subscribeToChuruOneAuth((user) => {
+      if (user) {
+        const sUser = sanitizeChuruOneUser(user);
+        setCurrentUser(sUser);
+        if (sUser.name) setCheckoutName(sUser.name);
+        if (sUser.phone || sUser.phoneNumber) {
+          setCheckoutPhone(String(sUser.phone || sUser.phoneNumber).replace(/\D/g, '').slice(-10));
+        }
+        if (sUser.address) setStreetArea(sUser.address);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    // 4. Fetch live catalog data from Smart Backend
     loadStoreData();
 
-    return () => window.removeEventListener('message', handleSsoMessage);
+    return () => {
+      window.removeEventListener('message', handleSsoMessage);
+      unsubscribeSso();
+    };
   }, []);
 
   // Save Cart to LocalStorage
@@ -449,7 +473,7 @@ export default function SkylineApp() {
   // ─── CHURUONE UNIFIED SSO AUTHENTICATION ─────────────────────
   const isUserPhoneVerified = Boolean(
     currentUser &&
-    currentUser.phoneVerified === true &&
+    currentUser.isPhoneAuth === true &&
     String(currentUser.phone || currentUser.phoneNumber || '').replace(/\D/g, '').slice(-10).length === 10
   );
 
@@ -465,13 +489,7 @@ export default function SkylineApp() {
 
   const handleSignOut = () => {
     setCurrentUser(null);
-    try {
-      localStorage.removeItem('churuone_user');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('sn_session');
-      localStorage.removeItem('sn_current_user');
-      localStorage.removeItem('nash_user');
-    } catch {}
+    clearChuruOneSession();
     setIsAccountModalOpen(false);
     showToast('Signed out from ChuruOne session');
   };

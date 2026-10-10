@@ -30,7 +30,9 @@ import {
   getChuruOneSession, 
   setChuruOneSession, 
   clearChuruOneSession, 
-  attachSsoParams 
+  attachSsoParams,
+  sanitizeChuruOneUser,
+  subscribeToChuruOneAuth
 } from '../../utils/ssoHelper';
 
 export default function ChuruOneHomePage() {
@@ -101,7 +103,7 @@ export default function ChuruOneHomePage() {
     document.title = "ChuruOne | Churu ki har dukaan ab online";
   }, []);
 
-  // Sync SSO session on mount
+  // Sync SSO session on mount & subscribe to cross-app auth changes
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -109,7 +111,7 @@ export default function ChuruOneHomePage() {
       const urlToken = params.get('churuone_token');
 
       if (urlUserRaw) {
-        const parsed = JSON.parse(decodeURIComponent(urlUserRaw));
+        const parsed = sanitizeChuruOneUser(JSON.parse(decodeURIComponent(urlUserRaw)));
         setCurrentUser(parsed);
         setAuthToken(urlToken || '');
         setChuruOneSession(parsed, urlToken || '');
@@ -126,14 +128,31 @@ export default function ChuruOneHomePage() {
 
       const session = getChuruOneSession();
       if (session && session.user) {
-        setCurrentUser(session.user);
+        const sUser = sanitizeChuruOneUser(session.user);
+        setCurrentUser(sUser);
         setAuthToken(session.token || '');
-        if (session.user.name) setBookingCustomerName(session.user.name);
-        if (session.user.phone) setBookingCustomerPhone(session.user.phone);
+        if (sUser.name) setBookingCustomerName(sUser.name);
+        if (sUser.phone) setBookingCustomerPhone(sUser.phone);
       }
     } catch (err) {
       console.warn('SSO sync warning in ChuruOneHomePage:', err);
     }
+
+    // Cross-app reactive Single Sign-On listener: "Aik ID me login mtlb sab website me login"
+    const unsubscribeSso = subscribeToChuruOneAuth((user, token) => {
+      if (user) {
+        const sUser = sanitizeChuruOneUser(user);
+        setCurrentUser(sUser);
+        setAuthToken(token || '');
+        if (sUser.name) setBookingCustomerName(sUser.name);
+        if (sUser.phone) setBookingCustomerPhone(sUser.phone);
+      } else {
+        setCurrentUser(null);
+        setAuthToken('');
+      }
+    });
+
+    return () => unsubscribeSso();
   }, []);
 
   // Close account dropdown on outside click
@@ -518,15 +537,42 @@ export default function ChuruOneHomePage() {
                       exit={{ opacity: 0, y: 6, scale: 0.98 }}
                       className="absolute right-0 mt-2 w-60 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 p-3.5 text-left"
                     >
-                      <div className="pb-3 border-b border-stone-100">
+                      <div className="pb-3 border-b border-stone-100 space-y-1">
                         <div className="font-bold text-sm text-stone-900 truncate">
                           {currentUser.name || currentUser.displayName || 'Customer'}
                         </div>
                         {currentUser.phone && (
-                          <div className="text-xs text-stone-500 font-mono mt-0.5">
-                            {currentUser.phone}
+                          <div className="text-xs text-stone-500 font-mono">
+                            +91 {currentUser.phone}
                           </div>
                         )}
+                        {currentUser.email && (
+                          <div className="text-[11px] text-stone-400 truncate">
+                            {currentUser.email}
+                          </div>
+                        )}
+                        <div className="pt-1">
+                          {currentUser.authMethod === 'both' ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                              Google + Mobile OTP Verified ✓
+                            </span>
+                          ) : currentUser.isPhoneAuth ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                              Mobile OTP Verified ✓
+                            </span>
+                          ) : currentUser.isGoogleAuth ? (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-blue-600" />
+                              Google Account Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-full">
+                              ChuruOne Unified ID
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="pt-2">
                         <button

@@ -3,7 +3,13 @@ import { API_URL, getStoreId } from '../config/api';
 import { sounds } from '../utils/soundEffects';
 import { auth, isFirebaseConfigured } from '../firebase/config';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { getChuruOneSession, setChuruOneSession, clearChuruOneSession } from '../utils/ssoHelper';
+import { 
+  getChuruOneSession, 
+  setChuruOneSession, 
+  clearChuruOneSession, 
+  sanitizeChuruOneUser, 
+  subscribeToChuruOneAuth 
+} from '../utils/ssoHelper';
 import { 
   initMsg91Widget, 
   sendOtpViaMsg91, 
@@ -15,35 +21,22 @@ import {
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Helper to ensure user session is clean, structured, and phoneVerified is strictly validated
-  const sanitizeUser = (u) => {
-    if (!u || typeof u !== 'object') return null;
-    const rawPhone = u.phone || u.phoneNumber || '';
-    const cleanPhone = String(rawPhone).replace(/\D/g, '').slice(-10);
-    const phoneVerified = Boolean(u.phoneVerified === true && cleanPhone.length === 10);
-    return {
-      ...u,
-      phone: cleanPhone,
-      phoneNumber: cleanPhone,
-      phoneVerified,
-      name: u.name || u.displayName || 'Foodie'
-    };
-  };
+  // Helper to ensure user session is clean, structured, and includes authMethod
+  const sanitizeUser = sanitizeChuruOneUser;
 
   // Helper to load persistent user session from localStorage or cross-domain SSO cookie
   const loadSavedUser = () => {
     try {
-      const saved = localStorage.getItem('sn_session') || localStorage.getItem('sn_current_user') || localStorage.getItem('churuone_user');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && (parsed.phone || parsed.phoneNumber || parsed.id || parsed.name || parsed.email)) {
-          return sanitizeUser(parsed);
-        }
-      }
-      // Check cross-domain SSO session cookie (.churuone.in)
       const session = getChuruOneSession();
       if (session && session.user) {
-        return sanitizeUser(session.user);
+        return sanitizeChuruOneUser(session.user);
+      }
+      const saved = localStorage.getItem('churuone_user') || localStorage.getItem('sn_session') || localStorage.getItem('sn_current_user') || localStorage.getItem('skyline_user') || localStorage.getItem('nash_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return sanitizeChuruOneUser(parsed);
+        }
       }
     } catch (e) {
       console.warn('Failed to parse saved session:', e);
@@ -53,6 +46,14 @@ export function AuthProvider({ children }) {
 
   // Current session user - restored immediately on page open/refresh
   const [currentUser, setCurrentUser] = useState(loadSavedUser);
+
+  // Cross-app reactive Single Sign-On listener: "Aik ID me login mtlb sab website me login"
+  useEffect(() => {
+    const unsubscribe = subscribeToChuruOneAuth((user) => {
+      setCurrentUser(user ? sanitizeChuruOneUser(user) : null);
+    });
+    return unsubscribe;
+  }, []);
 
   // Modal & Flow Control States
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -566,10 +567,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     try {
-      localStorage.removeItem('sn_session');
-      localStorage.removeItem('sn_current_user');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('temp_reg_token');
+      clearChuruOneSession();
     } catch (e) {
       console.warn('Error clearing session:', e);
     }
@@ -581,13 +579,9 @@ export function AuthProvider({ children }) {
   const updateUserProfile = async (updates) => {
     try {
       if (!currentUser) return { success: false };
-      const updatedUser = { ...currentUser, ...updates };
+      const updatedUser = sanitizeChuruOneUser({ ...currentUser, ...updates });
       setCurrentUser(updatedUser);
-      try {
-        const userJson = JSON.stringify(updatedUser);
-        localStorage.setItem('sn_session', userJson);
-        localStorage.setItem('sn_current_user', userJson);
-      } catch (e) {}
+      setChuruOneSession(updatedUser);
 
       // Sync with backend
       const activeStoreId = getStoreId();
@@ -628,35 +622,34 @@ export function AuthProvider({ children }) {
           body: JSON.stringify({ phone: currentUser.phone, storeId: activeStoreId })
         });
       }
-      try {
-        localStorage.removeItem('sn_session');
-        localStorage.removeItem('sn_current_user');
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('temp_reg_token');
-      } catch (e) {}
+      clearChuruOneSession();
       setCurrentUser(null);
       sounds.playTick();
       setIsProfileOpen(false);
       return { success: true };
     } catch (err) {
       console.error('Delete account error:', err);
-      try {
-        localStorage.removeItem('sn_session');
-        localStorage.removeItem('sn_current_user');
-        localStorage.removeItem('auth_token');
-      } catch (e) {}
+      clearChuruOneSession();
       setCurrentUser(null);
       return { success: true };
     }
   };
 
   const isAuthenticated = Boolean(currentUser);
+  const isUserPhoneVerified = Boolean(currentUser?.isPhoneAuth);
+  const isUserGoogleVerified = Boolean(currentUser?.isGoogleAuth);
+  const userAuthMethod = currentUser?.authMethod || 'none';
+  const userAuthMethods = currentUser?.authMethods || [];
 
   return (
     <AuthContext.Provider
       value={{
         currentUser,
         isAuthenticated,
+        isUserPhoneVerified,
+        isUserGoogleVerified,
+        userAuthMethod,
+        userAuthMethods,
         isAuthModalOpen,
         isProfileOpen,
         setIsProfileOpen,

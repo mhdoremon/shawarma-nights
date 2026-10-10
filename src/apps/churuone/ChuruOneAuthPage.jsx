@@ -3,7 +3,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { ArrowLeft, CheckCircle2, ShieldCheck, User, AlertCircle, Phone, ArrowRight, Store } from 'lucide-react';
 import { firebaseConfig } from '../nash/firebase';
-import { setChuruOneSession } from '../../utils/ssoHelper';
+import { setChuruOneSession, getChuruOneSession, sanitizeChuruOneUser } from '../../utils/ssoHelper';
 import { API_URL } from '../../config/api';
 import { 
   initMsg91Widget, 
@@ -113,13 +113,11 @@ export default function ChuruOneAuthPage() {
   // Auto-finish if already logged in via ChuruOne session
   useEffect(() => {
     try {
-      const existingRaw = localStorage.getItem('churuone_user') || localStorage.getItem('nash_user');
-      if (existingRaw) {
-        const parsed = JSON.parse(existingRaw);
-        if (parsed && searchParams.get('auto') === '1') {
-          if (!storePolicyRequireOtp || (parsed.phoneVerified && parsed.phone)) {
-            completeAndRedirect(parsed, localStorage.getItem('auth_token') || '');
-          }
+      const session = getChuruOneSession();
+      if (session && session.user && searchParams.get('auto') === '1') {
+        const parsed = sanitizeChuruOneUser(session.user);
+        if (!storePolicyRequireOtp || (parsed.isPhoneAuth && parsed.phone)) {
+          completeAndRedirect(parsed, session.token || localStorage.getItem('auth_token') || '');
         }
       }
     } catch (e) {}
@@ -238,15 +236,15 @@ export default function ChuruOneAuthPage() {
 
           // For stores requiring phone, if phone is already genuinely OTP-verified:
           if (cleanPhone.length === 10 && sUser.phoneVerified === true) {
-            const verifiedPayload = {
+            const verifiedPayload = sanitizeChuruOneUser({
               ...sUser,
               displayName: sUser.name || gName,
               photoURL: sUser.picture || gPic,
-              authProvider: 'google',
+              authProvider: 'both',
               phone: cleanPhone,
               phoneNumber: cleanPhone,
               phoneVerified: true
-            };
+            });
             setSuccessMsg("Account verified! Redirecting...");
             setTimeout(() => {
               completeAndRedirect(verifiedPayload, checkData.token || '');
@@ -457,7 +455,13 @@ export default function ChuruOneAuthPage() {
       throw new Error(data.message || 'Server authentication failed');
     }
 
-    const verifiedUser = {
+    const hasGoogleAuth = Boolean(
+      (payload.googleId && !payload.googleId.startsWith('churu_phone_')) ||
+      (payload.email && !payload.googleId?.startsWith('churu_phone_'))
+    );
+    const hasPhoneAuth = Boolean(payload.phoneVerified);
+
+    const verifiedUser = sanitizeChuruOneUser({
       ...data.user,
       phoneNumber: payload.phone,
       phone: payload.phone,
@@ -468,9 +472,10 @@ export default function ChuruOneAuthPage() {
       address: payload.address || data.user?.address || address || '',
       photoURL: payload.picture,
       picture: payload.picture,
-      authProvider: payload.googleId?.startsWith('churu_phone_') ? 'phone' : 'google',
-      phoneVerified: Boolean(payload.phoneVerified)
-    };
+      googleId: payload.googleId,
+      authProvider: (hasGoogleAuth && hasPhoneAuth) ? 'both' : (hasPhoneAuth ? 'phone' : 'google'),
+      phoneVerified: hasPhoneAuth
+    });
 
     // Persist session across origins & subdomains
     setChuruOneSession(verifiedUser, data.token || '');
@@ -483,13 +488,14 @@ export default function ChuruOneAuthPage() {
   }
 
   function completeAndRedirect(userObj, token) {
+    const sanitized = sanitizeChuruOneUser(userObj);
     // If inside popup window, message opener
     if (window.opener && !window.opener.closed) {
       try {
         window.opener.postMessage({
           type: 'CHURUONE_AUTH_SUCCESS',
           token,
-          user: userObj
+          user: sanitized
         }, '*');
         window.close();
         return;
@@ -499,7 +505,7 @@ export default function ChuruOneAuthPage() {
     if (rawReturnUrl) {
       const url = new URL(rawReturnUrl, window.location.origin);
       if (token) url.searchParams.set('churuone_token', token);
-      url.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(userObj)));
+      url.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(sanitized)));
       window.location.href = url.toString();
       return;
     }
@@ -507,14 +513,14 @@ export default function ChuruOneAuthPage() {
     if (isStoreContext) {
       const redirectUrl = new URL(destination, window.location.origin);
       if (token) redirectUrl.searchParams.set('churuone_token', token);
-      redirectUrl.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(userObj)));
+      redirectUrl.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(sanitized)));
       window.location.href = redirectUrl.toString();
       return;
     }
 
     // Direct ChuruOne Registration -> redirect to ChuruOne home with token & user
     const tokenParam = token ? `&churuone_token=${encodeURIComponent(token)}` : '';
-    window.location.href = `/?account_created=1&churuone_user=${encodeURIComponent(JSON.stringify(userObj))}${tokenParam}`;
+    window.location.href = `/?account_created=1&churuone_user=${encodeURIComponent(JSON.stringify(sanitized))}${tokenParam}`;
   }
 
   return (

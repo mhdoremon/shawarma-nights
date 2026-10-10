@@ -15,8 +15,14 @@ import {
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
-import { getChuruOneSession, setChuruOneSession } from "../../utils/ssoHelper";
 import { smartFetch } from "./smartServerClient";
+import { 
+  getChuruOneSession, 
+  setChuruOneSession, 
+  clearChuruOneSession, 
+  sanitizeChuruOneUser, 
+  subscribeToChuruOneAuth 
+} from "../../utils/ssoHelper";
 import { 
   Star, 
   Moon, 
@@ -257,7 +263,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     setTimeout(() => setToast(null), 3500);
   }
 
-  // 1. Listen for ChuruOne SSO Return Parameters & postMessage
+  // 1. Listen for ChuruOne SSO Return Parameters, postMessage, & Cross-app Storage
   useEffect(() => {
     // Check URL parameters from ChuruOne SSO redirect
     const params = new URLSearchParams(window.location.search);
@@ -265,12 +271,11 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     const ssoToken = params.get('churuone_token');
     if (ssoUserRaw) {
       try {
-        const parsed = JSON.parse(decodeURIComponent(ssoUserRaw));
+        const parsed = sanitizeChuruOneUser(JSON.parse(decodeURIComponent(ssoUserRaw)));
         setUser(parsed);
         if (parsed.displayName || parsed.name) setName(parsed.displayName || parsed.name);
         if (parsed.phoneNumber || parsed.phone) setPhone(parsed.phoneNumber || parsed.phone);
-        localStorage.setItem("nash_user", JSON.stringify(parsed));
-        if (ssoToken) localStorage.setItem("auth_token", ssoToken);
+        setChuruOneSession(parsed, ssoToken || '');
 
         // Clean URL parameters without page reload
         params.delete('churuone_user');
@@ -287,7 +292,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       try {
         const session = getChuruOneSession();
         if (session && session.user) {
-          const sUser = session.user;
+          const sUser = sanitizeChuruOneUser(session.user);
           setUser(sUser);
           if (sUser.displayName || sUser.name) setName(sUser.displayName || sUser.name);
           if (sUser.phoneNumber || sUser.phone) setPhone(sUser.phoneNumber || sUser.phone);
@@ -301,18 +306,33 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       if (event.data && event.data.type === 'CHURUONE_AUTH_SUCCESS') {
         const { user: ssoUser, token } = event.data;
         if (ssoUser) {
-          setUser(ssoUser);
-          if (ssoUser.displayName || ssoUser.name) setName(ssoUser.displayName || ssoUser.name);
-          if (ssoUser.phoneNumber || ssoUser.phone) setPhone(ssoUser.phoneNumber || ssoUser.phone);
-          localStorage.setItem("nash_user", JSON.stringify(ssoUser));
-          if (token) localStorage.setItem("auth_token", token);
-          showToast(`Welcome ${ssoUser.displayName || ssoUser.name}! ChuruOne ID connected.`, "success");
+          const sanitized = sanitizeChuruOneUser(ssoUser);
+          setUser(sanitized);
+          if (sanitized.displayName || sanitized.name) setName(sanitized.displayName || sanitized.name);
+          if (sanitized.phoneNumber || sanitized.phone) setPhone(sanitized.phoneNumber || sanitized.phone);
+          setChuruOneSession(sanitized, token || '');
+          showToast(`Welcome ${sanitized.displayName || sanitized.name}! ChuruOne ID connected.`, "success");
         }
       }
     };
-
     window.addEventListener('message', handleAuthMessage);
-    return () => window.removeEventListener('message', handleAuthMessage);
+
+    // Cross-app reactive Single Sign-On listener: "Aik ID me login mtlb sab website me login"
+    const unsubscribeSso = subscribeToChuruOneAuth((ssoUser) => {
+      if (ssoUser) {
+        const sanitized = sanitizeChuruOneUser(ssoUser);
+        setUser(sanitized);
+        if (sanitized.displayName || sanitized.name) setName(sanitized.displayName || sanitized.name);
+        if (sanitized.phoneNumber || sanitized.phone) setPhone(sanitized.phoneNumber || sanitized.phone);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      window.removeEventListener('message', handleAuthMessage);
+      unsubscribeSso();
+    };
   }, []);
 
   const [realtimeBookings, setRealtimeBookings] = useState([]);
@@ -412,6 +432,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
   async function handleLogout() {
     await logoutUser();
+    clearChuruOneSession();
     setUser(null);
     setShowUserMenu(false);
   }
