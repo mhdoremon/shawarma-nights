@@ -303,13 +303,13 @@ export default function SkylineApp() {
   };
 
   // ─── CHURUONE UNIFIED SSO AUTHENTICATION ─────────────────────
-  const navigateToChuruOneAuth = () => {
+  const navigateToChuruOneAuth = (mode = 'login') => {
     try {
       const currentUrl = window.location.pathname + window.location.search;
       const returnUrl = encodeURIComponent(currentUrl || '/skyline');
-      window.location.href = `/auth?storeId=skyline&returnUrl=${returnUrl}`;
+      window.location.href = `/auth?storeId=skyline&mode=${mode}&returnUrl=${returnUrl}`;
     } catch (e) {
-      window.location.href = '/auth?storeId=skyline';
+      window.location.href = `/auth?storeId=skyline&mode=${mode}`;
     }
   };
 
@@ -551,14 +551,24 @@ export default function SkylineApp() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={navigateToChuruOneAuth}
-                className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 cursor-pointer"
-                title="Sign In with ChuruOne SSO"
-              >
-                <User className="w-4 h-4 stroke-[1.5]" />
-                <span className="hidden sm:inline">Sign In with ChuruOne</span>
-              </button>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => navigateToChuruOneAuth('login')}
+                  className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1 cursor-pointer py-1.5 px-2"
+                  title="Sign In with ChuruOne SSO"
+                >
+                  <User className="w-3.5 h-3.5 stroke-[1.5]" />
+                  <span>Sign In</span>
+                </button>
+                <button
+                  onClick={() => navigateToChuruOneAuth('signup')}
+                  className="bg-stone-950 hover:bg-stone-800 text-white transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1 cursor-pointer py-1.5 px-2.5 sm:px-3 shadow-xs"
+                  title="Create New ChuruOne Account"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>Sign Up</span>
+                </button>
+              </div>
             )}
 
             {/* Shopping Bag Button */}
@@ -1445,29 +1455,38 @@ export default function SkylineApp() {
                     </div>
                     <button
                       type="button"
-                      onClick={navigateToChuruOneAuth}
+                      onClick={() => navigateToChuruOneAuth('login')}
                       className="text-[10px] text-emerald-800 hover:text-emerald-950 underline font-medium cursor-pointer"
                     >
                       Switch User
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-[#FAF9F6] border border-stone-200 p-3 flex items-center justify-between text-xs">
+                  <div className="bg-[#FAF9F6] border border-stone-200 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                     <div>
                       <span className="font-semibold text-stone-900 block text-[11px] uppercase tracking-wider">
-                        Have a ChuruOne Account?
+                        ChuruOne Unified Identity
                       </span>
                       <span className="text-[10px] text-stone-500 font-light">
-                        Sign in via ChuruOne to auto-fill address and sync orders.
+                        Sign in or sign up via ChuruOne to auto-fill address and sync orders.
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={navigateToChuruOneAuth}
-                      className="bg-stone-950 hover:bg-stone-800 text-white px-3 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors shrink-0 ml-2 cursor-pointer"
-                    >
-                      Sign In
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => navigateToChuruOneAuth('login')}
+                        className="border border-stone-300 hover:border-stone-950 text-stone-800 px-2.5 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors cursor-pointer"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigateToChuruOneAuth('signup')}
+                        className="bg-stone-950 hover:bg-stone-800 text-white px-2.5 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors cursor-pointer"
+                      >
+                        Sign Up
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1750,7 +1769,7 @@ export default function SkylineApp() {
                       type="button"
                       onClick={() => {
                         setIsAccountModalOpen(false);
-                        navigateToChuruOneAuth();
+                        navigateToChuruOneAuth('login');
                       }}
                       className="w-full bg-stone-950 hover:bg-stone-800 text-white py-2.5 text-xs uppercase tracking-wider font-medium cursor-pointer transition-colors"
                     >
@@ -1769,18 +1788,31 @@ export default function SkylineApp() {
               ) : (
                 <div className="space-y-4 text-center">
                   <p className="text-xs text-stone-600 leading-relaxed font-light">
-                    You are not currently signed in. Sign in using your ChuruOne single sign-on to access saved addresses and synchronized orders.
+                    You are not currently signed in. Create a new account or sign in using ChuruOne single sign-on to access saved addresses and synchronized orders.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAccountModalOpen(false);
-                      navigateToChuruOneAuth();
-                    }}
-                    className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors shadow-md"
-                  >
-                    Sign In with ChuruOne SSO
-                  </button>
+                  <div className="space-y-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAccountModalOpen(false);
+                        navigateToChuruOneAuth('signup');
+                      }}
+                      className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Create Account (Sign Up)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAccountModalOpen(false);
+                        navigateToChuruOneAuth('login');
+                      }}
+                      className="w-full border border-stone-300 hover:border-stone-950 text-stone-800 py-2.5 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors"
+                    >
+                      Sign In to Existing Account
+                    </button>
+                  </div>
                 </div>
               )}
 

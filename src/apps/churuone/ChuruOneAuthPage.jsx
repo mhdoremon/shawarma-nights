@@ -37,6 +37,9 @@ export default function ChuruOneAuthPage() {
   const storeDisplayName = STORE_NAMES[storeId] || (storeId ? 'Partner Store' : '');
   const isShawarma = storeId.includes('shawarma') || storeId === 'shawarma-nights';
 
+  const mode = (searchParams.get('mode') || (window.location.pathname.includes('/signup') ? 'signup' : 'login')).toLowerCase();
+  const isSignUp = mode === 'signup';
+
   // Calculate destination URL
   function getDestinationUrl() {
     if (rawReturnUrl) return rawReturnUrl;
@@ -492,12 +495,14 @@ export default function ChuruOneAuthPage() {
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-light tracking-tight text-zinc-950">
-            {isStoreContext ? `Sign In to ${storeDisplayName}` : 'Create your ChuruOne account'}
+            {isStoreContext 
+              ? (isSignUp ? `Create Account for ${storeDisplayName}` : `Sign In to ${storeDisplayName}`)
+              : (isSignUp ? 'Create your ChuruOne Account' : 'Sign In to ChuruOne')}
           </h1>
 
           <p className="text-xs text-zinc-500 mt-2 leading-relaxed max-w-xs mx-auto">
             {isStoreContext 
-              ? `Authenticating securely for ${storeDisplayName}.`
+              ? `Unified authentication verified securely for ${storeDisplayName}.`
               : 'One verified account across all ChuruOne stores and services.'}
           </p>
         </div>
