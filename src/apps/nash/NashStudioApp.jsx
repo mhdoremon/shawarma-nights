@@ -17,8 +17,30 @@ import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
 import { getChuruOneSession, setChuruOneSession } from "../../utils/ssoHelper";
 import { smartFetch } from "./smartServerClient";
-import { Star, Moon, Sun, ArrowUpRight, ArrowLeft, X, Check, Lock, AlertTriangle, Zap, Sparkles, ShieldCheck } from 'lucide-react';
-
+import { 
+  Star, 
+  Moon, 
+  Sun, 
+  ArrowUpRight, 
+  ArrowLeft, 
+  X, 
+  Check, 
+  Lock, 
+  AlertTriangle, 
+  Zap, 
+  Sparkles, 
+  ShieldCheck,
+  Calendar,
+  Clock,
+  Scissors,
+  User as UserIcon,
+  Phone,
+  MapPin,
+  Printer,
+  Share2,
+  ChevronRight,
+  ExternalLink
+} from 'lucide-react';
 
 // =========================================================================
 // Set to `true`: UPI QR code advance booking token fee payment is 100% mandatory.
@@ -74,11 +96,9 @@ const DEFAULT_HAIRSTYLES = [
   { id: 'hs18', name: 'Gentleman Crew Cut', type: 'standard', img: '/images/hs_crew_cut.jpg', time: 30, price: 800, desc: 'Low-maintenance, smart and sharp everyday crew cut.' },
 ];
 
-
-
 function MinimalUserIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
     </svg>
@@ -87,12 +107,12 @@ function MinimalUserIcon() {
 
 function MinimalScissorsIcon() {
   return (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="6" cy="18" r="3" />
       <circle cx="18" cy="18" r="3" />
       <line x1="8.2" y1="15.8" x2="18" y2="4" />
       <line x1="15.8" y1="15.8" x2="6" y2="4" />
-      <circle cx="12" cy="12" r="0.75" fill="#ffffff" />
+      <circle cx="12" cy="12" r="0.75" fill="currentColor" />
     </svg>
   );
 }
@@ -191,8 +211,6 @@ export default function App() {
 
   return <SiteView hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} />;
 }
-
-/* FloatingParticles removed - clean design */
 
 function Reveal({ children, delay = 0 }) {
   const ref = useRef(null);
@@ -307,7 +325,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const [cashfreeTxnId, setCashfreeTxnId] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("nash_theme") || "light";
+    return localStorage.getItem("nash_theme") || "dark";
   });
   const bookRef = useRef(null);
 
@@ -607,33 +625,135 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     <div style={S.body}>
       <style>{GLOBAL_CSS}</style>
       
-      {/* NAV */}
-      <nav style={S.navBugatti}>
-        <div style={S.navSide} onClick={user ? undefined : handleGoogleAuth} title={user ? user.displayName : "Sign In"}>
-          <MinimalUserIcon />
-        </div>
-        <div style={{...S.navSide, justifyContent:"flex-end"}} onClick={scrollToBook} title="Book Hairstyle / Grooming">
-          <MinimalScissorsIcon />
+      {/* ─── High-Fashion Sticky Navigation Bar ────────────────── */}
+      <nav style={S.navStickyHeader}>
+        <div style={S.wrapNav}>
+          {/* User Sign In / Profile */}
+          <div 
+            style={S.navIconBtn} 
+            onClick={user ? undefined : handleGoogleAuth} 
+            title={user ? (user.displayName || user.name) : "Sign In with ChuruOne ID"}
+          >
+            {user ? (
+              <div style={{display:"flex", alignItems:"center", gap:8}}>
+                <img 
+                  src={user.photoURL || user.picture || "/images/hero_fallback.jpg"} 
+                  alt="" 
+                  style={{width:24, height:24, borderRadius:"50%", border:"1px solid rgba(255,255,255,0.2)"}} 
+                />
+                <span style={{fontSize:11, fontWeight:600, color:"var(--paper)", display:"none", textTransform:"uppercase", letterSpacing:"0.1em"}} className="nash-user-name">
+                  {(user.displayName || user.name || "User").split(" ")[0]}
+                </span>
+              </div>
+            ) : (
+              <div style={{display:"flex", alignItems:"center", gap:6}}>
+                <MinimalUserIcon />
+                <span style={{fontSize:10, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", color:"var(--paper)"}}>ID</span>
+              </div>
+            )}
+          </div>
+
+          {/* Centered Brand Mark */}
+          <div style={S.navBrandText} onClick={() => window.scrollTo({top:0, behavior:"smooth"})}>
+            <span>{settings.studioName || "NASH STUDIO"}</span>
+          </div>
+
+          {/* Right Actions: Theme Toggle & Book Button */}
+          <div style={{display:"flex", alignItems:"center", gap:12}}>
+            <button 
+              onClick={toggleTheme} 
+              style={S.themeToggleBtn}
+              title={theme === "dark" ? "Switch to Day Mode" : "Switch to Night Mode"}
+              aria-label="Toggle Theme"
+            >
+              {theme === "dark" ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
+            </button>
+
+            <button 
+              onClick={scrollToBook} 
+              style={S.navBookBtn}
+              title="Reserve Appointment"
+            >
+              <Scissors size={14} strokeWidth={2} />
+              <span>BOOK</span>
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section style={S.bugattiHero}>
-        <video src={settings.heroVideoUrl || "/video/hero.mp4"} style={S.bugattiImg} autoPlay loop muted playsInline onError={(e) => { e.target.style.display='none'; const img = document.createElement('img'); img.src='/images/hero_fallback.jpg'; Object.assign(img.style, {position:'absolute',inset:'0',width:'100%',height:'100%',objectFit:'cover',opacity:'1'}); e.target.parentNode.insertBefore(img, e.target); }} />
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.25) 100%)',zIndex:5,pointerEvents:'none'}} />
-        <div style={S.bugattiTitle}>{settings.studioName || "Nash Studio"}</div>
+      {/* ─── Video Hero Section (Strictly Preserving Video Player) ─── */}
+      <section style={S.heroContainer}>
+        {/* MANDATORY VIDEO ELEMENT - PRESERVED EXACTLY */}
+        <video 
+          src={settings.heroVideoUrl || "/video/hero.mp4"} 
+          style={S.heroVideo} 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          onError={(e) => { 
+            e.target.style.display='none'; 
+            const img = document.createElement('img'); 
+            img.src='/images/hero_fallback.jpg'; 
+            Object.assign(img.style, {position:'absolute',inset:'0',width:'100%',height:'100%',objectFit:'cover',opacity:'1'}); 
+            e.target.parentNode.insertBefore(img, e.target); 
+          }} 
+        />
+        
+        {/* Cinematic Vignette & Ambient Radial Overlays */}
+        <div style={S.heroOverlay} />
+
+        {/* Hero Content Stack */}
+        <div style={S.heroContent}>
+          <div style={S.heroPill}>
+            <span style={S.heroPing}></span>
+            <span style={S.heroPillText}>VIP GROOMING LOUNGE • CHURU</span>
+          </div>
+
+          <h1 style={S.heroStudioTitle}>
+            {settings.studioName || "Nash Studio"}
+          </h1>
+
+          <p style={S.heroTaglineText}>
+            {settings.heroTagline || "PRECISION GROOMING. ZERO WAIT TIME."}
+          </p>
+
+          <div style={S.heroActionRow}>
+            <button onClick={scrollToBook} style={S.heroPrimaryBtn}>
+              <span>EXPLORE STYLES & BOOK</span>
+              <ArrowUpRight size={15} strokeWidth={2} />
+            </button>
+          </div>
+
+          <div style={S.heroMetaStrip}>
+            <span style={S.heroMetaItem}>
+              <Clock size={12} strokeWidth={1.5} />
+              <span>{settings.monSatHours || "11:00 AM - 11:00 PM"}</span>
+            </span>
+            <span style={S.heroMetaDivider}>•</span>
+            <span style={S.heroMetaItem}>
+              <ShieldCheck size={12} strokeWidth={1.5} />
+              <span>₹50 Token Slot Lock</span>
+            </span>
+            <span style={S.heroMetaDivider}>•</span>
+            <span style={S.heroMetaItem}>
+              <MapPin size={12} strokeWidth={1.5} />
+              <span>Main Market, Churu</span>
+            </span>
+          </div>
+        </div>
       </section>
 
-      {/* SMART MODULAR WIRE: PROMOTIONAL HERO BANNER (TOGGLED OFF BY DEFAULT, CAN BE ACTIVATED FROM DUKANDAR OS) */}
+      {/* SMART MODULAR WIRE: PROMOTIONAL HERO BANNER (TOGGLED FROM DUKANDAR OS) */}
       {settings.showHeroBanner && (
         <section className="nash-promotional-hero-banner" style={{background:"var(--surface)", borderBottom:"1px solid var(--line)", padding:"40px 20px", textAlign:"center"}}>
           <div style={{maxWidth:800, margin:"0 auto"}}>
             <span style={{fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", color:"#d4af37", background:"rgba(212,175,55,0.1)", padding:"4px 12px", borderRadius:20}}>
               {settings.heroTagline || "EXCLUSIVE SALON PROMOTION"}
             </span>
-            <h1 style={{fontFamily:"var(--display)", fontSize:"clamp(24px, 4vw, 36px)", fontWeight:800, color:"var(--paper)", marginTop:12, textTransform:"uppercase"}}>
+            <h2 style={{fontFamily:"var(--display)", fontSize:"clamp(24px, 4vw, 36px)", fontWeight:800, color:"var(--paper)", marginTop:12, textTransform:"uppercase"}}>
               {settings.studioName || "NASH STUDIO"}
-            </h1>
+            </h2>
             <p style={{color:"var(--muted)", fontSize:14, maxWidth:500, margin:"10px auto 20px", lineHeight:1.6}}>
               {settings.aboutText || "Precision haircuts, skin fades, and luxury grooming crafted for gentlemen."}
             </p>
@@ -646,7 +766,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         </section>
       )}
 
-      {/* SMART MODULAR WIRE: SPECIAL OFFER CARDS (TOGGLED OFF BY DEFAULT, CAN BE ACTIVATED FROM DUKANDAR OS) */}
+      {/* SMART MODULAR WIRE: SPECIAL OFFER CARDS (TOGGLED FROM DUKANDAR OS) */}
       {settings.showOfferCards && (
         <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"30px 20px"}}>
           <div style={{maxWidth:1100, margin:"0 auto"}}>
@@ -668,38 +788,50 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         </section>
       )}
 
-      {/* HAIRSTYLE SELECTION & BOOKING SECTION */}
+      {/* ─── HAIRSTYLE SELECTION & BOOKING SECTION ────────────────── */}
       <section id="book" ref={bookRef} style={{...S.section, borderBottom:"1px solid var(--line)"}}>
         <div style={S.wrap}>
+          
           {done ? (
+            /* ─── LUXURY VIP BOARDING PASS CONFIRMATION CARD ────────── */
             <div style={S.bookPanel}>
               <div style={S.bookBody}>
                 <div style={S.tokenPassCard} className="nash-pass-reveal">
+                  
+                  {/* Pass Top Branding */}
                   <div style={S.passHeader}>
                     <div>
                       <div style={S.passBrand}>{settings.studioName || "NASH STUDIO"}</div>
-                      <div style={S.passSub}>CONFIRMED PASS</div>
+                      <div style={S.passSub}>EXCLUSIVE APPOINTMENT TOKEN</div>
                     </div>
-                    <div style={S.passBadge}>ACTIVE</div>
+                    <div style={S.passBadge}>CONFIRMED ✓</div>
                   </div>
 
+                  {/* Perforated Divider */}
+                  <div style={S.ticketPerforation}></div>
+
+                  {/* Main Token Display Box */}
                   <div style={S.tokenBox}>
-                    <span style={S.tokenLabel}>TOKEN PASS</span>
-                    <strong style={S.tokenVal}>{done.token||("NS-"+(done.id?done.id.slice(-6).toUpperCase():"100000"))}</strong>
+                    <span style={S.tokenLabel}>OFFICIAL ENTRY TOKEN</span>
+                    <strong style={S.tokenVal}>
+                      {done.token || ("NS-" + (done.id ? done.id.slice(-6).toUpperCase() : "100000"))}
+                    </strong>
+                    <span style={S.tokenNote}>Show this pass or mention token at the reception desk</span>
                   </div>
 
+                  {/* Detailed Specs Table */}
                   <div style={S.confirmDetail}>
                     {[
                       ["Customer", done.name],
                       ["Mobile", done.phone],
                       ["Date", done.dateLabel],
-                      ["Time", done.timeLabel],
-                      ["Service", done.styleName],
-                      ["Tier", done.tier === "premium" ? "Premium (60 min)" : "Standard (30 min)"],
-                      ["Service Total", `Rs ${done.totalPrice || 0}`],
+                      ["Time Slot", done.timeLabel],
+                      ["Chosen Style", done.styleName],
+                      ["Session Tier", done.tier === "premium" ? "Premium (60 min)" : "Standard (30 min)"],
+                      ["Total Value", `Rs ${done.totalPrice || 0}`],
                       ...(ENABLE_ONLINE_PAYMENT ? [
-                        ["Booking Fee Paid", `Rs ${done.bookingFee || 50} (UTR: ${done.txnId || "Verified"})`],
-                        ["Remaining at Salon", `Rs ${done.remainingDue !== undefined ? done.remainingDue : Math.max(0, (done.totalPrice||0) - (done.bookingFee||50))}`]
+                        ["Advance Paid", `Rs ${done.bookingFee || 50} (Ref: ${done.txnId || "Verified"})`],
+                        ["Remaining Due at Salon", `Rs ${done.remainingDue !== undefined ? done.remainingDue : Math.max(0, (done.totalPrice||0) - (done.bookingFee||50))}`]
                       ] : [
                         ["Payment Method", "Pay in Person at Salon"]
                       ])
@@ -713,60 +845,77 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         }}>
                           <span>{k}</span>
                           <b style={{
-                            color: isPaid ? "#25D366" : "var(--paper)",
+                            color: isPaid ? "#10b981" : isDue ? "#d4af37" : "var(--paper)",
                             fontWeight: isDue || isPaid ? 700 : 500,
-                            fontSize: isDue ? 15 : 13
+                            fontSize: isDue ? 14 : 13
                           }}>{v}</b>
                         </div>
                       );
                     })}
                   </div>
 
+                  {/* Ticket Action Buttons */}
                   <div style={S.passActions}>
                     <a href={getWaLink(done)} target="_blank" rel="noopener noreferrer" style={S.btnWhatsApp}>
-                      SHARE ON WHATSAPP
+                      <Share2 size={16} />
+                      <span>SHARE PASS ON WHATSAPP</span>
                     </a>
-                    <button style={S.btnPrint} onClick={() => printStandaloneTicket(done, settings)}>
-                      PRINT TICKET
-                    </button>
-                    <button style={{...S.btnGhostBtn, marginTop:8}} onClick={resetBooking}>
-                      + NEW BOOKING
-                    </button>
+                    
+                    <div style={{display:"flex", gap:10}}>
+                      <button style={{...S.btnPrint, flex:1}} onClick={() => printStandaloneTicket(done, settings)}>
+                        <Printer size={15} />
+                        <span>PRINT TICKET</span>
+                      </button>
+                      <button style={{...S.btnGhostBtn, flex:1}} onClick={resetBooking}>
+                        <span>+ NEW BOOKING</span>
+                      </button>
+                    </div>
                   </div>
+
                 </div>
               </div>
             </div>
           ) : step === 1 ? (
-            /* STEP 1: OPEN LUXURY HAIRSTYLE SELECTION (NO ENCLOSING BOX) */
+            /* ─── STEP 1: EDITORIAL HAIRSTYLE GALLERY ───────────────── */
             <div className="nash-expand-anim">
-              <div style={{marginBottom:40}}>
-                <h2 style={{fontFamily:"var(--display)",fontSize:"clamp(28px,5vw,42px)",fontWeight:800,letterSpacing:"0.12em",color:"var(--paper)",textTransform:"uppercase",margin:0}}>Styles</h2>
+              
+              {/* Section Header */}
+              <div style={{marginBottom:36}}>
+                <span style={S.eyebrow}>
+                  01 / CURATED GROOMING CATALOGUE
+                </span>
+                <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:12}}>
+                  <h2 style={S.sectionH2}>Hairstyles & Cuts</h2>
+                  <span style={{fontSize:12, color:"var(--muted)", fontVariantNumeric:"tabular-nums"}}>
+                    {hairstyles.length} Handcrafted Designs Available
+                  </span>
+                </div>
               </div>
 
-              {/* CATEGORY SWITCHER & LIVE SEARCH BAR */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,marginBottom:32}}>
-                <div style={{display:"flex",gap:0}}>
+              {/* Category Switcher & Search Bar */}
+              <div style={S.filterBar}>
+                <div style={S.filterPillGroup}>
                   {[
-                    {key:"all",label:"All"},
-                    {key:"premium",label:"Premium"},
-                    {key:"standard",label:"Standard"},
+                    {key:"all",label:"All Styles"},
+                    {key:"premium",label:"Premium (60m)"},
+                    {key:"standard",label:"Standard (30m)"},
                   ].map(tab => {
                     const isSel = filterT === tab.key;
                     return (
                       <button key={tab.key}
                         onClick={() => setFilterT(tab.key)}
                         style={{
-                          background:"transparent",
-                          color:isSel ? "var(--paper)" : "var(--muted)",
-                          border:"none",
-                          borderBottom:isSel ? "2px solid var(--paper)" : "2px solid transparent",
-                          padding:"8px 20px",
-                          fontSize:11,
-                          fontWeight:isSel ? 700 : 500,
-                          letterSpacing:"0.15em",
-                          cursor:"pointer",
-                          transition:"all 0.4s cubic-bezier(.16,1,.3,1)",
-                          textTransform:"uppercase",
+                          background: isSel ? "var(--paper)" : "transparent",
+                          color: isSel ? "var(--ink)" : "var(--muted)",
+                          border: "none",
+                          padding: "8px 18px",
+                          borderRadius: 20,
+                          fontSize: 11,
+                          fontWeight: isSel ? 700 : 500,
+                          letterSpacing: "0.1em",
+                          cursor: "pointer",
+                          transition: "all 0.3s cubic-bezier(.16,1,.3,1)",
+                          textTransform: "uppercase",
                         }}>
                         {tab.label}
                       </button>
@@ -774,29 +923,18 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                   })}
                 </div>
 
-                <div style={{position:"relative",minWidth:220}}>
+                <div style={S.searchWrapper}>
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search cut, fade or quiff..."
                     value={searchQ}
                     onChange={e => setSearchQ(e.target.value)}
-                    style={{
-                      width:"100%",
-                      background:"transparent",
-                      border:"none",
-                      borderBottom:"1px solid var(--line)",
-                      color:"var(--paper)",
-                      padding:"8px 0",
-                      fontSize:12,
-                      fontFamily:"var(--body)",
-                      outline:"none",
-                      letterSpacing:"0.05em"
-                    }}
+                    style={S.searchInput}
                   />
                   {searchQ && (
                     <button 
                       onClick={() => setSearchQ("")} 
-                      style={{position:"absolute",right:0,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:4}}
+                      style={S.searchClearBtn}
                       title="Clear Search"
                     >
                       <X size={14} strokeWidth={2} />
@@ -805,7 +943,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                 </div>
               </div>
 
-              {/* HAIRSTYLES GRID */}
+              {/* Hairstyle Cards Grid */}
               {(() => {
                 const filtered = hairstyles.filter(h => {
                   const matchCat = filterT === "all" || h.type === filterT;
@@ -818,9 +956,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
                 if (filtered.length === 0) {
                   return (
-                    <div style={{textAlign:"center",padding:"60px 20px",color:"var(--muted)"}}>
-                      <p style={{fontSize:14}}>No results for "{searchQ}"</p>
-                      <button onClick={() => { setSearchQ(""); setFilterT("all"); }} style={{marginTop:16,...S.btnGhostBtn}}>View All</button>
+                    <div style={{textAlign:"center",padding:"60px 20px",color:"var(--muted)", background:"var(--surface)", border:"1px solid var(--line)", borderRadius:12}}>
+                      <Scissors size={28} style={{margin:"0 auto 12px", color:"var(--muted)"}} />
+                      <p style={{fontSize:14, fontWeight:600}}>No hairstyles found matching "{searchQ}"</p>
+                      <button onClick={() => { setSearchQ(""); setFilterT("all"); }} style={{marginTop:16,...S.btnGhostBtn}}>View All Styles</button>
                     </div>
                   );
                 }
@@ -831,81 +970,67 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       {itemsToDisplay.map(h => {
                         const isPrem = h.type === "premium";
                         return (
-                          <div key={h.id}
+                          <div 
+                            key={h.id}
                             className="nash-hs-hover"
                             onClick={() => { setSelectedStyle(h); goStep(2); }}
-                            style={{
-                              background:"var(--surface)",
-                              overflow:"hidden",
-                              display:"flex",
-                              flexDirection:"column",
-                              border:"1px solid var(--line)"
-                            }}>
-                            <div style={{position:"relative", height:320, overflow:"hidden", background:"var(--card-img-bg, #000)"}}>
-                              <img src={h.img} alt={h.name} style={{width:"100%", height:"100%", objectFit:"cover", opacity: 0.95}} />
+                            style={S.hsCard}
+                          >
+                            <div style={S.hsImgViewport}>
+                              <img src={h.img} alt={h.name} style={S.hsImg} />
                               
-                              {/* MINIMAL TIER TAG */}
-                              <div style={{position:"absolute", top:14, right:14}}>
+                              {/* Tier Badge */}
+                              <div style={S.hsBadgeOverlay}>
                                 <span style={{
-                                  background: isPrem ? "var(--prem-badge-bg)" : "var(--std-badge-bg)",
-                                  color: isPrem ? "var(--prem-badge-color)" : "var(--std-badge-color)",
-                                  fontSize:9,
-                                  fontWeight:700,
-                                  padding:"4px 10px",
-                                  letterSpacing:"0.15em",
-                                  textTransform:"uppercase",
-                                  backdropFilter:"blur(8px)",
-                                  border: "1px solid var(--line)"
+                                  background: isPrem ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.9)",
+                                  color: isPrem ? "#d4af37" : "#0A0F1A",
+                                  fontSize: 9,
+                                  fontWeight: 800,
+                                  padding: "4px 10px",
+                                  borderRadius: 4,
+                                  letterSpacing: "0.15em",
+                                  textTransform: "uppercase",
+                                  backdropFilter: "blur(8px)",
+                                  border: isPrem ? "1px solid rgba(212,175,55,0.3)" : "1px solid rgba(0,0,0,0.1)"
                                 }}>
-                                  {isPrem ? "PREMIUM" : "STANDARD"}
+                                  {isPrem ? "PREMIUM • 60M" : "STANDARD • 30M"}
                                 </span>
                               </div>
                             </div>
 
-                            {/* STYLE NAME */}
-                            <div style={{padding:"22px 20px 20px", flexGrow:1, display:"flex", alignItems:"center"}}>
-                              <h3 style={{fontFamily:"var(--display)", fontSize:16, fontWeight:700, color:"var(--paper)", letterSpacing:"0.06em", margin:0, textTransform:"uppercase", lineHeight:1.3}}>{h.name}</h3>
+                            {/* Card Body */}
+                            <div style={S.hsCardBody}>
+                              <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8}}>
+                                <h3 style={S.hsCardTitle}>{h.name}</h3>
+                                <div style={S.hsCardPrice}>Rs {Number(h.price||0).toLocaleString()}</div>
+                              </div>
+                              <p style={S.hsCardDesc}>{h.desc}</p>
                             </div>
 
-                            {/* DARK BLACK PRICE STRIP (PATTI) */}
-                            <div style={{
-                              background:"#000000",
-                              color:"#ffffff",
-                              padding:"14px 20px",
-                              display:"flex",
-                              justifyContent:"space-between",
-                              alignItems:"center",
-                              borderTop:"1px solid rgba(255,255,255,0.1)"
-                            }}>
-                              <div style={{fontFamily:"var(--body)", fontSize:14, fontWeight:700, color:"#ffffff", letterSpacing:"0.05em"}}>
-                                Rs {Number(h.price||0).toLocaleString()} <span style={{fontSize:11, color:"rgba(255,255,255,0.65)", fontWeight:400}}>• {h.time}m</span>
+                            {/* Action Strip */}
+                            <div style={S.hsCardStrip}>
+                              <span style={S.hsCardSessionLabel}>
+                                {h.time} min bespoke session
+                              </span>
+                              <div style={S.hsCardCtaPill}>
+                                <span>SELECT</span>
+                                <ChevronRight size={13} strokeWidth={2.5} />
                               </div>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* EXPLORE ALL TOGGLE BUTTON */}
+                    {/* View All Toggle */}
                     {filtered.length > 6 && !expandedGallery && !isSearching && filterT === "all" && (
                       <div style={{textAlign:"center", marginTop:40}}>
                         <button
                           onClick={() => setExpandedGallery(true)}
-                          style={{
-                            background: "transparent",
-                            color: "var(--paper)",
-                            border: "1px solid var(--line)",
-                            padding: "14px 36px",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: "0.25em",
-                            textTransform: "uppercase",
-                            cursor: "pointer",
-                            transition: "all 0.4s"
-                          }}
-                          className="nash-btn-confirm">
-                          VIEW ALL {filtered.length} STYLES
+                          style={S.btnExpandAll}
+                          className="nash-btn-confirm"
+                        >
+                          SHOW ALL {filtered.length} STYLES
                         </button>
                       </div>
                     )}
@@ -914,49 +1039,87 @@ function SiteView({ hairstyles, settings, user, setUser }) {
               })()}
             </div>
           ) : (
-            /* STEP 2 & 3: TIME SLOT & CONFIRMATION */
+            /* ─── STEP 2 & 3: INTERACTIVE BOOKING STEPPER ───────────── */
             <div style={S.bookPanel}>
-              {/* SELECTED STYLE HEADER */}
-              <div style={{padding:"20px 28px", borderBottom:"1px solid var(--line)", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12}}>
-                <div style={{display:"flex", alignItems:"center", gap:16}}>
+              
+              {/* Stepper Header Strip */}
+              <div style={S.stepperNavStrip}>
+                <div style={{display:"flex", alignItems:"center", gap:14}}>
                   {selectedStyle?.img && (
-                    <img src={selectedStyle.img} alt={selectedStyle.name} style={{width:40, height:40, objectFit:"cover"}} />
+                    <img 
+                      src={selectedStyle.img} 
+                      alt={selectedStyle.name} 
+                      style={{width:44, height:44, objectFit:"cover", borderRadius:8, border:"1px solid var(--line)"}} 
+                    />
                   )}
                   <div>
-                    <div style={{fontSize:15, fontWeight:700, color:"var(--paper)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{selectedStyle?.name}</div>
-                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>Rs {selectedStyle?.price} • {selectedStyle?.time}m session</div>
+                    <div style={{fontSize:15, fontWeight:800, color:"var(--paper)", letterSpacing:"0.04em", textTransform:"uppercase"}}>
+                      {selectedStyle?.name}
+                    </div>
+                    <div style={{fontSize:11, color:"var(--muted)", marginTop:2}}>
+                      Rs {selectedStyle?.price} • {selectedStyle?.time} mins craftsmanship
+                    </div>
                   </div>
                 </div>
-                <button onClick={() => goStep(1)} style={{background:"transparent", border:"none", color:"var(--muted)", fontSize:11, letterSpacing:"0.15em", cursor:"pointer", textTransform:"uppercase", padding:"6px 0", transition:"color 0.3s", display:"inline-flex", alignItems:"center", gap:6}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                  <ArrowLeft size={13} strokeWidth={2} />
-                  <span>CHANGE</span>
-                </button>
+
+                {/* Step indicator pills */}
+                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                  <div style={step === 2 ? S.stepPillActive : S.stepPillDone} onClick={() => goStep(2)}>
+                    <span>1. DATE & TIME</span>
+                  </div>
+                  <ChevronRight size={12} color="var(--muted)" />
+                  <div style={step === 3 ? S.stepPillActive : S.stepPillInactive}>
+                    <span>2. CONFIRM & TOKEN</span>
+                  </div>
+                  <button 
+                    onClick={() => goStep(1)} 
+                    style={S.changeStyleBtn}
+                    title="Change hairstyle"
+                  >
+                    <ArrowLeft size={13} strokeWidth={2} />
+                    <span>CHANGE STYLE</span>
+                  </button>
+                </div>
               </div>
 
+              {/* Stepper Body */}
               <div style={S.bookBody}>
                 {step === 2 && (
-                  <TimeStep dates={dates} dateIndex={dateIndex} setDateIndex={setDateIndex} totalMinutes={totalMinutes} slot={slot} setSlot={setSlot} realtimeBookings={realtimeBookings} onNext={() => goStep(3)} />
+                  <TimeStep 
+                    dates={dates} 
+                    dateIndex={dateIndex} 
+                    setDateIndex={setDateIndex} 
+                    totalMinutes={totalMinutes} 
+                    slot={slot} 
+                    setSlot={setSlot} 
+                    realtimeBookings={realtimeBookings} 
+                    onNext={() => goStep(3)} 
+                  />
                 )}
 
                 {step === 3 && (
                   <div className="nash-expand-anim">
-                    {/* BOOKING SUMMARY */}
+                    
+                    {/* Booking Breakdown Table */}
                     <div style={S.summaryBox}>
+                      <div style={{fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", color:"var(--muted)", marginBottom:14}}>
+                        APPOINTMENT SUMMARY
+                      </div>
                       {[
-                        ["Style", selectedStyle?.name],
-                        ["Category", selectedStyle?.type === "premium" ? "Premium" : "Standard"],
+                        ["Hairstyle", selectedStyle?.name],
+                        ["Service Tier", selectedStyle?.type === "premium" ? "Premium (60m)" : "Standard (30m)"],
                         ["Date", fmtDate(dates[dateIndex], {weekday:"short",day:"numeric",month:"short"})],
-                        ["Time", slot ? slot.label : "--"],
-                        ["Duration", `${totalMinutes} min`],
+                        ["Reserved Slot", slot ? slot.label : "--"],
+                        ["Estimated Time", `${totalMinutes} min session`],
                         ...(ENABLE_ONLINE_PAYMENT ? [
-                          ["Service Price", `Rs ${totalPrice}`],
-                          ["Online Booking Fee (Pay Now)", `Rs ${bookingFee}`],
+                          ["Service Total Price", `Rs ${totalPrice}`],
+                          ["Fixed Token Advance (Pay Now)", `Rs ${bookingFee}`],
                           ["Remaining Due at Salon", `Rs ${remainingDue}`]
                         ] : [
-                          ["Total Price (Pay in Person at Salon)", `Rs ${totalPrice}`]
+                          ["Total Price (Pay at Salon)", `Rs ${totalPrice}`]
                         ])
                       ].map(([k,v]) => {
-                        const isPayNow = k.includes("Booking Fee") || k.includes("Total Price");
+                        const isPayNow = k.includes("Advance") || k.includes("Pay Now");
                         const isRemain = k.includes("Remaining");
                         return (
                           <div key={k} style={{
@@ -967,7 +1130,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             <span style={isPayNow ? {color:"var(--paper)", fontWeight:700} : S.srKey}>{k}</span>
                             <span style={{
                               ...S.srVal,
-                              ...(isPayNow ? {color:"var(--paper)", fontWeight:800, fontSize:15} : {}),
+                              ...(isPayNow ? {color:"#10b981", fontWeight:800, fontSize:15} : {}),
                               ...(isRemain ? {color:"var(--muted)"} : {})
                             }}>{v}</span>
                           </div>
@@ -975,20 +1138,19 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       })}
                     </div>
 
-                    {/* =========================================================================
-                        CASHFREE INSTANT UPI ADVANCE TOKEN PAYMENT (₹50 FIXED)
-                        ========================================================================= */}
+                    {/* Cashfree Payment Gateway Box */}
                     <div style={{
-                      background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(20, 20, 20, 0.95) 100%)",
-                      border: cashfreePaid ? "1px solid #10b981" : "1px solid rgba(212, 175, 55, 0.4)",
-                      borderRadius: 12,
-                      padding: "24px 20px",
-                      marginBottom: 20,
-                      boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+                      background: "linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(12, 18, 32, 0.95) 100%)",
+                      border: cashfreePaid ? "1px solid #10b981" : "1px solid rgba(212, 175, 55, 0.35)",
+                      borderRadius: 14,
+                      padding: "24px 22px",
+                      marginBottom: 24,
+                      boxShadow: "0 10px 36px rgba(0,0,0,0.5)"
                     }}>
                       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
-                        <span style={{...S.fieldLabel, margin: 0, color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 6}}>
-                          🔒 Mandatory Token Advance: ₹50 Fixed
+                        <span style={{color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 8}}>
+                          <ShieldCheck size={16} color={cashfreePaid ? "#10b981" : "#d4af37"} />
+                          <span>Mandatory Token Advance: ₹50 Fixed</span>
                         </span>
                         <span style={{
                           fontSize: 9, 
@@ -1015,26 +1177,26 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           <div style={{fontSize: 14, fontWeight: 800, color: "#10b981", marginBottom: 4}}>
                             ✓ ₹50 Token Advance Paid & Verified
                           </div>
-                          <div style={{fontSize: 11, color: "var(--paper)", fontFamily: "var(--mono)"}}>
+                          <div style={{fontSize: 11, color: "var(--paper)", fontFamily: "monospace"}}>
                             Cashfree Txn Ref: #{cashfreeTxnId}
                           </div>
                           <div style={{fontSize: 11, color: "var(--muted)", marginTop: 6}}>
-                            Remaining balance ₹{remainingDue} appointment ke baad salon me pay karein.
+                            Remaining balance ₹{remainingDue} appointment ke baad salon par pay karein.
                           </div>
                         </div>
                       ) : (
                         <>
                           <div style={{
-                            background: "rgba(212, 175, 55, 0.08)",
-                            border: "1px solid rgba(212, 175, 55, 0.25)",
+                            background: "rgba(255, 255, 255, 0.03)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
                             borderRadius: 8,
                             padding: "12px 14px",
                             marginBottom: 16,
                             fontSize: 11,
-                            color: "#e5e5e5",
+                            color: "var(--muted)",
                             lineHeight: 1.5
                           }}>
-                            💡 <b>Instant Auto-Verification:</b> GPay, PhonePe, Paytm, BHIM ya kisi bhi UPI app se ₹50 advance pay karein. Cashfree modal screen par hi khulega aur payment karte hi slot instant confirm ho jayega. (Test Mode me <b>"Simulate Success"</b> click karein).
+                            💡 <b>Instant Auto-Verification:</b> GPay, PhonePe, Paytm ya UPI se ₹50 advance pay karein. Cashfree popup screen par hi open hoga aur payment hote hi slot turant lock ho jayega.
                           </div>
 
                           <button
@@ -1044,16 +1206,16 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             style={{
                               width: "100%",
                               padding: "16px",
-                              borderRadius: 8,
+                              borderRadius: 10,
                               background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                               color: "#ffffff",
-                              fontWeight: 900,
+                              fontWeight: 800,
                               fontSize: 13,
                               letterSpacing: "0.08em",
                               textTransform: "uppercase",
                               border: "none",
                               cursor: isOpeningCashfree ? "wait" : "pointer",
-                              boxShadow: "0 4px 16px rgba(16, 185, 129, 0.35)",
+                              boxShadow: "0 6px 20px rgba(16, 185, 129, 0.35)",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
@@ -1071,17 +1233,14 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       )}
                     </div>
 
-                    {/* =========================================================================
-                        CUSTOMER DETAILS & AUTHENTICATION
-                        ========================================================================= */}
+                    {/* Customer Identity / Authentication */}
                     {!user ? (
-                      /* USER IS NOT LOGGED IN -> REQUIRE GOOGLE SIGN IN */
                       <div style={{
                         textAlign: "center",
                         padding: "24px 20px",
                         background: "var(--surface)",
                         border: "1px solid var(--line)",
-                        borderRadius: 8,
+                        borderRadius: 12,
                         marginBottom: 20
                       }} className="nash-expand-anim">
                         <div style={{
@@ -1126,7 +1285,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             justifyContent: "center",
                             gap: 12,
                             transition: "all 0.3s",
-                            borderRadius: 4
+                            borderRadius: 8
                           }}
                           className="nash-btn-confirm"
                         >
@@ -1140,7 +1299,6 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         </button>
                       </div>
                     ) : (
-                      /* USER IS LOGGED IN -> ENTER DETAILS */
                       <div className="nash-expand-anim" style={{marginBottom: 20}}>
                         <div style={S.fieldGroup}>
                           <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14, padding:"10px 14px", background:"rgba(255,255,255,0.04)", borderRadius:8, border:"1px solid var(--line)"}}>
@@ -1164,7 +1322,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       </div>
                     )}
 
-                    {/* CONFIRMATION / ACTION BUTTON */}
+                    {/* Final Confirmation Button */}
                     <button 
                       style={{
                         ...S.btnConfirm,
@@ -1184,36 +1342,32 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         ? "CONFIRM APPOINTMENT (₹50 TOKEN VERIFIED) ✓"
                         : "PAY ₹50 VIA CASHFREE & CONFIRM APPOINTMENT"}
                     </button>
+
                   </div>
                 )}
               </div>
             </div>
           )}
+
         </div>
       </section>
 
-      {/* STORIES SECTION */}
+      {/* ─── STORIES & CLIENT REVIEWS SECTION ─────────────────────── */}
       <section style={{...S.section, borderBottom:"1px solid var(--line)"}}>
         <div style={S.wrap}>
           <Reveal>
             <div style={{marginBottom:40}}>
-              <h2 style={{fontFamily:"var(--display)",fontSize:"clamp(28px,5vw,42px)",fontWeight:800,letterSpacing:"0.12em",color:"var(--paper)",textTransform:"uppercase",margin:0}}>Stories</h2>
+              <span style={S.eyebrow}>02 / CLIENT TESTIMONIALS</span>
+              <h2 style={S.sectionH2}>Client Stories</h2>
             </div>
           </Reveal>
 
-          {/* EXISTING STORIES */}
+          {/* Existing Stories */}
           {reviews.length > 0 ? (
             <Reveal delay={100}>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20,marginBottom:36}}>
                 {reviews.slice(0, 6).map((r, idx) => (
-                  <div key={r.id || idx} style={{
-                    background:"var(--surface)",
-                    border:"1px solid var(--line)",
-                    padding:"24px 22px",
-                    display:"flex",
-                    flexDirection:"column",
-                    gap:14,
-                  }}>
+                  <div key={r.id || idx} style={S.reviewCard}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                       <div style={{fontFamily:"var(--display)",fontSize:15,fontWeight:700,color:"var(--paper)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.name}</div>
                       <div style={{display:"flex",gap:3,alignItems:"center"}}>
@@ -1237,7 +1391,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
             </Reveal>
           ) : null}
 
-          {/* WRITE A STORY BUTTON / FORM */}
+          {/* Submit Review CTA */}
           <Reveal delay={200}>
             <div>
               {!showReviewForm ? (
@@ -1246,32 +1400,15 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     if (user && user.displayName) setReviewName(user.displayName);
                     setShowReviewForm(true);
                   }}
-                  style={{
-                    background:"transparent",
-                    color:"var(--paper)",
-                    border:"1px solid var(--line)",
-                    padding:"14px 32px",
-                    fontSize:10,
-                    fontWeight:700,
-                    letterSpacing:"0.25em",
-                    textTransform:"uppercase",
-                    cursor:"pointer",
-                    transition:"all 0.4s"
-                  }}
+                  style={S.btnGhostBtn}
                   className="nash-btn-confirm"
                 >
                   SHARE YOUR STORY
                 </button>
               ) : (
-                <div style={{
-                  maxWidth:440,
-                  background:"var(--surface)",
-                  border:"1px solid var(--line)",
-                  padding:"32px 28px",
-                  textAlign:"left",
-                }} className="nash-expand-anim">
-                  {/* Star rating */}
-                  <div style={{marginBottom:24}}>
+                <div style={S.reviewFormBox} className="nash-expand-anim">
+                  {/* Star Rating Inputs */}
+                  <div style={{marginBottom:20}}>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       {[1,2,3,4,5].map(s => (
                         <button
@@ -1280,15 +1417,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           onClick={() => setReviewRating(s)}
                           onMouseEnter={() => setReviewHover(s)}
                           onMouseLeave={() => setReviewHover(0)}
-                          style={{
-                            background:"transparent",
-                            border:"none",
-                            padding:0,
-                            cursor:"pointer",
-                            lineHeight:0,
-                            display:"inline-flex",
-                            alignItems:"center"
-                          }}
+                          style={{background:"transparent",border:"none",padding:0,cursor:"pointer",lineHeight:0}}
                         >
                           <Star 
                             size={24} 
@@ -1301,36 +1430,29 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     </div>
                   </div>
 
-                  {/* Name input */}
                   <input
                     type="text"
-                    placeholder="Your Name"
+                    placeholder="Your Name *"
                     value={reviewName}
                     onChange={e => setReviewName(e.target.value)}
                     style={S.input}
                   />
 
-                  {/* Comment textarea */}
                   <textarea
-                    placeholder="Your story / experience..."
+                    placeholder="Your styling experience with Nash Studio..."
                     value={reviewComment}
                     onChange={e => setReviewComment(e.target.value)}
                     rows={3}
-                    style={{
-                      ...S.input,
-                      resize:"none",
-                      marginBottom:20,
-                    }}
+                    style={{...S.input, resize:"none", marginBottom:20}}
                   />
 
-                  {/* Action buttons */}
-                  <div style={{display:"flex",gap:10}}>
+                  <div style={{display:"flex", gap:10}}>
                     <button
                       onClick={handleSubmitReview}
                       disabled={reviewSaving}
                       style={{...S.btnConfirm, flex:1}}
                     >
-                      {reviewSaving ? "SAVING..." : "SUBMIT"}
+                      {reviewSaving ? "SAVING..." : "SUBMIT STORY"}
                     </button>
                     <button
                       onClick={() => { setShowReviewForm(false); setReviewRating(0); setReviewComment(""); setReviewName(""); }}
@@ -1343,110 +1465,107 @@ function SiteView({ hairstyles, settings, user, setUser }) {
               )}
             </div>
           </Reveal>
+
         </div>
       </section>
 
-      {/* FOOTER */}
-      <section style={{...S.section, borderBottom:"none", padding:"80px 0 40px"}}>
+      {/* ─── EDITORIAL LUXURY STUDIO FOOTER ───────────────────────── */}
+      <footer style={S.footer}>
         <div style={S.wrap}>
-          <Reveal>
-            <div style={S.footGrid}>
-              <div>
-                <div style={S.footBrand}>{settings.studioName || "NASH STUDIO"}</div>
-                <p style={S.footAddr}>{settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore"}</p>
-              </div>
-              <div style={S.footHours}>
-                <div>Mon-Sat • {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
-                <div>Sunday • {settings.sundayHours || "Closed"}</div>
-                <div>{settings.phoneDisplay || "0300-1234567"}</div>
-              </div>
-              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:16, borderTop:"1px solid var(--line)", paddingTop:20}}>
-                <div style={{display:"flex", alignItems:"center", gap:16}}>
-                  <a
-                    href="https://churuone.in/admin?storeId=nash-studio"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:6}}
-                  >
-                    <span>Dukandar Login</span>
-                    <ArrowUpRight size={13} strokeWidth={2} />
-                  </a>
-
-                  {/* BOTTOM THEME TOGGLE BUTTON */}
-                  <button
-                    onClick={toggleTheme}
-                    style={{
-                      background: "transparent",
-                      border: "1px solid var(--line)",
-                      color: "var(--paper)",
-                      padding: "7px 16px",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      transition: "all 0.3s"
-                    }}
-                    className="nash-btn-confirm"
-                  >
-                    {theme === "dark" ? (
-                      <>
-                        <Sun size={13} strokeWidth={2} />
-                        <span>Day Mode (White)</span>
-                      </>
-                    ) : (
-                      <>
-                        <Moon size={13} strokeWidth={2} />
-                        <span>Night Mode (Dark)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {user && (
-                  <div style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:10}}>
-                    <span>{user.displayName}</span>
-                    <span>•</span>
-                    <button onClick={handleLogout} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, textDecoration:"underline"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* LEGAL POLICIES STRIP */}
-              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:14, borderTop:"1px solid var(--line)", paddingTop:16, marginTop:8}}>
-                <div style={{display:"flex", alignItems:"center", flexWrap:"wrap", gap:14, fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em"}}>
-                  <button onClick={() => openLegalModal('terms')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                    Terms & Conditions
-                  </button>
-                  <span>•</span>
-                  <button onClick={() => openLegalModal('privacy')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                    Privacy Policy
-                  </button>
-                  <span>•</span>
-                  <button onClick={() => openLegalModal('refund')} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, padding:0, fontWeight:700}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
-                    Refund & Cancellation
-                  </button>
-                </div>
-                <div style={{fontSize:10, color:"var(--muted)", fontFamily:"var(--body)", letterSpacing:"0.05em"}}>
-                  No refund on booking cancellation (only ₹50 token money charged to reserve slot)
-                </div>
+          <div style={S.footerGrid}>
+            <div>
+              <div style={S.footBrand}>{settings.studioName || "NASH STUDIO"}</div>
+              <p style={S.footAddr}>{settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore"}</p>
+              <div style={{marginTop:12, fontSize:12, color:"var(--muted)"}}>
+                Unified Partner of <strong style={{color:"var(--paper)"}}>ChuruOne Network</strong>
               </div>
             </div>
-          </Reveal>
-        </div>
-      </section>
 
+            <div style={S.footHours}>
+              <div><strong style={{color:"var(--paper)"}}>Mon-Sat:</strong> {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
+              <div><strong style={{color:"var(--paper)"}}>Sunday:</strong> {settings.sundayHours || "Closed"}</div>
+              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || "0300-1234567"}</div>
+            </div>
+
+            <div style={S.footerBottomRow}>
+              <div style={{display:"flex", alignItems:"center", gap:16}}>
+                <a
+                  href="https://churuone.in/admin?storeId=nash-studio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:6}}
+                >
+                  <span>Dukandar OS Login</span>
+                  <ArrowUpRight size={13} strokeWidth={2} />
+                </a>
+
+                {/* Day / Night Theme Button */}
+                <button
+                  onClick={toggleTheme}
+                  style={S.footThemeBtn}
+                  className="nash-btn-confirm"
+                >
+                  {theme === "dark" ? (
+                    <>
+                      <Sun size={13} strokeWidth={2} />
+                      <span>Day Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon size={13} strokeWidth={2} />
+                      <span>Night Mode</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {user && (
+                <div style={{fontSize:11, color:"var(--muted)", display:"flex", alignItems:"center", gap:10}}>
+                  <span>Logged in as <b>{user.displayName || user.name}</b></span>
+                  <span>•</span>
+                  <button onClick={handleLogout} style={{background:"transparent", border:"none", color:"var(--muted)", cursor:"pointer", fontSize:11, textDecoration:"underline"}} onMouseEnter={e => e.target.style.color="var(--paper)"} onMouseLeave={e => e.target.style.color="var(--muted)"}>
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Legal Policies Strip (PhonePe Compliant) */}
+            <div style={S.footerLegalStrip}>
+              <div style={{display:"flex", alignItems:"center", flexWrap:"wrap", gap:14, fontSize:11, color:"var(--muted)", textTransform:"uppercase", letterSpacing:"0.1em"}}>
+                <button onClick={() => openLegalModal('terms')} style={S.legalLinkBtn}>
+                  Terms & Conditions
+                </button>
+                <span>•</span>
+                <button onClick={() => openLegalModal('privacy')} style={S.legalLinkBtn}>
+                  Privacy Policy
+                </button>
+                <span>•</span>
+                <button onClick={() => openLegalModal('refund')} style={{...S.legalLinkBtn, fontWeight:700}}>
+                  Refund & Cancellation
+                </button>
+              </div>
+
+              <div style={{fontSize:10, color:"var(--muted)", fontFamily:"var(--body)", letterSpacing:"0.05em"}}>
+                No refund on booking cancellation (only ₹50 token money charged to reserve slot)
+              </div>
+            </div>
+
+            <div style={{fontSize:11, color:"var(--muted)", borderTop:"1px solid var(--line)", paddingTop:16, marginTop:8}}>
+              © 2026 Nash Studio. Powered by ChuruOne • A unit of Vasudhaiva Kutumbakam Robotics.
+            </div>
+
+          </div>
+        </div>
+      </footer>
+
+      {/* Floating Sticky Mobile CTA */}
       <div style={S.stickyCta} className="nash-sticky-cta">
-        <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"03001234567").replace(/[^0-9]/g,"")}`}>Call</button>
-        <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book</button>
+        <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"03001234567").replace(/[^0-9]/g,"")}`}>Call Salon</button>
+        <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book Appointment</button>
       </div>
 
-      {/* FLOATING SYSTEM TOAST */}
+      {/* Floating System Toast */}
       {toast && (
         <div style={{
           position: "fixed",
@@ -1504,7 +1623,7 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
   return (
     <div>
       <div style={S.fieldGroup}>
-        <span style={S.fieldLabel}>Select Date</span>
+        <span style={S.fieldLabel}>Select Appointment Date</span>
         <div style={S.dateStrip}>
           {dates.map((d, i) => {
             const isSun = d.getDay() === 0, sel = i === dateIndex;
@@ -1519,7 +1638,7 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
         </div>
       </div>
       <div style={S.fieldGroup}>
-        <span style={S.fieldLabel}>Select Time</span>
+        <span style={S.fieldLabel}>Select Slot (Every 15 Mins)</span>
         <div style={S.slotGrid}>
           {slots.map((s, i) => (
             <button key={i} disabled={s.blocked}
@@ -1532,35 +1651,35 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
         </div>
       </div>
       <button style={!slot?{...S.btnConfirm,...S.btnDisabled}:S.btnConfirm} className="nash-btn-confirm" disabled={!slot} onClick={onNext}>
-        CONTINUE
+        CONTINUE TO TOKEN LOCK
       </button>
     </div>
   );
 }
 
 const GLOBAL_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Inter:wght@200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Inter:wght@200;300;400;500;600;700;800;900&display=swap');
 :root{
-  --ink:#F6F8FA;
-  --surface:#FFFFFF;
-  --surface-hover:#EDF2F7;
-  --paper:#0A0F1A;
-  --muted:#5B6B7F;
-  --line:#E2E8F0;
-  --display:"Inter",sans-serif;
+  --ink:#080C14;
+  --surface:#0F1626;
+  --surface-hover:#151F34;
+  --paper:#FFFFFF;
+  --muted:#8C9DB5;
+  --line:#1E2B42;
+  --display:"Cinzel",Georgia,serif;
   --body:"Inter",sans-serif;
-  --card-shadow:0 12px 36px rgba(0,0,0,0.06);
-  --prem-badge-bg:#0A0F1A;
-  --prem-badge-color:#ffffff;
+  --card-shadow:0 16px 40px rgba(0,0,0,0.5);
+  --prem-badge-bg:#000000;
+  --prem-badge-color:#d4af37;
   --std-badge-bg:rgba(255, 255, 255, 0.95);
   --std-badge-color:#0A0F1A;
-  --nav-bg:rgba(246,248,250,0.95);
+  --nav-bg:rgba(8,12,20,0.85);
   --star-color:#E5A93B;
-  --star-empty:#CBD5E1;
+  --star-empty:#1E2B42;
 }
 
 body[data-theme="light"]{
-  --ink:#F6F8FA;
+  --ink:#F5F7FA;
   --surface:#FFFFFF;
   --surface-hover:#EDF2F7;
   --paper:#0A0F1A;
@@ -1571,32 +1690,32 @@ body[data-theme="light"]{
   --prem-badge-color:#ffffff;
   --std-badge-bg:rgba(255, 255, 255, 0.95);
   --std-badge-color:#0A0F1A;
-  --nav-bg:rgba(246,248,250,0.95);
+  --nav-bg:rgba(255,255,255,0.85);
   --star-color:#E5A93B;
   --star-empty:#CBD5E1;
 }
 
 body[data-theme="dark"]{
-  --ink:#050A12;
-  --surface:#0C1220;
-  --surface-hover:#131C30;
-  --paper:#ffffff;
-  --muted:#6C7D93;
-  --line:#162234;
+  --ink:#080C14;
+  --surface:#0F1626;
+  --surface-hover:#151F34;
+  --paper:#FFFFFF;
+  --muted:#8C9DB5;
+  --line:#1E2B42;
   --card-shadow:0 20px 60px rgba(0,0,0,0.7);
-  --prem-badge-bg:#ffffff;
-  --prem-badge-color:#000000;
-  --std-badge-bg:rgba(5, 10, 18, 0.85);
+  --prem-badge-bg:#000000;
+  --prem-badge-color:#d4af37;
+  --std-badge-bg:rgba(15, 22, 38, 0.85);
   --std-badge-color:#ffffff;
-  --nav-bg:rgba(5,10,18,0.95);
+  --nav-bg:rgba(8,12,20,0.85);
   --star-color:#E5A93B;
-  --star-empty:#162234;
+  --star-empty:#1E2B42;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
 body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-font-smoothing:antialiased;transition:background 0.35s ease, color 0.35s ease;}
-::selection{background:var(--paper);color:var(--ink);}
+::selection{background:#d4af37;color:#000000;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:var(--ink);}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:0;}
@@ -1607,6 +1726,7 @@ body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-fo
 @keyframes nashFadeIn{from{opacity:0;}to{opacity:1;}}
 @keyframes nashScaleIn{from{opacity:0;transform:scale(0.97);}to{opacity:1;transform:scale(1);}}
 @keyframes nashSpin{to{transform:rotate(360deg);}}
+@keyframes pulseGlow{0%,100%{opacity:0.6;}50%{opacity:1;}}
 
 .nash-expand-anim{animation:nashReveal 0.5s cubic-bezier(.16,1,.3,1);}
 .nash-pass-reveal{animation:nashScaleIn 0.6s cubic-bezier(.16,1,.3,1);}
@@ -1615,216 +1735,158 @@ body{background:var(--ink);color:var(--paper);font-family:var(--body);-webkit-fo
 /* Card hover - buttery lift */
 .nash-hs-hover{cursor:pointer;position:relative;transition:transform 0.5s cubic-bezier(.16,1,.3,1),box-shadow 0.5s cubic-bezier(.16,1,.3,1),border-color 0.4s;}
 .nash-hs-hover img{transition:transform 6s cubic-bezier(0.05,1,0.3,1);}
-.nash-hs-hover:hover{transform:translateY(-6px);box-shadow:var(--card-shadow);border-color:var(--paper) !important;}
+.nash-hs-hover:hover{transform:translateY(-6px);box-shadow:var(--card-shadow);border-color:#d4af37 !important;}
 .nash-hs-hover:hover img{transform:scale(1.05);}
 
 /* Button hovers */
 .nash-btn-confirm{transition:all 0.4s cubic-bezier(.16,1,.3,1) !important;}
-.nash-btn-confirm:not(:disabled):hover{opacity:0.85 !important;transform:translateY(-1px);}
+.nash-btn-confirm:not(:disabled):hover{opacity:0.9 !important;transform:translateY(-1px);}
 .nash-cta-btn{transition:all 0.4s cubic-bezier(.16,1,.3,1) !important;}
-.nash-cta-btn:hover{opacity:0.85 !important;transform:translateY(-1px);}
+.nash-cta-btn:hover{opacity:0.9 !important;transform:translateY(-1px);}
 .nash-date-chip{transition:all 0.3s cubic-bezier(.16,1,.3,1) !important;}
 .nash-date-chip:not(:disabled):hover{border-color:var(--paper) !important;}
 .nash-slot-hover{transition:all 0.3s cubic-bezier(.16,1,.3,1) !important;}
 .nash-slot-hover:hover{border-color:var(--paper) !important;background:var(--surface-hover) !important;}
 .nash-btn-ghost-hover{transition:all 0.4s cubic-bezier(.16,1,.3,1);}
 .nash-btn-ghost-hover:hover{background:var(--surface-hover) !important;}
-.nash-grid-row-hover:hover{background:rgba(255,255,255,0.03) !important;}
 
-/* ==========================================================================
-   DESKTOP ONLY STYLES (min-width: 861px)
-   ========================================================================== */
 @media (min-width: 861px) {
   .nash-sticky-cta {
-    display: none !important; /* Hide mobile bottom CTA on PC completely */
-  }
-  .nash-dash-nav-wrap {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 18px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-  }
-  .nash-dash-top-bar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .nash-dash-tabs {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .nash-dash-tab-btn {
-    white-space: nowrap;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 8px 18px;
-    border-radius: 4px;
-    cursor: pointer;
-    letter-spacing: 0.08em;
-    transition: all 0.3s;
+    display: none !important;
   }
 }
 
-/* ==========================================================================
-   MOBILE & TABLET STYLES (max-width: 860px)
-   ========================================================================== */
 @media (max-width: 860px) {
   .nash-sticky-cta {
-    display: flex !important; /* Show mobile bottom CTA bar on phone only */
-  }
-  .nash-dash-nav-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 12px 14px;
-    gap: 10px;
-  }
-  .nash-dash-top-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-  }
-  .nash-dash-tabs {
-    display: flex;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
-    gap: 6px;
-    scrollbar-width: none;
-  }
-  .nash-dash-tabs::-webkit-scrollbar {
-    display: none;
-  }
-  .nash-dash-tab-btn {
-    white-space: nowrap;
-    flex-shrink: 0;
-    padding: 7px 12px;
-    font-size: 10.5px;
-    font-weight: 700;
-    border-radius: 4px;
+    display: flex !important;
   }
 }
 `;
 
 const S = {
-  hsGrid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20},
-  navBugatti:{position:"absolute",top:0,left:0,right:0,zIndex:100,display:"flex",justifyContent:"space-between",alignItems:"center",padding:"36px 44px",color:"#ffffff"},
-  navSide:{display:"flex",alignItems:"center",gap:10,cursor:"pointer",color:"#ffffff",opacity:0.85,transition:"all 0.3s"},
-  navCenterBugatti:{fontFamily:"var(--display)",fontSize:22,fontWeight:800,letterSpacing:"0.3em",textTransform:"uppercase",textAlign:"center",position:"absolute",left:"50%",transform:"translateX(-50%)",color:"#ffffff"},
-  bagIcon:{width:14,height:16,border:"1px solid rgba(255,255,255,0.6)",position:"relative"},
-  bagIconHandle:{position:"absolute",top:-4,left:3,width:6,height:4,borderTop:"1px solid rgba(255,255,255,0.6)",borderLeft:"1px solid rgba(255,255,255,0.6)",borderRight:"1px solid rgba(255,255,255,0.6)"},
-  bugattiHero:{position:"relative",width:"100%",height:"100vh",background:"#000000",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:0},
-  bugattiImg:{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:1},
-  bugattiTitle:{fontFamily:"'Alex Brush', cursive",fontSize:"clamp(72px,13vw,140px)",fontWeight:400,color:"#ffffff",zIndex:10,lineHeight:1.1,letterSpacing:"normal",textTransform:"none",textShadow:"0 10px 40px rgba(0,0,0,0.85)",marginTop:10},
-  bugattiSub:{fontFamily:"var(--body)",fontSize:11,color:"rgba(255,255,255,0.85)",letterSpacing:"0.4em",textTransform:"uppercase",zIndex:10,marginTop:16,textAlign:"center",textShadow:"0 2px 10px rgba(0,0,0,0.8)"},
-  bugattiBtn:{marginTop:36,zIndex:10,background:"rgba(0,0,0,0.3)",color:"#ffffff",border:"1px solid rgba(255,255,255,0.6)",padding:"16px 48px",fontSize:10,fontWeight:700,letterSpacing:"0.3em",textTransform:"uppercase",cursor:"pointer",backdropFilter:"blur(8px)",boxShadow:"0 4px 20px rgba(0,0,0,0.5)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)"},
-
   body:{background:"var(--ink)",color:"var(--paper)",fontFamily:"var(--body)",minHeight:"100vh",paddingBottom:76,transition:"background 0.35s ease, color 0.35s ease"},
-  wrap:{maxWidth:1100,margin:"0 auto",padding:"0 24px"},
-  wrap_nav:{maxWidth:1100,margin:"0 auto",padding:"0 28px",display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",height:80},
-  nav:{position:"sticky",top:0,zIndex:50,background:"var(--nav-bg)",backdropFilter:"blur(24px)",borderBottom:"1px solid var(--line)",transition:"all 0.4s"},
-  brandNash:{fontFamily:"var(--display)",fontSize:22,letterSpacing:"0.3em",fontWeight:800,color:"var(--paper)"},
-  navCta:{background:"var(--paper)",color:"var(--ink)",fontWeight:700,padding:"10px 24px",fontSize:11,border:"none",cursor:"pointer",letterSpacing:"0.15em",textTransform:"uppercase"},
-  section:{padding:"100px 0"},
-  sectionHead:{marginBottom:48},
-  eyebrow:{fontFamily:"var(--body)",fontSize:11,letterSpacing:"0.3em",textTransform:"uppercase",color:"var(--muted)",marginBottom:16},
-  sectionH2:{fontFamily:"var(--display)",fontWeight:800,fontSize:"clamp(32px,6vw,48px)",margin:0,letterSpacing:"0.08em",color:"var(--paper)",textTransform:"uppercase"},
-  sectionP:{marginTop:16,color:"var(--muted)",fontSize:14,maxWidth:500,lineHeight:1.7,fontWeight:300},
-  bookPanel:{background:"var(--surface)",overflow:"hidden"},
+  wrap:{maxWidth:1120,margin:"0 auto",padding:"0 24px"},
+  
+  // Sticky Nav
+  navStickyHeader:{position:"sticky",top:0,zIndex:100,background:"var(--nav-bg)",backdropFilter:"blur(20px)",borderBottom:"1px solid var(--line)",transition:"all 0.3s"},
+  wrapNav:{maxWidth:1120,margin:"0 auto",padding:"0 20px",display:"flex",justifyContent:"space-between",alignItems:"center",height:68},
+  navIconBtn:{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 12px",borderRadius:20,border:"1px solid var(--line)",background:"rgba(255,255,255,0.03)"},
+  navBrandText:{fontFamily:"var(--display)",fontSize:18,fontWeight:800,letterSpacing:"0.22em",textTransform:"uppercase",cursor:"pointer",color:"var(--paper)"},
+  themeToggleBtn:{width:36,height:36,borderRadius:18,border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
+  navBookBtn:{background:"var(--paper)",color:"var(--ink)",fontWeight:800,padding:"8px 18px",fontSize:11,border:"none",borderRadius:20,cursor:"pointer",letterSpacing:"0.12em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6},
+
+  // Video Hero
+  heroContainer:{position:"relative",width:"100%",minHeight:"85vh",background:"#05080E",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 20px"},
+  heroVideo:{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.85},
+  heroOverlay:{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(5,8,14,0.4) 0%, rgba(5,8,14,0.7) 60%, rgba(5,8,14,0.98) 100%)",zIndex:5,pointerEvents:"none"},
+  heroContent:{position:"relative",zIndex:10,textAlign:"center",maxWidth:860,display:"flex",flexDirection:"column",alignItems:"center"},
+  heroPill:{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(12px)",border:"1px solid rgba(212,175,55,0.4)",padding:"6px 16px",borderRadius:20,marginBottom:20},
+  heroPing:{width:6,height:6,borderRadius:"50%",background:"#d4af37",boxShadow:"0 0 10px #d4af37"},
+  heroPillText:{fontSize:10,fontWeight:700,letterSpacing:"0.25em",textTransform:"uppercase",color:"#d4af37"},
+  heroStudioTitle:{fontFamily:"var(--display)",fontSize:"clamp(46px,9vw,96px)",fontWeight:900,color:"#ffffff",lineHeight:1.05,letterSpacing:"0.06em",textTransform:"uppercase",textShadow:"0 12px 40px rgba(0,0,0,0.9)"},
+  heroTaglineText:{fontSize:"clamp(12px,2vw,15px)",color:"rgba(255,255,255,0.85)",letterSpacing:"0.25em",textTransform:"uppercase",marginTop:16,maxWidth:600,fontWeight:400,lineHeight:1.6},
+  heroActionRow:{marginTop:32,display:"flex",gap:16,alignItems:"center"},
+  heroPrimaryBtn:{background:"#ffffff",color:"#080C14",padding:"16px 36px",borderRadius:30,fontWeight:800,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",border:"none",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:8,boxShadow:"0 10px 30px rgba(0,0,0,0.6)",transition:"all 0.3s"},
+  heroMetaStrip:{marginTop:36,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap",justifyContent:"center",color:"rgba(255,255,255,0.6)",fontSize:11,letterSpacing:"0.08em"},
+  heroMetaItem:{display:"inline-flex",alignItems:"center",gap:6},
+  heroMetaDivider:{opacity:0.4},
+
+  // Sections
+  section:{padding:"90px 0"},
+  sectionH2:{fontFamily:"var(--display)",fontWeight:800,fontSize:"clamp(28px,5vw,42px)",margin:0,letterSpacing:"0.06em",color:"var(--paper)",textTransform:"uppercase"},
+  eyebrow:{fontSize:11,letterSpacing:"0.25em",textTransform:"uppercase",color:"#d4af37",marginBottom:12,display:"block",fontWeight:700},
+
+  // Filter Bar
+  filterBar:{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,marginBottom:36,paddingBottom:20,borderBottom:"1px solid var(--line)"},
+  filterPillGroup:{display:"flex",gap:8,flexWrap:"wrap"},
+  searchWrapper:{position:"relative",minWidth:240},
+  searchInput:{width:"100%",background:"var(--surface)",border:"1px solid var(--line)",color:"var(--paper)",padding:"10px 16px",borderRadius:20,fontSize:12,outline:"none"},
+  searchClearBtn:{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer"},
+
+  // Hairstyle Grid
+  hsGrid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:24},
+  hsCard:{background:"var(--surface)",borderRadius:16,overflow:"hidden",display:"flex",flexDirection:"column",border:"1px solid var(--line)",boxShadow:"var(--card-shadow)"},
+  hsImgViewport:{position:"relative",height:300,overflow:"hidden",background:"#000000"},
+  hsImg:{width:"100%",height:"100%",objectFit:"cover",opacity:0.95},
+  hsBadgeOverlay:{position:"absolute",top:14,right:14},
+  hsCardBody:{padding:"20px",flexGrow:1,display:"flex",flexDirection:"column",justifyContent:"space-between"},
+  hsCardTitle:{fontFamily:"var(--display)",fontSize:16,fontWeight:800,color:"var(--paper)",letterSpacing:"0.04em",textTransform:"uppercase",margin:0,lineHeight:1.3},
+  hsCardPrice:{fontSize:15,fontWeight:800,color:"#d4af37",fontVariantNumeric:"tabular-nums"},
+  hsCardDesc:{fontSize:12,color:"var(--muted)",lineHeight:1.5,marginTop:8,fontWeight:300},
+  hsCardStrip:{background:"rgba(0,0,0,0.2)",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",borderTop:"1px solid var(--line)"},
+  hsCardSessionLabel:{fontSize:11,color:"var(--muted)",fontWeight:500},
+  hsCardCtaPill:{fontSize:10,fontWeight:800,letterSpacing:"0.15em",color:"var(--paper)",display:"flex",alignItems:"center",gap:4},
+  btnExpandAll:{background:"transparent",color:"var(--paper)",border:"1px solid var(--line)",padding:"14px 36px",borderRadius:24,fontSize:10,fontWeight:700,letterSpacing:"0.2em",textTransform:"uppercase",cursor:"pointer"},
+
+  // Booking Flow
+  bookPanel:{background:"var(--surface)",borderRadius:20,overflow:"hidden",border:"1px solid var(--line)",boxShadow:"var(--card-shadow)"},
+  stepperNavStrip:{padding:"22px 28px",borderBottom:"1px solid var(--line)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,background:"rgba(255,255,255,0.02)"},
+  stepPillActive:{fontSize:11,fontWeight:800,letterSpacing:"0.15em",color:"#d4af37",cursor:"pointer"},
+  stepPillDone:{fontSize:11,fontWeight:700,letterSpacing:"0.15em",color:"var(--paper)",cursor:"pointer"},
+  stepPillInactive:{fontSize:11,fontWeight:500,letterSpacing:"0.15em",color:"var(--muted)"},
+  changeStyleBtn:{background:"transparent",border:"none",color:"var(--muted)",fontSize:11,letterSpacing:"0.12em",cursor:"pointer",textTransform:"uppercase",display:"inline-flex",alignItems:"center",gap:6},
   bookBody:{padding:"36px 28px 44px"},
-  fieldGroup:{marginBottom:36},
-  fieldLabel:{fontFamily:"var(--body)",fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--muted)",marginBottom:16,display:"block",fontWeight:600},
-  dateStrip:{display:"flex",gap:8,overflowX:"auto",paddingBottom:8},
-  dateChip:{flexShrink:0,width:56,padding:"14px 0",textAlign:"center",border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",cursor:"pointer"},
-  dateChipSelected:{borderColor:"var(--paper)",background:"var(--paper)",color:"var(--ink)",fontWeight:700},
-  dateChipDisabled:{opacity:0.15,cursor:"not-allowed"},
-  dow:{fontFamily:"var(--body)",fontSize:9,color:"var(--muted)",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.1em"},
-  dnum:{fontFamily:"var(--display)",fontSize:20,fontWeight:700},
-  slotGrid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:6},
-  slot:{padding:"12px 4px",textAlign:"center",border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",fontFamily:"var(--body)",fontSize:12,cursor:"pointer",transition:"all 0.3s"},
-  slotSelected:{borderColor:"var(--paper)",background:"var(--paper)",color:"var(--ink)",fontWeight:700},
-  slotTaken:{opacity:0.15,textDecoration:"line-through",cursor:"not-allowed"},
-  slotNote:{fontSize:12,color:"var(--muted)",marginTop:14,lineHeight:1.6},
-  summaryBox:{background:"var(--surface)",padding:"20px 24px",marginBottom:24,border:"1px solid var(--line)"},
-  summaryRow:{display:"flex",justifyContent:"space-between",fontSize:14,padding:"8px 0",color:"var(--muted)"},
-  summaryTotal:{borderTop:"1px solid var(--line)",marginTop:8,paddingTop:12,fontWeight:700,color:"var(--paper)"},
+  fieldGroup:{marginBottom:32},
+  fieldLabel:{fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"var(--muted)",marginBottom:14,display:"block",fontWeight:700},
+
+  // Date and Slot Pickers
+  dateStrip:{display:"flex",gap:10,overflowX:"auto",paddingBottom:10},
+  dateChip:{flexShrink:0,width:60,padding:"14px 0",textAlign:"center",borderRadius:12,border:"1px solid var(--line)",background:"var(--surface)",color:"var(--paper)",cursor:"pointer"},
+  dateChipSelected:{borderColor:"#d4af37",background:"#d4af37",color:"#000000",fontWeight:800},
+  dateChipDisabled:{opacity:0.2,cursor:"not-allowed"},
+  dow:{fontSize:9,color:"inherit",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.1em"},
+  dnum:{fontSize:20,fontWeight:800},
+  slotGrid:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(96px,1fr))",gap:8},
+  slot:{padding:"12px 6px",textAlign:"center",borderRadius:10,border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",fontSize:12,cursor:"pointer",transition:"all 0.25s"},
+  slotSelected:{borderColor:"#d4af37",background:"#d4af37",color:"#000000",fontWeight:800},
+  slotTaken:{opacity:0.2,textDecoration:"line-through",cursor:"not-allowed"},
+
+  // Summary Table
+  summaryBox:{background:"rgba(255,255,255,0.02)",borderRadius:14,padding:"22px 24px",marginBottom:24,border:"1px solid var(--line)"},
+  summaryRow:{display:"flex",justifyContent:"space-between",fontSize:13,padding:"7px 0",color:"var(--muted)"},
   srKey:{color:"var(--muted)"},
-  srVal:{fontFamily:"var(--body)",color:"var(--paper)",fontWeight:600},
-  input:{width:"100%",background:"var(--surface)",border:"1px solid var(--line)",color:"var(--paper)",padding:"16px 20px",fontSize:14,fontFamily:"var(--body)",marginBottom:14,transition:"border-color 0.4s",outline:"none"},
+  srVal:{color:"var(--paper)",fontWeight:600},
+  input:{width:"100%",background:"var(--surface)",border:"1px solid var(--line)",borderRadius:10,color:"var(--paper)",padding:"16px 20px",fontSize:14,marginBottom:14,outline:"none"},
   formRow:{display:"flex",flexDirection:"column"},
-  btnConfirm:{width:"100%",background:"var(--paper)",color:"var(--ink)",fontWeight:700,padding:"18px",fontSize:12,border:"none",cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.2em"},
-  btnDisabled:{background:"var(--surface)",color:"var(--muted)",cursor:"not-allowed",border:"1px solid var(--line)"},
-  btnGhostBtn:{background:"transparent",color:"var(--paper)",fontWeight:600,padding:"14px 24px",fontSize:11,border:"1px solid var(--line)",cursor:"pointer",letterSpacing:"0.2em",textTransform:"uppercase"},
-  tokenPassCard:{background:"var(--surface)",color:"var(--paper)",padding:40,border:"1px solid var(--line)"},
-  passHeader:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32},
-  passBrand:{fontFamily:"var(--display)",fontSize:22,fontWeight:800,letterSpacing:"0.2em",color:"var(--paper)",textTransform:"uppercase"},
-  passSub:{fontFamily:"var(--body)",fontSize:10,color:"var(--muted)",letterSpacing:"0.3em",textTransform:"uppercase"},
-  passBadge:{background:"var(--paper)",color:"var(--ink)",fontSize:9,fontWeight:700,padding:"5px 12px",letterSpacing:"0.15em",textTransform:"uppercase"},
-  tokenBox:{padding:32,textAlign:"center",marginBottom:28,background:"var(--surface-hover)",border:"1px dashed var(--line)"},
-  tokenLabel:{display:"block",fontFamily:"var(--body)",fontSize:10,color:"var(--muted)",textTransform:"uppercase",letterSpacing:"0.25em"},
-  tokenVal:{display:"block",fontFamily:"var(--display)",fontSize:42,color:"var(--paper)",letterSpacing:"0.25em",margin:"16px 0",fontWeight:800},
+  btnConfirm:{width:"100%",background:"var(--paper)",color:"var(--ink)",fontWeight:800,padding:"18px",fontSize:12,borderRadius:12,border:"none",cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.15em",boxShadow:"0 8px 24px rgba(0,0,0,0.4)"},
+  btnDisabled:{background:"var(--line)",color:"var(--muted)",cursor:"not-allowed"},
+  btnGhostBtn:{background:"transparent",color:"var(--paper)",fontWeight:700,padding:"14px 24px",fontSize:11,borderRadius:10,border:"1px solid var(--line)",cursor:"pointer",letterSpacing:"0.15em",textTransform:"uppercase"},
+
+  // Boarding Pass
+  tokenPassCard:{background:"var(--surface)",borderRadius:20,color:"var(--paper)",padding:36,border:"1px solid var(--line)",boxShadow:"var(--card-shadow)"},
+  passHeader:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24},
+  passBrand:{fontFamily:"var(--display)",fontSize:22,fontWeight:800,letterSpacing:"0.18em",color:"var(--paper)",textTransform:"uppercase"},
+  passSub:{fontSize:10,color:"#d4af37",letterSpacing:"0.25em",textTransform:"uppercase",marginTop:3},
+  passBadge:{background:"#10b981",color:"#ffffff",fontSize:9,fontWeight:800,padding:"5px 12px",borderRadius:20,letterSpacing:"0.15em",textTransform:"uppercase"},
+  ticketPerforation:{borderTop:"2px dashed var(--line)",margin:"20px 0"},
+  tokenBox:{padding:28,textAlign:"center",marginBottom:24,borderRadius:12,background:"rgba(212,175,55,0.06)",border:"1px solid rgba(212,175,55,0.3)"},
+  tokenLabel:{display:"block",fontSize:10,color:"#d4af37",textTransform:"uppercase",letterSpacing:"0.25em",fontWeight:700},
+  tokenVal:{display:"block",fontFamily:"var(--display)",fontSize:40,color:"var(--paper)",letterSpacing:"0.2em",margin:"12px 0",fontWeight:900},
   tokenNote:{display:"block",fontSize:11,color:"var(--muted)"},
-  confirmDetail:{padding:"20px 0",fontSize:14,lineHeight:2},
+  confirmDetail:{padding:"16px 0",fontSize:13,lineHeight:2},
   cdRow:{display:"flex",justifyContent:"space-between",padding:"6px 0",color:"var(--muted)",borderBottom:"1px solid var(--line)"},
-  passActions:{marginTop:36,display:"flex",flexDirection:"column",gap:10},
-  btnWhatsApp:{display:"block",width:"100%",textAlign:"center",background:"#25D366",color:"#ffffff",fontWeight:700,padding:"16px",fontSize:11,textDecoration:"none",textTransform:"uppercase",letterSpacing:"0.2em"},
-  btnPrint:{width:"100%",background:"transparent",color:"var(--paper)",fontWeight:600,padding:"16px",fontSize:11,border:"1px solid var(--line)",cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.2em"},
-  footGrid:{display:"flex",flexDirection:"column",gap:28},
-  footBrand:{fontFamily:"var(--display)",fontSize:22,fontWeight:800,letterSpacing:"0.3em",color:"var(--paper)",textTransform:"uppercase"},
-  footAddr:{fontSize:13,color:"var(--muted)",marginTop:10,lineHeight:1.8},
-  footHours:{fontFamily:"var(--body)",fontSize:12,color:"var(--muted)",lineHeight:2.2},
-  footOwnerBtn:{background:"transparent",border:"none",padding:"8px 0",fontSize:11,color:"var(--muted)",cursor:"pointer",fontWeight:400,letterSpacing:"0.1em",transition:"color 0.3s"},
-  stickyCta:{position:"fixed",bottom:0,left:0,right:0,zIndex:60,background:"var(--nav-bg)",backdropFilter:"blur(24px)",borderTop:"1px solid var(--line)",padding:"12px 16px",display:"flex",gap:8},
-  stickyCall:{flex:1,border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",padding:14,fontWeight:600,fontSize:11,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.15em"},
-  stickyBook:{flex:1,border:"none",background:"var(--paper)",color:"var(--ink)",padding:14,fontWeight:700,fontSize:11,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.15em"},
-  loginWrap:{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:20,position:"relative",overflow:"hidden",background:"var(--surface)"},
-  loginBox:{width:"100%",maxWidth:400,border:"1px solid var(--line)",padding:44,background:"var(--surface)",position:"relative",zIndex:1},
-  /* Admin dashboard styles preserved */
-  dashDateTabs:{display:"flex",gap:12,overflowX:"auto",paddingBottom:8,marginBottom:32},
-  dashDateTab:{flexShrink:0,minWidth:68,padding:"12px 8px",textAlign:"center",border:"1px solid var(--line)",background:"var(--surface)",color:"var(--paper)",cursor:"pointer",position:"relative",display:"flex",flexDirection:"column",alignItems:"center",gap:4,borderRadius:4},
-  dashDateTabSelected:{borderColor:"var(--paper)",background:"var(--surface-hover)",boxShadow:"0 0 0 1px var(--paper)"},
-  dashDateTabSunday:{opacity:0.25,cursor:"not-allowed"},
-  dashTabDow:{fontFamily:"var(--body)",fontSize:10,color:"var(--muted)",textTransform:"uppercase",letterSpacing:"0.1em"},
-  dashTabDate:{fontFamily:"var(--display)",fontSize:20,fontWeight:700,color:"var(--paper)"},
-  dashTabBadge:{position:"absolute",top:-8,right:-8,background:"var(--paper)",color:"var(--ink)",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10},
-  dashTabClosed:{fontFamily:"var(--body)",fontSize:9,color:"#ff4d4d",letterSpacing:"0.1em",textTransform:"uppercase"},
-  dashDayHeader:{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,marginBottom:24},
-  dashDayTitle:{fontFamily:"var(--display)",fontSize:24,fontWeight:700,color:"var(--paper)",letterSpacing:"-0.01em"},
-  dashDayStats:{display:"flex",gap:12,flexWrap:"wrap"},
-  dashStatPill:{fontFamily:"var(--body)",fontSize:11,fontWeight:600,padding:"6px 14px",background:"var(--surface)",color:"var(--paper)",border:"1px solid var(--line)",letterSpacing:"0.1em",textTransform:"uppercase",borderRadius:20},
-  timeGrid:{border:"1px solid var(--line)",background:"var(--surface)",overflow:"hidden"},
-  timeGridHeader:{display:"grid",gridTemplateColumns:"100px 100px 1fr",background:"var(--surface-hover)",color:"var(--muted)",fontFamily:"var(--body)",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",padding:"14px 0",borderBottom:"1px solid var(--line)"},
-  timeGridHeaderTime:{padding:"0 20px",borderRight:"1px solid var(--line)"},
-  timeGridHeaderStatus:{padding:"0 20px",borderRight:"1px solid var(--line)"},
-  timeGridHeaderDetails:{padding:"0 20px"},
-  timeGridRow:{display:"grid",gridTemplateColumns:"100px 100px 1fr",borderBottom:"1px solid var(--line)",minHeight:56,alignItems:"stretch",transition:"background 0.3s"},
-  timeGridHourMark:{borderTop:"2px solid var(--line)"},
-  timeGridRowFree:{background:"transparent"},
-  timeGridRowBooked:{background:"var(--surface-hover)"},
-  timeGridRowPremium:{background:"var(--surface-hover)"},
-  timeGridTimeCol:{padding:"12px 20px",borderRight:"1px solid var(--line)",display:"flex",flexDirection:"column",justifyContent:"center",position:"relative"},
-  timeGridTimeLabel:{fontFamily:"var(--body)",fontSize:12,color:"var(--muted)",letterSpacing:"0.05em"},
-  timeGridHourLabel:{fontWeight:700,color:"var(--paper)",fontSize:14},
-  timeGridHourDot:{display:"none"},
-  timeGridStatusCol:{padding:"12px 20px",borderRight:"1px solid var(--line)",display:"flex",alignItems:"center",justifyContent:"flex-start"},
-  timeGridDetailsCol:{padding:"12px 20px",display:"flex",alignItems:"flex-start",flexDirection:"column",justifyContent:"center"},
-  statusBadgeFree:{fontFamily:"var(--body)",fontSize:10,fontWeight:500,color:"var(--muted)",background:"var(--surface-hover)",padding:"4px 10px",letterSpacing:"0.1em",textTransform:"uppercase"},
-  statusBadgeStd:{fontFamily:"var(--body)",fontSize:10,fontWeight:600,color:"var(--paper)",background:"var(--surface-hover)",border:"1px solid var(--line)",padding:"4px 10px",letterSpacing:"0.1em",textTransform:"uppercase"},
-  statusBadgePremium:{fontFamily:"var(--body)",fontSize:10,fontWeight:700,color:"var(--ink)",background:"var(--paper)",padding:"4px 10px",letterSpacing:"0.1em",textTransform:"uppercase"},
-  statusLiveLabel:{fontFamily:"var(--body)",fontSize:9,color:"#ff4d4d",letterSpacing:"0.15em",textTransform:"uppercase"},
-  gridCustName:{fontFamily:"var(--display)",fontSize:16,fontWeight:700,color:"var(--paper)",letterSpacing:"0.02em"},
-  gridTokenBadge:{fontFamily:"var(--body)",fontSize:10,fontWeight:600,color:"var(--paper)",background:"var(--surface)",padding:"3px 8px",border:"1px solid var(--line)"},
-  gridDuration:{fontFamily:"var(--body)",fontSize:11,color:"var(--muted)",background:"var(--surface)",padding:"3px 8px",border:"1px solid var(--line)"},
-  gridContinued:{fontFamily:"var(--body)",fontSize:11,color:"var(--muted)",fontStyle:"italic"},
-  gridFreeSlot:{fontFamily:"var(--body)",fontSize:12,color:"var(--muted)"},
-  gridExpandDetails:{marginTop:12,padding:"16px 20px",background:"var(--surface-hover)",border:"1px solid var(--line)",fontSize:14},
-  gridExpandRow:{display:"flex",gap:12,padding:"6px 0",borderBottom:"1px dashed var(--line)",justifyContent:"space-between",color:"var(--muted)"},
-  gridWaBtn:{background:"#25D366",color:"#ffffff",border:"none",padding:"10px 18px",fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"},
-  gridPrintBtn:{background:"var(--paper)",color:"var(--ink)",border:"none",padding:"10px 18px",fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:"0.1em",textTransform:"uppercase"},
+  passActions:{marginTop:28,display:"flex",flexDirection:"column",gap:12},
+  btnWhatsApp:{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",textAlign:"center",background:"#25D366",color:"#ffffff",fontWeight:800,padding:"16px",borderRadius:12,fontSize:12,textDecoration:"none",textTransform:"uppercase",letterSpacing:"0.15em",boxShadow:"0 6px 20px rgba(37,211,102,0.3)"},
+  btnPrint:{background:"transparent",color:"var(--paper)",fontWeight:700,padding:"14px",borderRadius:10,fontSize:11,border:"1px solid var(--line)",cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.15em",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8},
+
+  // Reviews
+  reviewCard:{background:"var(--surface)",borderRadius:14,border:"1px solid var(--line)",padding:"24px 22px",display:"flex",flexDirection:"column",gap:14},
+  reviewFormBox:{maxWidth:440,background:"var(--surface)",borderRadius:16,border:"1px solid var(--line)",padding:"32px 28px",textAlign:"left"},
+
+  // Footer
+  footer:{background:"var(--ink)",borderTop:"1px solid var(--line)",padding:"80px 0 40px"},
+  footerGrid:{display:"flex",flexDirection:"column",gap:28},
+  footBrand:{fontFamily:"var(--display)",fontSize:22,fontWeight:800,letterSpacing:"0.25em",color:"var(--paper)",textTransform:"uppercase"},
+  footAddr:{fontSize:13,color:"var(--muted)",marginTop:8,lineHeight:1.7},
+  footHours:{fontSize:12,color:"var(--muted)",lineHeight:2.2},
+  footerBottomRow:{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:16,borderTop:"1px solid var(--line)",paddingTop:20},
+  footOwnerBtn:{background:"transparent",border:"none",padding:"8px 0",fontSize:11,color:"var(--muted)",cursor:"pointer",letterSpacing:"0.1em"},
+  footThemeBtn:{background:"transparent",border:"1px solid var(--line)",color:"var(--paper)",padding:"8px 18px",borderRadius:20,fontSize:10,fontWeight:700,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:8,letterSpacing:"0.12em",textTransform:"uppercase"},
+  footerLegalStrip:{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:14,borderTop:"1px solid var(--line)",paddingTop:16,marginTop:8},
+  legalLinkBtn:{background:"transparent",border:"none",color:"var(--muted)",cursor:"pointer",fontSize:11,padding:0},
+
+  // Mobile Sticky CTA
+  stickyCta:{position:"fixed",bottom:0,left:0,right:0,zIndex:90,background:"var(--nav-bg)",backdropFilter:"blur(20px)",borderTop:"1px solid var(--line)",padding:"12px 16px",display:"flex",gap:10},
+  stickyCall:{flex:1,border:"1px solid var(--line)",borderRadius:10,background:"transparent",color:"var(--paper)",padding:14,fontWeight:700,fontSize:11,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.12em"},
+  stickyBook:{flex:1,border:"none",borderRadius:10,background:"#d4af37",color:"#000000",padding:14,fontWeight:800,fontSize:11,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.12em"},
 };

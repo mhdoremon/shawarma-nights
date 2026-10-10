@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Navigation,
   Store,
-  FileText
+  FileText,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRealtimeDB } from '../context/RealtimeContext';
@@ -63,7 +65,7 @@ export default function Footer({ onOpenFranchise }) {
   return (
     <footer className="relative bg-[#FFFBF7] text-zinc-900 overflow-hidden">
 
-      {/* ====== SECTION 1: STILL HUNGRY? (Exact match to Image 2) ====== */}
+      {/* ====== SECTION 1: STILL HUNGRY? (Exact match to Image 2 - NEVER TOUCH) ====== */}
       <section className="bg-[#DC2626] text-white py-16 sm:py-24 text-center px-4 sm:px-6 relative overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -99,21 +101,27 @@ export default function Footer({ onOpenFranchise }) {
         </motion.div>
       </section>
 
-      {/* ====== SECTION 2: STORE ARCHITECTURE (APPLE-STYLE WHITE CARDS) ====== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      {/* ====== SECTION 2: STORE ARCHITECTURE (PREMIUM REDESIGNED CARDS) ====== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         
         {/* Main Hub Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
           
           {/* Card 1: Brand Anchor & Direct Kitchen Hotwire (5 Cols) */}
-          <div className="lg:col-span-5 bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between space-y-6">
-            <div className="space-y-3.5">
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="lg:col-span-5 bg-white border border-zinc-200/90 rounded-[2rem] p-7 sm:p-9 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-8"
+          >
+            <div className="space-y-4">
               <div>
-                <div className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 leading-none">
-                  SHAWARMA <span className="text-red-600">NIGHTS</span>
+                <div className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-950 leading-none">
+                  SHAWARMA <span className="text-[#DC2626]">NIGHTS</span>
                 </div>
-                <div className="text-[11px] font-bold tracking-widest text-red-600 uppercase mt-1">
-                  Artisanal Charcoal Spit Kitchen
+                <div className="text-[11px] font-black tracking-widest text-[#DC2626] uppercase mt-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span>
+                  <span>Artisanal Charcoal Spit Kitchen</span>
                 </div>
               </div>
 
@@ -123,30 +131,33 @@ export default function Footer({ onOpenFranchise }) {
 
               {/* Halal Quality Badge */}
               {info.halalBadgeText && (
-                <div className="inline-flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <div className="inline-flex items-center gap-2 text-emerald-800 font-bold text-xs bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200/80 shadow-2xs">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
                   <span>{info.halalBadgeText}</span>
                 </div>
               )}
             </div>
 
             {/* Direct Dukandar Hotwire (Socials & WhatsApp) */}
-            <div className="pt-4 border-t border-zinc-100 space-y-3">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            <div className="pt-6 border-t border-zinc-100 space-y-4">
+              <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                 Direct Kitchen Hotwire & Socials
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-3">
                 {socials?.whatsapp && (
                   <a
                     href={getWhatsAppUrl(socials.whatsapp)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs transition-all shadow-xs active:scale-95"
+                    className="inline-flex items-center gap-2.5 px-5 py-3 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs transition-all shadow-md active:scale-95 hover:scale-102"
                   >
-                    <Phone className="w-3.5 h-3.5" />
+                    <Phone className="w-4 h-4 fill-white" />
                     <span>WhatsApp Kitchen</span>
-                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
                   </a>
                 )}
 
@@ -155,7 +166,7 @@ export default function Footer({ onOpenFranchise }) {
                     href={socials.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    className="w-11 h-11 rounded-full bg-zinc-50 hover:bg-rose-50 text-zinc-700 hover:text-rose-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-108 active:scale-95 shadow-2xs"
                     title="Follow on Instagram"
                   >
                     <Instagram className="w-4 h-4" />
@@ -167,7 +178,7 @@ export default function Footer({ onOpenFranchise }) {
                     href={socials.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-sky-50 text-zinc-700 hover:text-sky-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    className="w-11 h-11 rounded-full bg-zinc-50 hover:bg-sky-50 text-zinc-700 hover:text-sky-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-108 active:scale-95 shadow-2xs"
                     title="Follow on Twitter / X"
                   >
                     <Twitter className="w-4 h-4" />
@@ -179,7 +190,7 @@ export default function Footer({ onOpenFranchise }) {
                     href={socials.facebook}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-blue-50 text-zinc-700 hover:text-blue-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    className="w-11 h-11 rounded-full bg-zinc-50 hover:bg-blue-50 text-zinc-700 hover:text-blue-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-108 active:scale-95 shadow-2xs"
                     title="Follow on Facebook"
                   >
                     <Facebook className="w-4 h-4" />
@@ -191,7 +202,7 @@ export default function Footer({ onOpenFranchise }) {
                     href={socials.youtube}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-700 hover:text-red-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                    className="w-11 h-11 rounded-full bg-zinc-50 hover:bg-red-50 text-zinc-700 hover:text-red-600 border border-zinc-200 flex items-center justify-center transition-all hover:scale-108 active:scale-95 shadow-2xs"
                     title="Watch on YouTube"
                   >
                     <Youtube className="w-4 h-4" />
@@ -203,132 +214,148 @@ export default function Footer({ onOpenFranchise }) {
               <div className="pt-2">
                 <button
                   onClick={onOpenFranchise}
-                  className="w-full py-3 px-4 rounded-full bg-[#FFFBF7] hover:bg-red-50 text-zinc-900 hover:text-[#DC2626] font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-98"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-zinc-50 hover:bg-red-50/80 text-zinc-900 hover:text-[#DC2626] font-extrabold text-xs transition-all flex items-center justify-between border border-zinc-200/80 hover:border-red-200 shadow-2xs active:scale-98 cursor-pointer group"
                 >
-                  <Store className="w-3.5 h-3.5 text-[#DC2626]" />
-                  <span>Own a Franchise & Partner With Us</span>
+                  <div className="flex items-center gap-2.5">
+                    <Store className="w-4 h-4 text-[#DC2626]" />
+                    <span>Own a Franchise & Partner With Us</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-zinc-400 group-hover:text-[#DC2626] group-hover:translate-x-1 transition-all" />
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 2: The Roasting Clock & Hours (3 Cols) */}
-          <div className="lg:col-span-3 bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="lg:col-span-3 bg-white border border-zinc-200/90 rounded-[2rem] p-7 sm:p-9 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <div className="text-xs font-black text-[#DC2626] uppercase tracking-widest flex items-center gap-2">
+                <Clock className="w-4 h-4 stroke-[2.5]" />
                 <span>Roasting Clock</span>
               </div>
 
-              <div className="pt-2">
-                <div className="text-xl sm:text-2xl font-black text-zinc-900 leading-tight font-mono">
+              <div className="pt-1">
+                <div className="text-xl sm:text-2xl font-black text-zinc-950 leading-tight font-mono tracking-tight">
                   {info.timing}
                 </div>
-                <div className="text-xs text-zinc-500 font-medium mt-1">
+                <div className="text-xs text-zinc-500 font-medium mt-1.5 leading-relaxed">
                   {info.deliveryNote}
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 w-fit">
+            <div className="pt-6 border-t border-zinc-100 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200/80 w-fit">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span>Live Midnight Slicing</span>
               </div>
-              <p className="text-[11px] text-zinc-400">
+              <p className="text-[11px] text-zinc-400 leading-relaxed font-normal">
                 Spits keep spinning till the last order at 4:00 AM.
               </p>
             </div>
-          </div>
+          </motion.div>
 
           {/* Card 3: The Spit Outpost & Coordinates (4 Cols) */}
-          <div className="lg:col-span-4 bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" />
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-4 bg-white border border-zinc-200/90 rounded-[2rem] p-7 sm:p-9 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <div className="text-xs font-black text-[#DC2626] uppercase tracking-widest flex items-center gap-2">
+                <MapPin className="w-4 h-4 stroke-[2.5]" />
                 <span>The Spit Outpost</span>
               </div>
 
-              <div className="pt-2">
-                <div className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">
+              <div className="pt-1">
+                <div className="text-base sm:text-lg font-bold text-zinc-950 leading-snug">
                   {info.address}
                 </div>
-                <div className="text-xs text-zinc-500 font-medium mt-1">
+                <div className="text-xs text-zinc-500 font-medium mt-1.5 leading-relaxed">
                   {info.locationNote}
                 </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 space-y-3">
-              <div className="text-[11px] text-zinc-400">
-                10 KM Express Midnight Delivery Corridor
+            <div className="pt-6 border-t border-zinc-100 space-y-3.5">
+              <div className="text-[11px] text-zinc-400 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>10 KM Express Midnight Delivery Corridor</span>
               </div>
 
               <a
                 href={mapsQueryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-full bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                className="w-full py-3 px-5 rounded-full bg-zinc-950 hover:bg-black text-white font-black text-xs transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer group"
               >
-                <Navigation className="w-3.5 h-3.5 text-red-400" />
+                <Navigation className="w-3.5 h-3.5 text-red-400 group-hover:rotate-45 transition-transform" />
                 <span>Locate on Google Maps</span>
                 <ExternalLink className="w-3 h-3 text-zinc-400" />
               </a>
             </div>
-          </div>
+          </motion.div>
 
         </div>
 
         {/* Legal Policies & PhonePe Compliance Strip */}
-        <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 font-medium">
+        <div className="mt-12 pt-8 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-5 text-xs text-zinc-600">
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6 font-semibold">
             <a
               href="/contact-us"
-              className="hover:text-red-600 transition-colors"
+              className="hover:text-[#DC2626] transition-colors"
             >
               Contact Us
             </a>
             <a
               href="/terms-and-conditions"
-              className="hover:text-red-600 transition-colors"
+              className="hover:text-[#DC2626] transition-colors"
             >
               Terms & Conditions
             </a>
             <a
               href="/privacy-policy"
-              className="hover:text-red-600 transition-colors"
+              className="hover:text-[#DC2626] transition-colors"
             >
               Privacy Policy
             </a>
             <a
               href="/refund-policy"
-              className="hover:text-red-600 transition-colors font-bold text-zinc-700"
+              className="hover:text-[#DC2626] transition-colors font-bold text-zinc-900"
             >
               Refund & Cancellation Policy
             </a>
             <a
               href="/shipping-policy"
-              className="hover:text-red-600 transition-colors"
+              className="hover:text-[#DC2626] transition-colors"
             >
               Shipping Policy
             </a>
           </div>
 
-          <div className="text-[11px] font-mono text-zinc-500 bg-zinc-100 px-3.5 py-1.5 rounded-full border border-zinc-200 text-center">
+          <div className="text-[11px] font-mono text-zinc-600 bg-white px-4 py-2 rounded-full border border-zinc-200/90 shadow-2xs text-center">
             Approved refunds processed in 5 to 7 business days • Local delivery in 30 to 45 mins
           </div>
         </div>
 
         {/* Accepted Payment Modes & Bottom Strip */}
-        <div className="mt-8 pt-6 border-t border-zinc-200 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mt-8 pt-6 border-t border-zinc-200/80 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mr-2">
+            <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mr-2">
               Payment Modes:
             </span>
             {['UPI (Any App)', 'Google Pay', 'PhonePe', 'Paytm', 'Cash on Delivery'].map((mode) => (
               <span 
                 key={mode} 
-                className="bg-white border border-zinc-200 text-zinc-700 px-3 py-1 rounded-full text-xs font-medium shadow-xs"
+                className="bg-white border border-zinc-200/90 text-zinc-800 px-3.5 py-1 rounded-full text-xs font-semibold shadow-2xs"
               >
                 {mode}
               </span>
@@ -336,15 +363,15 @@ export default function Footer({ onOpenFranchise }) {
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="text-xs text-zinc-500 font-medium">
+            <span className="text-xs text-zinc-500 font-normal">
               © 2026 Shawarma Nights. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.
             </span>
             <button 
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-xs cursor-pointer"
+              className="w-10 h-10 rounded-full bg-[#DC2626] hover:bg-red-700 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-md cursor-pointer shrink-0"
               title="Back to top"
             >
-              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+              <ArrowUp className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
         </div>
@@ -358,6 +385,7 @@ export default function Footer({ onOpenFranchise }) {
         initialTab={legalTab}
         entity="shawarma"
       />
+
     </footer>
   );
 }
