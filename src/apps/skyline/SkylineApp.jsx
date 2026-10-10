@@ -120,6 +120,7 @@ export default function SkylineApp() {
   const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' | 'upi'
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   // Real UPI & SmartPay Modal State
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
@@ -375,7 +376,7 @@ export default function SkylineApp() {
     });
 
     showToast(`Added to Bag: ${product.name}`);
-    setIsCartOpen(true);
+    // Cart is not auto-opened on add so user can continue shopping smoothly
   };
 
   const updateCartQuantity = (cartItemId, delta) => {
@@ -392,6 +393,17 @@ export default function SkylineApp() {
 
   const removeFromCart = (cartItemId) => {
     setCartItems(prev => prev.filter(item => item.cartItemId !== cartItemId));
+  };
+
+  const clearCartCompletely = () => {
+    setCartItems([]);
+    setAppliedCoupon(null);
+    try {
+      localStorage.setItem('slick_cart', '[]');
+      localStorage.removeItem('skyline_cart');
+    } catch (e) {
+      console.warn('Cart clear error:', e);
+    }
   };
 
   // ─── COUPON VALIDATION ─────────────────────────────────────────
@@ -519,8 +531,7 @@ export default function SkylineApp() {
         
         if (paymentMethod === 'cod') {
           setConfirmedOrder(created);
-          setCartItems([]);
-          setAppliedCoupon(null);
+          clearCartCompletely();
           setIsCheckoutOpen(false);
           setIsCartOpen(false);
           showToast('Order Placed Successfully via Cash on Delivery!');
@@ -541,7 +552,7 @@ export default function SkylineApp() {
             items: cartItems
           };
           setPendingPaymentData(upiPayload);
-          setConfirmedOrder(created);
+          setPendingOrder(created); // DO NOT set confirmedOrder yet! Wait for verified payment
           setIsUpiModalOpen(true);
         }
       } else {
@@ -557,18 +568,24 @@ export default function SkylineApp() {
 
   // ─── UPI MODAL PAYMENT SUCCESS CALLBACK ────────────────────────
   const handlePaymentSuccess = async (paymentResult) => {
+    const orderToConfirm = pendingOrder || confirmedOrder;
     try {
-      if (confirmedOrder?.id) {
-        await updateSkylineOrderStatus(confirmedOrder.id, 'confirmed', 'paid');
+      if (orderToConfirm?.id) {
+        await updateSkylineOrderStatus(orderToConfirm.id, 'confirmed', 'paid');
       }
     } catch (e) {
       console.warn('Order status update error:', e);
     }
-    setConfirmedOrder(prev => prev ? { ...prev, paymentStatus: 'paid', status: 'confirmed' } : null);
+    setConfirmedOrder({
+      ...(orderToConfirm || {}),
+      paymentStatus: 'paid',
+      status: 'confirmed'
+    });
+    setPendingOrder(null);
+    clearCartCompletely();
     setIsUpiModalOpen(false);
     setIsCheckoutOpen(false);
-    setCartItems([]);
-    setAppliedCoupon(null);
+    setIsCartOpen(false);
     showToast('✦ Payment Verified! Wardrobe Order Confirmed.');
   };
 
@@ -2019,7 +2036,10 @@ export default function SkylineApp() {
       {isUpiModalOpen && (
         <UpiPaymentModal
           isOpen={isUpiModalOpen}
-          onClose={() => setIsUpiModalOpen(false)}
+          onClose={() => {
+            setIsUpiModalOpen(false);
+            showToast('Payment was not completed. Items remain in your bag.');
+          }}
           orderData={pendingPaymentData}
           paymentData={pendingPaymentData}
           onPaymentSuccess={handlePaymentSuccess}
