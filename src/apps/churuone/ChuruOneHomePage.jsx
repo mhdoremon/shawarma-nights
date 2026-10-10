@@ -10,14 +10,18 @@ import {
   Star,
   Clock,
   Plus,
+  Minus,
+  Trash2,
   Check,
   LogOut,
   Phone,
   Mail,
-  ChevronRight,
+  X,
+  Calendar,
   Sparkles,
   Utensils,
-  Scissors
+  Scissors,
+  CheckCircle2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,7 +40,6 @@ export default function ChuruOneHomePage() {
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [cartCount, setCartCount] = useState(2);
   const [toastMessage, setToastMessage] = useState('');
 
   // Unified ChuruOne SSO User State
@@ -45,12 +48,44 @@ export default function ChuruOneHomePage() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef(null);
 
+  // ─── CHURUONE NATIVE CART SYSTEM (For Deliverable Goods) ─────────
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState([
+    {
+      id: 'sn-classic',
+      name: 'Classic Chicken Shawarma',
+      storeName: 'Shawarma Nights',
+      price: 149,
+      mrp: 180,
+      image: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=300&q=80',
+      qty: 1
+    },
+    {
+      id: 'prod-milk',
+      name: 'Amul Taaza Toned Milk (1L)',
+      storeName: 'Sharma Kirana',
+      price: 54,
+      mrp: 60,
+      image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=300&q=80',
+      qty: 1
+    }
+  ]);
+
+  // ─── NASH STUDIO SALON APPOINTMENT BOOKING SYSTEM ───────────────
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [bookingDate, setBookingDate] = useState('Today');
+  const [bookingTime, setBookingTime] = useState('4:00 PM');
+  const [bookingCustomerName, setBookingCustomerName] = useState('');
+  const [bookingCustomerPhone, setBookingCustomerPhone] = useState('');
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+
   // Set browser title
   useEffect(() => {
     document.title = "ChuruOne | Churu ki har dukaan ab online";
   }, []);
 
-  // Sync SSO session on mount (from URL redirect, Cookie or LocalStorage)
+  // Sync SSO session on mount
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
@@ -62,6 +97,8 @@ export default function ChuruOneHomePage() {
         setCurrentUser(parsed);
         setAuthToken(urlToken || '');
         setChuruOneSession(parsed, urlToken || '');
+        if (parsed.name) setBookingCustomerName(parsed.name);
+        if (parsed.phone) setBookingCustomerPhone(parsed.phone);
 
         params.delete('churuone_user');
         params.delete('churuone_token');
@@ -75,13 +112,15 @@ export default function ChuruOneHomePage() {
       if (session && session.user) {
         setCurrentUser(session.user);
         setAuthToken(session.token || '');
+        if (session.user.name) setBookingCustomerName(session.user.name);
+        if (session.user.phone) setBookingCustomerPhone(session.user.phone);
       }
     } catch (err) {
       console.warn('SSO sync warning in ChuruOneHomePage:', err);
     }
   }, []);
 
-  // Close account dropdown when clicking outside
+  // Close account dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (accountMenuRef.current && !accountMenuRef.current.contains(e.target)) {
@@ -92,16 +131,6 @@ export default function ChuruOneHomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Auto-scroll to #about if requested
-  useEffect(() => {
-    if (window.location.hash === '#about' || window.location.pathname.includes('/about') || window.location.pathname.includes('/contact')) {
-      setTimeout(() => {
-        const el = document.getElementById('about');
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
-    }
-  }, []);
-
   const handleLogout = () => {
     clearChuruOneSession();
     setCurrentUser(null);
@@ -109,17 +138,11 @@ export default function ChuruOneHomePage() {
     setIsAccountMenuOpen(false);
   };
 
-  const openLegalModal = (tab = 'terms') => {
-    setLegalTab(tab);
-    setLegalModalOpen(true);
-  };
-
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 2500);
   };
 
-  // Resolve store destination URL dynamically with SSO params
   const getStoreUrl = (storeId) => {
     let base = `/?storeId=${storeId}`;
     if (storeId === 'shawarma') {
@@ -134,7 +157,63 @@ export default function ChuruOneHomePage() {
     return base;
   };
 
-  // Categories list matching reference UI
+  // Cart operations
+  const addToCart = (product) => {
+    setCartItems(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) {
+        return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
+      }
+      return [...prev, {
+        id: product.id,
+        name: product.name,
+        storeName: product.storeName,
+        price: product.price,
+        mrp: product.mrp,
+        image: product.image,
+        qty: 1
+      }];
+    });
+    showToast(`Added ${product.name} to cart!`);
+    setIsCartOpen(true);
+  };
+
+  const updateCartQty = (id, delta) => {
+    setCartItems(prev => {
+      return prev.map(item => {
+        if (item.id === id) {
+          const newQty = item.qty + delta;
+          return newQty > 0 ? { ...item, qty: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean);
+    });
+  };
+
+  const removeFromCart = (id) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
+
+  // Booking handlers
+  const openBookingModal = (service) => {
+    setSelectedService(service);
+    setBookingConfirmed(false);
+    setIsBookingModalOpen(true);
+  };
+
+  const handleConfirmBooking = (e) => {
+    e.preventDefault();
+    if (!bookingCustomerName || !bookingCustomerPhone) {
+      showToast('Please enter your name and phone number');
+      return;
+    }
+    setBookingConfirmed(true);
+  };
+
+  // Categories list
   const categories = [
     { id: 'all', name: 'All', emoji: '🌟' },
     { id: 'food', name: 'Food & Shawarma', emoji: '🌯' },
@@ -149,12 +228,12 @@ export default function ChuruOneHomePage() {
     { id: 'gifts', name: 'Gifts', emoji: '🎁' }
   ];
 
-  // Popular Stores
+  // Stores
   const stores = [
     {
       id: 'shawarma',
       name: 'Shawarma Nights',
-      category: 'Culinary & Charcoal Grill',
+      category: 'Charcoal Kitchen & Dining',
       rating: '4.8',
       timing: '20 min',
       image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80',
@@ -174,7 +253,7 @@ export default function ChuruOneHomePage() {
     {
       id: 'sharma-kirana',
       name: 'Sharma Kirana',
-      category: 'Grocery & Essentials',
+      category: 'Grocery & Daily Essentials',
       rating: '4.8',
       timing: '20 min',
       image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?auto=format&fit=crop&w=600&q=80',
@@ -184,7 +263,7 @@ export default function ChuruOneHomePage() {
     {
       id: 'gupta-medical',
       name: 'Gupta Medical',
-      category: 'Pharmacy & Health',
+      category: 'Pharmacy & Healthcare',
       rating: '4.7',
       timing: '25 min',
       image: 'https://images.unsplash.com/photo-1586015555751-63bb77f4322a?auto=format&fit=crop&w=600&q=80',
@@ -223,12 +302,13 @@ export default function ChuruOneHomePage() {
     }
   ];
 
-  // Today's Deals / Trending Items (Including Shawarma Nights items & Nash Studio services)
-  const products = [
+  // Today's Deals / Items (Food & Products vs Salon Services)
+  const items = [
     {
       id: 'sn-classic',
       name: 'Classic Chicken Shawarma',
       storeName: 'Shawarma Nights',
+      type: 'product',
       category: 'food',
       discount: '-20%',
       price: 149,
@@ -240,6 +320,7 @@ export default function ChuruOneHomePage() {
       id: 'nash-fade',
       name: 'Precision Skin Fade & Style',
       storeName: 'Nash Studio',
+      type: 'service',
       category: 'salon',
       discount: '-20%',
       price: 199,
@@ -251,6 +332,7 @@ export default function ChuruOneHomePage() {
       id: 'sn-jumbo',
       name: 'Charcoal Spit Jumbo Roll',
       storeName: 'Shawarma Nights',
+      type: 'product',
       category: 'food',
       discount: '-15%',
       price: 199,
@@ -262,6 +344,7 @@ export default function ChuruOneHomePage() {
       id: 'nash-beard',
       name: 'Royal Beard Sculpt & Hot Towel',
       storeName: 'Nash Studio',
+      type: 'service',
       category: 'salon',
       discount: '-15%',
       price: 149,
@@ -271,8 +354,9 @@ export default function ChuruOneHomePage() {
     },
     {
       id: 'prod-atta',
-      name: 'Aashirvaad Shudh Chakki Atta',
+      name: 'Aashirvaad Shudh Chakki Atta (5kg)',
       storeName: 'Sharma Kirana',
+      type: 'product',
       category: 'grocery',
       discount: '-20%',
       price: 320,
@@ -284,6 +368,7 @@ export default function ChuruOneHomePage() {
       id: 'prod-banana',
       name: 'Fresh Robusta Bananas (1 Dozen)',
       storeName: 'Churu Fresh Fruits',
+      type: 'product',
       category: 'fruits',
       discount: '-15%',
       price: 40,
@@ -295,6 +380,7 @@ export default function ChuruOneHomePage() {
       id: 'prod-milk',
       name: 'Amul Taaza Toned Milk (1L)',
       storeName: 'Sharma Kirana',
+      type: 'product',
       category: 'grocery',
       discount: '-10%',
       price: 54,
@@ -306,6 +392,7 @@ export default function ChuruOneHomePage() {
       id: 'prod-redmi',
       name: 'Redmi 12 5G (Moonstone Silver)',
       storeName: 'Tech World',
+      type: 'product',
       category: 'mobiles',
       discount: '-25%',
       price: 11999,
@@ -317,6 +404,7 @@ export default function ChuruOneHomePage() {
       id: 'prod-boat',
       name: 'boAt Rockerz Bluetooth Headphones',
       storeName: 'Tech World',
+      type: 'product',
       category: 'mobiles',
       discount: '-30%',
       price: 1399,
@@ -326,10 +414,9 @@ export default function ChuruOneHomePage() {
     }
   ];
 
-  // Filtered lists
-  const filteredProducts = products.filter(p => {
-    const matchCat = selectedCategory === 'all' || p.category === selectedCategory;
-    const matchQuery = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.storeName.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredItems = items.filter(item => {
+    const matchCat = selectedCategory === 'all' || item.category === selectedCategory;
+    const matchQuery = !searchQuery || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.storeName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchQuery;
   });
 
@@ -338,19 +425,14 @@ export default function ChuruOneHomePage() {
     return matchQuery;
   });
 
-  const handleAddToCart = (item) => {
-    setCartCount(prev => prev + 1);
-    showToast(`Added ${item.name} to cart!`);
-  };
-
   return (
     <div className="min-h-screen bg-[#FDFCF9] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
       
-      {/* ─── Top Navbar (Exactly matching the Reference Design) ───── */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between gap-4">
+      {/* ─── Ultra-Clean Header (NO Top Search Bar) ───────────────── */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           
-          {/* Left: ChuruOne Brand Logo with Bag Icon */}
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="ChuruOne Home">
             <div className="w-9 h-9 rounded-xl bg-stone-950 text-white flex items-center justify-center shadow-xs">
               <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
@@ -360,35 +442,22 @@ export default function ChuruOneHomePage() {
             </span>
           </Link>
 
-          {/* Center: Global Search Bar */}
-          <div className="hidden sm:flex flex-1 max-w-md mx-4">
-            <div className="w-full relative flex items-center bg-stone-100/80 hover:bg-stone-100 border border-stone-200/80 rounded-full px-4 py-2 transition-all">
-              <Search className="w-4 h-4 text-stone-400 shrink-0 mr-2.5" />
-              <input
-                type="text"
-                placeholder="Search products or stores..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 outline-none font-medium"
-              />
-            </div>
-          </div>
-
-          {/* Right Utilities: Location, Cart, Account */}
+          {/* Right Utilities: Location, Cart Drawer Trigger, User Profile */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0" ref={accountMenuRef}>
             
-            {/* Location Selector Pill */}
+            {/* Location Pill */}
             <div className="flex items-center gap-1.5 text-stone-700 bg-stone-50 border border-stone-200/80 rounded-full px-3 py-1.5 text-xs font-semibold cursor-pointer hover:bg-stone-100 transition-colors">
               <MapPin className="w-3.5 h-3.5 text-stone-500" />
               <span>Churu</span>
               <ChevronDown className="w-3 h-3 text-stone-400" />
             </div>
 
-            {/* Cart Icon with Counter Badge */}
-            <Link 
-              to={getStoreUrl('shawarma')}
-              className="relative p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-800"
-              title="View Cart"
+            {/* Native ChuruOne Cart Icon Button */}
+            <button 
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-800 cursor-pointer"
+              title="Open ChuruOne Cart"
             >
               <ShoppingCart className="w-5 h-5" />
               {cartCount > 0 && (
@@ -396,15 +465,15 @@ export default function ChuruOneHomePage() {
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
 
-            {/* User Profile / SSO Button */}
+            {/* SSO Profile Pill */}
             {currentUser ? (
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsAccountMenuOpen(prev => !prev)}
-                  className="p-1.5 rounded-full hover:bg-stone-100 transition-colors flex items-center gap-1.5 text-stone-800"
+                  className="p-1.5 rounded-full hover:bg-stone-100 transition-colors flex items-center gap-1.5 text-stone-800 cursor-pointer"
                 >
                   {currentUser.picture || currentUser.photoURL ? (
                     <img 
@@ -420,7 +489,6 @@ export default function ChuruOneHomePage() {
                   <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Account Menu */}
                 <AnimatePresence>
                   {isAccountMenuOpen && (
                     <motion.div
@@ -468,29 +536,14 @@ export default function ChuruOneHomePage() {
         </div>
       </header>
 
-      {/* ─── Mobile Search Bar (Visible on phones) ────────────────── */}
-      <div className="sm:hidden px-4 pt-3 pb-1">
-        <div className="flex items-center bg-stone-100/90 border border-stone-200/90 rounded-full px-4 py-2.5">
-          <Search className="w-4 h-4 text-stone-400 shrink-0 mr-2.5" />
-          <input
-            type="text"
-            placeholder="Search products or stores..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent text-xs text-stone-900 placeholder:text-stone-400 outline-none font-medium"
-          />
-        </div>
-      </div>
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-10 sm:space-y-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10 sm:space-y-12">
         
-        {/* ─── HERO BANNER (Churu ki har dukaan ab online + Real Ghantaghar) ── */}
-        <section className="relative rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-r from-stone-50 via-white to-amber-50/20 border border-stone-200/80 shadow-xs overflow-hidden">
+        {/* ─── HERO BANNER WITH REAL CHURU GHANTAGHAR & OVERLAPPING SEARCH ── */}
+        <section className="relative rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-r from-stone-50 via-white to-amber-50/20 border border-stone-200/80 shadow-xs overflow-visible">
           <div className="grid grid-cols-1 md:grid-cols-12 items-center">
             
-            {/* Left Content Column */}
-            <div className="md:col-span-7 p-6 sm:p-10 lg:p-14 space-y-6">
-              
+            {/* Left Headline Area */}
+            <div className="md:col-span-7 p-6 sm:p-10 lg:p-12 space-y-6 z-10">
               <motion.h1 
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -502,9 +555,9 @@ export default function ChuruOneHomePage() {
                 ab online
               </motion.h1>
 
-              {/* Action Search Pill: Kya chahiye? */}
-              <div className="relative max-w-md">
-                <div className="flex items-center bg-white border border-stone-200/90 rounded-full shadow-sm p-1.5 pl-5 focus-within:border-stone-900 transition-colors">
+              {/* OVERLAPPING SEARCH BAR (Overlays smoothly onto the photo on desktop) */}
+              <div className="relative max-w-lg md:w-[125%] z-20">
+                <div className="flex items-center bg-white border border-stone-200/90 rounded-full shadow-lg p-2 pl-6 focus-within:border-stone-900 transition-all">
                   <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
                   <input
                     type="text"
@@ -519,31 +572,30 @@ export default function ChuruOneHomePage() {
                       const el = document.getElementById('stores-grid');
                       if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-stone-950 text-white flex items-center justify-center shrink-0 hover:bg-stone-800 transition-colors cursor-pointer shadow-xs"
+                    className="w-11 h-11 rounded-full bg-stone-950 text-white flex items-center justify-center shrink-0 hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
                     aria-label="Search"
                   >
-                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ArrowRight className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-
             </div>
 
-            {/* Right: Real Churu Ghantaghar Photo */}
-            <div className="md:col-span-5 h-64 sm:h-80 md:h-[380px] relative overflow-hidden flex items-end justify-center md:justify-end">
+            {/* Right: Real Churu Ghantaghar Photo (100% Clean, No Crop Artifacts) */}
+            <div className="md:col-span-5 h-64 sm:h-80 md:h-[400px] relative overflow-hidden flex items-end justify-center md:justify-end rounded-b-[2rem] md:rounded-b-none md:rounded-r-[2.5rem]">
               <img
                 src="/images/churu-ghantaghar.jpg"
-                alt="Churu Ghanta Ghar"
-                className="w-full h-full object-cover object-center md:rounded-r-[2.5rem]"
+                alt="Real Churu Lal Ghanta Ghar Dharm Stup"
+                className="w-full h-full object-cover object-center"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent md:hidden" />
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/20 via-transparent to-transparent md:hidden" />
             </div>
 
           </div>
         </section>
 
-        {/* ─── CATEGORY ICONS CAROUSEL / ROW ───────────────────────── */}
-        <section className="overflow-x-auto no-scrollbar py-2">
+        {/* ─── CATEGORY SQUIRCLE ROW ───────────────────────────────── */}
+        <section className="overflow-x-auto no-scrollbar py-1">
           <div className="flex items-center gap-3 sm:gap-4 w-max min-w-full">
             {categories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
@@ -626,15 +678,15 @@ export default function ChuruOneHomePage() {
           </div>
         </section>
 
-        {/* ─── TODAY'S DEALS / PRODUCTS (Shawarma & Nash Studio Items) ─ */}
+        {/* ─── TODAY'S DEALS & SERVICES (Separating Products vs Booking) ── */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Today&apos;s Deals
+                Today&apos;s Deals & Services
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Shawarma Nights dishes, Nash Studio grooming & daily essentials
+                Food & grocery go to cart • Salon grooming slots book directly
               </p>
             </div>
             <a 
@@ -647,60 +699,81 @@ export default function ChuruOneHomePage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
-            {filteredProducts.map((prod) => (
+            {filteredItems.map((item) => (
               <div
-                key={prod.id}
+                key={item.id}
                 className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
-                  {/* Product Imagery Frame */}
-                  <a href={prod.destination} className="block relative h-36 sm:h-40 w-full overflow-hidden bg-stone-100">
+                  {/* Item Image */}
+                  <div className="relative h-36 sm:h-40 w-full overflow-hidden bg-stone-100">
                     <img
-                      src={prod.image}
-                      alt={prod.name}
+                      src={item.image}
+                      alt={item.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
 
                     {/* Discount Pill */}
                     <span className="absolute top-2 left-2 bg-stone-950 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
-                      {prod.discount}
+                      {item.discount}
                     </span>
-                  </a>
 
-                  {/* Product Details */}
+                    {/* Service vs Delivery Tag */}
+                    <span className={`absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                      item.type === 'service' 
+                        ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                        : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                    }`}>
+                      {item.type === 'service' ? 'Salon Slot' : 'Delivery'}
+                    </span>
+                  </div>
+
+                  {/* Item Info */}
                   <div className="p-3 sm:p-3.5 space-y-1">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400 truncate">
-                      {prod.storeName}
+                      {item.storeName}
                     </div>
-                    <a href={prod.destination} className="block">
-                      <h4 className="font-bold text-xs sm:text-sm text-stone-950 line-clamp-1 group-hover:text-stone-700">
-                        {prod.name}
-                      </h4>
-                    </a>
+                    <h4 className="font-bold text-xs sm:text-sm text-stone-950 line-clamp-1 group-hover:text-stone-700">
+                      {item.name}
+                    </h4>
                   </div>
                 </div>
 
-                {/* Pricing & Add Button */}
+                {/* Pricing & Intelligent Action Button */}
                 <div className="p-3 sm:p-3.5 pt-0 flex items-center justify-between">
                   <div>
                     <div className="font-black text-sm sm:text-base text-stone-950">
-                      ₹{prod.price}
+                      ₹{item.price}
                     </div>
-                    {prod.mrp && (
+                    {item.mrp && (
                       <div className="text-[10px] sm:text-xs text-stone-400 line-through">
-                        ₹{prod.mrp}
+                        ₹{item.mrp}
                       </div>
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleAddToCart(prod)}
-                    className="w-8 h-8 rounded-full bg-stone-950 hover:bg-stone-800 text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
-                    title="Add item"
-                  >
-                    <Plus className="w-4 h-4 stroke-[2.5]" />
-                  </button>
+                  {item.type === 'service' ? (
+                    /* Salon Service: Book Appointment Button */
+                    <button
+                      type="button"
+                      onClick={() => openBookingModal(item)}
+                      className="bg-amber-800 hover:bg-amber-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                      title="Book Salon Appointment"
+                    >
+                      <Scissors className="w-3 h-3" />
+                      <span>Book</span>
+                    </button>
+                  ) : (
+                    /* Deliverable Product: Add to Cart Button */
+                    <button
+                      type="button"
+                      onClick={() => addToCart(item)}
+                      className="w-8 h-8 rounded-full bg-stone-950 hover:bg-stone-800 text-white flex items-center justify-center transition-colors cursor-pointer shadow-xs active:scale-95"
+                      title="Add to ChuruOne Cart"
+                    >
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                    </button>
+                  )}
                 </div>
 
               </div>
@@ -708,7 +781,7 @@ export default function ChuruOneHomePage() {
           </div>
         </section>
 
-        {/* ─── OFFICIAL ENTITY & ABOUT SECTION ─────────────────────── */}
+        {/* ─── OFFICIAL ENTITY & ABOUT ──────────────────────────────── */}
         <section id="about" className="pt-8 pb-4 border-t border-stone-200/80">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start bg-white rounded-3xl p-6 sm:p-9 border border-stone-200/80 shadow-2xs">
             
@@ -723,7 +796,7 @@ export default function ChuruOneHomePage() {
                 ChuruOne connects citizens directly with verified local businesses — including Shawarma Nights for artisanal charcoal dining and Nash Studio for private salon grooming, plus local kirana and pharmacies.
               </p>
               <p className="text-xs text-stone-500 leading-relaxed font-normal">
-                Zero middleman commissions. 100% direct merchant payments with express 20–30 minute local city delivery.
+                Zero middleman commissions. Direct merchant payments with express 20–30 minute local city delivery.
               </p>
             </div>
 
@@ -772,7 +845,341 @@ export default function ChuruOneHomePage() {
 
       </main>
 
-      {/* ─── Footer: Compliance & Policy Links ───────────────────── */}
+      {/* ─── CHURUONE NATIVE SLIDE-OVER CART DRAWER ───────────────── */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsCartOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-xs"
+            />
+
+            {/* Slide-over panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between z-10"
+            >
+              {/* Cart Header */}
+              <div className="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+                <div className="flex items-center gap-2.5">
+                  <ShoppingCart className="w-5 h-5 text-stone-900" />
+                  <h3 className="font-extrabold text-base text-stone-950">
+                    My ChuruOne Cart ({cartCount})
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-stone-200 transition-colors text-stone-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Cart Items List */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                {cartItems.length === 0 ? (
+                  <div className="text-center py-12 space-y-3">
+                    <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto" />
+                    <p className="text-stone-500 text-sm font-medium">Aapka cart khali hai</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsCartOpen(false)}
+                      className="text-xs font-bold text-stone-900 underline uppercase"
+                    >
+                      Dukano se shopping karein
+                    </button>
+                  </div>
+                ) : (
+                  cartItems.map((item) => (
+                    <div 
+                      key={item.id}
+                      className="flex items-center gap-3.5 p-3 rounded-2xl border border-stone-200/80 bg-stone-50/50"
+                    >
+                      <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-16 h-16 rounded-xl object-cover shrink-0 bg-stone-200"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold uppercase text-stone-400 block truncate">
+                          {item.storeName}
+                        </span>
+                        <h4 className="font-bold text-xs sm:text-sm text-stone-950 truncate">
+                          {item.name}
+                        </h4>
+                        <div className="font-black text-sm text-stone-950 mt-1">
+                          ₹{item.price * item.qty}
+                        </div>
+                      </div>
+
+                      {/* Quantity Controller */}
+                      <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-full px-2 py-1">
+                        <button
+                          type="button"
+                          onClick={() => updateCartQty(item.id, -1)}
+                          className="w-5 h-5 flex items-center justify-center text-stone-600 hover:text-stone-950"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold min-w-[14px] text-center">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateCartQty(item.id, 1)}
+                          className="w-5 h-5 flex items-center justify-center text-stone-600 hover:text-stone-950"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1 text-stone-400 hover:text-rose-600 transition-colors"
+                        title="Remove"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Cart Footer & Checkout */}
+              {cartItems.length > 0 && (
+                <div className="p-5 border-t border-stone-200 bg-stone-50 space-y-3">
+                  <div className="space-y-1.5 text-xs text-stone-600">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span className="font-semibold text-stone-900">₹{cartTotal}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Fee</span>
+                      <span className="text-emerald-700 font-semibold">FREE (Churu City)</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Platform Fee</span>
+                      <span className="text-stone-900 font-semibold">₹0 (Zero Markup)</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-stone-200 font-black text-sm text-stone-950">
+                      <span>Total Amount</span>
+                      <span>₹{cartTotal}</span>
+                    </div>
+                  </div>
+
+                  <a
+                    href={getStoreUrl('shawarma')}
+                    className="w-full bg-stone-950 hover:bg-black text-white py-3.5 px-5 rounded-2xl text-xs sm:text-sm uppercase font-bold flex items-center justify-between transition-colors shadow-sm cursor-pointer"
+                  >
+                    <span>Order Now (Direct Dispatch)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── DEDICATED SALON APPOINTMENT BOOKING MODAL (Nash Studio) ─── */}
+      <AnimatePresence>
+        {isBookingModalOpen && selectedService && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsBookingModalOpen(false)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-xs"
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl z-10 overflow-hidden border border-stone-200"
+            >
+              {/* Modal Header */}
+              <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
+                <div className="flex items-center gap-2">
+                  <Scissors className="w-5 h-5 text-amber-800" />
+                  <div>
+                    <h3 className="font-extrabold text-base text-stone-950">
+                      Book Salon Appointment
+                    </h3>
+                    <span className="text-[11px] font-mono text-stone-500 uppercase">
+                      Nash Studio • Main Market, Churu
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBookingModalOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {bookingConfirmed ? (
+                /* Booking Success Screen */
+                <div className="p-8 text-center space-y-4">
+                  <div className="w-14 h-14 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-xl font-black text-stone-950">
+                    Appointment Confirmed!
+                  </h4>
+                  <p className="text-xs sm:text-sm text-stone-600 max-w-sm mx-auto">
+                    Aapka slot <strong>{selectedService.name}</strong> ke liye <strong>{bookingDate} at {bookingTime}</strong> book ho gaya hai.
+                  </p>
+                  <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 text-left text-xs space-y-1.5 font-mono">
+                    <div><strong>Customer:</strong> {bookingCustomerName} ({bookingCustomerPhone})</div>
+                    <div><strong>Studio:</strong> Nash Studio Gentlemen Lounge</div>
+                    <div><strong>Amount:</strong> ₹{selectedService.price} (Pay at Studio)</div>
+                  </div>
+                  <div className="pt-2 flex gap-3">
+                    <a
+                      href={getStoreUrl('nash-studio')}
+                      className="flex-1 bg-stone-950 text-white text-xs font-bold py-3 px-4 rounded-xl text-center uppercase tracking-wider"
+                    >
+                      Open Nash Studio
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsBookingModalOpen(false)}
+                      className="flex-1 bg-stone-100 text-stone-800 text-xs font-bold py-3 px-4 rounded-xl text-center uppercase tracking-wider"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Booking Form */
+                <form onSubmit={handleConfirmBooking} className="p-6 space-y-5">
+                  {/* Selected Service Card */}
+                  <div className="flex items-center gap-3.5 p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl">
+                    <img 
+                      src={selectedService.image} 
+                      alt="" 
+                      className="w-14 h-14 rounded-xl object-cover bg-amber-100" 
+                    />
+                    <div className="flex-1">
+                      <span className="text-[10px] font-bold uppercase text-amber-800">
+                        Selected Service
+                      </span>
+                      <h4 className="font-bold text-sm text-stone-950">
+                        {selectedService.name}
+                      </h4>
+                      <div className="text-sm font-black text-stone-900 mt-0.5">
+                        ₹{selectedService.price} <span className="text-xs text-stone-400 line-through font-normal">₹{selectedService.mrp}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Select Date */}
+                  <div>
+                    <label className="text-xs font-bold uppercase text-stone-500 block mb-2">
+                      Choose Day
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {['Today', 'Tomorrow', 'Day After'].map(day => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => setBookingDate(day)}
+                          className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            bookingDate === day 
+                              ? 'bg-stone-950 text-white border-stone-950 shadow-xs' 
+                              : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Select Time Slot */}
+                  <div>
+                    <label className="text-xs font-bold uppercase text-stone-500 block mb-2">
+                      Available Slot
+                    </label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {['11:30 AM', '1:00 PM', '2:30 PM', '4:00 PM', '5:30 PM', '7:00 PM', '8:30 PM'].map(time => (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setBookingTime(time)}
+                          className={`py-2 px-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                            bookingTime === time 
+                              ? 'bg-amber-900 text-white border-amber-900 shadow-xs' 
+                              : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Customer Details */}
+                  <div className="space-y-3 pt-1">
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-stone-500 block mb-1">
+                        Your Full Name
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rahul Sharma"
+                        value={bookingCustomerName}
+                        onChange={(e) => setBookingCustomerName(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 outline-none focus:border-stone-950"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold uppercase text-stone-500 block mb-1">
+                        Phone Number (for confirmation SMS)
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="e.g. 9876543210"
+                        value={bookingCustomerPhone}
+                        onChange={(e) => setBookingCustomerPhone(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 outline-none focus:border-stone-950 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      className="w-full bg-stone-950 hover:bg-black text-white text-xs uppercase font-bold tracking-wider py-3.5 px-4 rounded-xl flex items-center justify-between shadow-xs transition-colors cursor-pointer"
+                    >
+                      <span>Confirm Slot (₹{selectedService.price} - Pay at Salon)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── FOOTER & LEGAL LINKS ─────────────────────────────────── */}
       <footer className="border-t border-stone-200/80 bg-white py-10 mt-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
           
@@ -823,7 +1230,7 @@ export default function ChuruOneHomePage() {
             </div>
 
             <div className="text-stone-400 text-[11px] font-mono">
-              Delivery in 20–35 mins • Refunds processed in 5–7 business days
+              Delivery in 20–35 mins • Refunds in 5–7 business days
             </div>
           </div>
 
