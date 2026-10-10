@@ -140,7 +140,7 @@ function printStandaloneTicket(b, settings = DEFAULT_SETTINGS) {
     ".row{display:flex;justify-content:space-between;font-size:12px;margin:5px 0}.fn{font-size:10px;text-align:center;margin-top:15px;color:#555}",
     "@media print{body{border:none;margin:0 auto;width:100%}}</style></head><body>",
     "<div class='tc brand'>" + (settings.studioName || "NASH STUDIO") + "</div>",
-    "<div class='tc sub'>BEARD &amp; HAIR STUDIO<br/>" + (settings.address || "Shop 12, Main Blvd, Gulberg, Lahore") + "</div>",
+    "<div class='tc sub'>BEARD &amp; HAIR STUDIO<br/>" + (settings.address || "Main Market, Churu, Rajasthan 331001") + "</div>",
     "<div class='div'></div>",
     "<div class='tbox'><div style='font-size:10px;letter-spacing:1px;color:#555'>OFFICIAL BOOKING TOKEN PASS</div>",
     "<div class='tnum'>" + tok + "</div><div class='st'>RESERVED &amp; CONFIRMED</div></div>",
