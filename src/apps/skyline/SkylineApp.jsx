@@ -2016,13 +2016,15 @@ export default function SkylineApp() {
       )}
 
       {/* ─── 12. REAL UPI PAYMENT MODAL (UNIFIED ENGINE) ──────────── */}
-      <UpiPaymentModal
-        isOpen={isUpiModalOpen}
-        onClose={() => setIsUpiModalOpen(false)}
-        orderData={pendingPaymentData}
-        paymentData={pendingPaymentData}
-        onPaymentSuccess={handlePaymentSuccess}
-      />
+      {isUpiModalOpen && (
+        <UpiPaymentModal
+          isOpen={isUpiModalOpen}
+          onClose={() => setIsUpiModalOpen(false)}
+          orderData={pendingPaymentData}
+          paymentData={pendingPaymentData}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
 
       {/* ─── 13. CHURUONE SSO ACCOUNT MODAL ───────────────────────── */}
       {isAccountModalOpen && (

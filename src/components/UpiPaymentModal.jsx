@@ -31,11 +31,18 @@ export default function UpiPaymentModal({
   // Support both orderData and paymentData prop names seamlessly
   const effectiveData = orderData || paymentData || {};
 
+  let realtime = {};
+  try {
+    realtime = (typeof useRealtimeDB === 'function' ? useRealtimeDB() : {}) || {};
+  } catch (e) {
+    realtime = {};
+  }
+
   const {
     lastPaymentConfirmation,
     lastPaymentConfirmed,
     storeInfo
-  } = useRealtimeDB?.() || {};
+  } = realtime;
 
   // Extract critical payment parameters
   const orderId = effectiveData.orderId || effectiveData.id || 'SN-000000';

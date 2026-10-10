@@ -672,6 +672,5 @@ export function RealtimeProvider({ children }) {
 
 export function useRealtimeDB() {
   const ctx = useContext(RealtimeContext);
-  if (!ctx) throw new Error('useRealtimeDB must be used within RealtimeProvider');
-  return ctx;
+  return ctx || {};
 }
