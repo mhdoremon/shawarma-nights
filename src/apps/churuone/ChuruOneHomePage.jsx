@@ -538,60 +538,67 @@ export default function ChuruOneHomePage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10 sm:space-y-12">
         
-        {/* ─── HERO BANNER WITH REAL CHURU GHANTAGHAR & OVERLAPPING SEARCH ── */}
-        <section className="relative rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-r from-stone-50 via-white to-amber-50/20 border border-stone-200/80 shadow-xs overflow-visible">
-          <div className="grid grid-cols-1 md:grid-cols-12 items-center">
-            
-            {/* Left Headline Area */}
-            <div className="md:col-span-7 p-6 sm:p-10 lg:p-12 space-y-6 z-10">
-              <motion.h1 
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-stone-950 leading-[1.08]"
-              >
-                Churu ki<br />
-                har dukaan<br />
-                ab online
-              </motion.h1>
+        {/* ─── HERO BANNER (Seamlessly Blended Churu Lal Ghantaghar + Overlay Search) ── */}
+        <section className="relative rounded-[2.5rem] bg-gradient-to-r from-stone-50 via-white to-amber-50/20 border border-stone-200/80 shadow-xs overflow-hidden min-h-[380px] sm:min-h-[420px] md:min-h-[460px] flex items-center">
+          
+          {/* Beautifully Faded Real Churu Lal Ghantaghar Image (Seamlessly Embedded into UI) */}
+          <div className="absolute right-0 top-0 bottom-0 w-full md:w-[64%] lg:w-[60%] h-full pointer-events-none select-none overflow-hidden flex items-center justify-end">
+            <img
+              src="/images/churu-ghantaghar.jpg"
+              alt="Real Churu Lal Ghanta Ghar Dharm Stup"
+              className="w-full h-full object-cover object-center"
+              style={{
+                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.1) 10%, rgba(0,0,0,0.85) 35%, black 65%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.1) 10%, rgba(0,0,0,0.85) 35%, black 65%)'
+              }}
+            />
+            {/* Ambient Blend Gradient Layers */}
+            <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white via-white/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white/80 via-white/30 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/60 to-transparent" />
+          </div>
 
-              {/* OVERLAPPING SEARCH BAR (Overlays smoothly onto the photo on desktop) */}
-              <div className="relative max-w-lg md:w-[125%] z-20">
-                <div className="flex items-center bg-white border border-stone-200/90 rounded-full shadow-lg p-2 pl-6 focus-within:border-stone-900 transition-all">
-                  <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
-                  <input
-                    type="text"
-                    placeholder="Kya chahiye?"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const el = document.getElementById('stores-grid');
-                      if (el) el.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="w-11 h-11 rounded-full bg-stone-950 text-white flex items-center justify-center shrink-0 hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
-                    aria-label="Search"
-                  >
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
+          {/* Left Content Area + Search Bar Overlaid Direct Onto Photo */}
+          <div className="relative z-20 w-full p-6 sm:p-10 lg:p-14 space-y-6 max-w-2xl">
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-stone-950 leading-[1.08]"
+            >
+              Churu ki<br />
+              har dukaan<br />
+              ab online
+            </motion.h1>
+
+            {/* OVERLAPPING FLOATING SEARCH BAR (Physically sits across the photo) */}
+            <div className="relative z-30 max-w-xl w-full pt-2">
+              <div className="flex items-center bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl hover:shadow-2xl rounded-full p-2.5 pl-6 focus-within:border-stone-900 focus-within:ring-2 focus-within:ring-stone-900/10 transition-all">
+                <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
+                <input
+                  type="text"
+                  placeholder="Kya chahiye?"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('stores-grid');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-stone-950 hover:bg-black text-white flex items-center justify-center shrink-0 shadow-md cursor-pointer transition-transform active:scale-95"
+                  aria-label="Search"
+                >
+                  <ArrowRight className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            {/* Right: Real Churu Ghantaghar Photo (100% Clean, No Crop Artifacts) */}
-            <div className="md:col-span-5 h-64 sm:h-80 md:h-[400px] relative overflow-hidden flex items-end justify-center md:justify-end rounded-b-[2rem] md:rounded-b-none md:rounded-r-[2.5rem]">
-              <img
-                src="/images/churu-ghantaghar.jpg"
-                alt="Real Churu Lal Ghanta Ghar Dharm Stup"
-                className="w-full h-full object-cover object-center"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/20 via-transparent to-transparent md:hidden" />
-            </div>
-
           </div>
+
         </section>
 
         {/* ─── CATEGORY SQUIRCLE ROW ───────────────────────────────── */}
