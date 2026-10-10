@@ -1,0 +1,108 @@
+{
+  "name": "Skyline Premium Outfits",
+  "slug": "skyline",
+  "vertical": "clothing",
+  "status": "active",
+  "owner": {
+    "name": "Skyline Premium Outfits",
+    "phone": "7023963189",
+    "password": "Skyline@331001",
+    "token": "skyline-token-churu-2026",
+    "username": "Skyline_Churu"
+  },
+  "branding": {
+    "logo": "",
+    "primaryColor": "#18181B",
+    "secondaryColor": "#FAFAF9",
+    "accentColor": "#B45309",
+    "font": "Inter",
+    "tagline": "Architectural Menswear & Bespoke Outfits • Churu Flagship",
+    "heroImage": "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=1200&q=80"
+  },
+  "domain": {
+    "subdomain": "skyline",
+    "customDomain": null
+  },
+  "settings": {
+    "currency": "INR",
+    "currencySymbol": "₹",
+    "timezone": "Asia/Kolkata",
+    "language": "en",
+    "isOpen": true,
+    "timing": "Mon-Sun: 10:30 AM – 10:00 PM",
+    "storeName": "Skyline Premium Outfits",
+    "heroTagline": "ARCHITECTURAL MENSWEAR • CRAFTED IN CHURU",
+    "heroButtonText": "EXPLORE AUTUMN '26",
+    "showHeroBanner": true,
+    "showOfferCards": true,
+    "showMarqueeStrip": true,
+    "dealsEnabled": true,
+    "shopWhatsapp": "917023963189",
+    "phoneDisplay": "+91 70239 63189",
+    "address": "Subhash Chowk, Station Road, Churu, Rajasthan – 331001",
+    "freeDeliveryThreshold": 999,
+    "deliveryRadius": 25,
+    "minOrderAmount": 299,
+    "maxOrdersPerHour": 50,
+    "autoAcceptOrders": true,
+    "requirePhoneOtp": false,
+    "packagingCharge": 0,
+    "deliveryFee": 70,
+    "enabledModules": [
+      "catalog",
+      "orders",
+      "deals",
+      "reviews",
+      "payments",
+      "customers",
+      "delivery"
+    ],
+    "aboutText": "Skyline Premium Outfits is Churu's premier menswear destination, presenting handcrafted French linens, structured casual overshirts, bespoke wedding kurtas, and heavyweight luxury essentials."
+  },
+  "payment": {
+    "upiId": "skylineoutfits@upi",
+    "payeeName": "Skyline Premium Outfits",
+    "razorpayKeyId": null,
+    "codEnabled": true,
+    "autoSmsVerification": false
+  },
+  "tax": {
+    "enabled": false,
+    "gstin": "08AAKCS9876C1Z4",
+    "defaultTaxRate": 5,
+    "pricesIncludeTax": true
+  },
+  "socials": {
+    "instagram": "https://instagram.com/skylinechuru",
+    "whatsapp": "917023963189",
+    "facebook": "",
+    "youtube": "",
+    "twitter": ""
+  },
+  "smsGateway": {
+    "connected": false,
+    "deviceId": null,
+    "lastSeen": null
+  },
+  "plan": {
+    "type": "pro",
+    "monthlyFee": 0,
+    "validUntil": null
+  },
+  "storeId": "skyline",
+  "heroBanner": {
+    "enabled": true,
+    "badgeText": "AUTUMN / WINTER '26 EDITORIAL",
+    "titleLine1": "ARCHITECTURAL",
+    "titleLine2": "LUXURY",
+    "titleHighlight": "MENSWEAR",
+    "subtitle": "Pure European flax linens, heavyweight twill overshirts, and tailored silhouettes crafted for the modern gentleman.",
+    "circleImage": "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=800&q=80",
+    "priceText": "Essentials from",
+    "priceValue": "₹799",
+    "ratingText": "4.9 ★",
+    "reviewsText": "340+ Verified Men in Churu",
+    "marqueeText": "✦ SKYLINE PREMIUM OUTFITS ✦ CHURU FLAGSHIP AT SUBHASH CHOWK ✦ COMPLIMENTARY EXPRESS DELIVERY ABOVE ₹999 ✦ PURE EUROPEAN LINEN & SUPIMA COTTON ✦"
+  },
+  "updatedAt": "2026-10-11T03:30:00.000Z"
+}

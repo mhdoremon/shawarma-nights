@@ -1,0 +1,272 @@
+{
+  "menu": [
+    {
+      "id": "sky-item-01",
+      "name": "Normandy Flax Camp-Collar Linen Shirt",
+      "category": "linen-shirts",
+      "price": 1699,
+      "originalPrice": 2799,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "BESTSELLER",
+      "description": "Woven from 100% Normandy long-staple flax linen. Enzyme garment-washed for a naturally breathable, relaxed drape with real mother-of-pearl buttons.",
+      "fabric": "100% French Normandy Flax Linen (180 GSM)",
+      "fit": "Tailored Relaxed Resort Fit",
+      "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "colors": [
+        { "name": "Ecru Sand", "hex": "#E8E2D5" },
+        { "name": "Sage Green", "hex": "#768271" },
+        { "name": "Obsidian Black", "hex": "#1C1C1E" }
+      ],
+      "rating": 4.9,
+      "reviews": 84,
+      "available": true
+    },
+    {
+      "id": "sky-item-02",
+      "name": "Striped Riviera Mandarin Linen Shirt",
+      "category": "linen-shirts",
+      "price": 1849,
+      "originalPrice": 2999,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "NEW ARRIVAL",
+      "description": "Band-collar shirt featuring subtle vertical chalk stripes. Breathable open-weave construction designed to keep you cool under the desert sun.",
+      "fabric": "85% Belgian Linen, 15% Mulberry Silk",
+      "fit": "Classic Clean Cut",
+      "image": "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL"],
+      "colors": [
+        { "name": "Chalk Blue Stripe", "hex": "#8EA0AF" },
+        { "name": "Terracotta Stripe", "hex": "#B86B53" }
+      ],
+      "rating": 4.8,
+      "reviews": 46,
+      "available": true
+    },
+    {
+      "id": "sky-item-03",
+      "name": "Milano Double-Pleated Gurkha Trousers",
+      "category": "trousers",
+      "price": 2199,
+      "originalPrice": 3699,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "SIGNATURE PIECE",
+      "description": "High-rise tailored trousers with twin forward pleats and extended side buckle adjusters. Delivers a dramatic, sharp taper silhouette.",
+      "fabric": "65% Lyocell, 30% Cotton, 5% Elastane",
+      "fit": "High-Rise Relaxed Taper",
+      "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["30", "32", "34", "36", "38"],
+      "colors": [
+        { "name": "Charcoal Slate", "hex": "#3A3D40" },
+        { "name": "Warm Khaki", "hex": "#B5A48B" },
+        { "name": "Midnight Navy", "hex": "#1E2A38" }
+      ],
+      "rating": 5.0,
+      "reviews": 112,
+      "available": true
+    },
+    {
+      "id": "sky-item-04",
+      "name": "Minimalist Japanese Stretch Chino",
+      "category": "trousers",
+      "price": 1799,
+      "originalPrice": 2899,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "EVERYDAY LUXURY",
+      "description": "Constructed from densely woven Japanese cotton twill with 4-way mechanical stretch. Clean flat front with hidden interior coin pocket.",
+      "fabric": "98% Combed Cotton, 2% Spandex (260 GSM)",
+      "fit": "Tailored Slim Straight",
+      "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["30", "32", "34", "36"],
+      "colors": [
+        { "name": "Oatmeal Stone", "hex": "#D8CFBC" },
+        { "name": "Deep Olive", "hex": "#4D5240" },
+        { "name": "Pitch Black", "hex": "#141414" }
+      ],
+      "rating": 4.8,
+      "reviews": 68,
+      "available": true
+    },
+    {
+      "id": "sky-item-05",
+      "name": "Heavyweight 340 GSM Canvas Overshirt",
+      "category": "overshirts",
+      "price": 2499,
+      "originalPrice": 3999,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "AUTUMN '26",
+      "description": "Rugged yet refined workwear silhouette cut from heavyweight duck canvas with matte horn buttons and dual chest bellows pockets.",
+      "fabric": "100% Organic Heavyweight Cotton Canvas",
+      "fit": "Structured Boxy Layering Fit",
+      "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "colors": [
+        { "name": "Desert Camel", "hex": "#B8860B" },
+        { "name": "Washed Tobacco", "hex": "#6E473B" },
+        { "name": "Forest Moss", "hex": "#354A21" }
+      ],
+      "rating": 4.9,
+      "reviews": 53,
+      "available": true
+    },
+    {
+      "id": "sky-item-06",
+      "name": "Wale Ribbed Corduroy Chore Jacket",
+      "category": "overshirts",
+      "price": 2799,
+      "originalPrice": 4499,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "LIMITED RUN",
+      "description": "Rich 8-wale plush corduroy jacket with antique brass snap buttons and tailored interior satin sleeve lining.",
+      "fabric": "100% Cotton Corduroy with Satin Sleeve Lining",
+      "fit": "Slightly Oversized Contemporary",
+      "image": "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["M", "L", "XL"],
+      "colors": [
+        { "name": "Roasted Chestnut", "hex": "#593122" },
+        { "name": "Vintage Midnight", "hex": "#1B263B" }
+      ],
+      "rating": 4.9,
+      "reviews": 39,
+      "available": true
+    },
+    {
+      "id": "sky-item-07",
+      "name": "Handloom Raw Silk Angrakha Kurta Set",
+      "category": "heritage-kurtas",
+      "price": 3499,
+      "originalPrice": 5999,
+      "prepTime": "Custom Fitted / 24h",
+      "isVeg": true,
+      "badge": "ROYAL HERITAGE",
+      "description": "Asymmetrical overlapping Angrakha placket tailored from handwoven tussar raw silk with tonal piping and matching tailored churidar.",
+      "fabric": "Handwoven Raw Tussar Silk with Cotton Lining",
+      "fit": "Royal Tailored Regal Cut",
+      "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["38 (S)", "40 (M)", "42 (L)", "44 (XL)"],
+      "colors": [
+        { "name": "Royal Ivory", "hex": "#FAF0E6" },
+        { "name": "Emerald Viridian", "hex": "#123524" },
+        { "name": "Maroon Crimson", "hex": "#58111A" }
+      ],
+      "rating": 5.0,
+      "reviews": 77,
+      "available": true
+    },
+    {
+      "id": "sky-item-08",
+      "name": "Chanderi Embroidered Short Kurta",
+      "category": "heritage-kurtas",
+      "price": 2199,
+      "originalPrice": 3499,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "FESTIVE EDIT",
+      "description": "Modern short kurta crafted from lightweight Chanderi blend with intricate geometric threadwork across collar and cuffs. Pairs effortlessly with linen trousers or denims.",
+      "fabric": "Chanderi Cotton Silk Weave",
+      "fit": "Contemporary Casual Ethnic",
+      "image": "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "colors": [
+        { "name": "Dusty Rose Pink", "hex": "#C29B9B" },
+        { "name": "Powder Sky", "hex": "#A4BCC4" },
+        { "name": "Pearl Ecru", "hex": "#F0EAD6" }
+      ],
+      "rating": 4.8,
+      "reviews": 51,
+      "available": true
+    },
+    {
+      "id": "sky-item-09",
+      "name": "Supima Heavyweight 260 GSM Relaxed Tee",
+      "category": "tees",
+      "price": 899,
+      "originalPrice": 1499,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "ESSENTIAL",
+      "description": "Engineered with 100% California Supima extra-long staple cotton. Dense 260 GSM fabric prevents transparency and holds its structured boxy silhouette wash after wash.",
+      "fabric": "100% Combed American Supima Cotton (260 GSM)",
+      "fit": "Relaxed Boxy Drop-Shoulder",
+      "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "colors": [
+        { "name": "Chalk White", "hex": "#F8F9FA" },
+        { "name": "Jet Black", "hex": "#111111" },
+        { "name": "Heather Grey", "hex": "#9E9E9E" },
+        { "name": "Washed Olive", "hex": "#556B2F" }
+      ],
+      "rating": 4.9,
+      "reviews": 164,
+      "available": true
+    },
+    {
+      "id": "sky-item-10",
+      "name": "Textured Open-Knit Milano Polo",
+      "category": "knitwear",
+      "price": 1999,
+      "originalPrice": 3199,
+      "prepTime": "Same Day Dispatch",
+      "isVeg": true,
+      "badge": "TRENDING",
+      "description": "Vintage European resort aesthetic featuring a retro open-stitch waffle knit pattern, Johnny collar with no buttons, and ribbed hems.",
+      "fabric": "100% Mercerized Egyptian Cotton Yarn",
+      "fit": "Tailored European Fit",
+      "image": "https://images.unsplash.com/photo-1625910513413-72210c4118f7?auto=format&fit=crop&w=800&q=80",
+      "secondaryImage": "https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": ["S", "M", "L", "XL"],
+      "colors": [
+        { "name": "Biscotti Cream", "hex": "#E3D5C0" },
+        { "name": "Navy Nautical", "hex": "#1C2D42" }
+      ],
+      "rating": 4.9,
+      "reviews": 42,
+      "available": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "name": "Complete Lookbook"
+    },
+    {
+      "id": "linen-shirts",
+      "name": "Pure Linen Shirts"
+    },
+    {
+      "id": "trousers",
+      "name": "Tailored Trousers & Chinos"
+    },
+    {
+      "id": "overshirts",
+      "name": "Canvas & Corduroy Overshirts"
+    },
+    {
+      "id": "heritage-kurtas",
+      "name": "Heritage Festive Kurtas"
+    },
+    {
+      "id": "tees",
+      "name": "Heavyweight Supima Tees"
+    },
+    {
+      "id": "knitwear",
+      "name": "Structured Knitwear & Polos"
+    }
+  ]
+}

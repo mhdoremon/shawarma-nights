@@ -6,6 +6,7 @@ import AppStorePage from './apps/hub/AppStorePage';
 import ChuruOneHomePage from './apps/churuone/ChuruOneHomePage';
 import ChuruOneAuthPage from './apps/churuone/ChuruOneAuthPage';
 import NashStudioApp from './apps/nash/NashStudioApp';
+import SkylineApp from './apps/skyline/SkylineApp';
 import LegalPage from './apps/legal/LegalPage';
 import CashfreeTestPage from './apps/test/CashfreeTestPage';
 
@@ -59,6 +60,11 @@ function RootEntry() {
   // 2. Shawarma Nights Flagship Store (Subdomain: shawarma.churuone.in or ?storeId=shawarma or /shawarma or /sn)
   if (host.startsWith('shawarma.') || storeParam === 'shawarma' || storeParam === 'shawarma-nights' || path.startsWith('/shawarma') || path.startsWith('/sn')) {
     return <CustomerApp />;
+  }
+
+  // 3. Skyline Premium Outfits (Subdomain: skyline.churuone.in or ?storeId=skyline or /skyline or /outfits)
+  if (host.startsWith('skyline.') || storeParam === 'skyline' || storeParam === 'skyline-outfits' || path.startsWith('/skyline') || path.startsWith('/outfits')) {
+    return <SkylineApp />;
   }
 
   // 3. ChuruOne Main City Marketplace (root domain churuone.in, onrender backend, or explicit paths)
@@ -133,6 +139,10 @@ export default function App() {
         {/* Nash Studio Salon Web App */}
         <Route path="/nash/*" element={<NashStudioApp />} />
         <Route path="/salon/*" element={<NashStudioApp />} />
+
+        {/* Skyline Premium Outfits Menswear Store */}
+        <Route path="/skyline/*" element={<SkylineApp />} />
+        <Route path="/outfits/*" element={<SkylineApp />} />
 
         {/* ChuruOne Master Web OS for iPhone, Mac, Desktop & Tablets */}
         <Route path="/admin/*" element={<MasterApp />} />

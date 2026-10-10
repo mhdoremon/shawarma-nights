@@ -165,6 +165,8 @@ export default function ChuruOneHomePage() {
       base = '/shawarma';
     } else if (storeId === 'nash-studio') {
       base = '/nash';
+    } else if (storeId === 'skyline') {
+      base = '/skyline';
     }
 
     if (currentUser) {
@@ -265,6 +267,16 @@ export default function ChuruOneHomePage() {
       image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
       destination: getStoreUrl('nash-studio'),
       tag: 'Salon Booking'
+    },
+    {
+      id: 'skyline',
+      name: 'Skyline Premium Outfits',
+      category: 'Luxury Menswear & Outfits',
+      rating: '4.9',
+      timing: 'Same Day Dispatch',
+      image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
+      destination: getStoreUrl('skyline'),
+      tag: 'Bespoke Fashion'
     },
     {
       id: 'sharma-kirana',

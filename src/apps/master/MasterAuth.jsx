@@ -13,6 +13,7 @@ export default function MasterAuth() {
     if (fromUrl) return fromUrl;
     const host = window.location.hostname.toLowerCase();
     if (host.includes('nash')) return 'nash-studio';
+    if (host.includes('skyline')) return 'skyline';
     return 'shawarma';
   });
 
@@ -215,9 +216,29 @@ export default function MasterAuth() {
                   required
                   value={storeIdInput}
                   onChange={(e) => setStoreIdInput(e.target.value.toLowerCase())}
-                  placeholder="e.g. shawarma or nash-studio"
+                  placeholder="e.g. shawarma, nash-studio, skyline"
                   className="w-full border border-zinc-200 focus:border-zinc-950 pl-9 pr-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
                 />
+              </div>
+              <div className="flex items-center gap-1.5 mt-2">
+                {[
+                  { id: 'shawarma', label: 'Shawarma' },
+                  { id: 'nash-studio', label: 'Nash Studio' },
+                  { id: 'skyline', label: 'Skyline Outfits' }
+                ].map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setStoreIdInput(s.id)}
+                    className={`text-[10px] px-2 py-0.5 border transition-all ${
+                      storeIdInput === s.id
+                        ? 'border-zinc-950 bg-zinc-950 text-white font-medium'
+                        : 'border-zinc-200 text-zinc-500 hover:border-zinc-400'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
               </div>
             </div>
 
