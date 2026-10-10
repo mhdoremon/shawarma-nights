@@ -28,14 +28,36 @@ import {
   Share2, 
   Menu as MenuIcon,
   HelpCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  Crosshair,
+  Store,
+  QrCode,
+  Banknote,
+  Smartphone,
+  Navigation,
+  AlertCircle
 } from 'lucide-react';
 import { 
   getSkylineData, 
   validateCouponCode, 
-  placeSkylineOrder 
+  placeSkylineOrder,
+  initiateSkylineUpiPayment,
+  updateSkylineOrderStatus
 } from './skylineApiClient';
 import { getChuruOneSession, setChuruOneSession } from '../../utils/ssoHelper';
+import UpiPaymentModal from '../../components/UpiPaymentModal';
+
+const CHURU_POPULAR_LANDMARKS = [
+  'Subhash Chowk',
+  'Station Road',
+  'Nai Sarak',
+  'Dharamstupa / Kotwali',
+  'Collectorate Road',
+  'Pankha Circle',
+  'Lohiya College',
+  'Nature Park / Churu Club',
+  'Naya Bass'
+];
 
 export default function SkylineApp() {
   // ─── STATE MANAGEMENT ──────────────────────────────────────────
@@ -80,24 +102,28 @@ export default function SkylineApp() {
   // Quick View & Product Modal State
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalSize, setModalSize] = useState('');
-  const [modalColor, setModalColor] = useState(null);
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
-  // Trending Carousel Slide State
-  const [trendingSlideIndex, setTrendingSlideIndex] = useState(0);
-
-  // Reviews Carousel State
-  const [reviewIndex, setReviewIndex] = useState(0);
-
-  // Checkout State
+  // Checkout & Location State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' | 'pickup'
   const [checkoutName, setCheckoutName] = useState('');
   const [checkoutPhone, setCheckoutPhone] = useState('');
-  const [checkoutAddress, setCheckoutAddress] = useState('');
+  const [houseNo, setHouseNo] = useState('');
+  const [streetArea, setStreetArea] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [pincode, setPincode] = useState('331001');
+  const [orderLiveGps, setOrderLiveGps] = useState(null); // { lat, lng, accuracy }
+  const [isCapturingGps, setIsCapturingGps] = useState(false);
+  const [gpsError, setGpsError] = useState('');
+  const [selectedLandmarkChip, setSelectedLandmarkChip] = useState('');
   const [checkoutNotes, setCheckoutNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' | 'upi'
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+
+  // Real UPI & SmartPay Modal State
+  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState(null);
 
   // Order Tracker State
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
@@ -132,6 +158,9 @@ export default function SkylineApp() {
           const rawPhone = String(parsed.phone || parsed.phoneNumber).replace(/\D/g, '').slice(-10);
           setCheckoutPhone(rawPhone);
         }
+        if (parsed.address) {
+          setStreetArea(parsed.address);
+        }
         showToast(`✦ ChuruOne SSO Verified: Welcome, ${parsed.name || 'Friend'}!`);
 
         // Clean query parameters from URL
@@ -150,6 +179,9 @@ export default function SkylineApp() {
             const rawPhone = String(session.user.phone || session.user.phoneNumber).replace(/\D/g, '').slice(-10);
             setCheckoutPhone(rawPhone);
           }
+          if (session.user.address) {
+            setStreetArea(session.user.address);
+          }
         }
       }
     } catch (e) {
@@ -167,6 +199,7 @@ export default function SkylineApp() {
           if (u.phone || u.phoneNumber) {
             setCheckoutPhone(String(u.phone || u.phoneNumber).replace(/\D/g, '').slice(-10));
           }
+          if (u.address) setStreetArea(u.address);
           showToast(`✦ Verified by ChuruOne: ${u.name || 'Friend'}`);
         }
       }
@@ -230,7 +263,7 @@ export default function SkylineApp() {
 
   const freeDeliveryThreshold = storeData?.storeInfo?.freeDeliveryThreshold ?? 999;
   const standardDeliveryFee = storeData?.storeInfo?.deliveryFee ?? 70;
-  const deliveryFee = cartSubtotal >= freeDeliveryThreshold || cartItems.length === 0 ? 0 : standardDeliveryFee;
+  const deliveryFee = deliveryType === 'pickup' || cartSubtotal >= freeDeliveryThreshold || cartItems.length === 0 ? 0 : standardDeliveryFee;
   const freeShippingProgress = Math.min(100, (cartSubtotal / freeDeliveryThreshold) * 100);
   const amountNeededForFreeShip = Math.max(0, freeDeliveryThreshold - cartSubtotal);
 
@@ -248,6 +281,70 @@ export default function SkylineApp() {
 
   const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+  // ─── GPS & LOCATION HANDLERS ───────────────────────────────────
+  const handleDetectGps = () => {
+    setIsCapturingGps(true);
+    setGpsError('');
+
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser.');
+      setIsCapturingGps(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        const coords = { lat: latitude, lng: longitude, accuracy };
+        setOrderLiveGps(coords);
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
+          const data = await res.json();
+          if (data && data.address) {
+            const parts = [];
+            if (data.address.road) parts.push(data.address.road);
+            if (data.address.suburb || data.address.neighbourhood) parts.push(data.address.suburb || data.address.neighbourhood);
+            if (data.address.city || data.address.town) parts.push(data.address.city || data.address.town);
+            const detectedStr = parts.length > 0 ? parts.join(', ') : data.display_name;
+            setStreetArea(detectedStr);
+            if (data.address.postcode) setPincode(data.address.postcode);
+          }
+        } catch (e) {
+          console.warn('Reverse geocoding error:', e);
+        }
+        setIsCapturingGps(false);
+        showToast('📍 Live GPS Location captured successfully!');
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        setGpsError('GPS permission denied. Kripya browser me location allow karein ya exact address likhein.');
+        setIsCapturingGps(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const handleSelectLandmarkChip = (lm) => {
+    setSelectedLandmarkChip(lm);
+    setLandmark(lm);
+    if (!streetArea) {
+      setStreetArea(`Near ${lm}, Churu`);
+    }
+  };
+
+  const fullDeliveryAddress = useMemo(() => {
+    if (deliveryType === 'pickup') {
+      return 'Self Store Pickup • Subhash Chowk Flagship, Churu – 331001';
+    }
+    const parts = [];
+    if (houseNo.trim()) parts.push(houseNo.trim());
+    if (streetArea.trim()) parts.push(streetArea.trim());
+    if (landmark.trim()) parts.push(`Near ${landmark.trim()}`);
+    parts.push(`Churu – ${pincode || '331001'}`);
+    return parts.join(', ');
+  }, [deliveryType, houseNo, streetArea, landmark, pincode]);
 
   // ─── CART HANDLERS ─────────────────────────────────────────────
   const addToCart = (product, selectedSize, selectedColor) => {
@@ -373,18 +470,21 @@ export default function SkylineApp() {
       showToast('Please enter a valid 10-digit mobile number');
       return;
     }
-    if (!checkoutAddress.trim()) {
-      showToast('Please enter your delivery address in Churu');
-      return;
+    if (deliveryType === 'delivery') {
+      if (!streetArea.trim() && !orderLiveGps) {
+        showToast('Please enter your street address or capture live GPS');
+        return;
+      }
     }
 
     setOrderSubmitting(true);
     try {
+      const generatedDeliveryOtp = String(Math.floor(1000 + Math.random() * 9000));
       const orderPayload = {
         customer: {
           name: checkoutName.trim(),
           phone: `+91${cleanPhone}`,
-          address: checkoutAddress.trim()
+          address: fullDeliveryAddress
         },
         items: cartItems.map(item => ({
           name: `${item.name} [Size: ${item.size}, Color: ${item.color}]`,
@@ -394,10 +494,13 @@ export default function SkylineApp() {
           size: item.size,
           color: item.color
         })),
-        deliveryType: 'delivery',
-        address: checkoutAddress.trim(),
-        paymentMethod: paymentMethod,
+        deliveryType: deliveryType,
+        address: fullDeliveryAddress,
+        lat: orderLiveGps?.lat || null,
+        lng: orderLiveGps?.lng || null,
+        paymentMethod: paymentMethod === 'cod' ? 'COD' : 'UPI',
         paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending_upi',
+        deliveryOtp: generatedDeliveryOtp,
         couponCode: appliedCoupon?.code || null,
         subtotal: cartSubtotal,
         discount: discountAmount,
@@ -413,12 +516,34 @@ export default function SkylineApp() {
       const res = await placeSkylineOrder(orderPayload);
       if (res && (res.success || res.order)) {
         const created = res.order || res;
-        setConfirmedOrder(created);
-        setCartItems([]);
-        setAppliedCoupon(null);
-        setIsCheckoutOpen(false);
-        setIsCartOpen(false);
-        showToast('Order Placed Successfully!');
+        
+        if (paymentMethod === 'cod') {
+          setConfirmedOrder(created);
+          setCartItems([]);
+          setAppliedCoupon(null);
+          setIsCheckoutOpen(false);
+          setIsCartOpen(false);
+          showToast('Order Placed Successfully via Cash on Delivery!');
+        } else {
+          // Instant UPI & SmartPay using our Unified UpiPaymentModal Engine
+          const upiPayload = {
+            orderId: created.orderNumber || created.id,
+            id: created.id,
+            grandTotal: created.total || grandTotal,
+            total: created.total || grandTotal,
+            upiId: storeData?.payment?.upiId || 'skylineoutfits@upi',
+            payeeName: storeData?.payment?.payeeName || 'Skyline Premium Outfits',
+            customerName: checkoutName.trim(),
+            customerPhone: `+91 ${cleanPhone}`,
+            address: fullDeliveryAddress,
+            orderGps: orderLiveGps,
+            deliveryOtp: generatedDeliveryOtp,
+            items: cartItems
+          };
+          setPendingPaymentData(upiPayload);
+          setConfirmedOrder(created);
+          setIsUpiModalOpen(true);
+        }
       } else {
         showToast(res?.message || 'Order could not be placed. Please contact store.');
       }
@@ -428,6 +553,23 @@ export default function SkylineApp() {
     } finally {
       setOrderSubmitting(false);
     }
+  };
+
+  // ─── UPI MODAL PAYMENT SUCCESS CALLBACK ────────────────────────
+  const handlePaymentSuccess = async (paymentResult) => {
+    try {
+      if (confirmedOrder?.id) {
+        await updateSkylineOrderStatus(confirmedOrder.id, 'confirmed', 'paid');
+      }
+    } catch (e) {
+      console.warn('Order status update error:', e);
+    }
+    setConfirmedOrder(prev => prev ? { ...prev, paymentStatus: 'paid', status: 'confirmed' } : null);
+    setIsUpiModalOpen(false);
+    setIsCheckoutOpen(false);
+    setCartItems([]);
+    setAppliedCoupon(null);
+    showToast('✦ Payment Verified! Wardrobe Order Confirmed.');
   };
 
   // ─── ORDER TRACKER ────────────────────────────────────────────
@@ -494,7 +636,6 @@ export default function SkylineApp() {
       list = list.filter(item => item.category === 'child');
     }
 
-    // Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(item => 
@@ -503,7 +644,6 @@ export default function SkylineApp() {
       );
     }
 
-    // Default to at least the 6 slick shoe cards if category has fewer
     if (list.length < 6 && activeCategory === 'men') {
       return menuItems.filter(i => i.id.startsWith('slick-shoe') && i.id !== 'slick-shoe-00').slice(0, 6);
     }
@@ -527,13 +667,6 @@ export default function SkylineApp() {
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
         rating: 5,
         comment: 'Hands down the cleanest aesthetic. Perfectly complements tailored outfits and streetwear. The ChuruOne SSO seamless checkout made ordering effortless!'
-      },
-      {
-        id: 'rev-3',
-        name: 'Arjun Rathore',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-        rating: 5,
-        comment: 'Living in Churu, finding world-class fashion delivered in under 24 hours was impossible until now. Highly recommended.'
       }
     ];
   }, []);
@@ -573,7 +706,7 @@ export default function SkylineApp() {
             <a href="#hero" className="text-stone-950 hover:text-black transition-colors">Home</a>
             <a href="#trending" className="hover:text-black transition-colors">Shop</a>
             <a href="#bestselling" className="hover:text-black transition-colors">Collection</a>
-            <a href="#reviews" className="hover:text-black transition-colors">Customize</a>
+            <a href="#reviews" className="hover:text-black transition-colors">Reviews</a>
           </nav>
 
           {/* Right Action Icons & Auth */}
@@ -1389,13 +1522,13 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 10. CHECKOUT MODAL ────────────────────────────────────── */}
+      {/* ─── 10. COMPREHENSIVE CHECKOUT MODAL (ADDRESS, GPS & PAYMENT) ─── */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsCheckoutOpen(false)} />
 
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
+            <div className="relative bg-white max-w-xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6 my-8">
               
               <button
                 onClick={() => setIsCheckoutOpen(false)}
@@ -1406,10 +1539,10 @@ export default function SkylineApp() {
 
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                  SLICK • EXPRESS CHECKOUT
+                  SLICK • EXPRESS CHECKOUT SYSTEM
                 </span>
                 <h3 className="text-xl font-bold text-stone-950">
-                  Delivery & Payment
+                  Delivery Details & Payment Method
                 </h3>
               </div>
 
@@ -1420,7 +1553,9 @@ export default function SkylineApp() {
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <div>
                       <span className="font-bold">{currentUser.name || 'Friend'}</span>
-                      <span className="text-[10px] text-emerald-700 block">Verified via ChuruOne SSO</span>
+                      <span className="text-[10px] text-emerald-700 block font-mono">
+                        Verified via ChuruOne SSO (+91 {currentUser.phone || checkoutPhone})
+                      </span>
                     </div>
                   </div>
                   <button
@@ -1434,21 +1569,21 @@ export default function SkylineApp() {
               ) : (
                 <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-bold text-stone-900 block">ChuruOne SSO Account</span>
-                    <span className="text-[10px] text-stone-500">Sign in or sign up to auto-fill address and sync orders.</span>
+                    <span className="font-bold text-stone-900 block">ChuruOne Unified Identity</span>
+                    <span className="text-[10px] text-stone-500">Sign in to auto-fill your saved address and sync orders.</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => navigateToChuruOneAuth('login')}
-                      className="border border-stone-300 text-stone-800 px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer"
+                      className="border border-stone-300 text-stone-800 px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer hover:border-black"
                     >
                       Sign In
                     </button>
                     <button
                       type="button"
                       onClick={() => navigateToChuruOneAuth('signup')}
-                      className="bg-black text-white px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer"
+                      className="bg-black text-white px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer hover:bg-stone-800"
                     >
                       Sign Up
                     </button>
@@ -1456,104 +1591,348 @@ export default function SkylineApp() {
                 </div>
               )}
 
+              {/* Delivery vs Store Pickup Tabs */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1.5">
+                  Fulfillment Mode *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryType('delivery')}
+                    className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      deliveryType === 'delivery'
+                        ? 'border-black bg-black text-white shadow-sm'
+                        : 'border-stone-200 text-stone-700 hover:border-stone-400 bg-stone-50'
+                    }`}
+                  >
+                    <Truck className="w-4 h-4" />
+                    <span>Home Delivery (Churu)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryType('pickup')}
+                    className={`py-3 px-4 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                      deliveryType === 'pickup'
+                        ? 'border-black bg-black text-white shadow-sm'
+                        : 'border-stone-200 text-stone-700 hover:border-stone-400 bg-stone-50'
+                    }`}
+                  >
+                    <Store className="w-4 h-4" />
+                    <span>Store Pickup (Flagship)</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Checkout Form */}
               <form onSubmit={handlePlaceOrder} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={checkoutName}
-                    onChange={(e) => setCheckoutName(e.target.value)}
-                    placeholder="e.g. Arjun Rathore"
-                    className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Mobile Number *</label>
-                  <div className="flex items-center border border-stone-200 focus-within:border-black rounded-lg px-3 py-2">
-                    <span className="text-xs text-stone-500 font-mono mr-2">+91</span>
+                
+                {/* Contact Information */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                      Recipient Full Name *
+                    </label>
                     <input
-                      type="tel"
+                      type="text"
                       required
-                      maxLength={10}
-                      value={checkoutPhone}
-                      onChange={(e) => setCheckoutPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="9829012345"
-                      className="w-full bg-transparent text-xs outline-none font-mono"
+                      value={checkoutName}
+                      onChange={(e) => setCheckoutName(e.target.value)}
+                      placeholder="e.g. Arjun Rathore"
+                      className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Delivery Address (Churu) *</label>
-                  <textarea
-                    required
-                    rows={2}
-                    value={checkoutAddress}
-                    onChange={(e) => setCheckoutAddress(e.target.value)}
-                    placeholder="Street, Ward, Landmark, Churu – 331001"
-                    className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
-                  />
-                </div>
-
-                {/* Payment Method Selector */}
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Payment Method</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className={`border rounded-xl p-3 flex items-center gap-2 cursor-pointer transition-all ${
-                      paymentMethod === 'cod' ? 'border-black bg-stone-50' : 'border-stone-200'
-                    }`}>
-                      <input
-                        type="radio"
-                        name="payMethod"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="accent-black"
-                      />
-                      <span className="text-xs font-bold text-stone-900">Cash on Delivery</span>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                      10-Digit Mobile Number *
                     </label>
-
-                    <label className={`border rounded-xl p-3 flex items-center gap-2 cursor-pointer transition-all ${
-                      paymentMethod === 'upi' ? 'border-black bg-stone-50' : 'border-stone-200'
-                    }`}>
+                    <div className="flex items-center border border-stone-200 focus-within:border-black rounded-lg px-3 py-2">
+                      <span className="text-xs text-stone-500 font-mono mr-2">+91</span>
                       <input
-                        type="radio"
-                        name="payMethod"
-                        checked={paymentMethod === 'upi'}
-                        onChange={() => setPaymentMethod('upi')}
-                        className="accent-black"
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={checkoutPhone}
+                        onChange={(e) => setCheckoutPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="9829012345"
+                        className="w-full bg-transparent text-xs outline-none font-mono"
                       />
-                      <span className="text-xs font-bold text-stone-900">Instant UPI</span>
-                    </label>
+                    </div>
                   </div>
                 </div>
 
-                {paymentMethod === 'upi' && (
-                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-900 space-y-1">
-                    <span className="font-bold block">Store UPI ID: skylineoutfits@upi</span>
-                    <span className="text-[10px] text-amber-800 block">
-                      Pay using Google Pay, PhonePe, or Paytm upon order confirmation.
-                    </span>
+                {/* Delivery Address Section (if Home Delivery) */}
+                {deliveryType === 'delivery' ? (
+                  <div className="space-y-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-black" />
+                        <span>Delivery Address in Churu</span>
+                      </span>
+
+                      {/* GPS Live Location Trigger Button */}
+                      <button
+                        type="button"
+                        onClick={handleDetectGps}
+                        disabled={isCapturingGps}
+                        className="bg-white border border-stone-300 hover:border-black text-black px-3 py-1 rounded-full text-[10px] font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 transition-all"
+                      >
+                        <Crosshair className={`w-3.5 h-3.5 text-emerald-600 ${isCapturingGps ? 'animate-spin' : ''}`} />
+                        <span>{isCapturingGps ? 'Detecting GPS...' : 'Detect GPS Location'}</span>
+                      </button>
+                    </div>
+
+                    {/* GPS Status / Error Message */}
+                    {orderLiveGps && (
+                      <div className="bg-emerald-100/70 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-2 font-mono">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span>
+                          Live GPS Verified: {orderLiveGps.lat.toFixed(4)}°N, {orderLiveGps.lng.toFixed(4)}°E (Accuracy ~{Math.round(orderLiveGps.accuracy || 10)}m)
+                        </span>
+                      </div>
+                    )}
+                    {gpsError && (
+                      <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{gpsError}</span>
+                      </div>
+                    )}
+
+                    {/* Popular Churu Landmarks Quick Chips */}
+                    <div>
+                      <span className="block text-[10px] font-semibold text-stone-500 mb-1">
+                        Select Nearest Landmark in Churu:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {CHURU_POPULAR_LANDMARKS.map((lm) => (
+                          <button
+                            key={lm}
+                            type="button"
+                            onClick={() => handleSelectLandmarkChip(lm)}
+                            className={`text-[10px] px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                              selectedLandmarkChip === lm
+                                ? 'bg-black text-white font-bold'
+                                : 'bg-white border border-stone-200 text-stone-700 hover:border-black'
+                            }`}
+                          >
+                            {lm}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detailed Street & Landmark Inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                          House / Flat / Shop No.
+                        </label>
+                        <input
+                          type="text"
+                          value={houseNo}
+                          onChange={(e) => setHouseNo(e.target.value)}
+                          placeholder="e.g. House No. 42, 2nd Floor"
+                          className="w-full bg-white border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                          Street / Colony / Ward *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={streetArea}
+                          onChange={(e) => setStreetArea(e.target.value)}
+                          placeholder="e.g. Station Road, Ward No. 12"
+                          className="w-full bg-white border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          readOnly
+                          value="Churu, Rajasthan"
+                          className="w-full bg-stone-100 border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none text-stone-600 font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                          Pincode
+                        </label>
+                        <input
+                          type="text"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value)}
+                          className="w-full bg-white border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (
+                  /* Store Pickup Info Box */
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-xs text-emerald-950 space-y-1">
+                    <div className="flex items-center gap-2 font-bold">
+                      <Store className="w-4 h-4 text-emerald-700" />
+                      <span>Skyline Flagship Boutique Pickup</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800 leading-relaxed">
+                      Subhash Chowk, Station Road, Churu, Rajasthan – 331001.<br />
+                      Timings: Daily 10:30 AM – 10:00 PM. Package will be ready in 30 minutes!
+                    </p>
                   </div>
                 )}
 
-                {/* Order Summary & Submit */}
-                <div className="border-t border-stone-100 pt-3 space-y-3">
-                  <div className="flex justify-between items-center text-xs font-bold text-stone-950">
-                    <span>Amount Payable</span>
-                    <span className="text-base font-mono">₹ {grandTotal}.00</span>
+                {/* Delivery Notes */}
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
+                    Wardrobe / Delivery Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={checkoutNotes}
+                    onChange={(e) => setCheckoutNotes(e.target.value)}
+                    placeholder="e.g. Gift box packaging, deliver after 5 PM"
+                    className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
+                  />
+                </div>
+
+                {/* ─── REAL PAYMENT SYSTEM SELECTION (COD vs UPI) ──── */}
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1.5">
+                    Select Payment Method *
+                  </label>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    
+                    {/* Method 1: Cash on Delivery */}
+                    <div
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`border rounded-xl p-3.5 cursor-pointer transition-all flex items-start gap-3 ${
+                        paymentMethod === 'cod'
+                          ? 'border-black bg-stone-50 ring-1 ring-black shadow-xs'
+                          : 'border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <Banknote className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-stone-950 block">
+                          Cash on Delivery (COD)
+                        </span>
+                        <span className="text-[10px] text-stone-500 block leading-tight">
+                          Pay cash or scan QR upon delivery. Generates 4-digit Delivery OTP.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Method 2: Instant UPI & SmartPay (Our Unified System) */}
+                    <div
+                      onClick={() => setPaymentMethod('upi')}
+                      className={`border rounded-xl p-3.5 cursor-pointer transition-all flex items-start gap-3 ${
+                        paymentMethod === 'upi'
+                          ? 'border-black bg-stone-50 ring-1 ring-black shadow-xs'
+                          : 'border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <QrCode className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-stone-950 block">
+                            Instant UPI & SmartPay
+                          </span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 rounded">
+                            FAST
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-stone-500 block leading-tight">
+                          GPay, PhonePe, Paytm, QR scan & Cashfree PG with auto-verify.
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* UPI Live Details Notice */}
+                {paymentMethod === 'upi' && (
+                  <div className="bg-emerald-50/80 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-950 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Unified ChuruOne Payment Gateway</span>
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-800 font-semibold">
+                        ID: skylineoutfits@upi
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-emerald-800">
+                      Order place hote hi dynamic QR Code aur GPay/PhonePe intent pop-up open hoga. Payment hone par live status auto-verify ho jayega.
+                    </p>
+                  </div>
+                )}
+
+                {/* Price Breakdown & Submit Button */}
+                <div className="border-t border-stone-200 pt-4 space-y-3">
+                  <div className="space-y-1 text-xs text-stone-600">
+                    <div className="flex justify-between">
+                      <span>Items Subtotal</span>
+                      <span className="font-mono text-stone-900">₹ {cartSubtotal}.00</span>
+                    </div>
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-emerald-700 font-medium">
+                        <span>Coupon Discount</span>
+                        <span className="font-mono">- ₹ {discountAmount}.00</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span>Delivery Mode</span>
+                      <span>
+                        {deliveryType === 'pickup' ? (
+                          <strong className="text-emerald-700">STORE PICKUP (₹0)</strong>
+                        ) : deliveryFee === 0 ? (
+                          <strong className="text-emerald-700">FREE HOME DISPATCH</strong>
+                        ) : (
+                          <span className="font-mono text-stone-900">₹ {deliveryFee}.00</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="border-t border-stone-100 pt-2 flex justify-between items-center text-sm font-bold text-stone-950">
+                      <span>Grand Total</span>
+                      <span className="text-lg font-mono">₹ {grandTotal}.00</span>
+                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={orderSubmitting}
-                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {orderSubmitting ? 'Submitting Order...' : 'Confirm Order'}
+                    <span>
+                      {orderSubmitting 
+                        ? 'Recording Order...' 
+                        : paymentMethod === 'upi' 
+                          ? `Pay ₹${grandTotal}.00 with Instant UPI / SmartPay` 
+                          : `Confirm Order with Cash on Delivery (₹${grandTotal})`}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
+
               </form>
 
             </div>
@@ -1561,53 +1940,67 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 11. CONFIRMED ORDER MODAL ────────────────────────────── */}
-      {confirmedOrder && (
+      {/* ─── 11. CONFIRMED ORDER RECEIPT MODAL ────────────────────── */}
+      {confirmedOrder && !isUpiModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setConfirmedOrder(null)} />
 
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white max-w-md w-full rounded-2xl shadow-2xl border border-stone-200 p-8 text-center space-y-5">
               
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
 
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                  ORDER PLACED • SLICK EXCLUSIVE
+                  SLICK • WARDROBE DISPATCH READY
                 </span>
                 <h3 className="text-2xl font-black text-stone-950">
-                  Congratulations!
+                  Order Successfully Placed!
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Your order #{confirmedOrder.orderNumber || confirmedOrder.id} has been recorded in the Skyline smart backend.
+                  Thank you, {confirmedOrder.customer?.name || checkoutName}! Your order has been recorded in the Skyline smart backend.
                 </p>
               </div>
 
-              <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-700 space-y-1 text-left font-mono">
+              {/* Order Receipt Details */}
+              <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-700 space-y-2 text-left font-mono border border-stone-200">
                 <div className="flex justify-between">
-                  <span>Order ID:</span>
+                  <span className="text-stone-500">Order ID:</span>
                   <span className="font-bold text-black">{confirmedOrder.orderNumber || confirmedOrder.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Grand Total:</span>
-                  <span className="font-bold text-black">₹ {confirmedOrder.total || grandTotal}.00</span>
+                  <span className="text-stone-500">Payment Status:</span>
+                  <span className={`font-bold uppercase ${confirmedOrder.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {confirmedOrder.paymentStatus === 'paid' ? 'Verified Paid ✓' : 'Pay on Delivery (COD)'}
+                  </span>
                 </div>
+                {confirmedOrder.deliveryOtp && (
+                  <div className="flex justify-between bg-amber-100/70 p-2 rounded-lg text-amber-950 font-bold border border-amber-300">
+                    <span>Delivery Verification OTP:</span>
+                    <span className="text-sm tracking-widest">{confirmedOrder.deliveryOtp}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>Payment:</span>
-                  <span className="uppercase text-black">{confirmedOrder.paymentMethod || paymentMethod}</span>
+                  <span className="text-stone-500">Grand Total:</span>
+                  <span className="font-bold text-black text-sm">₹ {confirmedOrder.total || grandTotal}.00</span>
+                </div>
+                <div className="border-t border-stone-200 pt-2 text-[11px] text-stone-600">
+                  <span className="block text-stone-400 uppercase text-[9px]">Destination:</span>
+                  <span className="block truncate">{confirmedOrder.address || fullDeliveryAddress}</span>
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="space-y-2 pt-2">
                 <a
-                  href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}`}
+                  href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}%20for%20Rs%20${confirmedOrder.total || grandTotal}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline shadow-md"
                 >
-                  Confirm on WhatsApp
+                  Confirm on WhatsApp Concierge
                 </a>
                 <button
                   onClick={() => setConfirmedOrder(null)}
@@ -1622,7 +2015,16 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 12. CHURUONE SSO ACCOUNT MODAL ───────────────────────── */}
+      {/* ─── 12. REAL UPI PAYMENT MODAL (UNIFIED ENGINE) ──────────── */}
+      <UpiPaymentModal
+        isOpen={isUpiModalOpen}
+        onClose={() => setIsUpiModalOpen(false)}
+        orderData={pendingPaymentData}
+        paymentData={pendingPaymentData}
+        onPaymentSuccess={handlePaymentSuccess}
+      />
+
+      {/* ─── 13. CHURUONE SSO ACCOUNT MODAL ───────────────────────── */}
       {isAccountModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsAccountModalOpen(false)} />
@@ -1724,7 +2126,7 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 13. ORDER TRACKER MODAL ──────────────────────────────── */}
+      {/* ─── 14. ORDER TRACKER MODAL ──────────────────────────────── */}
       {isTrackerOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsTrackerOpen(false)} />

@@ -130,3 +130,31 @@ export async function submitProductReview(reviewData) {
     })
   });
 }
+
+/**
+ * Initiate UPI Payment with dynamic intent / link
+ */
+export async function initiateSkylineUpiPayment(payload) {
+  return await skylineFetch('/api/payment/initiate', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      storeId: 'skyline'
+    })
+  });
+}
+
+/**
+ * Update order status upon verified payment
+ */
+export async function updateSkylineOrderStatus(orderId, status, paymentStatus = 'paid') {
+  return await skylineFetch('/api/orders/update-status', {
+    method: 'POST',
+    body: JSON.stringify({
+      orderId,
+      status,
+      paymentStatus,
+      storeId: 'skyline'
+    })
+  });
+}
