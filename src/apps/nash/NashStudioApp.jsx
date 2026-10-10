@@ -1776,10 +1776,9 @@ const S = {
   themeToggleBtn:{width:36,height:36,borderRadius:18,border:"1px solid var(--line)",background:"transparent",color:"var(--paper)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"},
   navBookBtn:{background:"var(--paper)",color:"var(--ink)",fontWeight:800,padding:"8px 18px",fontSize:11,border:"none",borderRadius:20,cursor:"pointer",letterSpacing:"0.12em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6},
 
-  // Video Hero
-  heroContainer:{position:"relative",width:"100%",minHeight:"85vh",background:"#05080E",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 20px"},
-  heroVideo:{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.85},
-  heroOverlay:{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(5,8,14,0.4) 0%, rgba(5,8,14,0.7) 60%, rgba(5,8,14,0.98) 100%)",zIndex:5,pointerEvents:"none"},
+  heroContainer:{position:"relative",width:"100%",minHeight:"85vh",background:"#000000",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 20px"},
+  heroVideo:{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:1},
+  heroOverlay:{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.08) 40%, rgba(8,12,20,0.65) 100%)",zIndex:5,pointerEvents:"none"},
   heroContent:{position:"relative",zIndex:10,textAlign:"center",maxWidth:860,display:"flex",flexDirection:"column",alignItems:"center"},
   heroPill:{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(12px)",border:"1px solid rgba(212,175,55,0.4)",padding:"6px 16px",borderRadius:20,marginBottom:20},
   heroPing:{width:6,height:6,borderRadius:"50%",background:"#d4af37",boxShadow:"0 0 10px #d4af37"},
