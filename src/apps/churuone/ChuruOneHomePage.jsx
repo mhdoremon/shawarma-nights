@@ -14,7 +14,9 @@ import {
   Utensils,
   Scissors,
   ShieldCheck,
-  Zap
+  Zap,
+  Store,
+  BadgePercent
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,7 +40,7 @@ export default function ChuruOneHomePage() {
 
   // Set browser title
   useEffect(() => {
-    document.title = "CHURUONE — Sovereign City Commerce";
+    document.title = "ChuruOne — Order Food & Book Salon in Churu";
   }, []);
 
   // Sync SSO session on mount (from URL redirect, Cookie or LocalStorage)
@@ -122,103 +124,83 @@ export default function ChuruOneHomePage() {
     return base;
   };
 
-  // The 2 authentic flagship stores of ChuruOne
+  // The 2 authentic flagship stores
   const stores = [
     {
       id: 'shawarma',
-      num: '01',
       name: 'Shawarma Nights',
-      category: 'Culinary & Dining',
-      tagline: 'Artisanal Charcoal Spit Kitchen',
-      description: 'Slow-roasted spit shawarmas, freshly rolled pita, and authentic garlic toum. Open late-night with express 25-minute delivery across Churu.',
+      category: 'Food Delivery & Dining',
+      tagline: 'Artisanal Charcoal Kitchen',
+      badge: 'Open Tonight • 6 PM - 4 AM',
+      description: 'Authentic spit-roasted shawarmas, hand-kneaded fresh pita, and signature toum garlic sauce. 25-minute fast home delivery across Churu.',
       timing: '6:00 PM – 4:00 AM',
       location: 'Subhash Chowk, Churu',
-      image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=1400&q=85',
-      ctaText: 'Order Shawarma',
-      icon: Utensils,
-      status: 'Open Tonight',
-      perk: '25-Min Express Delivery'
+      image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=1200&q=85',
+      ctaText: 'Order Food Online',
+      tags: ['🔥 Charcoal Spit Roasted', '⚡ 25-Min Express Delivery', '₹ Direct In-Store Rates'],
+      accentColor: 'text-rose-600',
+      btnBg: 'bg-stone-900 hover:bg-black text-white'
     },
     {
       id: 'nash-studio',
-      num: '02',
       name: 'Nash Studio',
-      category: 'Salon & Grooming',
-      tagline: "Gentlemen's Grooming Lounge",
-      description: 'Private appointment-based grooming lounge. Precision skin fades, beard sculpting, and premium hair craftsmanship with zero waiting queue.',
+      category: 'Salon & Grooming Lounge',
+      tagline: "Gentlemen's Luxury Grooming",
+      badge: 'Slots Open • 11 AM - 11 PM',
+      description: 'Private appointment-based grooming lounge. Precision fades, beard styling, and hair craftsmanship with zero waiting queue.',
       timing: '11:00 AM – 11:00 PM',
       location: 'Main Market, Churu',
-      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1400&q=85',
-      ctaText: 'Book Appointment',
-      icon: Scissors,
-      status: 'Booking Active',
-      perk: 'Zero Wait Guaranteed'
+      image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=85',
+      ctaText: 'Book Salon Appointment',
+      tags: ['✂️ Zero Wait Guarantee', '💈 Master Stylists', '💎 Private Suite Experience'],
+      accentColor: 'text-amber-700',
+      btnBg: 'bg-stone-900 hover:bg-black text-white'
     }
   ];
 
-  // Letters array for kinetic brand typography reveal
-  const brandWord = "CHURUONE";
-
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white relative">
+    <div className="min-h-screen bg-[#FAF9F6] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
       
-      {/* ─── Top Architectural Utility Bar ──────────────────────── */}
-      <div className="border-b border-stone-200/60 bg-[#FAF9F5] text-[11px] font-mono tracking-wider text-stone-500 py-2 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="uppercase font-semibold text-stone-700">Churu, Rajasthan (331001)</span>
-          </div>
-          <div className="hidden md:flex items-center gap-6 uppercase">
-            <span>Direct In-Store Pricing</span>
-            <span>•</span>
-            <span>0% Platform Commission</span>
-            <span>•</span>
-            <span>Single Sign-On</span>
-          </div>
-          <div>
-            <a href="#about" className="hover:text-stone-900 underline underline-offset-2 transition-colors">
-              Official Registry
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── Main Brand Header ────────────────────────────────────── */}
-      <header className="border-b border-stone-200/80 bg-[#FAF9F5]/90 backdrop-blur-md sticky top-0 z-50 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+      {/* ─── Clean Modern Header (Single Branding, No Top Bar Clutter) ── */}
+      <header className="border-b border-stone-200/80 bg-[#FAF9F6]/95 backdrop-blur-md sticky top-0 z-50 transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
           
-          {/* Logo / Brand Mark */}
-          <Link to="/" className="flex items-center gap-3 group" aria-label="ChuruOne Home">
-            <div className="w-8 h-8 rounded-lg bg-stone-900 text-white flex items-center justify-center font-black text-sm tracking-tight shadow-xs">
+          {/* Logo / Brand Mark - Refined & Crisp */}
+          <Link to="/" className="flex items-center gap-2.5 group" aria-label="ChuruOne Home">
+            <div className="w-8 h-8 rounded-lg bg-stone-950 text-white flex items-center justify-center font-black text-xs tracking-wider shadow-xs">
               C1
             </div>
-            <span className="font-black text-xl sm:text-2xl tracking-[-0.03em] text-stone-950 uppercase">
-              CHURUONE
-            </span>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-stone-950 uppercase leading-none">
+                CHURUONE
+              </span>
+              <span className="text-[9px] font-mono tracking-widest text-stone-500 uppercase">
+                Churu, Rajasthan
+              </span>
+            </div>
           </Link>
 
-          {/* Quick Nav Anchors */}
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-stone-600">
-            <a href="#flagships" className="hover:text-stone-950 transition-colors">
-              Flagship Stores
+          {/* Center Navigation - Simple & Direct */}
+          <nav className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-stone-600">
+            <a href="#stores" className="hover:text-stone-950 transition-colors">
+              Our Stores
             </a>
-            <a href="#principles" className="hover:text-stone-950 transition-colors">
-              Principles
+            <a href="#why-us" className="hover:text-stone-950 transition-colors">
+              Direct Pricing
             </a>
             <a href="#about" className="hover:text-stone-950 transition-colors">
-              About & Entity
+              About
             </a>
           </nav>
 
-          {/* Right Header: SSO Account */}
-          <div className="flex items-center gap-4 sm:gap-6" ref={accountMenuRef}>
+          {/* Right Header Navigation & SSO Account */}
+          <div className="flex items-center gap-3 sm:gap-4" ref={accountMenuRef}>
             {currentUser ? (
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setIsAccountMenuOpen(prev => !prev)}
-                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs tracking-wider font-semibold px-4 py-2 rounded-full transition-all inline-flex items-center gap-2.5 cursor-pointer border border-stone-200/90 shadow-xs"
+                  className="bg-white hover:bg-stone-50 text-stone-900 text-xs tracking-wider font-semibold px-3.5 py-2 rounded-full transition-all inline-flex items-center gap-2 cursor-pointer border border-stone-200 shadow-xs"
                 >
                   {currentUser.picture || currentUser.photoURL ? (
                     <img 
@@ -231,13 +213,13 @@ export default function ChuruOneHomePage() {
                       {(currentUser.name || 'U').charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="max-w-[120px] truncate">
+                  <span className="max-w-[110px] truncate">
                     {(currentUser.name || currentUser.displayName || 'Account').split(' ')[0]}
                   </span>
                   <ChevronDown className={`w-3.5 h-3.5 text-stone-400 transition-transform duration-200 ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Ultra-Clean Account Dropdown */}
+                {/* Account Dropdown */}
                 <AnimatePresence>
                   {isAccountMenuOpen && (
                     <motion.div
@@ -245,7 +227,7 @@ export default function ChuruOneHomePage() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 6, scale: 0.98 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 p-4 text-left"
+                      className="absolute right-0 mt-2 w-64 bg-white border border-stone-200 rounded-2xl shadow-xl z-50 p-3.5 text-left"
                     >
                       <div className="pb-3 border-b border-stone-100">
                         <div className="font-bold text-sm text-stone-900 truncate">
@@ -280,7 +262,7 @@ export default function ChuruOneHomePage() {
             ) : (
               <Link 
                 to="/auth" 
-                className="bg-stone-900 hover:bg-black text-white text-xs uppercase tracking-wider font-bold px-5 py-2.5 rounded-full transition-colors shadow-xs"
+                className="bg-stone-900 hover:bg-black text-white text-xs uppercase tracking-wider font-bold px-4 py-2 rounded-full transition-colors shadow-xs"
               >
                 Sign In
               </Link>
@@ -290,235 +272,119 @@ export default function ChuruOneHomePage() {
         </div>
       </header>
 
-      {/* ─── Monumental Hero with Kinetic Brand Typography ──────── */}
-      <section className="pt-12 sm:pt-20 pb-16 sm:pb-24 overflow-hidden border-b border-stone-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      {/* ─── Hero Section: Punchy, Clear & Stores First ──────────── */}
+      <section className="pt-8 pb-10 sm:pt-14 sm:pb-14">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           
-          {/* Top Label & Rotating Kinetic Seal */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8 sm:mb-12">
-            <div>
-              <span className="text-[11px] font-mono font-bold tracking-[0.3em] uppercase text-stone-500 block">
-                [ DIGITAL CITY DIRECTORY & SOVEREIGN COMMERCE ]
-              </span>
-              <p className="text-sm text-stone-600 font-medium mt-1">
-                Rajasthan&apos;s direct merchant network for verified culinary & grooming flagships.
-              </p>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-3"
+          >
+            {/* Clear, unmistakable headline for both phone and PC */}
+            <span className="inline-flex items-center gap-2 bg-stone-100 text-stone-700 text-[10px] sm:text-xs font-mono font-bold uppercase px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Churu City Marketplace • 0% Middleman Tax
+            </span>
 
-            {/* Kinetic Rotating Circular Emblem */}
-            <div className="relative flex items-center justify-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 24, ease: "linear" }}
-                className="w-24 h-24 sm:w-28 sm:h-28"
-              >
-                <svg viewBox="0 0 100 100" className="w-full h-full">
-                  <path
-                    id="circlePath"
-                    d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
-                    fill="none"
-                  />
-                  <text className="text-[8.5px] uppercase tracking-[0.24em] font-extrabold fill-stone-800">
-                    <textPath href="#circlePath" startOffset="0%">
-                      ✦ CHURUONE ✦ SOVEREIGN LOCAL COMMERCE ✦ EST 2026 ✦
-                    </textPath>
-                  </text>
-                </svg>
-              </motion.div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-2.5 h-2.5 rounded-full bg-stone-950" />
-              </div>
-            </div>
-          </div>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-stone-950 uppercase leading-[1.1]">
+              Order Food. Book Salon.<br />Direct From Stores.
+            </h1>
 
-          {/* MONUMENTAL KINETIC BRAND TYPOGRAPHY: CHURUONE */}
-          <div className="py-2 sm:py-6 overflow-hidden">
-            <motion.h1 
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: { staggerChildren: 0.045, delayChildren: 0.1 }
-                }
-              }}
-              className="text-[15vw] sm:text-[14.5vw] md:text-[14vw] lg:text-[13vw] font-black tracking-[-0.05em] leading-[0.8] text-stone-950 uppercase select-none flex justify-between w-full"
-              aria-label="CHURUONE"
-            >
-              {brandWord.split("").map((letter, index) => (
-                <span key={index} className="inline-block overflow-hidden pb-2">
-                  <motion.span
-                    variants={{
-                      hidden: { y: "115%", opacity: 0 },
-                      visible: { 
-                        y: "0%", 
-                        opacity: 1, 
-                        transition: { type: "spring", damping: 14, stiffness: 100 } 
-                      }
-                    }}
-                    className="inline-block"
-                  >
-                    {letter}
-                  </motion.span>
-                </span>
-              ))}
-            </motion.h1>
-          </div>
-
-          {/* Hero Bottom Narrative Grid */}
-          <div className="mt-8 sm:mt-12 pt-8 border-t border-stone-200 flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div className="max-w-xl">
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-stone-900">
-                Two Iconic Local Establishments. Zero Platform Fees. Direct Merchant Billing.
-              </h2>
-              <p className="mt-3 text-sm text-stone-600 leading-relaxed font-normal">
-                ChuruOne bypasses corporate delivery aggregator commissions. Every order and booking is settled straight to verified city shops at real counter prices.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-4 flex-wrap">
-              <a
-                href="#flagships"
-                className="bg-stone-900 hover:bg-black text-white text-xs uppercase tracking-wider font-bold px-6 py-4 rounded-2xl inline-flex items-center gap-3 transition-colors shadow-xs"
-              >
-                <span>Explore The 2 Flagships</span>
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <a
-                href="#about"
-                className="bg-white hover:bg-stone-100 text-stone-900 text-xs uppercase tracking-wider font-bold px-6 py-4 rounded-2xl inline-flex items-center gap-2 border border-stone-200 transition-colors"
-              >
-                <span>About Entity</span>
-              </a>
-            </div>
-          </div>
+            <p className="text-stone-600 text-xs sm:text-base max-w-xl mx-auto font-normal leading-relaxed pt-1">
+              Select one of our 2 authentic city flagships below for direct in-store pricing with zero platform markups.
+            </p>
+          </motion.div>
 
         </div>
       </section>
 
-      {/* ─── Kinetic Infinite Marquee Stream ─────────────────────── */}
-      <div className="py-5 sm:py-6 border-b border-stone-200/90 bg-[#F4F1EA] overflow-hidden whitespace-nowrap select-none">
-        <div className="flex gap-10 items-center animate-marquee w-max">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex items-center gap-10 text-lg sm:text-2xl font-black uppercase tracking-tight text-stone-950">
-              <span className="text-stone-900">CHURUONE</span>
-              <span className="text-stone-400 font-light">✦</span>
-              <span className="text-stone-600 font-mono text-sm tracking-widest font-bold">SHAWARMA NIGHTS</span>
-              <span className="text-stone-400 font-light">✦</span>
-              <span className="text-stone-900">0% COMMISSIONS</span>
-              <span className="text-stone-400 font-light">✦</span>
-              <span className="text-stone-600 font-mono text-sm tracking-widest font-bold">NASH STUDIO</span>
-              <span className="text-stone-400 font-light">✦</span>
-              <span className="text-stone-900">DIRECT PRICING</span>
-              <span className="text-stone-400 font-light">✦</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ─── The Two Flagship Portals (Architectural Showcase) ────── */}
-      <section id="flagships" className="py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-6 scroll-mt-20">
-        
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 sm:mb-16">
-          <div>
-            <span className="text-[11px] font-mono font-bold tracking-[0.28em] uppercase text-stone-500 block mb-2">
-              CURATED DIRECTORY
-            </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-stone-950 uppercase">
-              The Flagship Destinations
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-stone-500 max-w-md font-normal leading-relaxed">
-            Directly owned and operated storefronts equipped with real-time merchant kitchen and appointment scheduling dispatch.
-          </p>
-        </div>
-
-        {/* The 2 Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
+      {/* ─── THE 2 STORES: Primary Focus of the Website ──────────── */}
+      <section id="stores" className="pb-16 sm:pb-24 max-w-6xl mx-auto px-4 sm:px-6 scroll-mt-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {stores.map((store, index) => {
             const destinationUrl = getStoreUrl(store.id);
-            const Icon = store.icon;
 
             return (
               <motion.article
                 key={store.id}
-                initial={{ opacity: 0, y: 35 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: index * 0.15, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -8 }}
-                className="group relative rounded-[2.5rem] overflow-hidden bg-white border border-stone-200/90 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col justify-between"
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ y: -6 }}
+                className="group bg-white rounded-3xl overflow-hidden border border-stone-200/90 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
               >
-                {/* Architectural Corner Registration Marks */}
-                <div className="absolute top-4 right-4 z-10 text-xs font-mono font-bold text-stone-400 select-none">
-                  + {store.num}
-                </div>
-
                 <div>
-                  {/* Cinematic Imagery Frame */}
-                  <a 
-                    href={destinationUrl} 
-                    className="block relative h-72 sm:h-96 w-full overflow-hidden bg-stone-100"
-                  >
+                  {/* Store Visual Viewport */}
+                  <a href={destinationUrl} className="block relative h-56 sm:h-72 w-full overflow-hidden bg-stone-100">
                     <img 
                       src={store.image} 
                       alt={store.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
 
-                    {/* Operational Badge Pill */}
-                    <div className="absolute top-5 left-5 flex items-center gap-2">
-                      <span className="bg-stone-950 text-white text-[10px] uppercase tracking-wider font-bold px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-2">
+                    {/* Operational Badge */}
+                    <div className="absolute top-4 left-4 flex items-center gap-2">
+                      <span className="bg-stone-950/90 backdrop-blur-sm text-white text-[10px] uppercase font-bold tracking-wider px-3 py-1 rounded-full shadow-sm flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        {store.status}
+                        {store.badge}
                       </span>
-                      <span className="bg-white/95 backdrop-blur-md text-stone-800 text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-full shadow-xs">
+                    </div>
+
+                    <div className="absolute top-4 right-4">
+                      <span className="bg-white/95 backdrop-blur-sm text-stone-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-xs">
                         {store.category}
                       </span>
                     </div>
                   </a>
 
-                  {/* Card Editorial Body */}
-                  <div className="p-7 sm:p-10">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-stone-500 text-xs font-mono tracking-wider uppercase">
-                        <Icon className="w-4 h-4 text-stone-700" />
-                        <span>{store.tagline}</span>
+                  {/* Store Info & Content */}
+                  <div className="p-6 sm:p-7 space-y-3">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-wider text-stone-500">
+                        {store.tagline}
                       </div>
-                      <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-950 group-hover:text-stone-800 transition-colors pt-1">
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-950 mt-0.5 group-hover:text-stone-800 transition-colors">
                         {store.name}
-                      </h3>
+                      </h2>
                     </div>
 
-                    <p className="text-sm sm:text-base text-stone-600 leading-relaxed mt-4 font-normal">
+                    <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
                       {store.description}
                     </p>
 
-                    {/* Operational Metadata Bar */}
-                    <div className="mt-8 pt-6 border-t border-stone-100 grid grid-cols-2 gap-4 text-xs text-stone-600">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-stone-400 shrink-0" />
-                        <span className="font-medium">{store.timing}</span>
+                    {/* Feature Tags with Big-feel Icon Tags */}
+                    <div className="pt-2 flex flex-wrap gap-2">
+                      {store.tags.map((tag, tIdx) => (
+                        <span 
+                          key={tIdx}
+                          className="bg-stone-50 border border-stone-200/70 text-stone-700 text-[11px] font-medium px-2.5 py-1 rounded-lg"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Location & Timings */}
+                    <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <span>{store.timing}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-stone-400 shrink-0" />
-                        <span className="font-medium">{store.location}</span>
-                      </div>
-                      <div className="col-span-2 flex items-center gap-2 text-emerald-700 font-semibold pt-1">
-                        <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-                        <span>{store.perk}</span>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <span>{store.location}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Monumental Action Trigger */}
-                <div className="p-7 sm:p-10 pt-0">
+                {/* Primary CTA Button */}
+                <div className="p-6 sm:p-7 pt-0">
                   <a
                     href={destinationUrl}
-                    className="w-full bg-stone-900 hover:bg-black text-white py-4 sm:py-5 px-6 rounded-2xl text-xs sm:text-sm uppercase tracking-wider font-bold flex items-center justify-between transition-colors shadow-xs group/btn cursor-pointer"
+                    className={`w-full ${store.btnBg} py-3.5 sm:py-4 px-6 rounded-2xl text-xs sm:text-sm uppercase tracking-wider font-bold flex items-center justify-between transition-colors shadow-xs group/btn cursor-pointer`}
                   >
                     <span>{store.ctaText}</span>
                     <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1.5 transition-transform" />
@@ -528,116 +394,130 @@ export default function ChuruOneHomePage() {
             );
           })}
         </div>
-
       </section>
 
-      {/* ─── Architectural Principles (Why ChuruOne) ─────────────── */}
-      <section id="principles" className="py-20 sm:py-28 bg-[#F4F1EA] border-t border-stone-200/90 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      {/* ─── WHY CHURUONE: Big Icon Tags, Concise & Modern ───────── */}
+      <section id="why-us" className="py-16 sm:py-20 bg-stone-100/70 border-t border-stone-200/90 scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
-          <div className="max-w-2xl mb-14">
-            <span className="text-[11px] font-mono font-bold tracking-[0.25em] uppercase text-stone-500 block mb-2">
-              FOUNDATIONAL ARCHITECTURE
+          <div className="text-center max-w-xl mx-auto mb-10 sm:mb-14">
+            <span className="text-[11px] font-mono font-bold tracking-[0.25em] uppercase text-stone-500 block mb-1">
+              THE DIRECT ADVANTAGE
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-950 uppercase leading-tight">
-              The Sovereign City Model
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-stone-950 uppercase">
+              Why Order Direct on ChuruOne?
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             
-            {/* Pillar 01 */}
-            <div className="bg-white rounded-3xl p-8 border border-stone-200/80 shadow-xs space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-900 font-mono font-bold text-sm">
-                01
+            {/* Feature 1 */}
+            <motion.div 
+              whileHover={{ y: -4 }}
+              className="bg-white rounded-2xl p-7 border border-stone-200/80 shadow-xs space-y-4"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-700">
+                <BadgePercent className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-stone-950">
-                Direct Counter Pricing
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                Third-party delivery apps inflate menu costs by 20–30%. ChuruOne guarantees exact in-store dining and salon prices with zero middleman surcharge.
-              </p>
-            </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-stone-950">
+                  Zero Platform Surcharge
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed font-normal">
+                  Corporate delivery apps inflate food and salon bills by 20–30%. ChuruOne delivers at pure in-store counter pricing.
+                </p>
+              </div>
+            </motion.div>
 
-            {/* Pillar 02 */}
-            <div className="bg-white rounded-3xl p-8 border border-stone-200/80 shadow-xs space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-900 font-mono font-bold text-sm">
-                02
+            {/* Feature 2 */}
+            <motion.div 
+              whileHover={{ y: -4 }}
+              className="bg-white rounded-2xl p-7 border border-stone-200/80 shadow-xs space-y-4"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
+                <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-stone-950">
-                Single Sign-On (SSO)
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                Authenticate once on ChuruOne. Your identity, delivery coordinates, and loyalty tier transition seamlessly between Shawarma Nights and Nash Studio.
-              </p>
-            </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-stone-950">
+                  Express Kitchen & Salon Sync
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed font-normal">
+                  Direct live connection to Shawarma Nights spit-grill kitchen and Nash Studio stylist chairs. Fast dispatch and zero wait time.
+                </p>
+              </div>
+            </motion.div>
 
-            {/* Pillar 03 */}
-            <div className="bg-white rounded-3xl p-8 border border-stone-200/80 shadow-xs space-y-4">
-              <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-stone-900 font-mono font-bold text-sm">
-                03
+            {/* Feature 3 */}
+            <motion.div 
+              whileHover={{ y: -4 }}
+              className="bg-white rounded-2xl p-7 border border-stone-200/80 shadow-xs space-y-4"
+            >
+              <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700">
+                <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-stone-950">
-                Direct Merchant Settlement
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                UPI and card payments settle instantly to merchant accounts via Cashfree & PhonePe gateways, providing complete financial sovereignty to local business.
-              </p>
-            </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-stone-950">
+                  One Unified Account (SSO)
+                </h3>
+                <p className="text-xs text-stone-600 leading-relaxed font-normal">
+                  Log in once on ChuruOne. Your saved addresses, past orders, and salon appointments are synced seamlessly across both stores.
+                </p>
+              </div>
+            </motion.div>
 
           </div>
 
         </div>
       </section>
 
-      {/* ─── Clean Editorial About & Entity Section ───────────────── */}
-      <section id="about" className="py-20 sm:py-28 bg-[#FAF9F5] border-t border-stone-200/80 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      {/* ─── ABOUT & OFFICIAL ENTITY ─────────────────────────────── */}
+      <section id="about" className="py-16 sm:py-20 bg-white border-t border-stone-200/80 scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
             
-            {/* Left: Platform Narrative */}
-            <div className="lg:col-span-7 space-y-5">
+            {/* Left Narrative */}
+            <div className="lg:col-span-7 space-y-4">
               <span className="text-[11px] font-mono font-bold tracking-[0.25em] uppercase text-stone-500 block">
                 ABOUT CHURUONE
               </span>
 
-              <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-stone-950 uppercase leading-tight">
+              <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-stone-950 uppercase leading-tight">
                 Direct City Commerce, Sovereign & Transparent.
               </h2>
 
-              <p className="text-sm sm:text-base text-stone-600 leading-relaxed font-normal pt-2">
-                ChuruOne is the dedicated digital platform connecting citizens directly with Churu&apos;s signature culinary and grooming destinations.
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal pt-1">
+                ChuruOne is the dedicated digital marketplace connecting citizens directly with Churu&apos;s signature culinary and grooming destinations.
               </p>
 
               <p className="text-xs sm:text-sm text-stone-500 leading-relaxed font-normal">
-                By eliminating third-party platform markups, orders and appointments are served at authentic in-store pricing with instant direct settlements to local merchant accounts.
+                By cutting out intermediary aggregator fees, orders and appointments are served at authentic in-store pricing with instant direct settlements to local merchant accounts.
               </p>
             </div>
 
-            {/* Right: Official Entity & Contact Card */}
-            <div className="lg:col-span-5 bg-white border border-stone-200/90 rounded-3xl p-7 sm:p-9 shadow-sm space-y-6">
+            {/* Right: Official Entity Card */}
+            <div className="lg:col-span-5 bg-stone-50 border border-stone-200/90 rounded-2xl p-6 sm:p-7 shadow-xs space-y-5">
               <div>
                 <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-stone-400 block mb-1">
                   OFFICIAL OPERATING ENTITY
                 </span>
-                <div className="text-lg font-bold text-stone-900">
+                <div className="text-base font-bold text-stone-900">
                   Vasudhaiva Kutumbakam Robotics
                 </div>
               </div>
 
-              <div className="space-y-3.5 text-xs text-stone-600 pt-4 border-t border-stone-100">
-                <div className="flex items-start gap-3">
+              <div className="space-y-3 text-xs text-stone-600 pt-3 border-t border-stone-200/60">
+                <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
                   <span>50, Churu bhaiji chowk, Churu, Rajasthan 331001</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <Phone className="w-4 h-4 text-stone-400 shrink-0" />
                   <a href="tel:+917023963189" className="hover:text-stone-900 font-mono transition-colors">
                     +91 70239 63189
                   </a>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <Mail className="w-4 h-4 text-stone-400 shrink-0" />
                   <a href="mailto:contact@churuone.in" className="hover:text-stone-900 font-mono transition-colors">
                     contact@churuone.in
@@ -645,10 +525,10 @@ export default function ChuruOneHomePage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-stone-100">
+              <div className="pt-3 border-t border-stone-200/60">
                 <Link
                   to="/admin"
-                  className="w-full py-3.5 px-4 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-900 text-xs font-bold uppercase tracking-wider flex items-center justify-between transition-colors cursor-pointer"
+                  className="w-full py-3 px-4 rounded-xl bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold uppercase tracking-wider flex items-center justify-between border border-stone-200 transition-colors"
                 >
                   <span>Merchant OS Portal</span>
                   <ArrowRight className="w-3.5 h-3.5 text-stone-500" />
@@ -661,23 +541,23 @@ export default function ChuruOneHomePage() {
         </div>
       </section>
 
-      {/* ─── Minimalist Clean Footer ─────────────────────────────── */}
-      <footer className="border-t border-stone-200/80 bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+      {/* ─── Clean Minimalist Footer ─────────────────────────────── */}
+      <footer className="border-t border-stone-200/80 bg-stone-50 py-10 sm:py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
           
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-xs text-stone-600">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-stone-600">
             <div>
-              <div className="font-black tracking-[-0.03em] uppercase text-stone-950 text-xl">
+              <div className="font-black tracking-tight uppercase text-stone-950 text-lg">
                 CHURUONE
               </div>
-              <p className="text-xs text-stone-500 mt-1 font-mono">
+              <p className="text-xs text-stone-500 mt-0.5 font-mono">
                 Direct City Commerce • Churu, Rajasthan 331001
               </p>
             </div>
 
-            <div className="flex items-center flex-wrap gap-6 text-stone-600 text-xs font-semibold uppercase tracking-wider">
-              <a href="#about" className="hover:text-stone-950 transition-colors">
-                About
+            <div className="flex items-center flex-wrap gap-5 text-stone-600 text-xs font-semibold uppercase tracking-wider">
+              <a href="#stores" className="hover:text-stone-950 transition-colors">
+                Stores
               </a>
               <a href={getStoreUrl('shawarma')} className="hover:text-stone-950 transition-colors">
                 Shawarma Nights
@@ -691,9 +571,9 @@ export default function ChuruOneHomePage() {
             </div>
           </div>
 
-          {/* Clean Legal Policy Links (All 5 mandatory PhonePe & Cashfree compliance links) */}
-          <div className="pt-6 border-t border-stone-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-stone-500">
-            <div className="flex items-center flex-wrap gap-4 sm:gap-6 font-medium">
+          {/* All 5 Mandatory Legal Policy Links for Payment Gateway Compliance */}
+          <div className="pt-5 border-t border-stone-200/70 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-stone-500">
+            <div className="flex items-center flex-wrap gap-4 sm:gap-5 font-medium">
               <a href="/contact-us" className="hover:text-stone-900 transition-colors">
                 Contact Us
               </a>
@@ -712,13 +592,13 @@ export default function ChuruOneHomePage() {
             </div>
 
             <div className="text-stone-400 text-[11px] font-mono">
-              Delivery in 25–40 mins • Refunds processed in 5–7 business days
+              Delivery in 25–40 mins • Refunds in 5–7 business days
             </div>
           </div>
 
-          <div className="pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-400">
-            <span>© 2026 ChuruOne. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.</span>
-            <span>Registered Address: 50, Churu bhaiji chowk, Churu, Rajasthan 331001</span>
+          <div className="pt-3 border-t border-stone-200/70 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-400">
+            <span>© 2026 ChuruOne. A unit of Vasudhaiva Kutumbakam Robotics.</span>
+            <span>Registered: 50, Churu bhaiji chowk, Churu, Rajasthan 331001</span>
           </div>
 
         </div>
