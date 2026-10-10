@@ -264,6 +264,7 @@ export default function ChuruOneAuthPage() {
 
       // If phone is not yet verified for this store, proceed to Step 2 (Profile & Phone OTP)
       setStep(2);
+      setSuccessMsg(`Google Account verified (${gEmail})! Aakhri step: ${storeDisplayName || 'Shawarma Nights'} ke liye apna mobile number verify karein.`);
     } catch (err) {
       console.error("ChuruOne Google Sign-In Error:", err);
       if (err.code === "auth/popup-closed-by-user") {
@@ -593,9 +594,14 @@ export default function ChuruOneAuthPage() {
         {step === 1 && (
           <div className="space-y-6">
             {storeRequiresPhone && (
-              <div className="p-3.5 border border-zinc-200 bg-zinc-50 text-zinc-700 text-xs leading-relaxed">
-                <span className="font-semibold text-zinc-950 block mb-0.5">Mobile OTP Verification Required</span>
-                {storeDisplayName || 'This store'} requires a verified 10-digit mobile number for order delivery & status updates.
+              <div className="p-3.5 border-2 border-amber-300 bg-amber-50 text-amber-950 text-xs leading-relaxed space-y-1">
+                <div className="flex items-center gap-1.5 font-black text-amber-950 uppercase tracking-wider text-[11px]">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Mobile OTP Verification Mandatory</span>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-normal">
+                  <strong>{storeDisplayName || 'Shawarma Nights'}</strong> ke live orders aur delivery tracking ke liye 10-digit mobile number OTP verify hona anivarya hai. Ager aap Google se login karenge, to agle step me mobile number par SMS OTP manga jayega.
+                </p>
               </div>
             )}
 
@@ -613,7 +619,12 @@ export default function ChuruOneAuthPage() {
                   <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                 </svg>
-                <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
+                <div className="flex flex-col items-center">
+                  <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
+                  {storeRequiresPhone && (
+                    <span className="text-[9px] text-zinc-500 font-semibold tracking-normal lowercase">(step 2: mobile otp verification next)</span>
+                  )}
+                </div>
               </button>
             </div>
 
@@ -678,86 +689,54 @@ export default function ChuruOneAuthPage() {
         {step === 2 && (
           <form onSubmit={handleProfileSubmit} className="space-y-4">
             {/* User Verified Card */}
-            <div className="p-3.5 border border-zinc-200 bg-zinc-50 flex items-center gap-3">
+            <div className="p-3.5 border border-emerald-300 bg-emerald-50/70 flex items-center gap-3">
               <img
                 src={googleUser?.photoURL}
                 alt=""
-                className="w-9 h-9 rounded-full object-cover border border-zinc-200"
+                className="w-10 h-10 rounded-full object-cover border border-emerald-300 shadow-xs"
               />
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-zinc-950 truncate">
-                  {googleUser?.displayName}
+                <div className="text-xs font-bold text-zinc-950 truncate flex items-center gap-1.5">
+                  <span>{googleUser?.displayName}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 </div>
-                <div className="text-[11px] text-zinc-500 truncate">
+                <div className="text-[11px] text-zinc-600 truncate">
                   {googleUser?.email}
                 </div>
               </div>
-              <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5">
-                Google Verified
+              <span className="text-[9px] uppercase tracking-wider font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-2 py-0.5">
+                Google Verified ✓
               </span>
             </div>
 
-            <div className="text-left">
-              <span className="text-[11px] font-semibold text-zinc-900 block">Personal Profile (Optional)</span>
-              <span className="text-[10px] text-zinc-500">Only mobile verification is required for orders. Name, gender, and address are optional.</span>
-            </div>
+            {/* MANDATORY MOBILE ALERT FOR SHAWARMA / SKYLINE */}
+            {storeRequiresPhone ? (
+              <div className="p-3.5 border-2 border-red-500 bg-red-50 text-red-950 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-red-900">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>Aakhri Step: Mobile Number OTP Verify Karein</span>
+                </div>
+                <p className="text-[11px] text-red-900 leading-relaxed">
+                  Google login safal raha! Lekin <strong>{storeDisplayName || 'Shawarma Nights'}</strong> ke orders aur delivery tracking ke liye mobile number verify hona mandatory hai. Kripya neeche mobile number dalkar SMS OTP verify karein (Back na karein, tabhi account activate hoga).
+                </p>
+              </div>
+            ) : (
+              <div className="text-left">
+                <span className="text-[11px] font-semibold text-zinc-900 block">Personal Profile (Optional)</span>
+                <span className="text-[10px] text-zinc-500">Only mobile verification is required for orders. Name, gender, and address are optional.</span>
+              </div>
+            )}
 
-            {/* Name Input */}
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
-                Full Name (Optional)
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                placeholder="Your full name"
-                className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
-              />
-            </div>
-
-            {/* Gender Select */}
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
-                Gender (Optional)
-              </label>
-              <select
-                value={gender}
-                onChange={e => setGender(e.target.value)}
-                className="w-full border border-zinc-200 focus:border-zinc-950 px-3 py-2.5 text-xs text-zinc-900 outline-none bg-white transition-colors"
-              >
-                <option value="">Select Gender (Optional)</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-                <option value="prefer_not_to_say">Prefer not to say</option>
-              </select>
-            </div>
-
-            {/* Address Textarea */}
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
-                Delivery / Street Address (Optional)
-              </label>
-              <textarea
-                rows={2}
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                placeholder="House / Flat No., Landmark, Ward, Area, Churu"
-                className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2 text-xs text-zinc-900 placeholder-zinc-400 outline-none resize-none transition-colors"
-              />
-            </div>
-
-            {/* Phone Input */}
-            <div>
+            {/* PRIMARY INPUT: MOBILE NUMBER AT TOP */}
+            <div className={storeRequiresPhone ? "p-3.5 border border-zinc-900 bg-zinc-50 space-y-2" : ""}>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] uppercase tracking-widest font-semibold text-zinc-500">
-                  Mobile Number {storeRequiresPhone ? '(OTP Required for Orders)' : '(Optional)'}
+                <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-900">
+                  Mobile Number {storeRequiresPhone ? '(Mandatory — OTP Required)' : '(Optional)'}
                 </label>
-                <span className="text-[10px] text-zinc-400">10 Digits</span>
+                <span className="text-[10px] text-zinc-500 font-semibold">10 Digits</span>
               </div>
               <div className="flex">
-                <span className="inline-flex items-center px-3 border border-r-0 border-zinc-200 bg-zinc-50 text-xs text-zinc-500 font-medium">
+                <span className="inline-flex items-center px-3 border border-r-0 border-zinc-300 bg-zinc-100 text-xs text-zinc-700 font-bold">
                   +91
                 </span>
                 <input
@@ -767,38 +746,89 @@ export default function ChuruOneAuthPage() {
                   value={phone}
                   onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="9876543210"
-                  className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                  className="w-full border border-zinc-300 focus:border-zinc-950 px-3.5 py-2.5 text-sm font-mono font-bold text-zinc-900 placeholder-zinc-400 outline-none transition-colors bg-white"
                 />
               </div>
+              <p className="text-[10px] text-zinc-500">
+                Is number par 6-digit Real SMS verification code aayega.
+              </p>
             </div>
 
-            {/* Submit & Skip buttons */}
-            <div className="space-y-2 pt-2">
+            {/* PRIMARY ACTION BUTTON */}
+            <button
+              type="submit"
+              disabled={loading || isSendingOtp}
+              className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-md"
+            >
+              <span>
+                {loading || isSendingOtp 
+                  ? "Dispatching SMS OTP..." 
+                  : storeRequiresPhone 
+                  ? "Send SMS OTP to Mobile →" 
+                  : "Save Profile & Continue →"}
+              </span>
+            </button>
+
+            {/* OPTIONAL PROFILE SECTION (COLLAPSED OR CLEAN DETAILS) */}
+            <details className="border border-zinc-200 p-3 bg-white text-xs">
+              <summary className="cursor-pointer font-semibold text-zinc-700 select-none flex items-center justify-between">
+                <span>Personal Profile Details (Optional — Name, Gender, Address)</span>
+                <span className="text-[10px] text-zinc-400 font-normal">Details bharne ke liye click karein</span>
+              </summary>
+              <div className="space-y-3 mt-3 pt-3 border-t border-zinc-100">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                    Full Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                    className="w-full border border-zinc-200 focus:border-zinc-950 px-3 py-2 text-xs text-zinc-900 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                    Gender (Optional)
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={e => setGender(e.target.value)}
+                    className="w-full border border-zinc-200 focus:border-zinc-950 px-3 py-2 text-xs text-zinc-900 outline-none bg-white"
+                  >
+                    <option value="">Select Gender (Optional)</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1">
+                    Delivery Address (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={address}
+                    onChange={e => setAddress(e.target.value)}
+                    placeholder="House / Flat No., Landmark, Ward, Area, Churu"
+                    className="w-full border border-zinc-200 focus:border-zinc-950 px-3 py-2 text-xs text-zinc-900 outline-none resize-none"
+                  />
+                </div>
+              </div>
+            </details>
+
+            {!storeRequiresPhone && (
               <button
-                type="submit"
-                disabled={loading || isSendingOtp}
-                className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                type="button"
+                onClick={() => handleProfileSubmit(null, true)}
+                disabled={loading}
+                className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 py-2.5 px-4 text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer"
               >
-                <span>
-                  {loading || isSendingOtp 
-                    ? "Processing..." 
-                    : storeRequiresPhone 
-                    ? "Verify Mobile Number via SMS →" 
-                    : "Save Profile & Continue →"}
-                </span>
+                Skip & Continue →
               </button>
-
-              {!storeRequiresPhone && (
-                <button
-                  type="button"
-                  onClick={() => handleProfileSubmit(null, true)}
-                  disabled={loading}
-                  className="w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 py-2.5 px-4 text-xs uppercase tracking-wider font-semibold transition-colors cursor-pointer"
-                >
-                  Skip & Continue →
-                </button>
-              )}
-            </div>
+            )}
           </form>
         )}
 
