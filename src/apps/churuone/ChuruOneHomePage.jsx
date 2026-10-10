@@ -42,6 +42,22 @@ export default function ChuruOneHomePage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [toastMessage, setToastMessage] = useState('');
 
+  // Real-time live activity notification cycle (Macro-animation)
+  const [activityIndex, setActivityIndex] = useState(0);
+  const liveActivities = [
+    { text: "Rahul in Subhash Chowk ordered Classic Chicken Shawarma", time: "Just now", icon: "🌯" },
+    { text: "Aman booked a Skin Fade & Beard Sculpt at Nash Studio", time: "1m ago", icon: "✂️" },
+    { text: "Sharma Kirana order dispatched to Nai Sadak", time: "3m ago", icon: "🧺" },
+    { text: "2x Charcoal Jumbo Rolls ordered in Churu", time: "Just now", icon: "🔥" }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActivityIndex(prev => (prev + 1) % liveActivities.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
   // Unified ChuruOne SSO User State
   const [currentUser, setCurrentUser] = useState(null);
   const [authToken, setAuthToken] = useState('');
@@ -442,16 +458,9 @@ export default function ChuruOneHomePage() {
             </span>
           </Link>
 
-          {/* Right Utilities: Location, Cart Drawer Trigger, User Profile */}
+          {/* Right Utilities: Cart Drawer Trigger, User Profile */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0" ref={accountMenuRef}>
             
-            {/* Location Pill */}
-            <div className="flex items-center gap-1.5 text-stone-700 bg-stone-50 border border-stone-200/80 rounded-full px-3 py-1.5 text-xs font-semibold cursor-pointer hover:bg-stone-100 transition-colors">
-              <MapPin className="w-3.5 h-3.5 text-stone-500" />
-              <span>Churu</span>
-              <ChevronDown className="w-3 h-3 text-stone-400" />
-            </div>
-
             {/* Native ChuruOne Cart Icon Button */}
             <button 
               type="button"
@@ -543,7 +552,9 @@ export default function ChuruOneHomePage() {
           
           {/* Beautifully Faded Real Churu Lal Ghantaghar Image (Seamlessly Embedded into UI) */}
           <div className="absolute right-0 top-0 bottom-0 w-full md:w-[64%] lg:w-[60%] h-full pointer-events-none select-none overflow-hidden flex items-center justify-end">
-            <img
+            <motion.img
+              animate={{ scale: [1, 1.05, 1], y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 16, ease: "easeInOut" }}
               src="/images/churu-ghantaghar.jpg"
               alt="Real Churu Lal Ghanta Ghar Dharm Stup"
               className="w-full h-full object-cover object-center"
@@ -600,6 +611,31 @@ export default function ChuruOneHomePage() {
           </div>
 
         </section>
+
+        {/* ─── LIVE KINETIC MARQUEE STREAM (Macro Animation) ───────── */}
+        <div className="py-3 border-y border-stone-200/80 bg-gradient-to-r from-stone-50 via-white to-stone-50 overflow-hidden whitespace-nowrap select-none rounded-2xl shadow-2xs">
+          <div className="flex gap-8 items-center animate-marquee w-max text-xs font-mono font-bold uppercase tracking-wider text-stone-800">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex items-center gap-8">
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  LIVE ORDERS DISPATCHING
+                </span>
+                <span className="text-stone-300">✦</span>
+                <span>0% PLATFORM COMMISSIONS</span>
+                <span className="text-stone-300">✦</span>
+                <span className="text-amber-800 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
+                <span className="text-stone-300">✦</span>
+                <span>DIRECT IN-STORE PRICING</span>
+                <span className="text-stone-300">✦</span>
+                <span className="text-indigo-800 font-sans font-bold">NASH STUDIO • PRIVATE APPOINTMENTS</span>
+                <span className="text-stone-300">✦</span>
+                <span>INSTANT UPI SETTLEMENTS</span>
+                <span className="text-stone-300">✦</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* ─── CATEGORY SQUIRCLE ROW ───────────────────────────────── */}
         <section className="overflow-x-auto no-scrollbar py-1">
@@ -1263,6 +1299,30 @@ export default function ChuruOneHomePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ─── FLOATING LIVE SOCIAL PROOF ACTIVITY TICKER (Macro Animation) ── */}
+      <div className="fixed bottom-6 left-6 z-40 hidden sm:block pointer-events-none">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activityIndex}
+            initial={{ opacity: 0, y: 25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl rounded-full px-4 py-2.5 flex items-center gap-3 text-xs max-w-sm pointer-events-auto"
+          >
+            <span className="text-base select-none">{liveActivities[activityIndex].icon}</span>
+            <div className="flex flex-col min-w-0 pr-1">
+              <span className="font-semibold text-stone-900 truncate">
+                {liveActivities[activityIndex].text}
+              </span>
+              <span className="text-[10px] text-stone-400 font-mono">
+                {liveActivities[activityIndex].time}
+              </span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {/* Legal Policies Modal */}
       <LegalPoliciesModal
