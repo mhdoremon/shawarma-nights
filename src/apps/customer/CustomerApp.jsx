@@ -23,6 +23,7 @@ export default function CustomerApp() {
   const [isFranchiseOpen, setIsFranchiseOpen] = useState(false);
 
   useEffect(() => {
+    document.title = "Shawarma Nights | Authentic Charcoal Shawarma";
     // Open franchise modal automatically if route or hash indicates franchise
     if (window.location.pathname.includes('/franchise') || window.location.hash === '#franchise') {
       setIsFranchiseOpen(true);

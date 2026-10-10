@@ -20,7 +20,6 @@ import {
   Zap,
   Building2,
   ExternalLink,
-  ShieldAlert,
   Compass
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -44,6 +43,11 @@ export default function ChuruOneHomePage() {
   const [authToken, setAuthToken] = useState('');
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef(null);
+
+  // Set browser title
+  useEffect(() => {
+    document.title = "ChuruOne | City Directory & Local Commerce";
+  }, []);
 
   // Sync SSO session on mount (from URL redirect, Cookie or LocalStorage)
   useEffect(() => {
@@ -113,12 +117,6 @@ export default function ChuruOneHomePage() {
 
   // Resolve store destination URL dynamically based on environment with SSO params
   const getStoreUrl = (storeId) => {
-    const isLocal = typeof window !== 'undefined' && (
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.includes('.onrender.com')
-    );
-
     let base = `/?storeId=${storeId}`;
     if (storeId === 'shawarma') {
       base = '/shawarma';
@@ -132,7 +130,7 @@ export default function ChuruOneHomePage() {
     return base;
   };
 
-  // Only the authentic, active city partners (no dummy upcoming data)
+  // Only the authentic, active city partners
   const stores = [
     {
       id: 'shawarma',
@@ -184,7 +182,6 @@ export default function ChuruOneHomePage() {
         <div className="absolute -top-[300px] left-1/2 -translate-x-1/2 w-[800px] sm:w-[1200px] h-[600px] bg-gradient-to-b from-blue-600/10 via-purple-600/5 to-transparent blur-[140px] opacity-70" />
         <div className="absolute top-[35%] -left-[200px] w-[500px] h-[500px] bg-amber-500/5 blur-[120px] rounded-full" />
         <div className="absolute top-[60%] -right-[200px] w-[600px] h-[600px] bg-emerald-500/5 blur-[140px] rounded-full" />
-        {/* Subtle grid pattern overlay */}
         <div 
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -223,7 +220,7 @@ export default function ChuruOneHomePage() {
               href="#about"
               className="text-xs uppercase tracking-widest font-semibold text-zinc-400 hover:text-white transition-colors hidden sm:inline-flex items-center gap-1.5"
             >
-              <span>About & Contact</span>
+              <span>About & Services</span>
             </a>
             
             {currentUser ? (
@@ -319,7 +316,6 @@ export default function ChuruOneHomePage() {
       {/* ─── Hero Section with Modern Apple/Vercel Dark Aesthetic ─── */}
       <section className="relative overflow-hidden pt-16 pb-12 sm:pt-24 sm:pb-20 border-b border-white/[0.06] z-10">
         
-        {/* Subtle Decorative Geometry */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-amber-500/10 via-rose-500/5 to-blue-500/10 blur-[100px] pointer-events-none rounded-full" />
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center z-10">
@@ -340,7 +336,6 @@ export default function ChuruOneHomePage() {
             </span>
           </motion.div>
 
-          {/* Keyframes for Continuous Brand Shimmer */}
           <style>{`
             @keyframes churuDarkShimmer {
               0% { background-position: 0% center; }
@@ -503,7 +498,6 @@ export default function ChuruOneHomePage() {
                 className="group relative rounded-3xl overflow-hidden border border-white/[0.08] bg-[#0E131F]/60 backdrop-blur-xl hover:border-white/20 transition-all duration-500 hover:shadow-2xl hover:shadow-black/80 flex flex-col justify-between"
               >
                 <div>
-                  {/* Image Viewport with Rich Overlay */}
                   <a 
                     href={destinationUrl} 
                     className="block relative h-64 sm:h-72 w-full overflow-hidden bg-zinc-950"
@@ -514,10 +508,8 @@ export default function ChuruOneHomePage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100"
                     />
 
-                    {/* Gradient Shade on Image */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0E131F] via-transparent to-black/40" />
 
-                    {/* Overlay Badges */}
                     <div className="absolute top-4 left-4 flex items-center gap-2">
                       <span className="bg-black/70 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-[9px] uppercase tracking-[0.2em] font-mono font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5">
                         <span className="relative flex h-1.5 w-1.5">
@@ -537,7 +529,6 @@ export default function ChuruOneHomePage() {
                     </div>
                   </a>
 
-                  {/* Editorial Body */}
                   <div className="p-6 sm:p-8">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -562,7 +553,6 @@ export default function ChuruOneHomePage() {
                       {store.description}
                     </p>
 
-                    {/* Metadata Badges */}
                     <div className="mt-6 pt-5 border-t border-white/[0.08] flex items-center justify-between text-xs text-zinc-400 font-medium">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -579,7 +569,6 @@ export default function ChuruOneHomePage() {
                   </div>
                 </div>
 
-                {/* Direct Action Link */}
                 <div className="p-6 sm:p-8 pt-0">
                   <a
                     href={destinationUrl}
@@ -603,219 +592,129 @@ export default function ChuruOneHomePage() {
         )}
       </section>
 
-      {/* ─── Elevated Editorial About Section (Dark Luxury) ───────── */}
-      <section id="about" className="py-20 sm:py-28 bg-[#05070B] border-t border-white/[0.08] scroll-mt-20 relative z-10">
+      {/* ─── Clean, Uncluttered About Section (Apple / Stripe Style) ── */}
+      <section id="about" className="py-20 sm:py-24 bg-[#05070B] border-t border-white/[0.08] scroll-mt-20 relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           
-          {/* Section Header */}
-          <div className="max-w-2xl mb-14">
-            <span className="text-[10px] font-mono font-semibold tracking-[0.3em] uppercase text-amber-400/90 block mb-2.5">
-              01 / PLATFORM ARCHITECTURE & ABOUT US
+          <div className="max-w-2xl mb-12">
+            <span className="text-[10px] font-mono font-semibold tracking-[0.3em] uppercase text-amber-400/90 block mb-2">
+              PLATFORM ARCHITECTURE
             </span>
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
-              Direct City Commerce Protocol.
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+              City Commerce, Direct & Pure.
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-4 leading-relaxed font-normal">
-              ChuruOne provides dedicated digital commerce infrastructure for premier local merchants, eliminating third-party aggregator markups while offering authentic in-store pricing to citizens.
+            <p className="text-xs sm:text-sm text-zinc-400 mt-3 leading-relaxed font-normal">
+              ChuruOne empowers local merchants with official digital storefronts — ensuring zero aggregator markups, direct instant bank settlements, and genuine in-store pricing.
             </p>
           </div>
 
-          {/* 3 Luxury Architectural Cards */}
+          {/* 3 Clean Modern Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             
-            <div className="rounded-3xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-7 sm:p-8 flex flex-col justify-between hover:border-amber-400/30 transition-all duration-300 shadow-xl shadow-black/40">
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-6 sm:p-7 flex flex-col justify-between hover:border-amber-400/30 transition-all duration-300">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-mono tracking-widest text-zinc-400 font-bold">
-                    01
-                  </span>
-                  <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full">
-                    0% Commission
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold tracking-tight text-white">
+                <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full inline-block mb-4">
+                  0% Commission
+                </span>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-white">
                   Authentic Direct Stores
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-2.5">
-                  Each verified partner operates their own official digital store with transparent menus, original recipes, and zero aggregator price inflation.
+                <p className="text-xs text-zinc-400 leading-relaxed mt-2">
+                  Transparent menus and original recipes served at authentic in-store pricing with zero middleman inflation.
                 </p>
               </div>
-              <div className="mt-8 pt-5 border-t border-white/[0.08] flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <Store className="w-4 h-4 text-amber-400" />
-                <span>True In-Store Rates</span>
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-2 text-xs text-zinc-400">
+                <Store className="w-3.5 h-3.5 text-amber-400" />
+                <span>True Local Rates</span>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-7 sm:p-8 flex flex-col justify-between hover:border-emerald-400/30 transition-all duration-300 shadow-xl shadow-black/40">
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-6 sm:p-7 flex flex-col justify-between hover:border-emerald-400/30 transition-all duration-300">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-mono tracking-widest text-zinc-400 font-bold">
-                    02
-                  </span>
-                  <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-full">
-                    Direct UPI Settle
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold tracking-tight text-white">
-                  Instant Bank Settlement
+                <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-full inline-block mb-4">
+                  Direct Bank Settle
+                </span>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-white">
+                  Instant UPI Settlement
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-2.5">
-                  100% of order totals and advance booking tokens settle straight into verified merchant bank accounts without third-party escrow delay.
+                <p className="text-xs text-zinc-400 leading-relaxed mt-2">
+                  Order payments and booking tokens settle directly into verified merchant bank accounts with no escrow delay.
                 </p>
               </div>
-              <div className="mt-8 pt-5 border-t border-white/[0.08] flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <Smartphone className="w-4 h-4 text-emerald-400" />
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-2 text-xs text-zinc-400">
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Zero Escrow Intermediaries</span>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-7 sm:p-8 flex flex-col justify-between hover:border-purple-400/30 transition-all duration-300 shadow-xl shadow-black/40">
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0E131F]/50 backdrop-blur-xl p-6 sm:p-7 flex flex-col justify-between hover:border-purple-400/30 transition-all duration-300">
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-xs font-mono tracking-widest text-zinc-400 font-bold">
-                    03
-                  </span>
-                  <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-purple-300 bg-purple-400/10 border border-purple-400/20 px-2.5 py-1 rounded-full">
-                    Universal SSO
-                  </span>
-                </div>
-                <h3 className="text-lg font-bold tracking-tight text-white">
+                <span className="text-[10px] uppercase font-mono tracking-[0.2em] font-semibold text-purple-300 bg-purple-400/10 border border-purple-400/20 px-2.5 py-1 rounded-full inline-block mb-4">
+                  Universal SSO
+                </span>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight text-white">
                   Unified Citizen Identity
                 </h3>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-2.5">
-                  One master ChuruOne account securely connects food delivery, salon appointments, and future municipal services with complete privacy.
+                <p className="text-xs text-zinc-400 leading-relaxed mt-2">
+                  One master ChuruOne ID securely connects dining delivery, salon reservations, and city services.
                 </p>
               </div>
-              <div className="mt-8 pt-5 border-t border-white/[0.08] flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <ShieldCheck className="w-4 h-4 text-purple-400" />
+              <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center gap-2 text-xs text-zinc-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
                 <span>Privacy-First Architecture</span>
               </div>
             </div>
 
           </div>
 
-          {/* Minimalist Trust & Status Strip */}
-          <div className="mt-12 py-5 px-6 sm:px-8 rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-md flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-400 font-medium">
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span className="text-zinc-300 font-semibold">Direct Store Ordering</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>Zero Aggregator Commission</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-              <span>Direct Merchant UPI</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span>Realtime Dukandar Sync</span>
-            </div>
-          </div>
-
-          {/* ─── Official Desk & Direct Contact Card (PhonePe Compliant) ─── */}
-          <div className="mt-12 rounded-3xl border border-white/10 bg-gradient-to-br from-[#0F1424] via-[#0B0F19] to-[#07090E] p-7 sm:p-10 shadow-2xl relative overflow-hidden">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
-              <div>
-                <span className="text-[10px] font-mono font-semibold tracking-[0.25em] uppercase text-amber-400/90 block mb-1.5">
-                  OFFICIAL DESK & LEGAL ENTITY DETAILS
-                </span>
-                <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-                  ChuruOne Headquarters & Support Desk
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-xl leading-relaxed">
-                  Owned and operated by <strong className="text-zinc-200 font-semibold">Vasudhaiva Kutumbakam Robotics</strong> (Proprietor: <strong className="text-zinc-200 font-semibold">Mehtab Hussain</strong>). For citizen inquiries, merchant onboarding, or order assistance, connect directly with our Churu operations desk.
-                </p>
-                <div className="mt-4 space-y-1.5 text-xs text-zinc-400">
-                  <div className="flex items-center gap-2.5">
-                    <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span className="text-zinc-300 font-medium">50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-zinc-400 font-mono text-[11px]">
-                    <Clock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Operating Hours: 10:00 AM - 10:00 PM (Monday to Sunday)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-                <a
-                  href="mailto:Mehtabh864@gmail.com"
-                  className="group flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/10 hover:border-amber-400/40 transition-all text-xs font-semibold text-white shadow-lg"
-                >
-                  <Mail className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-left">
-                    <span className="text-[10px] text-zinc-400 block font-mono font-normal uppercase tracking-wider">Official Email</span>
-                    <span className="font-mono text-zinc-200">Mehtabh864@gmail.com</span>
-                  </div>
-                </a>
-
-                <a
-                  href="tel:+917023963189"
-                  className="group flex items-center gap-3.5 px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/10 hover:border-emerald-400/40 transition-all text-xs font-semibold text-white shadow-lg"
-                >
-                  <Phone className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <div className="text-left">
-                    <span className="text-[10px] text-zinc-400 block font-mono font-normal uppercase tracking-wider">Direct Helpline</span>
-                    <span className="font-mono text-zinc-200">+91 70239 63189</span>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Minimal Merchant Access Link */}
-          <div className="mt-12 pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xs uppercase tracking-wider font-semibold text-white">
-                Operating a store or salon in Churu?
-              </h3>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Manage orders, configure menus, and track appointments via Dukandar Portal.
-              </p>
+          {/* Clean Merchant & Contact Row */}
+          <div className="mt-10 pt-8 border-t border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+            <div className="flex items-center flex-wrap gap-4 text-zinc-400">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+                <span>Churu, Rajasthan 331001</span>
+              </span>
+              <span className="text-zinc-600">•</span>
+              <a href="tel:+917023963189" className="hover:text-white transition-colors flex items-center gap-1.5 font-mono">
+                <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                <span>+91 70239 63189</span>
+              </a>
+              <span className="text-zinc-600">•</span>
+              <a href="mailto:contact@churuone.in" className="hover:text-white transition-colors flex items-center gap-1.5 font-mono">
+                <Mail className="w-3.5 h-3.5 text-amber-400" />
+                <span>contact@churuone.in</span>
+              </a>
             </div>
 
-            <a
-              href="/admin"
-              className="text-xs uppercase tracking-widest font-semibold text-amber-300 hover:text-amber-200 border-b border-amber-400/40 pb-0.5 transition-colors inline-flex items-center gap-2"
+            <Link
+              to="/admin"
+              className="text-xs uppercase tracking-wider font-semibold text-amber-300 hover:text-amber-200 transition-colors inline-flex items-center gap-1.5 shrink-0"
             >
-              <span>Access Dukandar Portal</span>
-              <ArrowRight className="w-3.5 h-3.5 stroke-[2]" />
-            </a>
+              <span>Merchant OS Portal</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
         </div>
       </section>
 
-      {/* ─── Architectural Dark Luxury Footer ─────────────────────── */}
-      <footer className="border-t border-white/[0.08] bg-[#040609] py-14 relative z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-10">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 text-xs text-zinc-400">
+      {/* ─── Minimalist Dark Footer ───────────────────────────────── */}
+      <footer className="border-t border-white/[0.08] bg-[#030508] py-12 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
+          
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-xs text-zinc-400">
             <div>
-              <div className="font-black tracking-[0.25em] uppercase text-white text-base flex items-center gap-2">
-                <span>CHURUONE</span>
-                <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-amber-300 border border-white/10">v2.0</span>
+              <div className="font-black tracking-[0.2em] uppercase text-white text-base">
+                CHURUONE
               </div>
-              <p className="text-xs text-zinc-400 mt-1.5">
-                Churu, Rajasthan 331001 • Direct Commerce Infrastructure
+              <p className="text-xs text-zinc-500 mt-1">
+                Direct City Commerce Protocol • Churu, Rajasthan
               </p>
-              <div className="flex items-center flex-wrap gap-4 mt-3 text-xs text-zinc-300">
-                <a href="mailto:contact@churuone.in" className="inline-flex items-center gap-1.5 hover:text-amber-300 font-mono transition-colors">
-                  <Mail className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>contact@churuone.in</span>
-                </a>
-                <span className="text-zinc-600">•</span>
-                <a href="tel:+917023963189" className="inline-flex items-center gap-1.5 hover:text-amber-300 font-mono transition-colors">
-                  <Phone className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>+91 70239 63189</span>
-                </a>
-              </div>
             </div>
 
-            <div className="flex items-center flex-wrap gap-6 text-zinc-400 text-xs font-medium uppercase tracking-wider">
+            <div className="flex items-center flex-wrap gap-5 text-zinc-400 text-xs font-medium uppercase tracking-wider">
               <a href="#about" className="hover:text-white transition-colors">
-                About & Contact
+                About
               </a>
               <a href={getStoreUrl('shawarma')} className="hover:text-white transition-colors">
                 Shawarma Nights
@@ -832,50 +731,36 @@ export default function ChuruOneHomePage() {
             </div>
           </div>
 
-          {/* Legal Compliance Policy Links with Bot-Crawlable Standard Anchor Tags */}
-          <div className="pt-6 border-t border-white/[0.08] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-400">
+          {/* Clean Legal Policy Row */}
+          <div className="pt-6 border-t border-white/[0.06] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-500">
             <div className="flex items-center flex-wrap gap-4 sm:gap-6 font-medium">
-              <a 
-                href="/contact-us" 
-                className="hover:text-amber-300 transition-colors"
-              >
+              <a href="/contact-us" className="hover:text-zinc-300 transition-colors">
                 Contact Us
               </a>
-              <a 
-                href="/terms-and-conditions" 
-                className="hover:text-amber-300 transition-colors"
-              >
+              <a href="/terms-and-conditions" className="hover:text-zinc-300 transition-colors">
                 Terms & Conditions
               </a>
-              <a 
-                href="/privacy-policy" 
-                className="hover:text-amber-300 transition-colors"
-              >
+              <a href="/privacy-policy" className="hover:text-zinc-300 transition-colors">
                 Privacy Policy
               </a>
-              <a 
-                href="/refund-policy" 
-                className="hover:text-amber-300 transition-colors"
-              >
+              <a href="/refund-policy" className="hover:text-zinc-300 transition-colors">
                 Refund & Cancellation
               </a>
-              <a 
-                href="/shipping-policy" 
-                className="hover:text-amber-300 transition-colors"
-              >
+              <a href="/shipping-policy" className="hover:text-zinc-300 transition-colors">
                 Shipping Policy
               </a>
             </div>
 
             <div className="text-zinc-400 text-[11px] font-mono">
-              Approved refunds processed in 5 to 7 business days • Delivery in 30 to 45 mins
+              Delivery in 30-45 mins • Refunds processed in 5-7 business days
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-400">
+          <div className="pt-4 border-t border-white/[0.04] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-zinc-400">
             <span>© 2026 ChuruOne. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.</span>
-            <span className="font-mono text-[11px]">Registered Address: 50, Churu bhaiji chowk, Churu, Rajasthan, PIN - 331001</span>
+            <span>Registered Address: 50, Churu bhaiji chowk, Churu, Rajasthan 331001</span>
           </div>
+
         </div>
       </footer>
 

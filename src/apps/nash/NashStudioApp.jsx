@@ -62,9 +62,9 @@ const DEFAULT_SETTINGS = {
   showOfferCards: false,
   showMarqueeStrip: false,
   dealsEnabled: false,
-  shopWhatsapp: "923001234567",
-  phoneDisplay: "0300-1234567",
-  address: "Shop 12, Main Boulevard, Gulberg, Lahore",
+  shopWhatsapp: "917023963189",
+  phoneDisplay: "+91 70239 63189",
+  address: "Main Market, Churu, Rajasthan, PIN - 331001",
   monSatHours: "11:00 AM to 11:00 PM",
   sundayHours: "Closed",
   bookingFee: 50,
@@ -330,6 +330,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const bookRef = useRef(null);
 
   useEffect(() => {
+    document.title = "Nash Studio | Men's Grooming Lounge";
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("nash_theme", theme);
   }, [theme]);
@@ -618,7 +619,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
   const getWaLink = (b) => {
     const msg = `*${(settings.studioName||"NASH STUDIO").toUpperCase()} - BOOKING PASS*\nToken: ${b.token||b.id}\nCustomer: ${b.name}\nDate: ${b.dateLabel}\nTime: ${b.timeLabel}\nStyle: ${b.styleName}\nTotal: Rs ${b.totalPrice}`;
-    return `https://wa.me/${settings.shopWhatsapp || "923001234567"}?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${settings.shopWhatsapp || "917023963189"}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -1475,7 +1476,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
           <div style={S.footerGrid}>
             <div>
               <div style={S.footBrand}>{settings.studioName || "NASH STUDIO"}</div>
-              <p style={S.footAddr}>{settings.address || "Shop 12, Main Boulevard, Gulberg, Lahore"}</p>
+              <p style={S.footAddr}>{settings.address || "Main Market, Churu, Rajasthan 331001"}</p>
               <div style={{marginTop:12, fontSize:12, color:"var(--muted)"}}>
                 Unified Partner of <strong style={{color:"var(--paper)"}}>ChuruOne Network</strong>
               </div>
@@ -1484,7 +1485,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
             <div style={S.footHours}>
               <div><strong style={{color:"var(--paper)"}}>Mon-Sat:</strong> {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
               <div><strong style={{color:"var(--paper)"}}>Sunday:</strong> {settings.sundayHours || "Closed"}</div>
-              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || "0300-1234567"}</div>
+              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || "+91 70239 63189"}</div>
             </div>
 
             <div style={S.footerBottomRow}>
@@ -1561,7 +1562,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
       {/* Floating Sticky Mobile CTA */}
       <div style={S.stickyCta} className="nash-sticky-cta">
-        <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"03001234567").replace(/[^0-9]/g,"")}`}>Call Salon</button>
+        <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"917023963189").replace(/[^0-9]/g,"")}`}>Call Salon</button>
         <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book Appointment</button>
       </div>
 

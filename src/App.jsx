@@ -61,8 +61,16 @@ function RootEntry() {
     return <CustomerApp />;
   }
 
-  // 3. ChuruOne Main City Marketplace (root domain churuone.in or www.churuone.in)
-  if (host === 'churuone.in' || host === 'www.churuone.in' || params.get('view') === 'churuone' || params.get('portal') === '1' || params.get('home') === '1') {
+  // 3. ChuruOne Main City Marketplace (root domain churuone.in, onrender backend, or explicit paths)
+  if (
+    host === 'churuone.in' || 
+    host === 'www.churuone.in' || 
+    host.includes('churuone-backend.onrender.com') ||
+    path.startsWith('/churuone') ||
+    params.get('view') === 'churuone' || 
+    params.get('portal') === '1' || 
+    params.get('home') === '1'
+  ) {
     return <ChuruOneHomePage />;
   }
 
@@ -71,8 +79,8 @@ function RootEntry() {
     return <CustomerApp />;
   }
 
-  // Otherwise, default to the flagship store (Shawarma Nights)
-  return <CustomerApp />;
+  // Otherwise, default to the main city marketplace (ChuruOne)
+  return <ChuruOneHomePage />;
 }
 
 export default function App() {
@@ -106,6 +114,8 @@ export default function App() {
         <Route path="/signup/*" element={<ChuruOneAuthPage />} />
 
         {/* ChuruOne Main City Portal & Marketplace */}
+        <Route path="/churuone/*" element={<ChuruOneHomePage />} />
+        <Route path="/home/*" element={<ChuruOneHomePage />} />
         <Route path="/portal/*" element={<ChuruOneHomePage />} />
         <Route path="/churuone-home/*" element={<ChuruOneHomePage />} />
         <Route path="/city/*" element={<ChuruOneHomePage />} />
