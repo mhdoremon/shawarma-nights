@@ -33,11 +33,9 @@ import {
 import { 
   getSkylineData, 
   validateCouponCode, 
-  placeSkylineOrder, 
-  sendCustomerOtp, 
-  verifyCustomerOtp 
+  placeSkylineOrder 
 } from './skylineApiClient';
-import { getChuruOneSession, setChuruOneSession, attachSsoParams } from '../../utils/ssoHelper';
+import { getChuruOneSession, setChuruOneSession } from '../../utils/ssoHelper';
 
 export default function SkylineApp() {
   // ─── STATE MANAGEMENT ──────────────────────────────────────────
@@ -49,15 +47,9 @@ export default function SkylineApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
 
-  // Customer & Auth State
+  // Customer & ChuruOne SSO Auth State
   const [currentUser, setCurrentUser] = useState(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authPhone, setAuthPhone] = useState('');
-  const [authOtp, setAuthOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [devOtpNotice, setDevOtpNotice] = useState('');
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   // Cart State
   const [cartItems, setCartItems] = useState(() => {
@@ -104,27 +96,70 @@ export default function SkylineApp() {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // ─── INITIAL DATA LOAD & SSO SYNC ─────────────────────────────
+  // ─── INITIAL DATA LOAD & CHURUONE SSO SYNC ────────────────────
   useEffect(() => {
     document.title = "Skyline Premium Outfits | Architectural Menswear • Churu";
 
-    // 1. Check ChuruOne SSO session
+    // 1. Check for incoming redirect from ChuruOne SSO (/auth)
     try {
-      const session = getChuruOneSession();
-      if (session && session.user) {
-        setCurrentUser(session.user);
-        if (session.user.name) setCheckoutName(session.user.name);
-        if (session.user.phone) {
-          const rawPhone = String(session.user.phone).replace(/\D/g, '').slice(-10);
+      const params = new URLSearchParams(window.location.search);
+      const urlUserRaw = params.get('churuone_user');
+      const urlToken = params.get('churuone_token');
+
+      if (urlUserRaw) {
+        const parsed = JSON.parse(decodeURIComponent(urlUserRaw));
+        setCurrentUser(parsed);
+        setChuruOneSession(parsed, urlToken || '');
+        if (parsed.name) setCheckoutName(parsed.name);
+        if (parsed.phone || parsed.phoneNumber) {
+          const rawPhone = String(parsed.phone || parsed.phoneNumber).replace(/\D/g, '').slice(-10);
           setCheckoutPhone(rawPhone);
+        }
+        showToast(`✦ ChuruOne SSO Verified: Welcome, ${parsed.name || 'Gentleman'}!`);
+
+        // Clean query parameters from URL
+        params.delete('churuone_user');
+        params.delete('churuone_token');
+        params.delete('account_created');
+        const cleanUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+        window.history.replaceState({}, document.title, cleanUrl);
+      } else {
+        // Check existing ChuruOne SSO session
+        const session = getChuruOneSession();
+        if (session && session.user) {
+          setCurrentUser(session.user);
+          if (session.user.name) setCheckoutName(session.user.name);
+          if (session.user.phone || session.user.phoneNumber) {
+            const rawPhone = String(session.user.phone || session.user.phoneNumber).replace(/\D/g, '').slice(-10);
+            setCheckoutPhone(rawPhone);
+          }
         }
       }
     } catch (e) {
-      console.warn('SSO sync error:', e);
+      console.warn('ChuruOne SSO sync error:', e);
     }
 
-    // 2. Fetch live data from Smart Backend
+    // 2. Listen for cross-window / popup SSO completion
+    const handleSsoMessage = (e) => {
+      if (e.data && e.data.type === 'CHURUONE_AUTH_SUCCESS') {
+        const u = e.data.user;
+        if (u) {
+          setCurrentUser(u);
+          setChuruOneSession(u, e.data.token || '');
+          if (u.name) setCheckoutName(u.name);
+          if (u.phone || u.phoneNumber) {
+            setCheckoutPhone(String(u.phone || u.phoneNumber).replace(/\D/g, '').slice(-10));
+          }
+          showToast(`✦ Verified by ChuruOne: ${u.name || 'Gentleman'}`);
+        }
+      }
+    };
+    window.addEventListener('message', handleSsoMessage);
+
+    // 3. Fetch live catalog data from Smart Backend
     loadStoreData();
+
+    return () => window.removeEventListener('message', handleSsoMessage);
   }, []);
 
   // Save Cart to LocalStorage
@@ -267,60 +302,14 @@ export default function SkylineApp() {
     setCouponMessage({ text: 'Coupon removed', type: 'info' });
   };
 
-  // ─── AUTHENTICATION (CHURUONE OTP) ────────────────────────────
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    const cleanPhone = authPhone.replace(/\D/g, '').slice(-10);
-    if (cleanPhone.length !== 10) {
-      setAuthError('Please enter a valid 10-digit mobile number');
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError('');
+  // ─── CHURUONE UNIFIED SSO AUTHENTICATION ─────────────────────
+  const navigateToChuruOneAuth = () => {
     try {
-      const res = await sendCustomerOtp(cleanPhone);
-      if (res && res.success) {
-        setOtpSent(true);
-        if (res.devOtp) {
-          setDevOtpNotice(`Sandbox Test OTP: ${res.devOtp}`);
-        }
-        showToast('OTP sent successfully to your mobile');
-      } else {
-        setAuthError(res?.message || 'Failed to send OTP. Please retry.');
-      }
-    } catch (err) {
-      setAuthError('Connection error while sending OTP');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (!authOtp || authOtp.length < 4) {
-      setAuthError('Please enter the 4-digit verification code');
-      return;
-    }
-    setAuthLoading(true);
-    setAuthError('');
-    try {
-      const cleanPhone = authPhone.replace(/\D/g, '').slice(-10);
-      const res = await verifyCustomerOtp(cleanPhone, authOtp);
-      if (res && res.success) {
-        const userData = res.user || { phone: cleanPhone, name: 'Skyline Gentleman' };
-        setCurrentUser(userData);
-        setChuruOneSession(userData, res.token || '');
-        if (userData.name) setCheckoutName(userData.name);
-        setCheckoutPhone(cleanPhone);
-        setIsAuthModalOpen(false);
-        showToast(`Welcome back, ${userData.name || 'Gentleman'}!`);
-      } else {
-        setAuthError(res?.message || 'Invalid verification code');
-      }
-    } catch (err) {
-      setAuthError('Verification failed. Please retry.');
-    } finally {
-      setAuthLoading(false);
+      const currentUrl = window.location.pathname + window.location.search;
+      const returnUrl = encodeURIComponent(currentUrl || '/skyline');
+      window.location.href = `/auth?storeId=skyline&returnUrl=${returnUrl}`;
+    } catch (e) {
+      window.location.href = '/auth?storeId=skyline';
     }
   };
 
@@ -329,8 +318,12 @@ export default function SkylineApp() {
     try {
       localStorage.removeItem('churuone_user');
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('sn_session');
+      localStorage.removeItem('sn_current_user');
+      localStorage.removeItem('nash_user');
     } catch {}
-    showToast('Signed out from Skyline');
+    setIsAccountModalOpen(false);
+    showToast('Signed out from ChuruOne session');
   };
 
   // ─── CHECKOUT & ORDER SUBMISSION ──────────────────────────────
@@ -545,8 +538,9 @@ export default function SkylineApp() {
             {currentUser ? (
               <div className="relative group">
                 <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="flex items-center gap-2 text-xs uppercase tracking-wider text-stone-700 hover:text-stone-950 py-1.5 px-2.5 rounded-full border border-stone-200 bg-white/70 shadow-xs"
+                  onClick={() => setIsAccountModalOpen(true)}
+                  className="flex items-center gap-2 text-xs uppercase tracking-wider text-stone-700 hover:text-stone-950 py-1.5 px-2.5 rounded-full border border-stone-200 bg-white/70 shadow-xs cursor-pointer"
+                  title="ChuruOne Verified Account"
                 >
                   <div className="w-5 h-5 rounded-full bg-stone-900 text-stone-100 flex items-center justify-center text-[10px] font-bold">
                     {(currentUser.name || 'G')[0]}
@@ -558,11 +552,12 @@ export default function SkylineApp() {
               </div>
             ) : (
               <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1.5"
+                onClick={navigateToChuruOneAuth}
+                className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1.5 cursor-pointer"
+                title="Sign In with ChuruOne SSO"
               >
                 <User className="w-4 h-4 stroke-[1.5]" />
-                <span className="hidden sm:inline">Sign In</span>
+                <span className="hidden sm:inline">Sign In with ChuruOne</span>
               </button>
             )}
 
@@ -1436,6 +1431,46 @@ export default function SkylineApp() {
 
               <form onSubmit={handlePlaceOrder} className="p-6 space-y-4">
                 
+                {/* ChuruOne SSO Account Status */}
+                {currentUser ? (
+                  <div className="bg-emerald-50 border border-emerald-200 p-3 flex items-center justify-between text-xs text-emerald-900">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-semibold">{currentUser.name || 'Gentleman'}</span>
+                        <span className="text-[10px] text-emerald-700 block font-mono">
+                          Verified via ChuruOne Single Sign-On
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={navigateToChuruOneAuth}
+                      className="text-[10px] text-emerald-800 hover:text-emerald-950 underline font-medium cursor-pointer"
+                    >
+                      Switch User
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-[#FAF9F6] border border-stone-200 p-3 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="font-semibold text-stone-900 block text-[11px] uppercase tracking-wider">
+                        Have a ChuruOne Account?
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-light">
+                        Sign in via ChuruOne to auto-fill address and sync orders.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={navigateToChuruOneAuth}
+                      className="bg-stone-950 hover:bg-stone-800 text-white px-3 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors shrink-0 ml-2 cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                )}
+
                 {/* Full Name */}
                 <div>
                   <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
@@ -1657,130 +1692,96 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 13. CHURUONE SSO / OTP LOGIN MODAL ──────────────────── */}
-      {isAuthModalOpen && (
+      {/* ─── 13. CHURUONE UNIFIED SSO ACCOUNT MODAL ──────────────── */}
+      {isAccountModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs" onClick={() => !authLoading && setIsAuthModalOpen(false)} />
+          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs" onClick={() => setIsAccountModalOpen(false)} />
           
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white max-w-sm w-full shadow-2xl border border-stone-200 p-8 space-y-6">
               
               <button
-                onClick={() => setIsAuthModalOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-stone-950 p-1"
+                onClick={() => setIsAccountModalOpen(false)}
+                className="absolute right-4 top-4 text-stone-400 hover:text-stone-950 p-1 cursor-pointer"
               >
                 <X className="w-4 h-4 stroke-[1.5]" />
               </button>
 
               <div className="text-center space-y-1">
                 <span className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-semibold">
-                  CHURUONE UNIFIED SIGN-IN
+                  CHURUONE UNIFIED SINGLE SIGN-ON
                 </span>
                 <h3 className="text-xl font-light font-serif text-stone-950">
-                  {currentUser ? 'Your Skyline Profile' : 'Sign In with Mobile OTP'}
+                  {currentUser ? 'Your Verified Profile' : 'ChuruOne Account'}
                 </h3>
                 <p className="text-xs text-stone-500 font-light">
-                  {currentUser ? 'Synchronized across all ChuruOne shops' : 'Enter your 10-digit phone to receive a quick verification code.'}
+                  Unified identity synchronized across all ChuruOne shops.
                 </p>
               </div>
 
               {currentUser ? (
                 <div className="space-y-4">
-                  <div className="bg-[#FAF9F6] border border-stone-200 p-4 space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Name:</span>
-                      <span className="font-medium text-stone-900">{currentUser.name || 'Gentleman'}</span>
+                  <div className="flex items-center gap-3 bg-[#FAF9F6] border border-stone-200 p-3.5">
+                    <div className="w-10 h-10 rounded-full bg-stone-950 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                      {(currentUser.name || 'G')[0]}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Phone:</span>
-                      <span className="font-mono text-stone-900">{currentUser.phone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-stone-500">Status:</span>
-                      <span className="text-emerald-700 font-medium">Synced with ChuruOne</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2.5 text-xs uppercase tracking-wider font-medium cursor-pointer"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              ) : !otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                      Mobile Number
-                    </label>
-                    <div className="flex">
-                      <span className="inline-flex items-center px-3 border border-r-0 border-stone-200 bg-stone-50 text-xs text-stone-500 font-mono">
-                        +91
+                    <div className="overflow-hidden">
+                      <span className="font-semibold text-stone-950 text-xs block truncate">
+                        {currentUser.name || 'Gentleman'}
                       </span>
-                      <input
-                        type="tel"
-                        required
-                        maxLength={10}
-                        value={authPhone}
-                        onChange={(e) => setAuthPhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="98290XXXXX"
-                        className="w-full border border-stone-200 focus:border-stone-950 px-3 py-2 text-xs text-stone-900 font-mono outline-none"
-                      />
+                      <span className="text-[11px] text-stone-500 block font-mono">
+                        {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
+                      </span>
+                      {currentUser.email && (
+                        <span className="text-[10px] text-stone-400 block truncate">
+                          {currentUser.email}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {authError && <p className="text-xs text-red-600">{authError}</p>}
+                  <div className="bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Synchronized with ChuruOne Central SSO</span>
+                  </div>
 
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full bg-stone-950 hover:bg-stone-800 disabled:opacity-50 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium transition-all cursor-pointer"
-                  >
-                    {authLoading ? 'Sending Verification...' : 'Send OTP Code'}
-                  </button>
-                </form>
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAccountModalOpen(false);
+                        navigateToChuruOneAuth();
+                      }}
+                      className="w-full bg-stone-950 hover:bg-stone-800 text-white py-2.5 text-xs uppercase tracking-wider font-medium cursor-pointer transition-colors"
+                    >
+                      Switch Account via ChuruOne
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2 text-xs uppercase tracking-wider font-medium cursor-pointer transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                      Enter 4-Digit OTP Code
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={6}
-                      value={authOtp}
-                      onChange={(e) => setAuthOtp(e.target.value.trim())}
-                      placeholder="e.g. 1234"
-                      className="w-full border border-stone-200 focus:border-stone-950 px-3 py-2.5 text-center text-lg tracking-[0.4em] font-mono text-stone-900 outline-none"
-                    />
-                  </div>
-
-                  {devOtpNotice && (
-                    <div className="p-2 bg-amber-50 border border-amber-200 text-amber-900 text-xs font-mono text-center">
-                      {devOtpNotice}
-                    </div>
-                  )}
-
-                  {authError && <p className="text-xs text-red-600">{authError}</p>}
-
-                  <button
-                    type="submit"
-                    disabled={authLoading}
-                    className="w-full bg-stone-950 hover:bg-stone-800 disabled:opacity-50 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium transition-all cursor-pointer"
-                  >
-                    {authLoading ? 'Verifying...' : 'Confirm & Sign In'}
-                  </button>
-
+                <div className="space-y-4 text-center">
+                  <p className="text-xs text-stone-600 leading-relaxed font-light">
+                    You are not currently signed in. Sign in using your ChuruOne single sign-on to access saved addresses and synchronized orders.
+                  </p>
                   <button
                     type="button"
-                    onClick={() => { setOtpSent(false); setAuthOtp(''); }}
-                    className="w-full text-stone-500 hover:text-stone-900 text-xs underline cursor-pointer"
+                    onClick={() => {
+                      setIsAccountModalOpen(false);
+                      navigateToChuruOneAuth();
+                    }}
+                    className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors shadow-md"
                   >
-                    Change Phone Number
+                    Sign In with ChuruOne SSO
                   </button>
-                </form>
+                </div>
               )}
 
             </div>

@@ -22,7 +22,9 @@ const STORE_NAMES = {
   'nash-studio': 'Nash Studio',
   'nash': 'Nash Studio',
   'shawarma': 'Shawarma Nights',
-  'shawarma-nights': 'Shawarma Nights'
+  'shawarma-nights': 'Shawarma Nights',
+  'skyline': 'Skyline Premium Outfits',
+  'skyline-outfits': 'Skyline Premium Outfits'
 };
 
 export default function ChuruOneAuthPage() {
@@ -43,6 +45,9 @@ export default function ChuruOneAuthPage() {
     }
     if (storeId.includes('shawarma')) {
       return window.location.hostname.includes('localhost') ? '/' : 'https://shawarma.churuone.in';
+    }
+    if (storeId.includes('skyline')) {
+      return window.location.hostname.includes('localhost') ? '/skyline' : 'https://skyline.churuone.in';
     }
     return '/'; // Default to ChuruOne homepage
   }
