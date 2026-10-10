@@ -447,13 +447,19 @@ export default function SkylineApp() {
   };
 
   // ─── CHURUONE UNIFIED SSO AUTHENTICATION ─────────────────────
+  const isUserPhoneVerified = Boolean(
+    currentUser &&
+    currentUser.phoneVerified === true &&
+    String(currentUser.phone || currentUser.phoneNumber || '').replace(/\D/g, '').slice(-10).length === 10
+  );
+
   const navigateToChuruOneAuth = (mode = 'login') => {
     try {
       const currentUrl = window.location.pathname + window.location.search;
       const returnUrl = encodeURIComponent(currentUrl || '/skyline');
-      window.location.href = `/auth?storeId=skyline&mode=${mode}&returnUrl=${returnUrl}`;
+      window.location.href = `/auth?storeId=skyline&mode=${mode}&returnUrl=${returnUrl}&requirePhoneOtp=true`;
     } catch (e) {
-      window.location.href = `/auth?storeId=skyline&mode=${mode}`;
+      window.location.href = `/auth?storeId=skyline&mode=${mode}&requirePhoneOtp=true`;
     }
   };
 
@@ -473,8 +479,8 @@ export default function SkylineApp() {
   // ─── CHECKOUT & ORDER SUBMISSION ──────────────────────────────
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    if (!currentUser) {
-      showToast('✦ Order karne ke liye ChuruOne account me sign in karein');
+    if (!currentUser || !isUserPhoneVerified) {
+      showToast('✦ Skyline orders ke liye verified mobile number anivarya hai');
       setIsCheckoutOpen(false);
       navigateToChuruOneAuth('login');
       return;
@@ -483,15 +489,9 @@ export default function SkylineApp() {
       showToast('Please enter your full name');
       return;
     }
-    const cleanPhone = checkoutPhone.replace(/\D/g, '').slice(-10);
+    const cleanPhone = String(currentUser.phone || checkoutPhone).replace(/\D/g, '').slice(-10);
     if (cleanPhone.length !== 10) {
       showToast('Please enter a valid 10-digit mobile number');
-      return;
-    }
-    if (!currentUser.phone && !currentUser.phoneVerified && cleanPhone.length !== 10) {
-      showToast('✦ Wardrobe delivery ke liye mobile number verify karein');
-      setIsCheckoutOpen(false);
-      navigateToChuruOneAuth('login');
       return;
     }
     if (deliveryType === 'delivery') {
@@ -1540,8 +1540,8 @@ export default function SkylineApp() {
                   {/* Checkout Button */}
                   <button
                     onClick={() => {
-                      if (!currentUser) {
-                        showToast('✦ Order karne ke liye ChuruOne account me sign in karein');
+                      if (!currentUser || !isUserPhoneVerified) {
+                        showToast('✦ Order karne ke liye verified mobile number se sign in karein');
                         setIsCartOpen(false);
                         navigateToChuruOneAuth('login');
                         return;
@@ -1588,44 +1588,75 @@ export default function SkylineApp() {
               </div>
 
               {/* ChuruOne SSO Authentication Gate & Verification */}
-              {!currentUser ? (
-                <div className="bg-stone-50 border border-stone-200 p-8 rounded-2xl text-center space-y-5 my-2">
+              {!isUserPhoneVerified ? (
+                <div className="bg-stone-50 border border-stone-200 p-6 sm:p-8 rounded-2xl text-center space-y-4 my-2">
                   <div className="w-14 h-14 rounded-full bg-black text-white flex items-center justify-center mx-auto shadow-md">
                     <ShieldCheck className="w-7 h-7 text-amber-400" />
                   </div>
-                  <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                      CHURUONE SINGLE SIGN-ON REQUIRED
-                    </span>
-                    <h4 className="text-xl font-bold text-stone-950">
-                      Sign In to Place Your Order
-                    </h4>
-                    <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
-                      Skyline Premium Outfits requires verified ChuruOne authentication to coordinate sizing and doorstep delivery in Churu.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 pt-3 max-w-xs mx-auto">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCheckoutOpen(false);
-                        navigateToChuruOneAuth('login');
-                      }}
-                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer shadow-md"
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCheckoutOpen(false);
-                        navigateToChuruOneAuth('signup');
-                      }}
-                      className="w-full border border-stone-300 hover:border-black text-stone-800 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
-                    >
-                      Create Account
-                    </button>
-                  </div>
+                  
+                  {!currentUser ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                          MOBILE NUMBER AUTHENTICATION REQUIRED
+                        </span>
+                        <h4 className="text-xl font-bold text-stone-950">
+                          Sign In to Place Your Order
+                        </h4>
+                        <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
+                          Skyline Premium Outfits requires verified mobile authentication to coordinate sizing and doorstep delivery in Churu.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2 max-w-xs mx-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCheckoutOpen(false);
+                            navigateToChuruOneAuth('login');
+                          }}
+                          className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer shadow-md"
+                        >
+                          Sign In
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCheckoutOpen(false);
+                            navigateToChuruOneAuth('signup');
+                          }}
+                          className="w-full border border-stone-300 hover:border-black text-stone-800 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
+                        >
+                          Create Account
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full inline-block">
+                          STEP 2: MOBILE OTP REQUIRED
+                        </span>
+                        <h4 className="text-xl font-bold text-stone-950">
+                          Verify Your Mobile Number
+                        </h4>
+                        <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
+                          Aapka account ({currentUser.email || currentUser.name}) connected hai, lekin Skyline par order placement ke liye 10-digit mobile number OTP verify hona mandatory hai.
+                        </p>
+                      </div>
+                      <div className="pt-2 max-w-xs mx-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCheckoutOpen(false);
+                            navigateToChuruOneAuth('login');
+                          }}
+                          className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer shadow-md flex items-center justify-center gap-2"
+                        >
+                          <span>Verify Mobile Number via OTP →</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>
@@ -1635,7 +1666,7 @@ export default function SkylineApp() {
                       <div>
                         <span className="font-bold">{currentUser.name || 'Friend'}</span>
                         <span className="text-[10px] text-emerald-700 block font-mono">
-                          Verified via ChuruOne SSO (+91 {currentUser.phone || checkoutPhone})
+                          Verified via Mobile OTP (+91 {currentUser.phone || checkoutPhone}) ✓
                         </span>
                       </div>
                     </div>
@@ -1666,7 +1697,6 @@ export default function SkylineApp() {
                     <Truck className="w-4 h-4" />
                     <span>Home Delivery (Churu)</span>
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setDeliveryType('pickup')}
@@ -1702,19 +1732,23 @@ export default function SkylineApp() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
-                      10-Digit Mobile Number *
-                    </label>
-                    <div className="flex items-center border border-stone-200 focus-within:border-black rounded-lg px-3 py-2">
-                      <span className="text-xs text-stone-500 font-mono mr-2">+91</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] uppercase font-bold text-stone-600">
+                        10-Digit Mobile Number *
+                      </label>
+                      <span className="text-[9px] uppercase tracking-wider font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        OTP Verified ✓
+                      </span>
+                    </div>
+                    <div className="flex items-center border border-emerald-300 bg-stone-50 rounded-lg px-3 py-2">
+                      <span className="text-xs text-stone-500 font-mono mr-2 font-bold">+91</span>
                       <input
                         type="tel"
                         required
+                        readOnly
                         maxLength={10}
-                        value={checkoutPhone}
-                        onChange={(e) => setCheckoutPhone(e.target.value.replace(/\D/g, ''))}
-                        placeholder="9829012345"
-                        className="w-full bg-transparent text-xs outline-none font-mono"
+                        value={currentUser?.phone || checkoutPhone}
+                        className="w-full bg-transparent text-xs outline-none font-mono font-bold text-stone-900"
                       />
                     </div>
                   </div>
