@@ -1,5 +1,29 @@
 [
   {
+    "id": "rev-sky-001",
+    "name": "Ravi Joshi",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
+    "phone": "9829100001",
+    "rating": 5,
+    "comment": "The craftsmanship and cloud comfort of the Slick Pro sneakers are unmatched. Premium lightweight sole and luxurious finish. Delivered in pristine condition!",
+    "dish": "Trendy Slick Pro",
+    "dishId": "slick-shoe-00",
+    "date": "Yesterday",
+    "createdAt": "2026-10-10T21:04:08.783Z"
+  },
+  {
+    "id": "rev-sky-002",
+    "name": "Otis Binkley",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
+    "phone": "9829100002",
+    "rating": 5,
+    "comment": "Hands down the cleanest aesthetic. Perfectly complements tailored outfits and streetwear. The ChuruOne SSO seamless checkout made ordering effortless!",
+    "dish": "Slick formal sneaker shoe",
+    "dishId": "slick-shoe-01",
+    "date": "3 days ago",
+    "createdAt": "2026-10-10T21:04:08.800Z"
+  },
+  {
     "id": "rev-sky-01",
     "name": "Arjun Rathore",
     "phone": "9829012345",

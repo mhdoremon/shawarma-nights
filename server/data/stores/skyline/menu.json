@@ -1,6 +1,340 @@
 {
   "menu": [
     {
+      "id": "slick-shoe-00",
+      "name": "Trendy Slick Pro",
+      "category": "men",
+      "subCategory": "sneakers",
+      "price": 3999,
+      "originalPrice": 6999,
+      "prepTime": "Express 24h Delivery",
+      "badge": "HERO EDIT",
+      "description": "Ultra-lightweight luxury leather sneaker featuring ergonomic cloud cushioning, high-abrasion rubber cupsole, and breathable perforated micro-grain leather.",
+      "fabric": "Full-Grain Italian Calfskin Leather with Ortholite Insole",
+      "fit": "True to Size Athletic Comfort",
+      "image": "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1000&q=85",
+      "availableSizes": [
+        "UK 6",
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10",
+        "UK 11"
+      ],
+      "colors": [
+        {
+          "name": "Glacier White",
+          "hex": "#FFFFFF"
+        },
+        {
+          "name": "Onyx Black",
+          "hex": "#1A1A1A"
+        }
+      ],
+      "rating": 5,
+      "reviews": 128,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-01",
+      "name": "Slick formal sneaker shoe",
+      "category": "men",
+      "subCategory": "sneakers",
+      "price": 2399,
+      "originalPrice": 4999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Sophisticated low-profile sneaker that bridges formal tailoring and casual comfort. Matte ecru leather with subtle tonal stitching.",
+      "fabric": "Hand-buffed Nappa Leather & Rubber Sole",
+      "fit": "Tailored Minimalist Fit",
+      "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1000&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10"
+      ],
+      "colors": [
+        {
+          "name": "Beige Sand",
+          "hex": "#D8CFBC"
+        },
+        {
+          "name": "Slate Grey",
+          "hex": "#768271"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 94,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-02",
+      "name": "Slick casual sneaker shoe",
+      "category": "men",
+      "subCategory": "sneakers",
+      "price": 2599,
+      "originalPrice": 5199,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Multi-layered retro-modern silhouette with suede overlays and responsive rebound sole for all-day urban walking.",
+      "fabric": "Split Suede & Tech Mesh Composite",
+      "fit": "Cushioned Street Fit",
+      "image": "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10",
+        "UK 11"
+      ],
+      "colors": [
+        {
+          "name": "Multi Vintage",
+          "hex": "#B5A48B"
+        },
+        {
+          "name": "Charcoal Rust",
+          "hex": "#3A3D40"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 76,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-03",
+      "name": "Slick sneaker shoe",
+      "category": "woman",
+      "subCategory": "sneakers",
+      "price": 2499,
+      "originalPrice": 4999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Classic Scandinavian minimalism with clean rounded toe and soft padded collar. Perfect everyday neutral companion.",
+      "fabric": "Organic Canvas & Vegan Bio-Leather",
+      "fit": "Regular Comfort Fit",
+      "image": "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 5",
+        "UK 6",
+        "UK 7",
+        "UK 8",
+        "UK 9"
+      ],
+      "colors": [
+        {
+          "name": "Cream Chalk",
+          "hex": "#F4F1EA"
+        },
+        {
+          "name": "Pastel Sage",
+          "hex": "#8EA0AF"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 88,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-04",
+      "name": "Slick sneaker shoe",
+      "category": "boy",
+      "subCategory": "sneakers",
+      "price": 2299,
+      "originalPrice": 4499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Textured suede trainer built with reinforced heel counter and shock-absorbing EVA midsole for durable performance.",
+      "fabric": "Premium Calf Suede with Honey Rubber Grip",
+      "fit": "Athletic Snug Fit",
+      "image": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 6",
+        "UK 7",
+        "UK 8",
+        "UK 9"
+      ],
+      "colors": [
+        {
+          "name": "Ash Grey",
+          "hex": "#9E9E9E"
+        },
+        {
+          "name": "Deep Marine",
+          "hex": "#1E2A38"
+        }
+      ],
+      "rating": 4.7,
+      "reviews": 52,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-05",
+      "name": "Slick trendy sneaker shoe",
+      "category": "child",
+      "subCategory": "sneakers",
+      "price": 2799,
+      "originalPrice": 5499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Contemporary two-tone pastel colorway with premium aerated toe box and lightweight cupsole architecture.",
+      "fabric": "Microfiber Leather & High-Traction Rubber",
+      "fit": "Comfort Standard Fit",
+      "image": "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 5",
+        "UK 6",
+        "UK 7",
+        "UK 8"
+      ],
+      "colors": [
+        {
+          "name": "Baby Blue & White",
+          "hex": "#A4BCC4"
+        },
+        {
+          "name": "Coral Sunset",
+          "hex": "#B86B53"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 64,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-06",
+      "name": "Slick canvas shoe",
+      "category": "men",
+      "subCategory": "sneakers",
+      "price": 1999,
+      "originalPrice": 3999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "New",
+      "description": "Heavy-duty 14oz washed duck canvas low sneaker with vulcanized gum sole and antique brass eyelets.",
+      "fabric": "100% Washed Cotton Canvas & Vulcanized Gum Sole",
+      "fit": "Easy Slip/Lace Fit",
+      "image": "https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10"
+      ],
+      "colors": [
+        {
+          "name": "Roasted Tobacco",
+          "hex": "#593122"
+        },
+        {
+          "name": "Military Olive",
+          "hex": "#4D5240"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 110,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-07",
+      "name": "Running sport shoe",
+      "category": "men",
+      "subCategory": "trending",
+      "price": 3999,
+      "originalPrice": 6499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Trending",
+      "description": "Breathable knit running shoe with carbon-infused propulsion plate and responsive energy return midsole.",
+      "fabric": "Engineered Primeknit & Boost Foam Midsole",
+      "fit": "Athletic Lock-In Fit",
+      "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10",
+        "UK 11"
+      ],
+      "colors": [
+        {
+          "name": "Triple Crimson Black",
+          "hex": "#111111"
+        }
+      ],
+      "rating": 5,
+      "reviews": 142,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-08",
+      "name": "Running sport shoe",
+      "category": "men",
+      "subCategory": "trending",
+      "price": 3999,
+      "originalPrice": 6499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Trending",
+      "description": "Aerated sport runner with seamless dual-density foam sole engineered for sprints and high-impact training.",
+      "fabric": "Aero Mesh with High-Impact Cushion",
+      "fit": "Performance Ergonomic Fit",
+      "image": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10"
+      ],
+      "colors": [
+        {
+          "name": "Glacier White",
+          "hex": "#F8F9FA"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 98,
+      "available": true
+    },
+    {
+      "id": "slick-shoe-09",
+      "name": "Running sport shoe",
+      "category": "woman",
+      "subCategory": "trending",
+      "price": 3999,
+      "originalPrice": 6499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Trending",
+      "description": "Dynamic racing shoe featuring high-visibility color accents, torsion stabilizer, and grippy rubber lugs.",
+      "fabric": "Ultralight Ripstop & Responsive Zoom Pods",
+      "fit": "Competition Sprint Fit",
+      "image": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800&q=85",
+      "secondaryImage": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",
+      "availableSizes": [
+        "UK 7",
+        "UK 8",
+        "UK 9",
+        "UK 10",
+        "UK 11"
+      ],
+      "colors": [
+        {
+          "name": "Electric Volt & Cyan",
+          "hex": "#123524"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 87,
+      "available": true
+    },
+    {
       "id": "sky-item-01",
       "name": "Normandy Flax Camp-Collar Linen Shirt",
       "category": "linen-shirts",
@@ -14,11 +348,26 @@
       "fit": "Tailored Relaxed Resort Fit",
       "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
       "colors": [
-        { "name": "Ecru Sand", "hex": "#E8E2D5" },
-        { "name": "Sage Green", "hex": "#768271" },
-        { "name": "Obsidian Black", "hex": "#1C1C1E" }
+        {
+          "name": "Ecru Sand",
+          "hex": "#E8E2D5"
+        },
+        {
+          "name": "Sage Green",
+          "hex": "#768271"
+        },
+        {
+          "name": "Obsidian Black",
+          "hex": "#1C1C1E"
+        }
       ],
       "rating": 4.9,
       "reviews": 84,
@@ -38,10 +387,21 @@
       "fit": "Classic Clean Cut",
       "image": "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "colors": [
-        { "name": "Chalk Blue Stripe", "hex": "#8EA0AF" },
-        { "name": "Terracotta Stripe", "hex": "#B86B53" }
+        {
+          "name": "Chalk Blue Stripe",
+          "hex": "#8EA0AF"
+        },
+        {
+          "name": "Terracotta Stripe",
+          "hex": "#B86B53"
+        }
       ],
       "rating": 4.8,
       "reviews": 46,
@@ -61,13 +421,28 @@
       "fit": "High-Rise Relaxed Taper",
       "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["30", "32", "34", "36", "38"],
-      "colors": [
-        { "name": "Charcoal Slate", "hex": "#3A3D40" },
-        { "name": "Warm Khaki", "hex": "#B5A48B" },
-        { "name": "Midnight Navy", "hex": "#1E2A38" }
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
       ],
-      "rating": 5.0,
+      "colors": [
+        {
+          "name": "Charcoal Slate",
+          "hex": "#3A3D40"
+        },
+        {
+          "name": "Warm Khaki",
+          "hex": "#B5A48B"
+        },
+        {
+          "name": "Midnight Navy",
+          "hex": "#1E2A38"
+        }
+      ],
+      "rating": 5,
       "reviews": 112,
       "available": true
     },
@@ -85,11 +460,25 @@
       "fit": "Tailored Slim Straight",
       "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["30", "32", "34", "36"],
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36"
+      ],
       "colors": [
-        { "name": "Oatmeal Stone", "hex": "#D8CFBC" },
-        { "name": "Deep Olive", "hex": "#4D5240" },
-        { "name": "Pitch Black", "hex": "#141414" }
+        {
+          "name": "Oatmeal Stone",
+          "hex": "#D8CFBC"
+        },
+        {
+          "name": "Deep Olive",
+          "hex": "#4D5240"
+        },
+        {
+          "name": "Pitch Black",
+          "hex": "#141414"
+        }
       ],
       "rating": 4.8,
       "reviews": 68,
@@ -109,11 +498,26 @@
       "fit": "Structured Boxy Layering Fit",
       "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
       "colors": [
-        { "name": "Desert Camel", "hex": "#B8860B" },
-        { "name": "Washed Tobacco", "hex": "#6E473B" },
-        { "name": "Forest Moss", "hex": "#354A21" }
+        {
+          "name": "Desert Camel",
+          "hex": "#B8860B"
+        },
+        {
+          "name": "Washed Tobacco",
+          "hex": "#6E473B"
+        },
+        {
+          "name": "Forest Moss",
+          "hex": "#354A21"
+        }
       ],
       "rating": 4.9,
       "reviews": 53,
@@ -133,10 +537,20 @@
       "fit": "Slightly Oversized Contemporary",
       "image": "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["M", "L", "XL"],
+      "availableSizes": [
+        "M",
+        "L",
+        "XL"
+      ],
       "colors": [
-        { "name": "Roasted Chestnut", "hex": "#593122" },
-        { "name": "Vintage Midnight", "hex": "#1B263B" }
+        {
+          "name": "Roasted Chestnut",
+          "hex": "#593122"
+        },
+        {
+          "name": "Vintage Midnight",
+          "hex": "#1B263B"
+        }
       ],
       "rating": 4.9,
       "reviews": 39,
@@ -156,13 +570,27 @@
       "fit": "Royal Tailored Regal Cut",
       "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["38 (S)", "40 (M)", "42 (L)", "44 (XL)"],
-      "colors": [
-        { "name": "Royal Ivory", "hex": "#FAF0E6" },
-        { "name": "Emerald Viridian", "hex": "#123524" },
-        { "name": "Maroon Crimson", "hex": "#58111A" }
+      "availableSizes": [
+        "38 (S)",
+        "40 (M)",
+        "42 (L)",
+        "44 (XL)"
       ],
-      "rating": 5.0,
+      "colors": [
+        {
+          "name": "Royal Ivory",
+          "hex": "#FAF0E6"
+        },
+        {
+          "name": "Emerald Viridian",
+          "hex": "#123524"
+        },
+        {
+          "name": "Maroon Crimson",
+          "hex": "#58111A"
+        }
+      ],
+      "rating": 5,
       "reviews": 77,
       "available": true
     },
@@ -180,11 +608,26 @@
       "fit": "Contemporary Casual Ethnic",
       "image": "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
       "colors": [
-        { "name": "Dusty Rose Pink", "hex": "#C29B9B" },
-        { "name": "Powder Sky", "hex": "#A4BCC4" },
-        { "name": "Pearl Ecru", "hex": "#F0EAD6" }
+        {
+          "name": "Dusty Rose Pink",
+          "hex": "#C29B9B"
+        },
+        {
+          "name": "Powder Sky",
+          "hex": "#A4BCC4"
+        },
+        {
+          "name": "Pearl Ecru",
+          "hex": "#F0EAD6"
+        }
       ],
       "rating": 4.8,
       "reviews": 51,
@@ -204,12 +647,30 @@
       "fit": "Relaxed Boxy Drop-Shoulder",
       "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL", "XXL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
       "colors": [
-        { "name": "Chalk White", "hex": "#F8F9FA" },
-        { "name": "Jet Black", "hex": "#111111" },
-        { "name": "Heather Grey", "hex": "#9E9E9E" },
-        { "name": "Washed Olive", "hex": "#556B2F" }
+        {
+          "name": "Chalk White",
+          "hex": "#F8F9FA"
+        },
+        {
+          "name": "Jet Black",
+          "hex": "#111111"
+        },
+        {
+          "name": "Heather Grey",
+          "hex": "#9E9E9E"
+        },
+        {
+          "name": "Washed Olive",
+          "hex": "#556B2F"
+        }
       ],
       "rating": 4.9,
       "reviews": 164,
@@ -229,10 +690,21 @@
       "fit": "Tailored European Fit",
       "image": "https://images.unsplash.com/photo-1625910513413-72210c4118f7?auto=format&fit=crop&w=800&q=80",
       "secondaryImage": "https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80",
-      "availableSizes": ["S", "M", "L", "XL"],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
       "colors": [
-        { "name": "Biscotti Cream", "hex": "#E3D5C0" },
-        { "name": "Navy Nautical", "hex": "#1C2D42" }
+        {
+          "name": "Biscotti Cream",
+          "hex": "#E3D5C0"
+        },
+        {
+          "name": "Navy Nautical",
+          "hex": "#1C2D42"
+        }
       ],
       "rating": 4.9,
       "reviews": 42,
@@ -242,7 +714,23 @@
   "categories": [
     {
       "id": "all",
-      "name": "Complete Lookbook"
+      "name": "All Collection"
+    },
+    {
+      "id": "men",
+      "name": "Men"
+    },
+    {
+      "id": "woman",
+      "name": "Woman"
+    },
+    {
+      "id": "boy",
+      "name": "Boy"
+    },
+    {
+      "id": "child",
+      "name": "Child"
     },
     {
       "id": "linen-shirts",
@@ -250,23 +738,11 @@
     },
     {
       "id": "trousers",
-      "name": "Tailored Trousers & Chinos"
+      "name": "Tailored Trousers"
     },
     {
       "id": "overshirts",
-      "name": "Canvas & Corduroy Overshirts"
-    },
-    {
-      "id": "heritage-kurtas",
-      "name": "Heritage Festive Kurtas"
-    },
-    {
-      "id": "tees",
-      "name": "Heavyweight Supima Tees"
-    },
-    {
-      "id": "knitwear",
-      "name": "Structured Knitwear & Polos"
+      "name": "Overshirts & Jackets"
     }
   ]
 }

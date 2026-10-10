@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   ShoppingBag, 
   Search, 
-  SlidersHorizontal, 
   X, 
   Check, 
   ArrowRight, 
   Sparkles, 
   ChevronRight, 
+  ChevronLeft, 
   Star, 
   Phone, 
   MapPin, 
@@ -24,11 +24,11 @@ import {
   CheckCircle2, 
   Tag, 
   Eye, 
-  Ruler, 
+  Heart, 
   Share2, 
   Menu as MenuIcon,
   HelpCircle,
-  Scissors
+  ArrowUpRight
 } from 'lucide-react';
 import { 
   getSkylineData, 
@@ -43,18 +43,29 @@ export default function SkylineApp() {
   const [storeData, setStoreData] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('men');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('featured');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Customer & ChuruOne SSO Auth State
   const [currentUser, setCurrentUser] = useState(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
+  // Wishlist State
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('slick_wishlist');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Cart State
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const saved = localStorage.getItem('skyline_cart');
+      const saved = localStorage.getItem('slick_cart') || localStorage.getItem('skyline_cart');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -71,6 +82,12 @@ export default function SkylineApp() {
   const [modalSize, setModalSize] = useState('');
   const [modalColor, setModalColor] = useState(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  // Trending Carousel Slide State
+  const [trendingSlideIndex, setTrendingSlideIndex] = useState(0);
+
+  // Reviews Carousel State
+  const [reviewIndex, setReviewIndex] = useState(0);
 
   // Checkout State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -98,7 +115,7 @@ export default function SkylineApp() {
 
   // ─── INITIAL DATA LOAD & CHURUONE SSO SYNC ────────────────────
   useEffect(() => {
-    document.title = "Skyline Premium Outfits | Architectural Menswear • Churu";
+    document.title = "Slick • Find Your Sole Mate | Skyline Churu";
 
     // 1. Check for incoming redirect from ChuruOne SSO (/auth)
     try {
@@ -115,7 +132,7 @@ export default function SkylineApp() {
           const rawPhone = String(parsed.phone || parsed.phoneNumber).replace(/\D/g, '').slice(-10);
           setCheckoutPhone(rawPhone);
         }
-        showToast(`✦ ChuruOne SSO Verified: Welcome, ${parsed.name || 'Gentleman'}!`);
+        showToast(`✦ ChuruOne SSO Verified: Welcome, ${parsed.name || 'Friend'}!`);
 
         // Clean query parameters from URL
         params.delete('churuone_user');
@@ -150,7 +167,7 @@ export default function SkylineApp() {
           if (u.phone || u.phoneNumber) {
             setCheckoutPhone(String(u.phone || u.phoneNumber).replace(/\D/g, '').slice(-10));
           }
-          showToast(`✦ Verified by ChuruOne: ${u.name || 'Gentleman'}`);
+          showToast(`✦ Verified by ChuruOne: ${u.name || 'Friend'}`);
         }
       }
     };
@@ -165,11 +182,20 @@ export default function SkylineApp() {
   // Save Cart to LocalStorage
   useEffect(() => {
     try {
-      localStorage.setItem('skyline_cart', JSON.stringify(cartItems));
+      localStorage.setItem('slick_cart', JSON.stringify(cartItems));
     } catch (e) {
       console.warn('Cart save error:', e);
     }
   }, [cartItems]);
+
+  // Save Wishlist to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('slick_wishlist', JSON.stringify(wishlist));
+    } catch (e) {
+      console.warn('Wishlist save error:', e);
+    }
+  }, [wishlist]);
 
   const loadStoreData = async () => {
     setLoading(true);
@@ -186,6 +212,15 @@ export default function SkylineApp() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toggleWishlist = (productId) => {
+    setWishlist(prev => {
+      const exists = prev.includes(productId);
+      const updated = exists ? prev.filter(id => id !== productId) : [...prev, productId];
+      showToast(exists ? 'Removed from wishlist' : 'Saved to wishlist ♥');
+      return updated;
+    });
   };
 
   // ─── CART CALCULATIONS ─────────────────────────────────────────
@@ -216,7 +251,7 @@ export default function SkylineApp() {
 
   // ─── CART HANDLERS ─────────────────────────────────────────────
   const addToCart = (product, selectedSize, selectedColor) => {
-    const size = selectedSize || (product.availableSizes && product.availableSizes[0]) || 'M';
+    const size = selectedSize || (product.availableSizes && product.availableSizes[0]) || 'UK 8';
     const color = selectedColor || (product.colors && product.colors[0]?.name) || 'Classic';
     const cartItemId = `${product.id}-${size}-${color}`;
 
@@ -242,7 +277,7 @@ export default function SkylineApp() {
       }];
     });
 
-    showToast(`Added to Bag: ${product.name} (${size})`);
+    showToast(`Added to Bag: ${product.name}`);
     setIsCartOpen(true);
   };
 
@@ -278,7 +313,7 @@ export default function SkylineApp() {
         const deal = res.deal || res.coupon;
         setAppliedCoupon(deal);
         setCouponMessage({ 
-          text: `Perk applied: ${deal.title || code} (-₹${deal.flatDiscount || (deal.discountPercent ? `${deal.discountPercent}%` : '')})`, 
+          text: `Discount applied: ${deal.title || code} (-₹${deal.flatDiscount || (deal.discountPercent ? `${deal.discountPercent}%` : '')})`, 
           type: 'success' 
         });
         showToast(`Coupon applied: ${code}`);
@@ -372,7 +407,7 @@ export default function SkylineApp() {
         tip: 0,
         total: grandTotal,
         notes: checkoutNotes.trim(),
-        source: 'skyline_web'
+        source: 'slick_web'
       };
 
       const res = await placeSkylineOrder(orderPayload);
@@ -383,7 +418,7 @@ export default function SkylineApp() {
         setAppliedCoupon(null);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
-        showToast('Wardrobe Order Placed Successfully!');
+        showToast('Order Placed Successfully!');
       } else {
         showToast(res?.message || 'Order could not be placed. Please contact store.');
       }
@@ -422,815 +457,930 @@ export default function SkylineApp() {
     }
   };
 
-  // ─── FILTERED & SORTED CATALOG ────────────────────────────────
-  const filteredProducts = useMemo(() => {
-    let list = [...menuItems];
+  // ─── HERO & TRENDING ITEMS ────────────────────────────────────
+  const heroProduct = useMemo(() => {
+    return menuItems.find(item => item.id === 'slick-shoe-00') || menuItems[0] || {
+      id: 'slick-shoe-00',
+      name: 'Trendy Slick Pro',
+      price: 3999,
+      originalPrice: 6999,
+      image: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85',
+      badge: 'HERO EDIT'
+    };
+  }, [menuItems]);
 
-    // Category Filter
-    if (activeCategory !== 'all') {
-      list = list.filter(item => item.category === activeCategory);
+  const trendingProducts = useMemo(() => {
+    const candidates = menuItems.filter(item => 
+      item.subCategory === 'trending' || 
+      item.id === 'slick-shoe-07' || 
+      item.id === 'slick-shoe-08' || 
+      item.id === 'slick-shoe-09'
+    );
+    if (candidates.length >= 3) return candidates;
+    return menuItems.slice(7, 10).length > 0 ? menuItems.slice(7, 10) : menuItems.slice(0, 3);
+  }, [menuItems]);
+
+  // ─── BEST SELLING ITEMS (6 ITEMS AS IN SCREENSHOT) ───────────
+  const bestSellingProducts = useMemo(() => {
+    let list = menuItems.filter(item => item.id !== 'slick-shoe-00');
+
+    if (activeCategory === 'men') {
+      list = list.filter(item => item.category === 'men' || !item.category);
+    } else if (activeCategory === 'woman') {
+      list = list.filter(item => item.category === 'woman');
+    } else if (activeCategory === 'boy') {
+      list = list.filter(item => item.category === 'boy');
+    } else if (activeCategory === 'child') {
+      list = list.filter(item => item.category === 'child');
     }
 
-    // Search Query Filter
+    // Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(item => 
         item.name.toLowerCase().includes(q) ||
-        (item.description && item.description.toLowerCase().includes(q)) ||
-        (item.fabric && item.fabric.toLowerCase().includes(q)) ||
-        (item.badge && item.badge.toLowerCase().includes(q))
+        (item.description && item.description.toLowerCase().includes(q))
       );
     }
 
-    // Sorting
-    if (sortBy === 'price-low') {
-      list.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'price-high') {
-      list.sort((a, b) => b.price - a.price);
-    } else if (sortBy === 'rating') {
-      list.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    // Default to at least the 6 slick shoe cards if category has fewer
+    if (list.length < 6 && activeCategory === 'men') {
+      return menuItems.filter(i => i.id.startsWith('slick-shoe') && i.id !== 'slick-shoe-00').slice(0, 6);
     }
 
-    return list;
-  }, [menuItems, activeCategory, searchQuery, sortBy]);
+    return list.slice(0, 6);
+  }, [menuItems, activeCategory, searchQuery]);
 
-  // Quick View Handler
-  const openQuickView = (product) => {
-    setSelectedProduct(product);
-    setModalSize(product.availableSizes ? product.availableSizes[0] : 'M');
-    setModalColor(product.colors ? product.colors[0] : null);
-  };
+  // ─── REVIEWS LIST ─────────────────────────────────────────────
+  const customerReviews = useMemo(() => {
+    return [
+      {
+        id: 'rev-1',
+        name: 'Ravi Joshi',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        rating: 5,
+        comment: 'The craftsmanship and cloud comfort of the Slick Pro sneakers are unmatched. Premium lightweight sole and luxurious finish.'
+      },
+      {
+        id: 'rev-2',
+        name: 'Otis Binkley',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+        rating: 5,
+        comment: 'Hands down the cleanest aesthetic. Perfectly complements tailored outfits and streetwear. The ChuruOne SSO seamless checkout made ordering effortless!'
+      },
+      {
+        id: 'rev-3',
+        name: 'Arjun Rathore',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+        rating: 5,
+        comment: 'Living in Churu, finding world-class fashion delivered in under 24 hours was impossible until now. Highly recommended.'
+      }
+    ];
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#18181B] font-sans antialiased selection:bg-[#18181B] selection:text-[#FAF9F6]">
+    <div className="min-h-screen bg-white text-stone-900 font-sans selection:bg-black selection:text-white antialiased">
       
-      {/* ─── 1. KINETIC TICKER MARQUEE ────────────────────────────── */}
-      <div className="bg-[#18181B] text-[#FAF9F6] py-2 overflow-hidden border-b border-zinc-800 text-[11px] font-medium tracking-[0.2em] uppercase select-none">
-        <div className="flex whitespace-nowrap animate-marquee">
-          <span className="mx-6">✦ SKYLINE PREMIUM OUTFITS ✦ CHURU FLAGSHIP AT SUBHASH CHOWK</span>
-          <span className="mx-6">✦ COMPLIMENTARY EXPRESS DELIVERY ON ORDERS OVER ₹999</span>
-          <span className="mx-6">✦ PURE FRENCH NORMANDY LINEN & SUPIMA COTTON</span>
-          <span className="mx-6">✦ ARCHITECTURAL MENSWEAR • AUTUMN / WINTER '26 EDITORIAL</span>
-          <span className="mx-6">✦ LOCAL SAME-DAY DISPATCH ACROSS CHURU</span>
-          <span className="mx-6">✦ SKYLINE PREMIUM OUTFITS ✦ CHURU FLAGSHIP AT SUBHASH CHOWK</span>
-          <span className="mx-6">✦ COMPLIMENTARY EXPRESS DELIVERY ON ORDERS OVER ₹999</span>
-          <span className="mx-6">✦ PURE FRENCH NORMANDY LINEN & SUPIMA COTTON</span>
-          <span className="mx-6">✦ ARCHITECTURAL MENSWEAR • AUTUMN / WINTER '26 EDITORIAL</span>
-          <span className="mx-6">✦ LOCAL SAME-DAY DISPATCH ACROSS CHURU</span>
+      {/* ─── TOAST NOTIFICATION ───────────────────────────────────── */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-stone-950 text-white px-5 py-3 rounded-lg shadow-2xl text-xs font-medium tracking-wide flex items-center gap-2.5 animate-bounce">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
-      </div>
+      )}
 
-      {/* ─── 2. EDITORIAL LUXURY NAVBAR ──────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-[#FAF9F6]/95 backdrop-blur-md border-b border-stone-200 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      {/* ─── 1. MINIMALIST HEADER / NAVBAR ────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-100 transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           
-          {/* Left Nav Links (Desktop) */}
-          <div className="hidden md:flex items-center gap-6 text-xs uppercase tracking-[0.18em] font-medium text-stone-600">
-            <button 
-              onClick={() => { setActiveCategory('all'); window.scrollTo({ top: 600, behavior: 'smooth' }); }}
-              className="hover:text-stone-950 transition-colors"
-            >
-              Collection
-            </button>
-            <button 
-              onClick={() => { setActiveCategory('linen-shirts'); window.scrollTo({ top: 600, behavior: 'smooth' }); }}
-              className="hover:text-stone-950 transition-colors"
-            >
-              French Linen
-            </button>
-            <button 
-              onClick={() => { setActiveCategory('trousers'); window.scrollTo({ top: 600, behavior: 'smooth' }); }}
-              className="hover:text-stone-950 transition-colors"
-            >
-              Gurkha Trousers
-            </button>
-            <button 
-              onClick={() => { setActiveCategory('heritage-kurtas'); window.scrollTo({ top: 600, behavior: 'smooth' }); }}
-              className="hover:text-stone-950 transition-colors"
-            >
-              Festive Kurtas
-            </button>
-          </div>
+          {/* Brand Logo: Slick (as in screenshot) */}
+          <div className="flex items-center gap-6">
+            <a href="/skyline" className="group flex items-center gap-1.5 text-stone-950 no-underline">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-black">
+                Slick
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:scale-150 transition-transform"></span>
+            </a>
 
-          {/* Brand Logo & Editorial Typography */}
-          <div className="flex flex-col items-center cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <span className="text-2xl sm:text-3xl font-light tracking-[0.25em] uppercase text-stone-950 font-serif">
-              S K Y L I N E
-            </span>
-            <span className="text-[9px] uppercase tracking-[0.35em] text-stone-500 font-medium -mt-0.5">
-              Premium Outfits • Churu
+            {/* ChuruOne Network Pill */}
+            <span className="hidden xl:inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-stone-400 font-medium px-2 py-0.5 rounded-full bg-stone-50 border border-stone-100">
+              Skyline • Churu Flagship
             </span>
           </div>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            {/* Order Tracker */}
-            <button
-              onClick={() => setIsTrackerOpen(true)}
-              className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium hidden sm:flex items-center gap-1.5"
-              title="Track Wardrobe Order"
-            >
-              <Clock className="w-4 h-4 stroke-[1.5]" />
-              <span className="hidden lg:inline">Track Order</span>
-            </button>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-medium text-stone-600">
+            <a href="#hero" className="text-stone-950 hover:text-black transition-colors">Home</a>
+            <a href="#trending" className="hover:text-black transition-colors">Shop</a>
+            <a href="#bestselling" className="hover:text-black transition-colors">Collection</a>
+            <a href="#reviews" className="hover:text-black transition-colors">Customize</a>
+          </nav>
 
-            {/* ChuruOne Account SSO / Login */}
-            {currentUser ? (
-              <div className="relative group">
+          {/* Right Action Icons & Auth */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            
+            {/* Search Toggle */}
+            <div className="relative">
+              {isSearchOpen ? (
+                <div className="flex items-center bg-stone-100 rounded-full px-3 py-1.5 text-xs w-44 sm:w-56 transition-all">
+                  <Search className="w-3.5 h-3.5 text-stone-500 shrink-0 mr-2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search shoes..."
+                    className="bg-transparent outline-none w-full text-xs text-stone-900"
+                    autoFocus
+                  />
+                  <button onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }} className="text-stone-400 hover:text-stone-700 ml-1">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => setIsAccountModalOpen(true)}
-                  className="flex items-center gap-2 text-xs uppercase tracking-wider text-stone-700 hover:text-stone-950 py-1.5 px-2.5 rounded-full border border-stone-200 bg-white/70 shadow-xs cursor-pointer"
-                  title="ChuruOne Verified Account"
+                  onClick={() => setIsSearchOpen(true)}
+                  className="p-2 text-stone-700 hover:text-black transition-colors cursor-pointer"
+                  title="Search"
                 >
-                  <div className="w-5 h-5 rounded-full bg-stone-900 text-stone-100 flex items-center justify-center text-[10px] font-bold">
-                    {(currentUser.name || 'G')[0]}
-                  </div>
-                  <span className="hidden md:inline font-medium max-w-[90px] truncate">
-                    {currentUser.name?.split(' ')[0] || 'Account'}
-                  </span>
+                  <Search className="w-4 h-4 stroke-[1.8]" />
                 </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  onClick={() => navigateToChuruOneAuth('login')}
-                  className="text-stone-600 hover:text-stone-950 transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1 cursor-pointer py-1.5 px-2"
-                  title="Sign In with ChuruOne SSO"
-                >
-                  <User className="w-3.5 h-3.5 stroke-[1.5]" />
-                  <span>Sign In</span>
-                </button>
-                <button
-                  onClick={() => navigateToChuruOneAuth('signup')}
-                  className="bg-stone-950 hover:bg-stone-800 text-white transition-colors text-xs uppercase tracking-wider font-medium flex items-center gap-1 cursor-pointer py-1.5 px-2.5 sm:px-3 shadow-xs"
-                  title="Create New ChuruOne Account"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Sign Up</span>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Shopping Bag Button */}
             <button
               onClick={() => setIsCartOpen(true)}
-              className="relative bg-stone-950 text-white hover:bg-stone-800 transition-colors px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-none flex items-center gap-2 text-xs uppercase tracking-widest font-medium cursor-pointer shadow-xs"
+              className="relative p-2 text-stone-700 hover:text-black transition-colors cursor-pointer"
+              title="Shopping Bag"
             >
-              <ShoppingBag className="w-4 h-4 stroke-[1.5]" />
-              <span className="hidden sm:inline">Bag</span>
+              <ShoppingBag className="w-4 h-4 stroke-[1.8]" />
               {totalItemsCount > 0 && (
-                <span className="inline-flex items-center justify-center bg-amber-600 text-white rounded-full text-[10px] font-bold w-5 h-5 ml-0.5">
+                <span className="absolute top-1 right-1 bg-black text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center">
                   {totalItemsCount}
                 </span>
               )}
             </button>
-          </div>
-        </div>
-      </header>
 
-      {/* ─── 3. CINEMATIC LOOKBOOK HERO SECTION ──────────────────── */}
-      <section className="relative bg-stone-900 text-white overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center">
-        {/* Background Editorial Image with Ken-Burns Breathing Zoom */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-transform duration-10000 ease-out transform scale-105 hover:scale-100 opacity-60"
-          style={{ 
-            backgroundImage: `url('https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=1800&q=85')` 
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/95 via-stone-950/70 to-transparent" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 w-full z-10">
-          <div className="max-w-2xl space-y-6">
-            
-            {/* Editorial Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase tracking-[0.25em] font-medium text-stone-200">
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Autumn / Winter '26 Collection</span>
-            </div>
-
-            {/* Grand Editorial Headline */}
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-light tracking-tight font-serif text-white leading-[1.08]">
-              ARCHITECTURAL <br />
-              <span className="italic font-normal text-amber-200">MENSWEAR</span>
-            </h1>
-
-            {/* Description */}
-            <p className="text-stone-300 text-sm sm:text-base leading-relaxed font-light tracking-wide max-w-lg">
-              Handcrafted pure European flax linens, structured overshirts, and bespoke festive kurta silhouettes engineered in Churu for the contemporary gentleman.
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-4">
+            {/* ChuruOne SSO Authentication: Sign In & Sign Up */}
+            {currentUser ? (
               <button
-                onClick={() => {
-                  const target = document.getElementById('collection-grid');
-                  if (target) target.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="bg-white text-stone-950 hover:bg-stone-100 px-7 py-3.5 text-xs uppercase tracking-[0.2em] font-medium transition-all flex items-center gap-2 group shadow-lg cursor-pointer"
+                onClick={() => setIsAccountModalOpen(true)}
+                className="flex items-center gap-2 text-xs text-stone-800 hover:text-black py-1 px-2.5 rounded-full border border-stone-200 bg-stone-50 cursor-pointer transition-all"
+                title="ChuruOne Account"
               >
-                <span>Explore The Wardrobe</span>
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
+                  {(currentUser.name || 'U')[0]}
+                </div>
+                <span className="hidden sm:inline font-medium max-w-[80px] truncate text-xs">
+                  {currentUser.name?.split(' ')[0] || 'User'}
+                </span>
               </button>
-
-              <button
-                onClick={() => {
-                  setActiveCategory('linen-shirts');
-                  const target = document.getElementById('collection-grid');
-                  if (target) target.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="border border-white/40 text-white hover:bg-white/10 px-6 py-3.5 text-xs uppercase tracking-[0.2em] font-medium transition-all backdrop-blur-xs cursor-pointer"
-              >
-                French Linen Drop
-              </button>
-            </div>
-
-            {/* Perks Pill Grid */}
-            <div className="pt-8 border-t border-white/15 grid grid-cols-2 sm:grid-cols-3 gap-4 text-stone-300 text-[11px] uppercase tracking-wider font-light">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-amber-300 stroke-[1.5]" />
-                <span>Same-Day Churu Express</span>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => navigateToChuruOneAuth('login')}
+                  className="text-stone-600 hover:text-black transition-colors text-xs font-medium py-1 px-2.5 cursor-pointer"
+                  title="Sign In with ChuruOne SSO"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => navigateToChuruOneAuth('signup')}
+                  className="bg-black hover:bg-stone-800 text-white transition-all text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer shadow-xs"
+                  title="Sign Up with ChuruOne SSO"
+                >
+                  Sign Up
+                </button>
               </div>
-              <div className="flex items-center gap-2">
-                <Scissors className="w-4 h-4 text-amber-300 stroke-[1.5]" />
-                <span>Bespoke Fit Adjustments</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-amber-300 stroke-[1.5]" />
-                <span>100% Tested Long-Staple Fabric</span>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 4. SEARCH, FILTERS & CATEGORY MARQUEE ───────────────── */}
-      <section id="collection-grid" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
-        
-        {/* Section Title & Subheading */}
-        <div className="text-center max-w-xl mx-auto mb-10 space-y-2">
-          <span className="text-[10px] uppercase tracking-[0.3em] font-semibold text-amber-700">
-            CURATED CATALOGUE
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-light font-serif tracking-tight text-stone-950">
-            Selected Garments & Silhouettes
-          </h2>
-          <p className="text-xs sm:text-sm text-stone-500 font-light">
-            Each garment is produced in small batches with exacting attention to pattern, seam, and drape.
-          </p>
-        </div>
-
-        {/* Search & Sort Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-6 border-b border-stone-200">
-          
-          {/* Search Box */}
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 stroke-[1.5]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by fabric, fit, or style..."
-              className="w-full bg-white border border-stone-200 focus:border-stone-900 pl-10 pr-4 py-2 text-xs text-stone-900 placeholder-stone-400 outline-none transition-colors"
-            />
-            {searchQuery && (
-              <button 
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
             )}
-          </div>
 
-          {/* Categories Pill Bar */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 text-[11px] uppercase tracking-[0.15em] font-medium transition-all cursor-pointer ${
-                  activeCategory === cat.id
-                    ? 'bg-stone-950 text-white shadow-xs'
-                    : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white border border-stone-200 text-xs py-1.5 px-3 text-stone-800 outline-none cursor-pointer focus:border-stone-900"
-            >
-              <option value="featured">Featured First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rated</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Results Counter */}
-        <div className="pt-4 pb-6 flex items-center justify-between text-xs text-stone-500 font-light">
-          <span>Showing {filteredProducts.length} pieces in collection</span>
-          {activeCategory !== 'all' && (
+            {/* Mobile Menu Icon */}
             <button
-              onClick={() => setActiveCategory('all')}
-              className="text-stone-900 underline underline-offset-4 hover:text-amber-800 transition-colors"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 text-stone-700 hover:text-black cursor-pointer"
             >
-              Reset Category Filter
-            </button>
-          )}
-        </div>
-
-        {/* ─── 5. OUTFIT PRODUCT GRID ─────────────────────────────── */}
-        {loading ? (
-          <div className="py-24 text-center space-y-4">
-            <div className="w-10 h-10 border-2 border-stone-900 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Loading Skyline Collection...</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="py-20 text-center bg-white border border-stone-200 p-8 max-w-md mx-auto space-y-3">
-            <Info className="w-8 h-8 text-stone-400 mx-auto stroke-[1.5]" />
-            <h3 className="text-base font-medium text-stone-900 font-serif">No Garments Found</h3>
-            <p className="text-xs text-stone-500">We couldn't find any outfits matching "{searchQuery}". Try browsing all collections.</p>
-            <button
-              onClick={() => { setSearchQuery(''); setActiveCategory('all'); }}
-              className="bg-stone-950 text-white text-xs px-5 py-2 uppercase tracking-wider font-medium cursor-pointer"
-            >
-              View Full Lookbook
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
             </button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onQuickView={() => openQuickView(product)}
-                onAddToCart={(size, color) => addToCart(product, size, color)}
-              />
-            ))}
+
+        </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-stone-100 bg-white px-6 py-4 space-y-3">
+            <a href="#hero" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Home</a>
+            <a href="#trending" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Shop</a>
+            <a href="#bestselling" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Collection</a>
+            <a href="#reviews" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Reviews</a>
+            <button 
+              onClick={() => { setIsMobileMenuOpen(false); setIsTrackerOpen(true); }}
+              className="w-full text-left text-sm font-medium text-stone-600 py-1 flex items-center gap-2"
+            >
+              <Clock className="w-4 h-4 text-stone-400" />
+              <span>Track Orders</span>
+            </button>
           </div>
         )}
+      </header>
+
+      {/* ─── 2. HERO SECTION (MATCHES LEFT PANEL OF SCREENSHOT) ────── */}
+      <section id="hero" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          
+          {/* Left Text Column */}
+          <div className="lg:col-span-5 space-y-5 text-center lg:text-left">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-stone-950 tracking-tight leading-[1.08]">
+              Find Your<br />
+              Sole Mate<br />
+              With Us
+            </h1>
+            
+            <p className="text-stone-500 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0">
+              Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod.
+            </p>
+
+            <div className="pt-2">
+              <a
+                href="#bestselling"
+                className="inline-block bg-black text-white hover:bg-stone-800 transition-all px-8 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold shadow-md active:scale-95 no-underline cursor-pointer"
+              >
+                Shop Now
+              </a>
+            </div>
+          </div>
+
+          {/* Right Product Showcase with "ULTIMATE" Watermark */}
+          <div className="lg:col-span-7">
+            <div className="relative bg-[#F6F6F6] rounded-3xl p-6 sm:p-12 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
+              
+              {/* Giant Translucent Vertical Watermark: ULTIMATE */}
+              <div className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-6xl sm:text-8xl lg:text-9xl font-black text-stone-200/90 tracking-[0.25em] select-none pointer-events-none">
+                ULTIMATE
+              </div>
+
+              {/* Floating Hero White Sneaker */}
+              <div 
+                onClick={() => setSelectedProduct(heroProduct)}
+                className="relative z-10 w-full max-w-md mx-auto cursor-pointer group"
+              >
+                <img
+                  src={heroProduct.image}
+                  alt={heroProduct.name}
+                  className="w-full h-64 sm:h-80 object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-2"
+                />
+              </div>
+
+              {/* Floating Badge / Card Below the Sneaker */}
+              <div className="absolute bottom-6 right-6 sm:right-10 z-20 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-stone-100 shadow-xl flex items-center gap-4">
+                <div>
+                  <span className="block text-xs font-semibold text-stone-950 tracking-tight">
+                    {heroProduct.name}
+                  </span>
+                  <span className="block text-xs font-mono font-medium text-stone-500 mt-0.5">
+                    ₹ {heroProduct.price}.00
+                  </span>
+                </div>
+                <button
+                  onClick={() => addToCart(heroProduct)}
+                  className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm"
+                  title="Add to Bag"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
       </section>
 
-      {/* ─── 6. BESPOKE EXPERTISE / BRAND STORY BANNER ───────────── */}
-      <section className="bg-stone-100 border-y border-stone-200 my-20 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* ─── 3. SOLID BLACK BRAND STRIP (MARQUEE / PARTNERS) ─────── */}
+      <section className="bg-black text-white py-5 px-4 overflow-hidden select-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-around flex-wrap gap-8 sm:gap-14 text-center">
+          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white/90 lowercase hover:text-white transition-colors cursor-default">
+            ebay
+          </span>
+          <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-default">
+            amazon<span className="text-amber-400">.com</span>
+          </span>
+          <span className="text-xl sm:text-2xl font-black tracking-widest text-white/90 uppercase hover:text-white transition-colors cursor-default">
+            AJIO
+          </span>
+          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white/90 lowercase hover:text-white transition-colors cursor-default">
+            ebay
+          </span>
+          <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-default">
+            amazon<span className="text-amber-400">.com</span>
+          </span>
+          <span className="text-xl sm:text-2xl font-black tracking-widest text-white/90 uppercase hover:text-white transition-colors cursor-default">
+            AJIO
+          </span>
+        </div>
+      </section>
+
+      {/* ─── 4. OUR TRENDING SHOE / MOST POPULAR PRODUCTS ─────────── */}
+      <section id="trending" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        
+        {/* Section Tag */}
+        <div className="text-center sm:text-left mb-3">
+          <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400">
+            — Our Trending Shoe —
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          
+          {/* Left Column: Heading, description, Explore button */}
+          <div className="lg:col-span-4 space-y-4 text-center sm:text-left">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-950 tracking-tight leading-tight">
+              Most Popular<br />
+              Products
+            </h2>
+            <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto sm:mx-0">
+              Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod.
+            </p>
+            <div className="pt-2">
+              <a
+                href="#bestselling"
+                className="inline-block bg-black text-white hover:bg-stone-800 transition-colors px-6 py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider cursor-pointer no-underline"
+              >
+                Explore
+              </a>
+            </div>
+          </div>
+
+          {/* Right Column: 3 Trending Shoe Cards + Controls */}
+          <div className="lg:col-span-8 space-y-6">
             
-            {/* Story Image */}
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=900&q=80"
-                alt="Skyline Master Craftsmanship"
-                className="w-full h-[420px] object-cover shadow-md"
-              />
-              <div className="absolute -bottom-4 -right-4 bg-stone-950 text-white p-5 max-w-xs shadow-xl hidden sm:block">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400 block mb-1">CHURU ATELIER</span>
-                <p className="text-xs font-light leading-relaxed">
-                  Tailored specifically for the desert climate using high-breathability European flax and Supima fibers.
-                </p>
-              </div>
+            {/* 3-Card Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {trendingProducts.map((item, idx) => (
+                <div
+                  key={item.id || idx}
+                  className="bg-[#F5F5F7] rounded-2xl p-5 relative group hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                >
+                  {/* Shoe Image */}
+                  <div 
+                    onClick={() => setSelectedProduct(item)}
+                    className="h-36 sm:h-40 flex items-center justify-center cursor-pointer overflow-hidden"
+                  >
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="max-h-full max-w-full object-contain group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+                    />
+                  </div>
+
+                  {/* Details & Circular Action Button */}
+                  <div className="pt-4 flex items-end justify-between">
+                    <div>
+                      <h4 className="text-xs font-semibold text-stone-900 truncate max-w-[140px]">
+                        {item.name}
+                      </h4>
+                      <p className="text-xs font-mono font-medium text-stone-600 mt-1">
+                        ₹ {item.price}.00
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => addToCart(item)}
+                      className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm shrink-0"
+                      title="Add to Bag"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {/* Story Text */}
-            <div className="space-y-6">
-              <span className="text-[10px] uppercase tracking-[0.3em] font-semibold text-amber-800">
-                THE SKYLINE PHILOSOPHY
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-light font-serif tracking-tight text-stone-950 leading-tight">
-                Refined Menswear. <br />
-                Without Ostentation.
-              </h2>
-              <p className="text-stone-600 text-sm leading-relaxed font-light">
-                Founded in Churu, Skyline was created to offer gentlemen wardrobe staples that don't cut corners on fabric weight, stitching longevity, or proportion. We eschew loud synthetic logos in favor of tactile textures, subtle drapes, and structured silhouettes that speak quietly.
-              </p>
-              
-              <div className="space-y-3 pt-2">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-stone-900 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-medium uppercase tracking-wider text-stone-950">Pure Natural Fibers</h4>
-                    <p className="text-xs text-stone-500 font-light">Zero synthetic cheap polyesters. We use 100% French linen, Supima cotton, and tussar silk.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-stone-900 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-medium uppercase tracking-wider text-stone-950">Churu Local Express Fulfillment</h4>
-                    <p className="text-xs text-stone-500 font-light">Orders placed in Churu city are packed and dispatched the same day directly from Subhash Chowk.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <a
-                  href={`https://wa.me/917023963189?text=${encodeURIComponent("Namaste Skyline Team! I would like to inquire about bespoke tailoring / custom sizing.")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 border border-stone-950 text-stone-950 hover:bg-stone-950 hover:text-white px-6 py-3 text-xs uppercase tracking-[0.2em] font-medium transition-all"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Consult Skyline Stylist via WhatsApp</span>
-                </a>
-              </div>
+            {/* Carousel Controls & Pagination Dots */}
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <span className="w-2 h-2 rounded-full bg-black"></span>
+              <span className="w-2 h-2 rounded-full bg-stone-300"></span>
+              <span className="w-2 h-2 rounded-full bg-stone-300"></span>
             </div>
 
           </div>
+
         </div>
       </section>
 
-      {/* ─── 7. VERIFIED CUSTOMER REVIEWS ────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center max-w-xl mx-auto mb-12 space-y-2">
-          <span className="text-[10px] uppercase tracking-[0.3em] font-semibold text-amber-700">
-            GENTLEMEN'S ACCLAIM
+      {/* ─── 5. BEST SELLING SECTION (MATCHES RIGHT PANEL) ─────────── */}
+      <section id="bestselling" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 border-t border-stone-100">
+        
+        {/* Section Header */}
+        <div className="text-center space-y-4 mb-10">
+          <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
+            — Best Selling —
           </span>
-          <h2 className="text-3xl font-light font-serif tracking-tight text-stone-950">
-            Endorsements from Churu
-          </h2>
+
+          {/* Category Filter Pills (Men, Woman, Boy, Child as in screenshot) */}
+          <div className="flex items-center justify-center flex-wrap gap-2 pt-2">
+            {[
+              { id: 'men', label: 'Men' },
+              { id: 'woman', label: 'Woman' },
+              { id: 'boy', label: 'Boy' },
+              { id: 'child', label: 'Child' },
+              { id: 'all', label: 'All' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveCategory(tab.id)}
+                className={`px-6 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  activeCategory === tab.id
+                    ? 'bg-black text-white shadow-md'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(storeData?.reviews && storeData.reviews.length > 0 ? storeData.reviews : [
-            {
-              id: 'r1',
-              name: 'Arjun Rathore',
-              dish: 'Normandy Flax Camp-Collar Linen Shirt',
-              comment: 'The French Linen Camp Collar shirt has an unbelievable drape. Living in Churu, breathable fabric is crucial. Skyline has completely redefined men\'s fashion here.',
-              rating: 5,
-              date: '2 days ago'
-            },
-            {
-              id: 'r2',
-              name: 'Vikram Shekhawat',
-              dish: 'Milano Double-Pleated Gurkha Trousers',
-              comment: 'Wore the Gurkha pleated trousers to an engagement dinner at Churu Club. Got compliments all evening. The side adjusters remove the need for belts.',
-              rating: 5,
-              date: '4 days ago'
-            },
-            {
-              id: 'r3',
-              name: 'Sameer Khan',
-              dish: 'Supima Heavyweight 260 GSM Relaxed Tee',
-              comment: 'Supima heavyweight tee is truly 260 GSM. Thick collar rib that doesn\'t bacon after washes. Express delivery arrived in 40 minutes in Churu!',
-              rating: 5,
-              date: '1 week ago'
-            }
-          ]).map((rev) => (
-            <div key={rev.id} className="bg-white border border-stone-200 p-6 flex flex-col justify-between space-y-4 shadow-2xs">
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-amber-500">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  ))}
+        {/* 6-Card Product Grid (3 Columns x 2 Rows as in screenshot) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {bestSellingProducts.map((product) => {
+            const isWishlisted = wishlist.includes(product.id);
+
+            return (
+              <div
+                key={product.id}
+                className="bg-[#F6F6F6] rounded-2xl p-6 relative group hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+              >
+                {/* Top Badges: [ New ] tag on left, Wishlist Heart on right */}
+                <div className="flex items-center justify-between z-10">
+                  <span className="bg-black text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    {product.badge || 'New'}
+                  </span>
+                  
+                  <button
+                    onClick={() => toggleWishlist(product.id)}
+                    className="p-1 text-stone-400 hover:text-red-500 transition-colors cursor-pointer"
+                    title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  >
+                    <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'stroke-[1.8]'}`} />
+                  </button>
                 </div>
-                <p className="text-xs text-stone-700 leading-relaxed font-light italic">
-                  "{rev.comment}"
-                </p>
+
+                {/* Sneaker Image */}
+                <div
+                  onClick={() => setSelectedProduct(product)}
+                  className="h-44 sm:h-52 flex items-center justify-center my-4 cursor-pointer overflow-hidden"
+                >
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="max-h-full max-w-full object-contain group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+                  />
+                </div>
+
+                {/* Bottom Details & Circular Action Button */}
+                <div className="flex items-end justify-between pt-2">
+                  <div>
+                    <h3 
+                      onClick={() => setSelectedProduct(product)}
+                      className="text-xs font-semibold text-stone-900 hover:text-black cursor-pointer truncate max-w-[180px]"
+                    >
+                      {product.name}
+                    </h3>
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-mono font-semibold text-stone-950">
+                        ₹ {product.price}.00
+                      </span>
+                      {product.originalPrice && product.originalPrice > product.price && (
+                        <span className="text-[11px] font-mono text-stone-400 line-through">
+                          ₹ {product.originalPrice}.00
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => addToCart(product)}
+                    className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm shrink-0"
+                    title="Add to Bag"
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </div>
+
               </div>
-              <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
-                <div>
-                  <span className="font-medium text-stone-950 block">{rev.name}</span>
-                  <span className="text-[10px] text-stone-400 block">{rev.dish || 'Verified Purchase'}</span>
+            );
+          })}
+        </div>
+
+      </section>
+
+      {/* ─── 6. CUSTOMER REVIEW SECTION ───────────────────────────── */}
+      <section id="reviews" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-stone-100">
+        
+        {/* Section Tag */}
+        <div className="text-center space-y-2 mb-12">
+          <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
+            — Customer Review —
+          </span>
+        </div>
+
+        {/* 2 Side-by-Side Review Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {customerReviews.slice(0, 2).map((rev) => (
+            <div
+              key={rev.id}
+              className="bg-[#F8F8F9] rounded-2xl p-6 sm:p-8 flex items-start gap-4 border border-stone-100 shadow-xs"
+            >
+              {/* Customer Avatar */}
+              <img
+                src={rev.avatar}
+                alt={rev.name}
+                className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-sm"
+              />
+
+              {/* Review Content */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-stone-950">
+                    {rev.name}
+                  </h4>
+                  {/* 5 Yellow Stars */}
+                  <div className="flex items-center gap-0.5 text-amber-400">
+                    {[...Array(rev.rating)].map((_, i) => (
+                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
                 </div>
-                <span className="text-[10px] text-stone-400">{rev.date || 'Verified'}</span>
+
+                <p className="text-xs text-stone-600 leading-relaxed font-light">
+                  {rev.comment}
+                </p>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Carousel Pagination Dots */}
+        <div className="flex items-center justify-center gap-2 pt-8">
+          <span className="w-2 h-2 rounded-full bg-black"></span>
+          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
+          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
+          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
+        </div>
+
       </section>
 
-      {/* ─── 8. EDITORIAL FOOTER ─────────────────────────────────── */}
-      <footer className="bg-stone-950 text-stone-400 text-xs border-t border-stone-800 pt-16 pb-12">
+      {/* ─── 7. MINIMAL FOOTER ─────────────────────────────────────── */}
+      <footer className="border-t border-stone-200 bg-[#FAFAFA] text-stone-600 text-xs py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-stone-800">
-            
-            {/* Col 1: Brand Info */}
-            <div className="space-y-4">
-              <span className="text-xl font-light tracking-[0.25em] text-white uppercase font-serif block">
-                S K Y L I N E
-              </span>
-              <p className="text-stone-400 font-light leading-relaxed text-xs">
-                Architectural Menswear & Bespoke Outfits. Curated French flax, structured overshirts, and festive silhouettes engineered in Churu, Rajasthan.
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div className="space-y-3">
+              <span className="text-2xl font-black text-black">Slick</span>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                By Skyline Premium Outfits. Architectural footwear and menswear studio in Churu, Rajasthan.
               </p>
-              <div className="pt-2 text-[11px] text-stone-500 space-y-1">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-stone-400" />
-                  <span>Subhash Chowk, Station Road, Churu (331001)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-stone-400" />
-                  <span>+91 70239 63189</span>
-                </div>
+              <div className="flex items-center gap-2 text-stone-800 font-medium">
+                <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
+                <span>Subhash Chowk, Churu – 331001</span>
               </div>
             </div>
 
-            {/* Col 2: Collections */}
-            <div className="space-y-3">
-              <h4 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white">Collections</h4>
-              <ul className="space-y-2 text-stone-400 font-light">
-                <li><button onClick={() => { setActiveCategory('linen-shirts'); window.scrollTo({ top: 600, behavior: 'smooth' }); }} className="hover:text-white transition-colors">Normandy Linen Shirts</button></li>
-                <li><button onClick={() => { setActiveCategory('trousers'); window.scrollTo({ top: 600, behavior: 'smooth' }); }} className="hover:text-white transition-colors">Pleated Gurkha Trousers</button></li>
-                <li><button onClick={() => { setActiveCategory('overshirts'); window.scrollTo({ top: 600, behavior: 'smooth' }); }} className="hover:text-white transition-colors">Canvas & Corduroy Jackets</button></li>
-                <li><button onClick={() => { setActiveCategory('heritage-kurtas'); window.scrollTo({ top: 600, behavior: 'smooth' }); }} className="hover:text-white transition-colors">Tussar Silk Angrakhas</button></li>
-                <li><button onClick={() => { setActiveCategory('tees'); window.scrollTo({ top: 600, behavior: 'smooth' }); }} className="hover:text-white transition-colors">Supima Heavyweight Tees</button></li>
-              </ul>
+            <div className="space-y-2">
+              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Collections</h5>
+              <p className="hover:text-black cursor-pointer">Slick Pro Sneakers</p>
+              <p className="hover:text-black cursor-pointer">Casual Retro Runners</p>
+              <p className="hover:text-black cursor-pointer">Canvas Street Lows</p>
+              <p className="hover:text-black cursor-pointer">Normandy Flax Linens</p>
             </div>
 
-            {/* Col 3: Customer Care & ChuruOne */}
-            <div className="space-y-3">
-              <h4 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white">Concierge</h4>
-              <ul className="space-y-2 text-stone-400 font-light">
-                <li><button onClick={() => setIsTrackerOpen(true)} className="hover:text-white transition-colors">Track Live Order</button></li>
-                <li><button onClick={() => setIsSizeGuideOpen(true)} className="hover:text-white transition-colors">Master Size Guide</button></li>
-                <li><a href="/terms" target="_blank" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="/privacy" target="_blank" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="/refund" target="_blank" className="hover:text-white transition-colors">Refund & Return Protocol</a></li>
-              </ul>
+            <div className="space-y-2">
+              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Care</h5>
+              <button onClick={() => setIsTrackerOpen(true)} className="block hover:text-black cursor-pointer text-left">
+                Track Order
+              </button>
+              <p className="hover:text-black cursor-pointer">Delivery Policy (24h Churu Express)</p>
+              <p className="hover:text-black cursor-pointer">Bespoke Fitting & Size Guide</p>
+              <a href="https://wa.me/917023963189" target="_blank" rel="noreferrer" className="block text-emerald-700 hover:text-emerald-900">
+                WhatsApp Concierge (+91 70239 63189)
+              </a>
             </div>
 
-            {/* Col 4: Dukandar / Merchant OS */}
             <div className="space-y-3">
-              <h4 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-white">Merchant Console</h4>
-              <p className="text-stone-400 text-xs font-light leading-relaxed">
-                Skyline store managers can log into the ChuruOne Merchant Portal to update inventories, accept orders, and adjust pricing.
+              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">ChuruOne Network</h5>
+              <p className="text-stone-500 text-xs leading-relaxed">
+                Single Sign-On enabled across all Churu flagship outlets.
               </p>
-              <div className="pt-2">
-                <a
-                  href="/admin?storeId=skyline"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-stone-200 border border-stone-700 text-[11px] uppercase tracking-wider font-medium transition-colors"
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateToChuruOneAuth('login')}
+                  className="bg-black hover:bg-stone-800 text-white px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
                 >
-                  <span>Dukandar Portal</span>
-                  <ExternalLink className="w-3 h-3 text-stone-400" />
-                </a>
+                  Sign In SSO
+                </button>
+                <button
+                  onClick={() => navigateToChuruOneAuth('signup')}
+                  className="border border-stone-300 hover:border-black text-black px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
+                >
+                  Sign Up SSO
+                </button>
               </div>
             </div>
-
           </div>
 
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-500 gap-4">
-            <div>
-              © 2026 Skyline Premium Outfits. Powered by <a href="https://churuone.in" className="text-stone-300 hover:underline">ChuruOne Unified Smart Platform</a>.
-            </div>
-            <div className="flex items-center gap-6">
-              <a href="/shawarma" className="hover:text-stone-300 transition-colors">Shawarma Nights</a>
-              <a href="/nash" className="hover:text-stone-300 transition-colors">Nash Studio Salon</a>
-              <a href="/" className="hover:text-stone-300 transition-colors">ChuruOne Marketplace</a>
-            </div>
+          <div className="border-t border-stone-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
+            <span>© 2026 Slick • Skyline Premium Outfits. Powered by ChuruOne Smart Engine.</span>
+            <span>All rights reserved. Designed with precision.</span>
           </div>
         </div>
       </footer>
 
-      {/* ─── 9. SLIDE-OVER LUXURY CART DRAWER ────────────────────── */}
+      {/* ─── 8. PRODUCT QUICK VIEW MODAL ──────────────────────────── */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setSelectedProduct(null)} />
+          
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white max-w-2xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 overflow-hidden">
+              
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                
+                {/* Product Image Preview */}
+                <div className="bg-[#F6F6F6] rounded-xl p-6 flex items-center justify-center h-64">
+                  <img
+                    src={selectedProduct.image}
+                    alt={selectedProduct.name}
+                    className="max-h-full max-w-full object-contain drop-shadow-xl"
+                  />
+                </div>
+
+                {/* Product Details & Selection */}
+                <div className="space-y-4">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                      {selectedProduct.badge || 'Slick Exclusive'}
+                    </span>
+                    <h3 className="text-lg font-bold text-stone-950 mt-1">
+                      {selectedProduct.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-base font-mono font-bold text-stone-950">
+                        ₹ {selectedProduct.price}.00
+                      </span>
+                      {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
+                        <span className="text-xs font-mono text-stone-400 line-through">
+                          ₹ {selectedProduct.originalPrice}.00
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-stone-600 leading-relaxed font-light">
+                    {selectedProduct.description || 'Premium comfort engineering with architectural silhouette.'}
+                  </p>
+
+                  {/* Size Selector */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
+                      Select Size
+                    </label>
+                    <div className="flex items-center flex-wrap gap-2">
+                      {(selectedProduct.availableSizes || ['UK 7', 'UK 8', 'UK 9', 'UK 10']).map((sz) => (
+                        <button
+                          key={sz}
+                          onClick={() => setModalSize(sz)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                            (modalSize || selectedProduct.availableSizes?.[0]) === sz
+                              ? 'bg-black text-white border-black shadow-xs'
+                              : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add to Bag Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        addToCart(selectedProduct, modalSize);
+                        setSelectedProduct(null);
+                      }}
+                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Bag</span>
+                    </button>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 9. SHOPPING CART DRAWER ──────────────────────────────── */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          {/* Backdrop */}
-          <div 
-            onClick={() => setIsCartOpen(false)}
-            className="absolute inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
-          />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsCartOpen(false)} />
 
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+            <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
               
               {/* Drawer Header */}
-              <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-[#FAF9F6]">
+              <div className="p-6 border-b border-stone-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-stone-950 stroke-[1.5]" />
-                  <h3 className="text-sm uppercase tracking-[0.2em] font-medium text-stone-950 font-serif">
-                    Shopping Bag ({totalItemsCount})
+                  <ShoppingBag className="w-5 h-5 text-black" />
+                  <h3 className="font-bold text-sm tracking-tight text-stone-950 uppercase">
+                    Your Shopping Bag ({totalItemsCount})
                   </h3>
                 </div>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="text-stone-400 hover:text-stone-950 transition-colors p-1"
+                  className="p-1 text-stone-400 hover:text-black cursor-pointer"
                 >
-                  <X className="w-5 h-5 stroke-[1.5]" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Free Express Shipping Progress Bar */}
-              <div className="bg-amber-50 px-6 py-3 border-b border-amber-100 text-[11px]">
-                <div className="flex items-center justify-between text-stone-800 font-medium mb-1.5">
-                  <span>
-                    {amountNeededForFreeShip > 0
-                      ? `Add ₹${amountNeededForFreeShip} more for Free Churu Delivery`
-                      : '✦ You unlocked Free Express Local Delivery!'}
-                  </span>
-                  <span className="text-amber-800 font-semibold">{Math.round(freeShippingProgress)}%</span>
-                </div>
-                <div className="w-full bg-stone-200 h-1.5 overflow-hidden">
-                  <div
-                    className="bg-amber-600 h-full transition-all duration-300"
-                    style={{ width: `${freeShippingProgress}%` }}
-                  />
-                </div>
+              {/* Free Delivery Bar */}
+              <div className="bg-stone-50 px-6 py-3 border-b border-stone-100 text-xs">
+                {amountNeededForFreeShip === 0 ? (
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Unlocked Free Express Delivery in Churu!</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <span className="text-stone-600 block">
+                      Add <strong className="text-black">₹{amountNeededForFreeShip}</strong> more for <strong>FREE Delivery</strong>
+                    </span>
+                    <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-black h-full transition-all duration-300"
+                        style={{ width: `${freeShippingProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Cart Items List */}
-              <div className="flex-1 overflow-y-auto px-6 py-4 divide-y divide-stone-100">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {cartItems.length === 0 ? (
-                  <div className="py-20 text-center space-y-4">
-                    <ShoppingBag className="w-10 h-10 text-stone-300 mx-auto stroke-[1]" />
-                    <p className="text-sm font-serif text-stone-700">Your shopping bag is empty</p>
-                    <p className="text-xs text-stone-400 max-w-xs mx-auto">
-                      Explore our handcrafted French linen shirts, Gurkha trousers, and overshirts.
-                    </p>
+                  <div className="text-center py-16 space-y-3">
+                    <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto stroke-1" />
+                    <p className="text-stone-600 text-xs">Your shopping bag is empty.</p>
                     <button
                       onClick={() => setIsCartOpen(false)}
-                      className="bg-stone-950 text-white text-xs px-6 py-2.5 uppercase tracking-wider font-medium cursor-pointer"
+                      className="bg-black text-white px-5 py-2 rounded-full text-xs font-semibold cursor-pointer"
                     >
-                      Start Shopping
+                      Browse Slick Collection
                     </button>
                   </div>
                 ) : (
                   cartItems.map((item) => (
-                    <div key={item.cartItemId} className="py-4 flex gap-4">
+                    <div
+                      key={item.cartItemId}
+                      className="flex items-center gap-4 bg-stone-50 rounded-xl p-3 border border-stone-100"
+                    >
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-20 h-24 object-cover border border-stone-200 bg-stone-100 shrink-0"
+                        className="w-16 h-16 object-contain rounded-lg bg-white p-1 shrink-0"
                       />
-                      <div className="flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex justify-between items-start gap-2">
-                            <h4 className="text-xs font-medium text-stone-950 leading-tight">
-                              {item.name}
-                            </h4>
-                            <button
-                              onClick={() => removeFromCart(item.cartItemId)}
-                              className="text-stone-400 hover:text-red-600 transition-colors p-0.5"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 stroke-[1.5]" />
-                            </button>
-                          </div>
-                          
-                          {/* Size & Color details */}
-                          <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-500">
-                            <span className="bg-stone-100 px-2 py-0.5 text-stone-700 border border-stone-200 font-mono">
-                              Size: {item.size}
-                            </span>
-                            <span>Color: {item.color}</span>
-                          </div>
-                        </div>
 
-                        {/* Quantity and Price */}
-                        <div className="flex items-center justify-between mt-3">
-                          <div className="flex items-center border border-stone-200 bg-stone-50">
-                            <button
-                              onClick={() => updateCartQuantity(item.cartItemId, -1)}
-                              className="p-1 hover:bg-stone-200 text-stone-600 transition-colors"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2.5 text-xs font-mono font-medium text-stone-950">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateCartQuantity(item.cartItemId, 1)}
-                              className="p-1 hover:bg-stone-200 text-stone-600 transition-colors"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-
-                          <div className="text-right">
-                            <span className="text-xs font-semibold text-stone-950">
-                              ₹{item.price * item.quantity}
-                            </span>
-                            {item.originalPrice && (
-                              <span className="text-[10px] text-stone-400 line-through block">
-                                ₹{item.originalPrice * item.quantity}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-semibold text-stone-900 truncate">
+                          {item.name}
+                        </h4>
+                        <span className="text-[10px] text-stone-500 block">
+                          Size: {item.size}
+                        </span>
+                        <span className="text-xs font-mono font-semibold text-stone-950 mt-1 block">
+                          ₹ {item.price * item.quantity}.00
+                        </span>
                       </div>
+
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 bg-white rounded-lg border border-stone-200 px-2 py-1">
+                        <button
+                          onClick={() => updateCartQuantity(item.cartItemId, -1)}
+                          className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                        <button
+                          onClick={() => updateCartQuantity(item.cartItemId, 1)}
+                          className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => removeFromCart(item.cartItemId)}
+                        className="text-stone-400 hover:text-red-500 p-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))
                 )}
               </div>
 
-              {/* Promo Code Box */}
+              {/* Cart Footer: Coupon & Checkout */}
               {cartItems.length > 0 && (
-                <div className="px-6 py-3 border-t border-stone-200 bg-[#FAF9F6]">
-                  {appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-800">
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                        <div>
-                          <span className="font-semibold uppercase font-mono">{appliedCoupon.code}</span>
-                          <span className="text-[11px] text-emerald-700 block">
-                            {couponMessage.text}
-                          </span>
+                <div className="p-6 border-t border-stone-100 bg-white space-y-4">
+                  
+                  {/* Coupon Code Input */}
+                  <div className="space-y-1.5">
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg text-xs text-emerald-800">
+                        <div className="flex items-center gap-1.5">
+                          <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="font-semibold">{appliedCoupon.code}</span>
+                          <span>(-₹{discountAmount})</span>
                         </div>
+                        <button onClick={removeCoupon} className="text-stone-400 hover:text-stone-700 font-bold">
+                          ×
+                        </button>
                       </div>
-                      <button
-                        onClick={removeCoupon}
-                        className="text-stone-400 hover:text-stone-950 text-xs font-medium underline"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
+                    ) : (
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={couponCodeInput}
-                          onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
-                          placeholder="Promo Code (SKYLINE100, FIRSTFIT)"
-                          className="flex-1 bg-white border border-stone-200 text-xs px-3 py-2 uppercase font-mono tracking-wider outline-none focus:border-stone-950"
+                          onChange={(e) => setCouponCodeInput(e.target.value)}
+                          placeholder="Promo code (e.g. NIGHT50)"
+                          className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-xs uppercase outline-none focus:border-black"
                         />
                         <button
                           onClick={() => handleApplyCoupon()}
-                          disabled={couponLoading || !couponCodeInput.trim()}
-                          className="bg-stone-950 text-white text-xs px-4 py-2 uppercase tracking-wider font-medium hover:bg-stone-800 disabled:opacity-50 cursor-pointer"
+                          disabled={couponLoading}
+                          className="bg-black text-white px-4 py-2 rounded-lg text-xs font-semibold uppercase cursor-pointer hover:bg-stone-800 disabled:opacity-50"
                         >
                           {couponLoading ? '...' : 'Apply'}
                         </button>
                       </div>
-                      {couponMessage.text && (
-                        <p className={`text-[11px] mt-1 ${couponMessage.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
-                          {couponMessage.text}
-                        </p>
-                      )}
-                      
-                      {/* Quick Available Coupons Pills */}
-                      <div className="flex items-center gap-1.5 mt-2 overflow-x-auto scrollbar-none">
-                        {['SKYLINE100', 'FIRSTFIT', 'CHURU50'].map(code => (
-                          <button
-                            key={code}
-                            onClick={() => {
-                              setCouponCodeInput(code);
-                              handleApplyCoupon(code);
-                            }}
-                            className="text-[10px] bg-stone-100 hover:bg-stone-200 border border-stone-300 px-2 py-0.5 text-stone-700 font-mono tracking-wide cursor-pointer"
-                          >
-                            + {code}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                    {couponMessage.text && (
+                      <span className={`text-[10px] block ${couponMessage.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+                        {couponMessage.text}
+                      </span>
+                    )}
+                  </div>
 
-              {/* Cart Summary & Checkout Button */}
-              {cartItems.length > 0 && (
-                <div className="p-6 border-t border-stone-200 bg-white space-y-3">
+                  {/* Price Calculations */}
                   <div className="space-y-1.5 text-xs text-stone-600">
                     <div className="flex justify-between">
-                      <span>Bag Subtotal</span>
-                      <span className="font-mono text-stone-900">₹{cartSubtotal}</span>
+                      <span>Subtotal</span>
+                      <span className="font-mono text-stone-900">₹ {cartSubtotal}.00</span>
                     </div>
-
                     {discountAmount > 0 && (
-                      <div className="flex justify-between text-emerald-700">
-                        <span>Coupon Savings</span>
-                        <span className="font-mono">-₹{discountAmount}</span>
+                      <div className="flex justify-between text-emerald-700 font-medium">
+                        <span>Discount</span>
+                        <span className="font-mono">- ₹ {discountAmount}.00</span>
                       </div>
                     )}
-
                     <div className="flex justify-between">
-                      <span>Express Delivery in Churu</span>
+                      <span>Delivery Fee</span>
                       <span className="font-mono text-stone-900">
-                        {deliveryFee === 0 ? <span className="text-emerald-700 uppercase font-medium">Free</span> : `₹${deliveryFee}`}
+                        {deliveryFee === 0 ? <strong className="text-emerald-700">FREE</strong> : `₹ ${deliveryFee}.00`}
                       </span>
                     </div>
-
-                    <div className="flex justify-between text-sm font-semibold text-stone-950 pt-2 border-t border-stone-100">
-                      <span>Total Payable</span>
-                      <span className="font-mono text-base">₹{grandTotal}</span>
+                    <div className="border-t border-stone-100 pt-2 flex justify-between text-sm font-bold text-stone-950">
+                      <span>Total</span>
+                      <span className="font-mono text-base">₹ {grandTotal}.00</span>
                     </div>
                   </div>
 
+                  {/* Checkout Button */}
                   <button
                     onClick={() => {
                       setIsCartOpen(false);
                       setIsCheckoutOpen(true);
                     }}
-                    className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3.5 text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
-                    <span>Proceed to Delivery & Payment</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Proceed to Checkout</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
 
-                  <p className="text-[10px] text-center text-stone-400">
-                    Complimentary size exchanges available across Churu within 48 hours.
-                  </p>
                 </div>
               )}
 
@@ -1239,404 +1389,171 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 10. PRODUCT QUICK-VIEW & SPECIFICATION MODAL ───────── */}
-      {selectedProduct && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity" onClick={() => setSelectedProduct(null)} />
-          
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-3xl w-full shadow-2xl border border-stone-200 overflow-hidden my-8">
-              
-              {/* Close Button */}
-              <button
-                onClick={() => setSelectedProduct(null)}
-                className="absolute right-4 top-4 z-10 bg-white/80 hover:bg-white text-stone-900 p-2 rounded-full shadow-xs transition-colors"
-              >
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
-
-              <div className="grid grid-cols-1 md:grid-cols-2">
-                
-                {/* Product Images Split */}
-                <div className="bg-stone-100 flex flex-col">
-                  <img
-                    src={selectedProduct.image}
-                    alt={selectedProduct.name}
-                    className="w-full h-80 sm:h-96 object-cover"
-                  />
-                  {selectedProduct.secondaryImage && (
-                    <div className="p-3 bg-stone-50 border-t border-stone-200 flex items-center gap-2">
-                      <span className="text-[10px] uppercase tracking-wider text-stone-500 font-medium">Model Styling:</span>
-                      <img
-                        src={selectedProduct.secondaryImage}
-                        alt="Model Angle"
-                        className="w-12 h-14 object-cover border border-stone-300"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Details & Selection */}
-                <div className="p-6 sm:p-8 flex flex-col justify-between space-y-6">
-                  <div className="space-y-3">
-                    
-                    {/* Badge */}
-                    {selectedProduct.badge && (
-                      <span className="inline-block text-[10px] uppercase tracking-[0.2em] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5">
-                        {selectedProduct.badge}
-                      </span>
-                    )}
-
-                    <h3 className="text-xl font-light font-serif text-stone-950 leading-tight">
-                      {selectedProduct.name}
-                    </h3>
-
-                    {/* Price */}
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-xl font-semibold font-mono text-stone-950">
-                        ₹{selectedProduct.price}
-                      </span>
-                      {selectedProduct.originalPrice && (
-                        <span className="text-xs text-stone-400 line-through font-mono">
-                          ₹{selectedProduct.originalPrice}
-                        </span>
-                      )}
-                      <span className="text-[10px] text-emerald-700 uppercase font-semibold">
-                        Inclusive of all taxes
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-stone-600 leading-relaxed font-light">
-                      {selectedProduct.description}
-                    </p>
-
-                    {/* Fabric Specifications */}
-                    <div className="bg-stone-50 border border-stone-200 p-3 space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-stone-500">Fabric Weave:</span>
-                        <span className="font-medium text-stone-900">{selectedProduct.fabric || '100% Normandy Linen'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-stone-500">Silhouette Fit:</span>
-                        <span className="font-medium text-stone-900">{selectedProduct.fit || 'Tailored Relaxed Cut'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-stone-500">Dispatch Timeline:</span>
-                        <span className="font-medium text-emerald-700">Same Day from Subhash Chowk</span>
-                      </div>
-                    </div>
-
-                    {/* Size Selector */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-[11px] uppercase tracking-wider font-semibold text-stone-700">
-                          Select Size:
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setIsSizeGuideOpen(true)}
-                          className="text-[11px] text-stone-600 hover:text-stone-950 underline flex items-center gap-1 cursor-pointer"
-                        >
-                          <Ruler className="w-3 h-3" />
-                          <span>Size Chart</span>
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(selectedProduct.availableSizes || ['S', 'M', 'L', 'XL', 'XXL']).map((sz) => (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => setModalSize(sz)}
-                            className={`px-3 py-1.5 text-xs font-mono font-medium border transition-all cursor-pointer ${
-                              modalSize === sz
-                                ? 'bg-stone-950 text-white border-stone-950'
-                                : 'bg-white text-stone-800 border-stone-200 hover:border-stone-400'
-                            }`}
-                          >
-                            {sz}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Color Swatch */}
-                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
-                      <div>
-                        <label className="block text-[11px] uppercase tracking-wider font-semibold text-stone-700 mb-2">
-                          Color: <span className="font-normal text-stone-500">{modalColor?.name || selectedProduct.colors[0]?.name}</span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          {selectedProduct.colors.map((c) => (
-                            <button
-                              key={c.name}
-                              type="button"
-                              onClick={() => setModalColor(c)}
-                              className={`w-7 h-7 rounded-full border-2 transition-all p-0.5 cursor-pointer ${
-                                (modalColor?.name || selectedProduct.colors[0]?.name) === c.name
-                                  ? 'border-stone-950 scale-110 shadow-xs'
-                                  : 'border-transparent hover:border-stone-300'
-                              }`}
-                              title={c.name}
-                            >
-                              <div
-                                className="w-full h-full rounded-full border border-stone-200"
-                                style={{ backgroundColor: c.hex }}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-
-                  {/* Add To Bag CTA */}
-                  <div className="pt-4 border-t border-stone-200">
-                    <button
-                      onClick={() => {
-                        addToCart(selectedProduct, modalSize, modalColor?.name);
-                        setSelectedProduct(null);
-                      }}
-                      className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3.5 text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <ShoppingBag className="w-4 h-4 stroke-[1.5]" />
-                      <span>Add to Bag • ₹{selectedProduct.price}</span>
-                    </button>
-                  </div>
-
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 11. CHECKOUT MODAL ──────────────────────────────────── */}
+      {/* ─── 10. CHECKOUT MODAL ────────────────────────────────────── */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity" onClick={() => !orderSubmitting && setIsCheckoutOpen(false)} />
-          
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsCheckoutOpen(false)} />
+
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden my-8">
+            <div className="relative bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
               
-              <div className="px-6 py-5 border-b border-stone-200 flex items-center justify-between bg-[#FAF9F6]">
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500 font-semibold block">
-                    SKYLINE CHURU DISPATCH
-                  </span>
-                  <h3 className="text-base uppercase tracking-wider font-medium text-stone-950 font-serif">
-                    Delivery Address & Payment
-                  </h3>
-                </div>
-                {!orderSubmitting && (
-                  <button
-                    onClick={() => setIsCheckoutOpen(false)}
-                    className="text-stone-400 hover:text-stone-950 p-1"
-                  >
-                    <X className="w-5 h-5 stroke-[1.5]" />
-                  </button>
-                )}
+              <button
+                onClick={() => setIsCheckoutOpen(false)}
+                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                  SLICK • EXPRESS CHECKOUT
+                </span>
+                <h3 className="text-xl font-bold text-stone-950">
+                  Delivery & Payment
+                </h3>
               </div>
 
-              <form onSubmit={handlePlaceOrder} className="p-6 space-y-4">
-                
-                {/* ChuruOne SSO Account Status */}
-                {currentUser ? (
-                  <div className="bg-emerald-50 border border-emerald-200 p-3 flex items-center justify-between text-xs text-emerald-900">
-                    <div className="flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <div>
-                        <span className="font-semibold">{currentUser.name || 'Gentleman'}</span>
-                        <span className="text-[10px] text-emerald-700 block font-mono">
-                          Verified via ChuruOne Single Sign-On
-                        </span>
-                      </div>
+              {/* ChuruOne SSO Quick Sync Banner */}
+              {currentUser ? (
+                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex items-center justify-between text-xs text-emerald-900">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold">{currentUser.name || 'Friend'}</span>
+                      <span className="text-[10px] text-emerald-700 block">Verified via ChuruOne SSO</span>
                     </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigateToChuruOneAuth('login')}
+                    className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
+                  >
+                    Switch User
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-stone-50 border border-stone-200 p-3 rounded-xl flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-bold text-stone-900 block">ChuruOne SSO Account</span>
+                    <span className="text-[10px] text-stone-500">Sign in or sign up to auto-fill address and sync orders.</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => navigateToChuruOneAuth('login')}
-                      className="text-[10px] text-emerald-800 hover:text-emerald-950 underline font-medium cursor-pointer"
+                      className="border border-stone-300 text-stone-800 px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer"
                     >
-                      Switch User
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigateToChuruOneAuth('signup')}
+                      className="bg-black text-white px-2.5 py-1 rounded-md text-[10px] font-semibold cursor-pointer"
+                    >
+                      Sign Up
                     </button>
                   </div>
-                ) : (
-                  <div className="bg-[#FAF9F6] border border-stone-200 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                    <div>
-                      <span className="font-semibold text-stone-900 block text-[11px] uppercase tracking-wider">
-                        ChuruOne Unified Identity
-                      </span>
-                      <span className="text-[10px] text-stone-500 font-light">
-                        Sign in or sign up via ChuruOne to auto-fill address and sync orders.
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => navigateToChuruOneAuth('login')}
-                        className="border border-stone-300 hover:border-stone-950 text-stone-800 px-2.5 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors cursor-pointer"
-                      >
-                        Sign In
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigateToChuruOneAuth('signup')}
-                        className="bg-stone-950 hover:bg-stone-800 text-white px-2.5 py-1.5 text-[10px] uppercase tracking-wider font-medium transition-colors cursor-pointer"
-                      >
-                        Sign Up
-                      </button>
-                    </div>
-                  </div>
-                )}
+                </div>
+              )}
 
-                {/* Full Name */}
+              {/* Checkout Form */}
+              <form onSubmit={handlePlaceOrder} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                    Full Name *
-                  </label>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Full Name *</label>
                   <input
                     type="text"
                     required
                     value={checkoutName}
                     onChange={(e) => setCheckoutName(e.target.value)}
                     placeholder="e.g. Arjun Rathore"
-                    className="w-full border border-stone-200 focus:border-stone-950 px-3 py-2 text-xs text-stone-900 outline-none"
+                    className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
                   />
                 </div>
 
-                {/* Mobile Number */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                    10-Digit Mobile Number * (For Delivery OTP & WhatsApp Updates)
-                  </label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3 border border-r-0 border-stone-200 bg-stone-50 text-xs text-stone-500 font-mono">
-                      +91
-                    </span>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Mobile Number *</label>
+                  <div className="flex items-center border border-stone-200 focus-within:border-black rounded-lg px-3 py-2">
+                    <span className="text-xs text-stone-500 font-mono mr-2">+91</span>
                     <input
                       type="tel"
                       required
                       maxLength={10}
                       value={checkoutPhone}
                       onChange={(e) => setCheckoutPhone(e.target.value.replace(/\D/g, ''))}
-                      placeholder="98290XXXXX"
-                      className="w-full border border-stone-200 focus:border-stone-950 px-3 py-2 text-xs text-stone-900 font-mono outline-none"
+                      placeholder="9829012345"
+                      className="w-full bg-transparent text-xs outline-none font-mono"
                     />
                   </div>
                 </div>
 
-                {/* Delivery Address */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                    Delivery Address in Churu * (House / Ward / Colony / Landmark)
-                  </label>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Delivery Address (Churu) *</label>
                   <textarea
                     required
                     rows={2}
                     value={checkoutAddress}
                     onChange={(e) => setCheckoutAddress(e.target.value)}
-                    placeholder="e.g. House No. 24, Near Dharm Stup, Ward 12, Station Road, Churu - 331001"
-                    className="w-full border border-stone-200 focus:border-stone-950 p-2.5 text-xs text-stone-900 outline-none resize-none"
-                  />
-                </div>
-
-                {/* Special Instructions / Tailoring note */}
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-1">
-                    Special Tailoring or Delivery Note (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={checkoutNotes}
-                    onChange={(e) => setCheckoutNotes(e.target.value)}
-                    placeholder="e.g. Please hem trousers by 1 inch, or leave with security"
-                    className="w-full border border-stone-200 focus:border-stone-950 px-3 py-2 text-xs text-stone-900 outline-none"
+                    placeholder="Street, Ward, Landmark, Churu – 331001"
+                    className="w-full border border-stone-200 focus:border-black rounded-lg px-3 py-2 text-xs outline-none"
                   />
                 </div>
 
                 {/* Payment Method Selector */}
                 <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-semibold text-stone-600 mb-2">
-                    Payment Protocol *
-                  </label>
+                  <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">Payment Method</label>
                   <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('cod')}
-                      className={`p-3 border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                        paymentMethod === 'cod'
-                          ? 'border-stone-950 bg-stone-50 ring-1 ring-stone-950'
-                          : 'border-stone-200 hover:border-stone-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold uppercase text-stone-950">Cash on Delivery</span>
-                        {paymentMethod === 'cod' && <Check className="w-3.5 h-3.5 text-stone-950" />}
-                      </div>
-                      <span className="text-[10px] text-stone-500 font-light">
-                        Pay cash or UPI upon inspecting garments at your doorstep.
-                      </span>
-                    </button>
+                    <label className={`border rounded-xl p-3 flex items-center gap-2 cursor-pointer transition-all ${
+                      paymentMethod === 'cod' ? 'border-black bg-stone-50' : 'border-stone-200'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="payMethod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        className="accent-black"
+                      />
+                      <span className="text-xs font-bold text-stone-900">Cash on Delivery</span>
+                    </label>
 
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('upi')}
-                      className={`p-3 border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                        paymentMethod === 'upi'
-                          ? 'border-stone-950 bg-stone-50 ring-1 ring-stone-950'
-                          : 'border-stone-200 hover:border-stone-400'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold uppercase text-stone-950">UPI / QR Payment</span>
-                        {paymentMethod === 'upi' && <Check className="w-3.5 h-3.5 text-stone-950" />}
-                      </div>
-                      <span className="text-[10px] text-stone-500 font-light">
-                        Instant GPay / PhonePe transfer to skylineoutfits@upi
-                      </span>
-                    </button>
+                    <label className={`border rounded-xl p-3 flex items-center gap-2 cursor-pointer transition-all ${
+                      paymentMethod === 'upi' ? 'border-black bg-stone-50' : 'border-stone-200'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="payMethod"
+                        checked={paymentMethod === 'upi'}
+                        onChange={() => setPaymentMethod('upi')}
+                        className="accent-black"
+                      />
+                      <span className="text-xs font-bold text-stone-900">Instant UPI</span>
+                    </label>
                   </div>
                 </div>
 
-                {/* Order Total Overview */}
-                <div className="bg-[#FAF9F6] p-3 border border-stone-200 space-y-1 text-xs">
-                  <div className="flex justify-between text-stone-600">
-                    <span>Items Total ({totalItemsCount}):</span>
-                    <span className="font-mono">₹{cartSubtotal}</span>
+                {paymentMethod === 'upi' && (
+                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-900 space-y-1">
+                    <span className="font-bold block">Store UPI ID: skylineoutfits@upi</span>
+                    <span className="text-[10px] text-amber-800 block">
+                      Pay using Google Pay, PhonePe, or Paytm upon order confirmation.
+                    </span>
                   </div>
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-emerald-700">
-                      <span>Promo Savings:</span>
-                      <span className="font-mono">-₹{discountAmount}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-stone-600">
-                    <span>Express Delivery:</span>
-                    <span className="font-mono">{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span>
+                )}
+
+                {/* Order Summary & Submit */}
+                <div className="border-t border-stone-100 pt-3 space-y-3">
+                  <div className="flex justify-between items-center text-xs font-bold text-stone-950">
+                    <span>Amount Payable</span>
+                    <span className="text-base font-mono">₹ {grandTotal}.00</span>
                   </div>
-                  <div className="flex justify-between text-sm font-semibold text-stone-950 pt-1 border-t border-stone-200">
-                    <span>Final Amount:</span>
-                    <span className="font-mono text-base">₹{grandTotal}</span>
-                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={orderSubmitting}
+                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {orderSubmitting ? 'Submitting Order...' : 'Confirm Order'}
+                  </button>
                 </div>
-
-                {/* Submit CTA */}
-                <button
-                  type="submit"
-                  disabled={orderSubmitting}
-                  className="w-full bg-stone-950 hover:bg-stone-800 disabled:opacity-50 text-white py-3.5 text-xs uppercase tracking-[0.2em] font-medium transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {orderSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Transmitting Order to Churu Hub...</span>
-                    </div>
-                  ) : (
-                    <span>Confirm Order • ₹{grandTotal}</span>
-                  )}
-                </button>
-
               </form>
 
             </div>
@@ -1644,65 +1561,59 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 12. ORDER CONFIRMATION MODAL ───────────────────────── */}
+      {/* ─── 11. CONFIRMED ORDER MODAL ────────────────────────────── */}
       {confirmedOrder && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs" />
-          
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setConfirmedOrder(null)} />
+
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-md w-full shadow-2xl border border-stone-200 p-8 text-center space-y-6">
+            <div className="relative bg-white max-w-md w-full rounded-2xl shadow-2xl border border-stone-200 p-8 text-center space-y-5">
               
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 stroke-[1.5]" />
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-8 h-8" />
               </div>
 
               <div className="space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] font-semibold text-amber-700">
-                  WARDROBE DISPATCH INITIATED
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                  ORDER PLACED • SLICK EXCLUSIVE
                 </span>
-                <h3 className="text-2xl font-light font-serif text-stone-950">
-                  Order Successfully Placed
+                <h3 className="text-2xl font-black text-stone-950">
+                  Congratulations!
                 </h3>
-                <p className="text-xs text-stone-500 font-light">
-                  Order ID: <span className="font-mono font-semibold text-stone-900">{confirmedOrder.orderNumber || confirmedOrder.id}</span>
+                <p className="text-xs text-stone-500">
+                  Your order #{confirmedOrder.orderNumber || confirmedOrder.id} has been recorded in the Skyline smart backend.
                 </p>
               </div>
 
-              <div className="bg-[#FAF9F6] border border-stone-200 p-4 text-left text-xs space-y-1.5 font-light">
+              <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-700 space-y-1 text-left font-mono">
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Recipient:</span>
-                  <span className="font-medium text-stone-900">{confirmedOrder.customer?.name}</span>
+                  <span>Order ID:</span>
+                  <span className="font-bold text-black">{confirmedOrder.orderNumber || confirmedOrder.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Mobile:</span>
-                  <span className="font-mono text-stone-900">{confirmedOrder.customer?.phone}</span>
+                  <span>Grand Total:</span>
+                  <span className="font-bold text-black">₹ {confirmedOrder.total || grandTotal}.00</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-500">Payment:</span>
-                  <span className="uppercase font-semibold text-stone-900">{confirmedOrder.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between text-sm font-semibold text-stone-950 pt-2 border-t border-stone-200">
-                  <span>Total Amount:</span>
-                  <span className="font-mono">₹{confirmedOrder.total}</span>
+                  <span>Payment:</span>
+                  <span className="uppercase text-black">{confirmedOrder.paymentMethod || paymentMethod}</span>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <a
-                  href={`https://wa.me/917023963189?text=${encodeURIComponent(`Namaste Skyline! I have placed Order #${confirmedOrder.orderNumber || confirmedOrder.id} for ₹${confirmedOrder.total}. Please confirm express delivery in Churu.`)}`}
+                  href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white py-3 text-xs uppercase tracking-wider font-medium transition-colors"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline"
                 >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Notify Store on WhatsApp</span>
+                  Confirm on WhatsApp
                 </a>
-
                 <button
                   onClick={() => setConfirmedOrder(null)}
-                  className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3 text-xs uppercase tracking-wider font-medium cursor-pointer"
+                  className="w-full border border-stone-200 text-stone-800 hover:bg-stone-100 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
                 >
-                  Return to Collection
+                  Continue Shopping
                 </button>
               </div>
 
@@ -1711,55 +1622,47 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 13. CHURUONE UNIFIED SSO ACCOUNT MODAL ──────────────── */}
+      {/* ─── 12. CHURUONE SSO ACCOUNT MODAL ───────────────────────── */}
       {isAccountModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs" onClick={() => setIsAccountModalOpen(false)} />
-          
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsAccountModalOpen(false)} />
+
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-sm w-full shadow-2xl border border-stone-200 p-8 space-y-6">
+            <div className="relative bg-white max-w-sm w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
               
               <button
                 onClick={() => setIsAccountModalOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-stone-950 p-1 cursor-pointer"
+                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
               >
-                <X className="w-4 h-4 stroke-[1.5]" />
+                <X className="w-4 h-4" />
               </button>
 
               <div className="text-center space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-stone-400 font-semibold">
-                  CHURUONE UNIFIED SINGLE SIGN-ON
+                <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                  CHURUONE UNIFIED SSO
                 </span>
-                <h3 className="text-xl font-light font-serif text-stone-950">
+                <h3 className="text-xl font-bold text-stone-950">
                   {currentUser ? 'Your Verified Profile' : 'ChuruOne Account'}
                 </h3>
-                <p className="text-xs text-stone-500 font-light">
-                  Unified identity synchronized across all ChuruOne shops.
-                </p>
               </div>
 
               {currentUser ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3 bg-[#FAF9F6] border border-stone-200 p-3.5">
-                    <div className="w-10 h-10 rounded-full bg-stone-950 text-white flex items-center justify-center text-sm font-bold shrink-0">
-                      {(currentUser.name || 'G')[0]}
+                  <div className="flex items-center gap-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
+                    <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
+                      {(currentUser.name || 'U')[0]}
                     </div>
                     <div className="overflow-hidden">
-                      <span className="font-semibold text-stone-950 text-xs block truncate">
-                        {currentUser.name || 'Gentleman'}
+                      <span className="font-bold text-stone-950 text-xs block truncate">
+                        {currentUser.name || 'Friend'}
                       </span>
                       <span className="text-[11px] text-stone-500 block font-mono">
                         {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
                       </span>
-                      {currentUser.email && (
-                        <span className="text-[10px] text-stone-400 block truncate">
-                          {currentUser.email}
-                        </span>
-                      )}
                     </div>
                   </div>
 
-                  <div className="bg-emerald-50 border border-emerald-200 p-2.5 text-xs text-emerald-800 flex items-center gap-2">
+                  <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                     <span>Synchronized with ChuruOne Central SSO</span>
                   </div>
@@ -1771,7 +1674,7 @@ export default function SkylineApp() {
                         setIsAccountModalOpen(false);
                         navigateToChuruOneAuth('login');
                       }}
-                      className="w-full bg-stone-950 hover:bg-stone-800 text-white py-2.5 text-xs uppercase tracking-wider font-medium cursor-pointer transition-colors"
+                      className="w-full bg-black hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
                     >
                       Switch Account via ChuruOne
                     </button>
@@ -1779,7 +1682,7 @@ export default function SkylineApp() {
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2 text-xs uppercase tracking-wider font-medium cursor-pointer transition-colors"
+                      className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
                     >
                       Sign Out
                     </button>
@@ -1797,7 +1700,7 @@ export default function SkylineApp() {
                         setIsAccountModalOpen(false);
                         navigateToChuruOneAuth('signup');
                       }}
-                      className="w-full bg-stone-950 hover:bg-stone-800 text-white py-3 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors shadow-md flex items-center justify-center gap-1.5"
+                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md flex items-center justify-center gap-1.5"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       <span>Create Account (Sign Up)</span>
@@ -1808,7 +1711,7 @@ export default function SkylineApp() {
                         setIsAccountModalOpen(false);
                         navigateToChuruOneAuth('login');
                       }}
-                      className="w-full border border-stone-300 hover:border-stone-950 text-stone-800 py-2.5 text-xs uppercase tracking-[0.2em] font-medium cursor-pointer transition-colors"
+                      className="w-full border border-stone-300 hover:border-black text-stone-800 py-2.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer"
                     >
                       Sign In to Existing Account
                     </button>
@@ -1821,306 +1724,71 @@ export default function SkylineApp() {
         </div>
       )}
 
-      {/* ─── 14. ORDER TRACKER MODAL ────────────────────────────── */}
+      {/* ─── 13. ORDER TRACKER MODAL ──────────────────────────────── */}
       {isTrackerOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs" onClick={() => setIsTrackerOpen(false)} />
-          
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsTrackerOpen(false)} />
+
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-lg w-full shadow-2xl border border-stone-200 p-8 space-y-6">
+            <div className="relative bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
               
               <button
                 onClick={() => setIsTrackerOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-stone-950 p-1"
+                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
               >
-                <X className="w-4 h-4 stroke-[1.5]" />
+                <X className="w-5 h-5" />
               </button>
 
               <div className="space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500 font-semibold">
-                  LIVE STATUS TRACKER
+                <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                  SLICK • REAL-TIME DISPATCH
                 </span>
-                <h3 className="text-2xl font-light font-serif text-stone-950">
-                  Track Your Skyline Order
+                <h3 className="text-xl font-bold text-stone-950">
+                  Track Your Orders
                 </h3>
-                <p className="text-xs text-stone-500 font-light">
-                  Enter your mobile number to view all ongoing and previous deliveries in Churu.
-                </p>
               </div>
 
               <form onSubmit={handleTrackOrders} className="flex gap-2">
                 <input
                   type="tel"
-                  required
                   maxLength={10}
                   value={trackPhoneInput}
                   onChange={(e) => setTrackPhoneInput(e.target.value.replace(/\D/g, ''))}
                   placeholder="Enter 10-digit mobile number"
-                  className="flex-1 border border-stone-200 focus:border-stone-950 px-3 py-2 text-xs font-mono outline-none"
+                  className="flex-1 border border-stone-200 focus:border-black rounded-xl px-3 py-2 text-xs outline-none font-mono"
+                  required
                 />
                 <button
                   type="submit"
                   disabled={trackingLoading}
-                  className="bg-stone-950 text-white text-xs px-5 py-2 uppercase tracking-wider font-medium hover:bg-stone-800 cursor-pointer"
+                  className="bg-black hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
                 >
-                  {trackingLoading ? 'Searching...' : 'Search'}
+                  {trackingLoading ? 'Searching...' : 'Track'}
                 </button>
               </form>
 
-              {/* Order Results */}
-              <div className="max-h-80 overflow-y-auto space-y-4 pt-2">
-                {trackedOrders.length > 0 ? (
-                  trackedOrders.map((ord) => (
-                    <div key={ord.id} className="p-4 bg-[#FAF9F6] border border-stone-200 space-y-2 text-xs">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-semibold text-stone-950 font-mono">
-                            #{ord.orderNumber || ord.id}
-                          </span>
-                          <span className="text-[10px] text-stone-400 block">
-                            {new Date(ord.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <span className="px-2 py-0.5 text-[10px] uppercase font-semibold tracking-wider bg-stone-200 text-stone-800">
-                          {ord.status || 'Confirmed'}
-                        </span>
+              {trackedOrders.length > 0 && (
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                  {trackedOrders.map((ord) => (
+                    <div key={ord.id} className="bg-stone-50 rounded-xl p-3 border border-stone-100 text-xs space-y-1">
+                      <div className="flex justify-between font-bold text-stone-900">
+                        <span>Order #{ord.orderNumber || ord.id}</span>
+                        <span className="uppercase text-amber-600">{ord.status || 'Confirmed'}</span>
                       </div>
-
-                      {/* Items */}
-                      <div className="text-[11px] text-stone-600 divide-y divide-stone-100">
-                        {(ord.items || []).map((it, idx) => (
-                          <div key={idx} className="py-1 flex justify-between">
-                            <span>{it.name} x {it.qty || 1}</span>
-                            <span className="font-mono">₹{(it.unitPrice || 0) * (it.qty || 1)}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="pt-2 border-t border-stone-200 flex justify-between font-semibold text-stone-950">
-                        <span>Total Paid:</span>
-                        <span className="font-mono">₹{ord.total}</span>
+                      <div className="flex justify-between text-stone-500 font-mono text-[11px]">
+                        <span>Total: ₹ {ord.total}.00</span>
+                        <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Recent'}</span>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-center text-xs text-stone-400 py-6">
-                    Enter your phone number above to look up orders.
-                  </p>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
 
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── 15. SIZE GUIDE MODAL ────────────────────────────────── */}
-      {isSizeGuideOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs" onClick={() => setIsSizeGuideOpen(false)} />
-          
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-lg w-full shadow-2xl border border-stone-200 p-8 space-y-6">
-              
-              <button
-                onClick={() => setIsSizeGuideOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-stone-950 p-1"
-              >
-                <X className="w-4 h-4 stroke-[1.5]" />
-              </button>
-
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500 font-semibold">
-                  TAILORING SPECIFICATION
-                </span>
-                <h3 className="text-2xl font-light font-serif text-stone-950">
-                  Master Measurement Guide
-                </h3>
-                <p className="text-xs text-stone-500 font-light">
-                  Measurements are taken flat in inches. We recommend sizing true to fit for an architectural, tailored drape.
-                </p>
-              </div>
-
-              {/* Shirts & Overshirts Chart */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-900">
-                  Linen Shirts & Canvas Overshirts (Inches)
-                </h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border border-stone-200">
-                    <thead className="bg-[#FAF9F6] text-stone-600 font-semibold uppercase text-[10px]">
-                      <tr>
-                        <th className="p-2 border">Size</th>
-                        <th className="p-2 border">Chest</th>
-                        <th className="p-2 border">Shoulder</th>
-                        <th className="p-2 border">Length</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-200 font-mono text-stone-800">
-                      <tr><td className="p-2 border font-bold">S (38)</td><td className="p-2 border">39"</td><td className="p-2 border">17.5"</td><td className="p-2 border">28"</td></tr>
-                      <tr><td className="p-2 border font-bold">M (40)</td><td className="p-2 border">41"</td><td className="p-2 border">18.2"</td><td className="p-2 border">29"</td></tr>
-                      <tr><td className="p-2 border font-bold">L (42)</td><td className="p-2 border">43"</td><td className="p-2 border">19.0"</td><td className="p-2 border">30"</td></tr>
-                      <tr><td className="p-2 border font-bold">XL (44)</td><td className="p-2 border">45"</td><td className="p-2 border">19.8"</td><td className="p-2 border">31"</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Trousers Chart */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-stone-900">
-                  Gurkha & Tailored Trousers
-                </h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border border-stone-200">
-                    <thead className="bg-[#FAF9F6] text-stone-600 font-semibold uppercase text-[10px]">
-                      <tr>
-                        <th className="p-2 border">Waist</th>
-                        <th className="p-2 border">Inseam</th>
-                        <th className="p-2 border">Thigh</th>
-                        <th className="p-2 border">Ankle Opening</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-stone-200 font-mono text-stone-800">
-                      <tr><td className="p-2 border font-bold">30</td><td className="p-2 border">30"</td><td className="p-2 border">24"</td><td className="p-2 border">14.5"</td></tr>
-                      <tr><td className="p-2 border font-bold">32</td><td className="p-2 border">31"</td><td className="p-2 border">25"</td><td className="p-2 border">15.0"</td></tr>
-                      <tr><td className="p-2 border font-bold">34</td><td className="p-2 border">32"</td><td className="p-2 border">26"</td><td className="p-2 border">15.5"</td></tr>
-                      <tr><td className="p-2 border font-bold">36</td><td className="p-2 border">32"</td><td className="p-2 border">27"</td><td className="p-2 border">16.0"</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-stone-400 italic">
-                * Note: In-person complimentary tailoring adjustments are provided at our Subhash Chowk store for any Churu resident.
-              </p>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 16. TOAST FLOATING ALERT ────────────────────────────── */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-stone-950 text-white px-5 py-3 shadow-2xl text-xs uppercase tracking-wider font-medium flex items-center gap-2.5 animate-slide-up border border-stone-700">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-    </div>
-  );
-}
-
-// ─── SUBCOMPONENT: PRODUCT CARD WITH DUAL-LOOK HOVER & SIZE PILLS ─
-function ProductCard({ product, onQuickView, onAddToCart }) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(product.availableSizes ? product.availableSizes[0] : 'M');
-  const [selectedColor, setSelectedColor] = useState(product.colors ? product.colors[0] : null);
-
-  return (
-    <div 
-      className="group flex flex-col justify-between bg-white border border-stone-200 transition-all duration-300 hover:shadow-lg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Image Area with Double-Look Secondary Swap */}
-      <div className="relative aspect-3/4 overflow-hidden bg-stone-100 cursor-pointer" onClick={onQuickView}>
-        <img
-          src={isHovered && product.secondaryImage ? product.secondaryImage : product.image}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103"
-        />
-
-        {/* Badge Pill */}
-        {product.badge && (
-          <div className="absolute top-3 left-3 bg-stone-950 text-white text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 font-semibold shadow-xs">
-            {product.badge}
-          </div>
-        )}
-
-        {/* Quick View Floating Eye Button */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onQuickView(); }}
-          className="absolute bottom-3 right-3 bg-white/90 hover:bg-white text-stone-900 p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-          title="Quick View Garment Specs"
-        >
-          <Eye className="w-4 h-4 stroke-[1.5]" />
-        </button>
-      </div>
-
-      {/* Product Content Details */}
-      <div className="p-5 flex flex-col justify-between flex-1 space-y-4">
-        
-        <div>
-          {/* Fabric Line Tag */}
-          <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-medium block mb-1">
-            {product.fabric || 'Pure Natural Weave'}
-          </span>
-
-          {/* Name */}
-          <h3 
-            onClick={onQuickView}
-            className="text-sm font-medium text-stone-950 leading-snug cursor-pointer hover:text-amber-900 transition-colors"
-          >
-            {product.name}
-          </h3>
-
-          {/* Price */}
-          <div className="flex items-baseline gap-2.5 mt-2">
-            <span className="text-sm font-semibold font-mono text-stone-950">
-              ₹{product.price}
-            </span>
-            {product.originalPrice && (
-              <span className="text-xs text-stone-400 line-through font-mono">
-                ₹{product.originalPrice}
-              </span>
-            )}
-            {product.originalPrice && (
-              <span className="text-[10px] text-amber-800 font-semibold font-mono">
-                ({Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF)
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Size Selection Pills */}
-        <div className="pt-2 border-t border-stone-100 space-y-2">
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-stone-500 font-medium">
-            <span>Size:</span>
-            {product.colors && product.colors.length > 0 && (
-              <span className="text-stone-400">{product.colors.length} shades</span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {(product.availableSizes || ['S', 'M', 'L', 'XL']).slice(0, 5).map((sz) => (
-              <button
-                key={sz}
-                type="button"
-                onClick={() => setSelectedSize(sz)}
-                className={`text-[10px] px-2 py-0.5 border font-mono transition-all cursor-pointer ${
-                  selectedSize === sz
-                    ? 'border-stone-950 bg-stone-950 text-white font-medium'
-                    : 'border-stone-200 text-stone-600 hover:border-stone-400'
-                }`}
-              >
-                {sz}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Add to Bag CTA */}
-        <button
-          onClick={() => onAddToCart(selectedSize, selectedColor?.name)}
-          className="w-full bg-stone-950 hover:bg-stone-800 text-white py-2.5 text-[11px] uppercase tracking-[0.18em] font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-        >
-          <ShoppingBag className="w-3.5 h-3.5 stroke-[1.5]" />
-          <span>Add To Bag</span>
-        </button>
-
-      </div>
     </div>
   );
 }
