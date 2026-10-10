@@ -16,12 +16,13 @@ const cashfreeClient = new Cashfree(
 );
 
 /**
- * Cashfree Route A: Create Order & Payment Session ID
- * Endpoint: POST /api/create-order or POST /api/payment/cashfree/create-order
+ * Universal Smart Payment Route A: Create Order & Payment Session ID for Any Brand
+ * Endpoint: POST /api/create-order, POST /api/payment/create-order, POST /api/payment/create-session
  */
 export const createCashfreeOrder = async (req, res) => {
   try {
-    const { amount, customerPhone, customerName, orderId: reqOrderId, returnUrl } = req.body;
+    const { amount, customerPhone, customerName, orderId: reqOrderId, returnUrl, storeId: bodyStoreId, notes } = req.body;
+    const storeId = req.storeId || bodyStoreId || req.query?.storeId || 'shawarma';
     const orderId = reqOrderId || ("ORDER_" + Date.now());
     const orderAmount = Number(amount) || 120;
     const cleanPhone = (customerPhone || "7023963189").replace(/\D/g, '').slice(-10) || "7023963189";
@@ -39,12 +40,16 @@ export const createCashfreeOrder = async (req, res) => {
       order_meta: {
         return_url: returnUrl || `https://churuone.in/order-status?order_id=${orderId}`,
       },
+      order_tags: {
+        store_id: String(storeId).slice(0, 50),
+        brand: String(storeId).slice(0, 50),
+      },
+      order_note: notes || `Payment for ${storeId} #${orderId}`,
     };
 
     const response = await cashfreeClient.PGCreateOrder(request);
 
     // If order already exists in store orders, attach payment session info
-    const storeId = req.storeId || 'shawarma';
     const orders = DataLayer.read(storeId, 'orders') || [];
     const existing = orders.find(o => o.id === orderId || o.orderId === orderId);
     if (existing) {
@@ -52,11 +57,33 @@ export const createCashfreeOrder = async (req, res) => {
       DataLayer.writeSync(storeId, 'orders', orders);
     }
 
+    // Record in store payments ledger
+    try {
+      const payments = DataLayer.read(storeId, 'payments') || [];
+      const paymentRecord = {
+        orderId,
+        storeId,
+        amount: orderAmount,
+        currency: "INR",
+        status: "INITIATED",
+        customer: { name, phone: cleanPhone },
+        paymentSessionId: response.data.payment_session_id,
+        notes: notes || "",
+        createdAt: new Date().toISOString(),
+      };
+      payments.unshift(paymentRecord);
+      DataLayer.writeSync(storeId, 'payments', payments.slice(0, 500));
+    } catch (e) {
+      console.warn("Could not save payments ledger:", e.message);
+    }
+
     res.json({
       success: true,
       paymentSessionId: response.data.payment_session_id,
       orderId: orderId,
       orderAmount: orderAmount,
+      storeId: storeId,
+      environment: process.env.CASHFREE_ENV === 'PRODUCTION' ? 'PRODUCTION' : 'SANDBOX'
     });
   } catch (error) {
     console.error("Cashfree order creation error:", error.response?.data || error.message);
@@ -69,7 +96,7 @@ export const createCashfreeOrder = async (req, res) => {
 };
 
 /**
- * Cashfree Route B: Instant Webhook Listener
+ * Universal Smart Payment Route B: Instant Webhook Listener for Any Brand
  * Endpoint: POST /api/cashfree-webhook or POST /api/payment/cashfree-webhook
  */
 export const handleCashfreeWebhook = async (req, res) => {
@@ -82,12 +109,13 @@ export const handleCashfreeWebhook = async (req, res) => {
       const orderId = event.data?.order?.order_id || event.data?.order_id || event.order_id;
       const amount = event.data?.payment?.payment_amount || event.data?.payment_amount || event.order_amount;
       const bankUtr = event.data?.payment?.bank_reference || event.data?.bank_reference || event.reference_id || 'SANDBOX_UTR';
+      const taggedStoreId = event.data?.order?.order_tags?.store_id || event.data?.order?.order_tags?.brand || req.storeId;
 
-      console.log(`✅ [PAYMENT SUCCESS] Order ID: ${orderId} | Amount: ₹${amount} | UTR: ${bankUtr}`);
+      console.log(`✅ [PAYMENT SUCCESS] Store: ${taggedStoreId || 'search'} | Order ID: ${orderId} | Amount: ₹${amount} | UTR: ${bankUtr}`);
 
-      // Search across all stores for this order
-      const storeIds = DataLayer.listStoreIds();
-      let matchedStoreId = req.storeId || 'shawarma';
+      // Search across all stores for this order (preferring taggedStoreId)
+      const storeIds = taggedStoreId ? [taggedStoreId, ...DataLayer.listStoreIds().filter(s => s !== taggedStoreId)] : DataLayer.listStoreIds();
+      let matchedStoreId = taggedStoreId || req.storeId || 'shawarma';
       let targetOrder = null;
 
       for (const sId of storeIds) {
@@ -111,13 +139,37 @@ export const handleCashfreeWebhook = async (req, res) => {
         }
       }
 
-      // Broadcast WebSocket events to all listening clients & Android gateway
+      // Update store payments ledger
+      try {
+        const payments = DataLayer.read(matchedStoreId, 'payments') || [];
+        const pEntry = payments.find(p => p.orderId === orderId);
+        if (pEntry) {
+          pEntry.status = "PAID";
+          pEntry.bankUtr = bankUtr;
+          pEntry.paidAt = new Date().toISOString();
+        } else {
+          payments.unshift({
+            orderId,
+            storeId: matchedStoreId,
+            amount,
+            status: "PAID",
+            bankUtr,
+            paidAt: new Date().toISOString(),
+          });
+        }
+        DataLayer.writeSync(matchedStoreId, 'payments', payments.slice(0, 500));
+      } catch (pe) {
+        console.warn("Ledger update notice:", pe.message);
+      }
+
+      // Broadcast WebSocket events to all listening clients & Dukandar Android app
       WebSocketHub.broadcastToAll(matchedStoreId, {
         action: 'PAYMENT_VERIFIED',
         payload: {
           orderId,
           amount,
           bankUtr,
+          storeId: matchedStoreId,
           order: targetOrder
         }
       });
@@ -138,8 +190,8 @@ export const handleCashfreeWebhook = async (req, res) => {
 };
 
 /**
- * Cashfree Route C: Order Verification & Status Check
- * Endpoint: GET /api/payment/cashfree/verify/:orderId or POST /api/payment/cashfree/verify
+ * Universal Smart Payment Route C: Order Verification & Status Check for Any Brand
+ * Endpoint: GET /api/payment/verify/:orderId, GET /api/payment/cashfree/verify/:orderId, POST /api/payment/verify
  */
 export const verifyCashfreeOrder = async (req, res) => {
   try {
@@ -151,10 +203,11 @@ export const verifyCashfreeOrder = async (req, res) => {
     const fetched = await cashfreeClient.PGFetchOrder(orderId);
     const cfOrder = fetched.data;
     const isPaid = cfOrder.order_status === "PAID";
+    const taggedStoreId = cfOrder.order_tags?.store_id || req.storeId;
 
     if (isPaid) {
-      const storeIds = DataLayer.listStoreIds();
-      let matchedStoreId = req.storeId || 'shawarma';
+      const storeIds = taggedStoreId ? [taggedStoreId, ...DataLayer.listStoreIds().filter(s => s !== taggedStoreId)] : DataLayer.listStoreIds();
+      let matchedStoreId = taggedStoreId || req.storeId || 'shawarma';
       let targetOrder = null;
 
       for (const sId of storeIds) {
@@ -178,11 +231,31 @@ export const verifyCashfreeOrder = async (req, res) => {
         }
       }
 
+      // Update store payments ledger
+      try {
+        const payments = DataLayer.read(matchedStoreId, 'payments') || [];
+        const pEntry = payments.find(p => p.orderId === orderId);
+        if (pEntry) {
+          pEntry.status = "PAID";
+          pEntry.paidAt = new Date().toISOString();
+        } else {
+          payments.unshift({
+            orderId,
+            storeId: matchedStoreId,
+            amount: cfOrder.order_amount,
+            status: "PAID",
+            paidAt: new Date().toISOString(),
+          });
+        }
+        DataLayer.writeSync(matchedStoreId, 'payments', payments.slice(0, 500));
+      } catch (pe) {}
+
       WebSocketHub.broadcastToAll(matchedStoreId, {
         action: 'PAYMENT_VERIFIED',
         payload: {
           orderId,
           amount: cfOrder.order_amount,
+          storeId: matchedStoreId,
           order: targetOrder
         }
       });
@@ -191,6 +264,7 @@ export const verifyCashfreeOrder = async (req, res) => {
         success: true,
         status: 'PAID',
         isPaid: true,
+        storeId: matchedStoreId,
         order: targetOrder,
         cashfreeOrder: cfOrder
       });
@@ -212,6 +286,20 @@ export const verifyCashfreeOrder = async (req, res) => {
   }
 };
 
+/**
+ * Universal Route D: Get Store Payments History
+ * Endpoint: GET /api/payment/history?storeId=xyz
+ */
+export const getStorePayments = (req, res) => {
+  try {
+    const storeId = req.storeId || req.query.storeId || 'shawarma';
+    const payments = DataLayer.read(storeId, 'payments') || [];
+    res.json({ success: true, storeId, count: payments.length, payments });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // ─── Existing Manual UPI & SMS Endpoints (Preserved for compatibility) ──────────
 
 export const getPaymentConfig = (req, res) => {
@@ -223,7 +311,7 @@ export const getPaymentConfig = (req, res) => {
           data: {
             ...paymentConfig,
             cashfreeEnabled: true,
-            cashfreeEnv: 'SANDBOX'
+            cashfreeEnv: process.env.CASHFREE_ENV === 'PRODUCTION' ? 'PRODUCTION' : 'SANDBOX'
           }
         });
     } catch (error) {
@@ -248,7 +336,7 @@ export const initiatePayment = (req, res) => {
                 upiLink 
             });
         } else {
-            res.json({ success: true, paymentId: `pay_${Date.now()}` });
+            res.json({ success: true, paymentId: `cod_${Date.now()}` });
         }
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -258,33 +346,33 @@ export const initiatePayment = (req, res) => {
 export const verifySms = (req, res) => {
     try {
         const { smsText, smsFrom } = req.body;
-        
-        // Extract amount from SMS text
-        const amountMatch = smsText.match(/(?:Rs\.?|INR)\s*(\d+(?:\.\d+)?)/i);
-        if (!amountMatch) {
-            return res.json({ success: false, message: 'Could not extract amount from SMS' });
+        if (!smsText) {
+            return res.status(400).json({ success: false, message: 'smsText is required' });
         }
+
+        const amtMatch = smsText.match(/(?:rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/i);
+        const amount = amtMatch ? parseFloat(amtMatch[1].replace(/,/g, '')) : 0;
         
-        const amount = safeNum(amountMatch[1]);
         const orders = DataLayer.read(req.storeId, 'orders') || [];
-        
-        // Find matching pending order with similar amount
-        const match = orders.find(o => 
-            o.paymentStatus !== 'paid' && 
-            Math.abs(safeNum(o.total) - amount) < 1
+        const pendingOrder = orders.find(o => 
+            (o.paymentStatus === 'pending' || o.paymentStatus === 'payment_pending') && 
+            Math.abs(safeNum(o.total, 0) - amount) < 1
         );
-        
-        if (match) {
-            match.paymentStatus = 'paid';
+
+        if (pendingOrder) {
+            pendingOrder.paymentStatus = 'paid';
+            pendingOrder.status = 'confirmed';
             DataLayer.writeSync(req.storeId, 'orders', orders);
-            WebSocketHub.broadcastToAll(req.storeId, { 
-                action: 'PAYMENT_VERIFIED', 
-                payload: match 
+
+            WebSocketHub.broadcastToAll(req.storeId, {
+                action: 'PAYMENT_VERIFIED',
+                payload: { orderId: pendingOrder.id, amount }
             });
-            return res.json({ success: true, orderId: match.id });
+
+            return res.json({ success: true, orderId: pendingOrder.id, verified: true });
         }
-        
-        res.json({ success: false, message: 'No matching pending order found' });
+
+        res.json({ success: false, verified: false, message: 'No matching pending order found' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -293,7 +381,7 @@ export const verifySms = (req, res) => {
 export const submitUtr = (req, res) => {
     res.json({ 
         success: false, 
-        message: 'Manual UTR entry is disabled. Payments are verified automatically.' 
+        message: 'Manual UTR entry is disabled. Payments are verified automatically via Cashfree UPI.' 
     });
 };
 
@@ -301,13 +389,18 @@ export const getPaymentStatus = (req, res) => {
     try {
         const { orderId } = req.params;
         const orders = DataLayer.read(req.storeId, 'orders') || [];
-        const order = orders.find(o => o.id === orderId);
+        const order = orders.find(o => o.id === orderId || o.orderId === orderId);
         
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
-        
-        res.json({ success: true, status: order.paymentStatus || 'pending' });
+
+        res.json({ 
+            success: true, 
+            status: order.paymentStatus || 'pending',
+            orderStatus: order.status,
+            order 
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -3,20 +3,28 @@ import * as service from './payments.service.js';
 
 const router = Router();
 
-// ─── Cashfree PG Endpoints ─────────────────────────────────────
-// Order creation (both /api/create-order and /api/payment/cashfree/create-order)
+// ─── Universal Smart Payment Endpoints (Any Brand) ─────────────
+// Order session creation (supports /api/create-order, /api/payment/create-session, etc.)
 router.post('/create-order', service.createCashfreeOrder);
+router.post('/payment/create-order', service.createCashfreeOrder);
+router.post('/payment/create-session', service.createCashfreeOrder);
 router.post('/payment/cashfree/create-order', service.createCashfreeOrder);
 
-// Cashfree webhook (both /api/cashfree-webhook and /api/payment/cashfree-webhook)
+// Cashfree instant server webhook
 router.post('/cashfree-webhook', service.handleCashfreeWebhook);
 router.post('/payment/cashfree-webhook', service.handleCashfreeWebhook);
 
-// Cashfree live status verification
+// Universal live payment verification
+router.get('/payment/verify/:orderId', service.verifyCashfreeOrder);
 router.get('/payment/cashfree/verify/:orderId', service.verifyCashfreeOrder);
+router.post('/payment/verify', service.verifyCashfreeOrder);
 router.post('/payment/cashfree/verify', service.verifyCashfreeOrder);
 
-// ─── Existing Manual UPI Endpoints ─────────────────────────────
+// Store Payments History Ledger
+router.get('/payment/history', service.getStorePayments);
+router.get('/payment/cashfree/history', service.getStorePayments);
+
+// ─── Payment Configuration & Backward Compatibility ────────────
 router.get('/payment/config', service.getPaymentConfig);
 router.post('/payment/initiate', service.initiatePayment);
 router.post('/payment/verify-sms', service.verifySms);

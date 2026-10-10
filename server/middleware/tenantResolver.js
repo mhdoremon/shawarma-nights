@@ -21,7 +21,7 @@ export function tenantResolver(req, res, next) {
   }
 
   // Skip for health check and webhooks
-  if (req.path === '/' || req.path === '/healthz' || req.path === '/api/health' || req.path.startsWith('/api/cashfree-webhook')) {
+  if (req.path === '/' || req.path === '/healthz' || req.path === '/api/health' || req.path.includes('cashfree-webhook')) {
     return next();
   }
 
