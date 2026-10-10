@@ -576,6 +576,7 @@ export default function SkylineApp() {
           const upiPayload = {
             orderId: created.orderNumber || created.id,
             id: created.id,
+            storeId: 'skyline',
             grandTotal: created.total || grandTotal,
             total: created.total || grandTotal,
             upiId: storeData?.payment?.upiId || 'skylineoutfits@upi',
@@ -809,18 +810,29 @@ export default function SkylineApp() {
 
             {/* ChuruOne SSO Authentication: Sign In & Sign Up */}
             {currentUser ? (
-              <button
-                onClick={() => setIsAccountModalOpen(true)}
-                className="flex items-center gap-2 text-xs text-stone-800 hover:text-black py-1 px-2.5 rounded-full border border-stone-200 bg-stone-50 cursor-pointer transition-all"
-                title="ChuruOne Account"
-              >
-                <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
-                  {(currentUser.name || 'U')[0]}
-                </div>
-                <span className="hidden sm:inline font-medium max-w-[80px] truncate text-xs">
-                  {currentUser.name?.split(' ')[0] || 'User'}
-                </span>
-              </button>
+              isUserPhoneVerified ? (
+                <button
+                  onClick={() => setIsAccountModalOpen(true)}
+                  className="flex items-center gap-2 text-xs text-stone-800 hover:text-black py-1 px-2.5 rounded-full border border-stone-200 bg-stone-50 cursor-pointer transition-all"
+                  title="ChuruOne Account"
+                >
+                  <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
+                    {(currentUser.name || 'U')[0]}
+                  </div>
+                  <span className="hidden sm:inline font-medium max-w-[80px] truncate text-xs">
+                    {currentUser.name?.split(' ')[0] || 'User'}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigateToChuruOneAuth('login')}
+                  className="flex items-center gap-1.5 text-xs text-amber-950 bg-amber-50 hover:bg-amber-100 py-1 px-2.5 rounded-full border border-amber-300 cursor-pointer transition-all animate-pulse"
+                  title="Mobile number verification mandatory for Skyline"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                  <span className="font-bold text-[11px]">Verify Mobile No.</span>
+                </button>
+              )
             ) : (
               <div className="flex items-center gap-1.5">
                 <button
@@ -2132,6 +2144,8 @@ export default function SkylineApp() {
           isOpen={isUpiModalOpen}
           onClose={() => {
             setIsUpiModalOpen(false);
+            setPendingOrder(null);
+            setPendingPaymentData(null);
             showToast('Payment was not completed. Items remain in your bag.');
           }}
           orderData={pendingPaymentData}
@@ -2152,7 +2166,7 @@ export default function SkylineApp() {
                 onClick={() => setIsAccountModalOpen(false)}
                 className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
 
               <div className="text-center space-y-1">
@@ -2180,10 +2194,32 @@ export default function SkylineApp() {
                     </div>
                   </div>
 
-                  <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>Synchronized with ChuruOne Central SSO</span>
-                  </div>
+                  {isUserPhoneVerified ? (
+                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Phone & SSO Verified ✓ Ready for Orders</span>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border-2 border-amber-300 p-3 rounded-lg text-xs text-amber-950 space-y-2">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Mobile Verification Mandatory</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-normal">
+                        Skyline par order place karne ke liye mobile number OTP verify hona anivarya hai.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAccountModalOpen(false);
+                          navigateToChuruOneAuth('login');
+                        }}
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                      >
+                        Verify Mobile OTP Now →
+                      </button>
+                    </div>
+                  )}
 
                   <div className="space-y-2 pt-2">
                     <button

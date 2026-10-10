@@ -254,10 +254,11 @@ export default function UpiPaymentModal({
     const pollStatus = async () => {
       if (hasConfirmedRef.current) return;
       try {
-        const res = await fetch(`${API_URL}/api/payment/status/${encodeURIComponent(orderId)}`);
+        const storeParam = effectiveData.storeId ? `?storeId=${effectiveData.storeId}` : '';
+        const res = await fetch(`${API_URL}/api/payment/status/${encodeURIComponent(orderId)}${storeParam}`);
         if (res.ok) {
           const data = await res.json();
-          if (data.status === 'confirmed') {
+          if (data.isPaid || data.status === 'paid' || data.status === 'confirmed' || data.order?.paymentStatus === 'paid') {
             triggerSuccessSequence(data);
           }
         }

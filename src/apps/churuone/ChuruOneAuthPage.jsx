@@ -110,18 +110,33 @@ export default function ChuruOneAuthPage() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // Auto-finish if already logged in via ChuruOne session
+  // Auto-finish or Auto-route existing Google session if visiting phone-mandatory store
   useEffect(() => {
     try {
       const session = getChuruOneSession();
-      if (session && session.user && searchParams.get('auto') === '1') {
+      if (session && session.user) {
         const parsed = sanitizeChuruOneUser(session.user);
-        if (!storePolicyRequireOtp || (parsed.isPhoneAuth && parsed.phone)) {
-          completeAndRedirect(parsed, session.token || localStorage.getItem('auth_token') || '');
+        if (!storeRequiresPhone || (parsed.isPhoneAuth && parsed.phone)) {
+          if (searchParams.get('auto') === '1') {
+            completeAndRedirect(parsed, session.token || localStorage.getItem('auth_token') || '');
+          }
+        } else if (storeRequiresPhone && !parsed.isPhoneAuth) {
+          // User is already logged into Google elsewhere, but this store requires phone OTP!
+          setGoogleUser({
+            uid: parsed.googleId || parsed.id || 'google_user',
+            email: parsed.email || '',
+            displayName: parsed.name || parsed.displayName || 'Customer',
+            photoURL: parsed.picture || parsed.photoURL || ''
+          });
+          setFullName(parsed.name || parsed.displayName || '');
+          setEmail(parsed.email || '');
+          if (parsed.phone) setPhone(parsed.phone.replace(/\D/g, '').slice(-10));
+          setStep(2);
+          setErrorMsg(`Aapka Google account (${parsed.email || parsed.name}) connected hai. ${storeDisplayName || 'Skyline'} ke liye mobile number OTP verify hona anivarya hai.`);
         }
       }
     } catch (e) {}
-  }, [storePolicyRequireOtp]);
+  }, [storeRequiresPhone]);
 
   // Initialize MSG91 SendOTP Widget SDK on mount
   useEffect(() => {
@@ -600,89 +615,166 @@ export default function ChuruOneAuthPage() {
         {step === 1 && (
           <div className="space-y-6">
             {storeRequiresPhone && (
-              <div className="p-3.5 border-2 border-amber-300 bg-amber-50 text-amber-950 text-xs leading-relaxed space-y-1">
-                <div className="flex items-center gap-1.5 font-black text-amber-950 uppercase tracking-wider text-[11px]">
-                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>Mobile OTP Verification Mandatory</span>
+              <div className="p-4 border-2 border-red-500 bg-red-50 text-red-950 text-xs leading-relaxed space-y-1.5 shadow-xs">
+                <div className="flex items-center gap-1.5 font-black text-red-900 uppercase tracking-wider text-[11px]">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>Mobile Number Verification is Mandatory for {storeDisplayName || 'Skyline'}</span>
                 </div>
-                <p className="text-[11px] text-amber-900 leading-normal">
-                  <strong>{storeDisplayName || 'Shawarma Nights'}</strong> ke live orders aur delivery tracking ke liye 10-digit mobile number OTP verify hona anivarya hai. Ager aap Google se login karenge, to agle step me mobile number par SMS OTP manga jayega.
+                <p className="text-[11px] text-red-900 leading-normal font-medium">
+                  <strong>{storeDisplayName || 'Skyline'}</strong> par live shopping aur doorstep delivery ke liye 10-digit mobile number OTP verify hona anivarya hai. <strong>Bagair mobile number OTP ke login maanya nahi hoga.</strong>
                 </p>
               </div>
             )}
 
-            {/* Option A: Google 1-Click Sign-In */}
-            <div>
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full bg-white hover:bg-zinc-50 border border-zinc-300 hover:border-zinc-950 text-zinc-900 py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
-                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                </svg>
-                <div className="flex flex-col items-center">
-                  <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
-                  {storeRequiresPhone && (
-                    <span className="text-[9px] text-zinc-500 font-semibold tracking-normal lowercase">(step 2: mobile otp verification next)</span>
-                  )}
+            {storeRequiresPhone ? (
+              <>
+                {/* For stores requiring phone OTP: Option 1 is Mobile OTP Form (Primary) */}
+                <form onSubmit={handleDirectPhoneSubmit} className="space-y-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[10px] uppercase tracking-widest font-black text-zinc-900">
+                        Option 1: Mobile Number OTP (Recommended)
+                      </label>
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        Mandatory for {storeDisplayName || 'Skyline'}
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="inline-flex items-center px-3 border border-r-0 border-zinc-300 bg-zinc-100 text-xs text-zinc-700 font-bold">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={phone}
+                        onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="9876543210"
+                        className="w-full border border-zinc-300 focus:border-zinc-950 px-3.5 py-2.5 text-sm font-mono font-bold text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-1 text-[10px] text-zinc-500">
+                      <span>Zero-DLT Fast SMS Delivery</span>
+                      <span>10 Digits</span>
+                    </div>
+                  </div>
+
+                  {/* MSG91 Captcha Container */}
+                  <div id="msg91-captcha-container" className="my-1 flex justify-center"></div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || isSendingOtp}
+                    className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-md"
+                  >
+                    <span>{isSendingOtp ? "Dispatching SMS OTP..." : isSignUp ? "Verify Mobile & Create Account →" : "Get OTP via SMS →"}</span>
+                  </button>
+                </form>
+
+                {/* Divider: OR */}
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-3 text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
+                      OR OPTION 2: CONTINUE WITH GOOGLE
+                    </span>
+                  </div>
                 </div>
-              </button>
-            </div>
 
-            {/* Divider: OR */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-zinc-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
-                  OR {isSignUp ? "SIGN UP WITH MOBILE OTP" : "SIGN IN WITH MOBILE OTP"}
-                </span>
-              </div>
-            </div>
-
-            {/* Option B: Mobile Number OTP Form */}
-            <form onSubmit={handleDirectPhoneSubmit} className="space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1.5">
-                  Mobile Number
-                </label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 border border-r-0 border-zinc-200 bg-zinc-50 text-xs text-zinc-500 font-medium">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={phone}
-                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="9876543210"
-                    className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
-                  />
+                {/* Option 2: Google Sign-In with clear step-2 note */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full bg-white hover:bg-zinc-50 border border-zinc-300 hover:border-zinc-950 text-zinc-900 py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    <div className="flex flex-col items-center">
+                      <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
+                      <span className="text-[9px] text-amber-700 font-bold tracking-normal uppercase">(Step 2: Mobile OTP required to activate)</span>
+                    </div>
+                  </button>
                 </div>
-                <div className="flex justify-between items-center mt-1 text-[10px] text-zinc-400">
-                  <span>Zero-DLT Fast SMS Delivery</span>
-                  <span>10 Digits</span>
+              </>
+            ) : (
+              <>
+                {/* Option A: Google 1-Click Sign-In */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full bg-white hover:bg-zinc-50 border border-zinc-300 hover:border-zinc-950 text-zinc-900 py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.35 24 12 24z"/>
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.35 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                    </svg>
+                    <span>{loading ? "Authenticating..." : isSignUp ? "Sign Up with Google" : "Continue with Google"}</span>
+                  </button>
                 </div>
-              </div>
 
-              {/* MSG91 Captcha Container (if enabled in widget settings) */}
-              <div id="msg91-captcha-container" className="my-1 flex justify-center"></div>
+                {/* Divider: OR */}
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-3 text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
+                      OR {isSignUp ? "SIGN UP WITH MOBILE OTP" : "SIGN IN WITH MOBILE OTP"}
+                    </span>
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading || isSendingOtp}
-                className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <span>{isSendingOtp ? "Dispatching SMS OTP..." : isSignUp ? "Verify Mobile & Create Account →" : "Get OTP via SMS →"}</span>
-              </button>
-            </form>
+                {/* Option B: Mobile Number OTP Form */}
+                <form onSubmit={handleDirectPhoneSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-widest font-semibold text-zinc-500 mb-1.5">
+                      Mobile Number
+                    </label>
+                    <div className="flex">
+                      <span className="inline-flex items-center px-3 border border-r-0 border-zinc-200 bg-zinc-50 text-xs text-zinc-500 font-medium">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={phone}
+                        onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                        placeholder="9876543210"
+                        className="w-full border border-zinc-200 focus:border-zinc-950 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-1 text-[10px] text-zinc-400">
+                      <span>Zero-DLT Fast SMS Delivery</span>
+                      <span>10 Digits</span>
+                    </div>
+                  </div>
+
+                  {/* MSG91 Captcha Container */}
+                  <div id="msg91-captcha-container" className="my-1 flex justify-center"></div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || isSendingOtp}
+                    className="w-full bg-zinc-950 hover:bg-black text-white py-3.5 px-4 text-xs uppercase tracking-widest font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <span>{isSendingOtp ? "Dispatching SMS OTP..." : isSignUp ? "Verify Mobile & Create Account →" : "Get OTP via SMS →"}</span>
+                  </button>
+                </form>
+              </>
+            )}
 
             <div className="mt-8 pt-6 border-t border-zinc-100 flex items-center justify-center gap-2 text-[11px] text-zinc-400">
               <ShieldCheck className="w-3.5 h-3.5 stroke-[1.5]" />

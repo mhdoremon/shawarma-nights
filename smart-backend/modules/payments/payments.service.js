@@ -388,16 +388,34 @@ export const submitUtr = (req, res) => {
 export const getPaymentStatus = (req, res) => {
     try {
         const { orderId } = req.params;
-        const orders = DataLayer.read(req.storeId, 'orders') || [];
-        const order = orders.find(o => o.id === orderId || o.orderId === orderId);
+        const targetStoreId = req.query.storeId || req.storeId || 'shawarma';
+        let orders = DataLayer.read(targetStoreId, 'orders') || [];
+        let order = orders.find(o => o.id === orderId || o.orderId === orderId);
         
+        if (!order) {
+            // Search all other stores
+            const allStoreIds = DataLayer.listStoreIds();
+            for (const sId of allStoreIds) {
+                if (sId === targetStoreId) continue;
+                const oList = DataLayer.read(sId, 'orders') || [];
+                const found = oList.find(o => o.id === orderId || o.orderId === orderId);
+                if (found) {
+                    order = found;
+                    break;
+                }
+            }
+        }
+
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
+        const isPaid = order.paymentStatus === 'paid';
+
         res.json({ 
             success: true, 
             status: order.paymentStatus || 'pending',
+            isPaid,
             orderStatus: order.status,
             order 
         });

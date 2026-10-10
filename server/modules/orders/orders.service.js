@@ -134,7 +134,9 @@ export const placeOrder = async (req, res) => {
         const defaultOrderNum = `${prefix}-${String(orderNumCount).padStart(4, '0')}`;
         const orderNumber = payload.token || payload.orderNumber || defaultOrderNum;
         
-        const status = payload.status || (payload.paymentMethod === 'cod' ? 'confirmed' : 'confirmed');
+        const isOnlinePayment = String(payload.paymentMethod || '').trim().toLowerCase() === 'upi' || 
+                                String(payload.paymentMethod || '').trim().toLowerCase() === 'online';
+        const status = payload.status || (isOnlinePayment ? 'payment_pending' : 'confirmed');
         const deliveryOtp = payload.deliveryType === 'delivery' ? generateOtp() : null;
 
         // Extract customer
