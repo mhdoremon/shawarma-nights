@@ -7,6 +7,7 @@ import ChuruOneHomePage from './apps/churuone/ChuruOneHomePage';
 import ChuruOneAuthPage from './apps/churuone/ChuruOneAuthPage';
 import NashStudioApp from './apps/nash/NashStudioApp';
 import LegalPage from './apps/legal/LegalPage';
+import CashfreeTestPage from './apps/test/CashfreeTestPage';
 
 function RootEntry() {
   const location = useLocation();
@@ -33,6 +34,11 @@ function RootEntry() {
     path.startsWith('/legal')
   ) {
     return <LegalPage />;
+  }
+
+  // Cashfree PG Sandbox Test Lab
+  if (path.startsWith('/test-cashfree') || path.startsWith('/test-payment')) {
+    return <CashfreeTestPage />;
   }
 
   // About Portal
@@ -89,6 +95,10 @@ export default function App() {
         <Route path="/delivery-policy/*" element={<LegalPage />} />
         <Route path="/policies/*" element={<LegalPage />} />
         <Route path="/legal/*" element={<LegalPage />} />
+
+        {/* Cashfree PG Sandbox Test Lab */}
+        <Route path="/test-cashfree/*" element={<CashfreeTestPage />} />
+        <Route path="/test-payment/*" element={<CashfreeTestPage />} />
 
         {/* ChuruOne Unified SSO Auth Portal */}
         <Route path="/auth/*" element={<ChuruOneAuthPage />} />
