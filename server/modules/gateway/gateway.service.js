@@ -186,6 +186,21 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       console.log(`📱 [SMS ${action}] Store: ${storeId}, Phone: ${data.phone || 'unknown'}, Success: ${data.success}, RequestId: ${data.requestId || 'none'}`);
       return true;
     }
+    case 'UPDATE_RIDER_LOCATION':
+    case 'RIDER_LOCATION': {
+      const payload = data.payload || data;
+      WebSocketHub.broadcastToAll(storeId, {
+        action: 'RIDER_LOCATION_UPDATED',
+        payload: {
+          boyId: payload.boyId || 'rider',
+          lat: payload.lat,
+          lng: payload.lng,
+          speed: payload.speed || 0,
+          updatedAt: now()
+        }
+      });
+      return true;
+    }
     case 'PLACE_ORDER': {
       const orders = DataLayer.read(storeId, 'orders') || [];
       const payload = data.payload || data;
