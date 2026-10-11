@@ -1,8 +1,34 @@
 {
   "name": "Shawarma Nights",
   "slug": "shawarma-nights",
+  "type": "restaurant",
   "vertical": "food",
   "status": "active",
+  "capabilities": {
+    "storeType": "restaurant",
+    "catalog": {
+      "hasVegNonVeg": true,
+      "hasFoodAddons": true,
+      "hasSizes": false,
+      "hasColors": false,
+      "hasLookbook": false,
+      "hasServiceDuration": false,
+      "hasUnitWeights": false
+    },
+    "orders": {
+      "hasKotPrinting": true,
+      "hasRiderDispatch": true,
+      "hasAppointments": false,
+      "hasAdvanceToken": false,
+      "hasDeliveryOtp": true
+    },
+    "settings": {
+      "hasDeliveryRadius": true,
+      "hasFreeDeliveryThreshold": true,
+      "hasAdvanceTokenFee": false,
+      "hasTableBooking": false
+    }
+  },
   "owner": {
     "name": "Shawarma Nights",
     "phone": "7023963189",

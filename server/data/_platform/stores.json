@@ -1,0 +1,106 @@
+{
+  "stores": [
+    {
+      "id": "shawarma",
+      "slug": "shawarma",
+      "name": "Shawarma Nights",
+      "type": "restaurant",
+      "vertical": "food",
+      "status": "active",
+      "subdomain": "shawarma",
+      "capabilities": {
+        "storeType": "restaurant",
+        "catalog": {
+          "hasVegNonVeg": true,
+          "hasFoodAddons": true,
+          "hasSizes": false,
+          "hasColors": false,
+          "hasLookbook": false,
+          "hasServiceDuration": false,
+          "hasUnitWeights": false
+        },
+        "orders": {
+          "hasKotPrinting": true,
+          "hasRiderDispatch": true,
+          "hasAppointments": false,
+          "hasAdvanceToken": false,
+          "hasDeliveryOtp": true
+        },
+        "settings": {
+          "hasDeliveryRadius": true,
+          "hasFreeDeliveryThreshold": true,
+          "hasAdvanceTokenFee": false,
+          "hasTableBooking": false
+        }
+      }
+    },
+    {
+      "id": "skyline",
+      "slug": "skyline",
+      "name": "Skyline Premium Outfits",
+      "type": "fashion",
+      "vertical": "clothing",
+      "status": "active",
+      "subdomain": "skyline",
+      "capabilities": {
+        "storeType": "fashion",
+        "catalog": {
+          "hasVegNonVeg": false,
+          "hasFoodAddons": false,
+          "hasSizes": true,
+          "hasColors": true,
+          "hasLookbook": true,
+          "hasServiceDuration": false,
+          "hasUnitWeights": false
+        },
+        "orders": {
+          "hasKotPrinting": false,
+          "hasRiderDispatch": true,
+          "hasAppointments": false,
+          "hasAdvanceToken": false,
+          "hasDeliveryOtp": true
+        },
+        "settings": {
+          "hasDeliveryRadius": true,
+          "hasFreeDeliveryThreshold": true,
+          "hasAdvanceTokenFee": false,
+          "hasTableBooking": false
+        }
+      }
+    },
+    {
+      "id": "nash-studio",
+      "slug": "nash-studio",
+      "name": "Nash Studio",
+      "type": "salon",
+      "vertical": "salon",
+      "status": "active",
+      "subdomain": "nash",
+      "capabilities": {
+        "storeType": "salon",
+        "catalog": {
+          "hasVegNonVeg": false,
+          "hasFoodAddons": false,
+          "hasSizes": false,
+          "hasColors": false,
+          "hasLookbook": false,
+          "hasServiceDuration": true,
+          "hasUnitWeights": false
+        },
+        "orders": {
+          "hasKotPrinting": false,
+          "hasRiderDispatch": false,
+          "hasAppointments": true,
+          "hasAdvanceToken": true,
+          "hasDeliveryOtp": false
+        },
+        "settings": {
+          "hasDeliveryRadius": false,
+          "hasFreeDeliveryThreshold": false,
+          "hasAdvanceTokenFee": true,
+          "hasTableBooking": false
+        }
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar, Clock, ChevronDown, ChevronUp, Sparkles, User, ExternalLink } from 'lucide-react';
+import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar, Clock, ChevronDown, ChevronUp, Sparkles, User, ExternalLink, Truck } from 'lucide-react';
 
 const WORK_START = 11 * 60; // 11:00 AM (660 mins)
 const WORK_END = 23 * 60; // 11:00 PM (1380 mins)
@@ -70,10 +70,30 @@ function printStandaloneTicket(b, storeInfo) {
 }
 
 export default function OrdersTab() {
-  const { orders, updateOrderStatus, verifyDeliveryOtp, showToast, storeInfo, storeId } = useMaster();
-  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
+  const { 
+    orders, 
+    updateOrderStatus, 
+    verifyDeliveryOtp, 
+    showToast, 
+    storeInfo, 
+    storeId, 
+    capabilities, 
+    deliveryBoys 
+  } = useMaster();
 
-  const [viewMode, setViewMode] = useState(isSalon ? 'timeline' : 'list'); // 'list' | 'timeline'
+  // Capability-driven feature flags
+  const hasAppointments = Boolean(capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const hasKotPrinting = Boolean(capabilities?.orders?.hasKotPrinting ?? !hasAppointments);
+  const hasRiderDispatch = Boolean(capabilities?.orders?.hasRiderDispatch ?? !hasAppointments);
+  const hasOtpDelivery = Boolean(capabilities?.orders?.hasOtpDelivery ?? hasRiderDispatch);
+  const hasTimelineMatrix = Boolean(capabilities?.orders?.hasTimelineMatrix ?? hasAppointments);
+  const isSalon = hasAppointments;
+
+  const [viewMode, setViewMode] = useState(hasAppointments ? 'timeline' : 'list'); // 'list' | 'timeline'
+
+  useEffect(() => {
+    setViewMode(hasAppointments ? 'timeline' : 'list');
+  }, [hasAppointments]);
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     const y = d.getFullYear();
@@ -209,15 +229,20 @@ export default function OrdersTab() {
     return list;
   }, [orders, statusFilter, searchQuery]);
 
-  const filterTabs = isSalon ? [
+  const filterTabs = hasAppointments ? [
     { id: 'ALL', label: 'ALL SLOTS' },
     { id: 'NEW', label: 'NEW BOOKINGS' },
     { id: 'KITCHEN', label: 'IN CHAIR' },
     { id: 'DELIVERED', label: 'COMPLETED' }
-  ] : [
+  ] : hasKotPrinting ? [
     { id: 'ALL', label: 'ALL' },
     { id: 'NEW', label: 'NEW' },
     { id: 'KITCHEN', label: 'KITCHEN' },
+    { id: 'DELIVERED', label: 'DELIVERED' }
+  ] : [
+    { id: 'ALL', label: 'ALL ORDERS' },
+    { id: 'NEW', label: 'NEW' },
+    { id: 'KITCHEN', label: 'PACKING' },
     { id: 'DELIVERED', label: 'DELIVERED' }
   ];
 
@@ -258,39 +283,48 @@ export default function OrdersTab() {
       <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
         {/* VIEW MODE TOGGLE BUTTONS */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
-                viewMode === 'list'
-                  ? 'bg-zinc-900 text-white shadow-md'
-                  : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
-              }`}
-            >
-              <span>📋 ORDER CARDS LIST</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('timeline')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
-                viewMode === 'timeline'
-                  ? 'bg-[#DC2626] text-white shadow-md'
-                  : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
-              }`}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>📅 30-MIN TIMELINE MATRIX (SALON SCHEDULE)</span>
-            </button>
+        {hasTimelineMatrix ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+                  viewMode === 'list'
+                    ? 'bg-zinc-900 text-white shadow-md'
+                    : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <span>📋 ORDER CARDS LIST</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('timeline')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-1.5 ${
+                  viewMode === 'timeline'
+                    ? 'bg-[#DC2626] text-white shadow-md'
+                    : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>📅 30-MIN TIMELINE MATRIX (SCHEDULE)</span>
+              </button>
+            </div>
+            {hasAppointments && (
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 flex items-center gap-1.5">
+                <Scissors className="w-3.5 h-3.5" />
+                <span>Salon Chair Schedule Matrix</span>
+              </span>
+            )}
           </div>
-          {isSalon && (
-            <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 flex items-center gap-1.5">
-              <Scissors className="w-3.5 h-3.5" />
-              <span>Nash Studio Chair Schedule Matrix</span>
+        ) : (
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+            <span className="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-black flex items-center gap-1.5">
+              <span>📋 LIVE ORDERS QUEUE</span>
             </span>
-          )}
-        </div>
+            <span className="text-xs text-zinc-400 font-medium">Real-time live updates</span>
+          </div>
+        )}
 
         {/* Search Input */}
         <div className="relative">
@@ -299,7 +333,7 @@ export default function OrdersTab() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search orders by #ID, customer name or phone..."
+            placeholder={hasAppointments ? "Search bookings by #Token, client name or phone..." : "Search orders by #ID, customer name or phone..."}
             className="w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
           />
         </div>
@@ -681,13 +715,19 @@ export default function OrdersTab() {
 
                     {/* Status Pill */}
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusStyle}`}>
-                      {status === 'new' || status === 'pending' ? 'NEW ORDER' : status === 'preparing' ? 'IN KITCHEN' : status === 'out_for_delivery' ? 'OUT FOR DELIVERY' : status}
+                      {status === 'new' || status === 'pending'
+                        ? (hasAppointments ? 'NEW BOOKING' : 'NEW ORDER')
+                        : status === 'preparing'
+                          ? (hasAppointments ? 'IN CHAIR' : hasKotPrinting ? 'IN KITCHEN' : 'PACKING')
+                          : status === 'out_for_delivery'
+                            ? 'OUT FOR DELIVERY'
+                            : status}
                     </span>
                   </div>
                 </div>
 
                 {/* Appointment Slot / Salon Details */}
-                {(order.timeLabel || order.dateLabel || order.dateISO) && (
+                {hasAppointments && (order.timeLabel || order.dateLabel || order.dateISO) && (
                   <div className="bg-amber-50 text-amber-900 border border-amber-200/60 p-2.5 rounded-xl text-xs font-bold flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <span>📅 Slot:</span>
@@ -758,6 +798,32 @@ export default function OrdersTab() {
                   </div>
                 </div>
 
+                {/* Rider / Delivery Partner Assignment */}
+                {hasRiderDispatch && (
+                  <div className="bg-[#FFFBF7] p-3 rounded-2xl flex items-center justify-between gap-2 text-xs shadow-xs border-0">
+                    <div className="flex items-center gap-2 text-zinc-600 font-bold">
+                      <Bike className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Delivery Rider:</span>
+                    </div>
+                    <select
+                      value={order.deliveryBoyId || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateOrderStatus(order.id, order.status, val || null);
+                        showToast(val ? 'Rider assigned to order' : 'Rider unassigned', 'info');
+                      }}
+                      className="bg-white border border-zinc-200 text-zinc-800 text-xs font-bold rounded-xl px-3 py-1.5 focus:ring-1 focus:ring-amber-500 focus:outline-none cursor-pointer max-w-[200px] truncate"
+                    >
+                      <option value="">-- Assign Rider --</option>
+                      {(deliveryBoys || []).map(db => (
+                        <option key={db.id} value={db.id}>
+                          {db.name} ({db.vehicle || db.phone})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Customer Quick Call & WhatsApp */}
                 {customerPhone && (
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-100">
@@ -770,9 +836,9 @@ export default function OrdersTab() {
                     </a>
                     <a
                       href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
-                        isSalon
-                          ? `Namaste ${customerName}, aapka Nash Studio salon appointment #${orderNum} confirm ho gaya hai. Time: ${order.timeLabel || order.slot || 'Scheduled'}.`
-                          : `Namaste ${customerName}, aapka Shawarma Nights order #${orderNum} process ho raha hai.`
+                        hasAppointments
+                          ? `Namaste ${customerName}, aapka ${storeInfo?.name || 'Nash Studio'} salon appointment #${orderNum} confirm ho gaya hai. Time: ${order.timeLabel || order.slot || 'Scheduled'}.`
+                          : `Namaste ${customerName}, aapka ${storeInfo?.name || 'Shawarma Nights'} order #${orderNum} process ho raha hai.`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -787,8 +853,8 @@ export default function OrdersTab() {
                 {/* PROGRESSIVE WORKFLOW ACTION BUTTON */}
                 <div className="pt-2 flex flex-wrap items-center gap-2">
                   
-                  {/* SALON SPECIFIC WORKFLOW */}
-                  {isSalon ? (
+                  {/* SALON / APPOINTMENT SPECIFIC WORKFLOW */}
+                  {hasAppointments ? (
                     <>
                       {/* STEP 1: NEW / PENDING -> CONFIRM APPOINTMENT */}
                       {(status === 'new' || status === 'pending') && (
@@ -834,8 +900,8 @@ export default function OrdersTab() {
                         </div>
                       )}
                     </>
-                  ) : (
-                    /* RESTAURANT WORKFLOW (Shawarma Nights) */
+                  ) : hasKotPrinting || hasRiderDispatch ? (
+                    /* RESTAURANT WORKFLOW */
                     <>
                       {/* STEP 1: NEW / PENDING -> ACCEPT & SEND TO KITCHEN */}
                       {(status === 'new' || status === 'pending') && (
@@ -865,7 +931,7 @@ export default function OrdersTab() {
                       {/* STEP 2: IN KITCHEN / PREPARING -> DISPATCH OUT FOR DELIVERY */}
                       {(status === 'preparing' || status === 'confirmed') && (
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'out_for_delivery')}
+                          onClick={() => updateOrderStatus(order.id, 'out_for_delivery', order.deliveryBoyId)}
                           className="w-full py-3 px-4 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
                         >
                           <Bike className="w-4 h-4 stroke-[2.2]" />
@@ -897,13 +963,77 @@ export default function OrdersTab() {
                         </div>
                       )}
                     </>
+                  ) : (
+                    /* RETAIL / FASHION WORKFLOW */
+                    <>
+                      {/* STEP 1: NEW / PENDING -> ACCEPT & PACK */}
+                      {(status === 'new' || status === 'pending') && (
+                        <>
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                            className="flex-1 py-3 px-4 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          >
+                            <Check className="w-4 h-4 stroke-[2.2]" />
+                            <span>ACCEPT & PACK ORDER</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Cancel Order #${orderNum}?`)) {
+                                updateOrderStatus(order.id, 'cancelled');
+                              }
+                            }}
+                            className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-0"
+                            title="Cancel Order"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>CANCEL</span>
+                          </button>
+                        </>
+                      )}
+
+                      {/* STEP 2: PREPARING -> READY FOR DISPATCH / PICKUP */}
+                      {(status === 'preparing' || status === 'confirmed') && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'out_for_delivery', order.deliveryBoyId)}
+                          className="w-full py-3 px-4 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                        >
+                          <Truck className="w-4 h-4 stroke-[2.2]" />
+                          <span>READY FOR DISPATCH / PICKUP</span>
+                        </button>
+                      )}
+
+                      {/* STEP 3: OUT FOR DELIVERY -> MARK DELIVERED */}
+                      {(status === 'out_for_delivery' || status === 'ready') && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'delivered')}
+                          className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                        >
+                          <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                          <span>MARK DELIVERED / HANDED OVER</span>
+                        </button>
+                      )}
+
+                      {/* STEP 4: DELIVERED */}
+                      {status === 'delivered' && (
+                        <div className="w-full py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
+                          <Check className="w-4 h-4 stroke-[2.5]" />
+                          <span>ORDER COMPLETED</span>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {/* Print / View Receipt Button */}
+                  {/* Print / View Receipt or Standalone Ticket Button */}
                   <button
-                    onClick={() => setSelectedReceiptOrder(order)}
+                    onClick={() => {
+                      if (hasAppointments) {
+                        printStandaloneTicket(order, storeInfo);
+                      } else {
+                        setSelectedReceiptOrder(order);
+                      }
+                    }}
                     className="p-3 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer border-0"
-                    title="Print Receipt Slip"
+                    title={hasAppointments ? "Print Appointment Ticket" : hasKotPrinting ? "Print KOT Kitchen Receipt" : "Print Order Slip"}
                   >
                     <Printer className="w-4 h-4" />
                   </button>
@@ -1008,8 +1138,10 @@ export default function OrdersTab() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border-0">
             <div className="text-center space-y-1 border-b border-zinc-100 pb-3">
-              <h4 className="text-lg font-black tracking-tight">SHAWARMA NIGHTS</h4>
-              <p className="text-xs text-zinc-500 font-bold">Order Slip #{selectedReceiptOrder.orderNumber || selectedReceiptOrder.id?.slice(-4)}</p>
+              <h4 className="text-lg font-black tracking-tight">{storeInfo?.name?.toUpperCase() || 'ORDER RECEIPT'}</h4>
+              <p className="text-xs text-zinc-500 font-bold">
+                {hasKotPrinting ? 'KOT Kitchen Receipt' : 'Order Slip'} #{selectedReceiptOrder.orderNumber || selectedReceiptOrder.id?.slice(-4)}
+              </p>
               <p className="text-[10px] text-zinc-400">{new Date(selectedReceiptOrder.createdAt || Date.now()).toLocaleString()}</p>
             </div>
 
@@ -1047,13 +1179,13 @@ export default function OrdersTab() {
             <div className="pt-2 flex items-center gap-2">
               <button
                 onClick={() => window.print()}
-                className="flex-1 py-3 rounded-full bg-zinc-900 text-white font-bold text-xs uppercase tracking-wider"
+                className="flex-1 py-3 rounded-full bg-zinc-900 text-white font-bold text-xs uppercase tracking-wider cursor-pointer border-0"
               >
-                Print Slip
+                {hasKotPrinting ? 'Print KOT Kitchen Bill' : 'Print Slip'}
               </button>
               <button
                 onClick={() => setSelectedReceiptOrder(null)}
-                className="py-3 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs"
+                className="py-3 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer border-0"
               >
                 Close
               </button>

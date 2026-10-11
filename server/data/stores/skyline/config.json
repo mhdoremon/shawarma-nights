@@ -1,8 +1,34 @@
 {
   "name": "Skyline Premium Outfits",
   "slug": "skyline",
+  "type": "fashion",
   "vertical": "clothing",
   "status": "active",
+  "capabilities": {
+    "storeType": "fashion",
+    "catalog": {
+      "hasVegNonVeg": false,
+      "hasFoodAddons": false,
+      "hasSizes": true,
+      "hasColors": true,
+      "hasLookbook": true,
+      "hasServiceDuration": false,
+      "hasUnitWeights": false
+    },
+    "orders": {
+      "hasKotPrinting": false,
+      "hasRiderDispatch": true,
+      "hasAppointments": false,
+      "hasAdvanceToken": false,
+      "hasDeliveryOtp": true
+    },
+    "settings": {
+      "hasDeliveryRadius": true,
+      "hasFreeDeliveryThreshold": true,
+      "hasAdvanceTokenFee": false,
+      "hasTableBooking": false
+    }
+  },
   "owner": {
     "name": "Skyline Premium Outfits",
     "phone": "7023963189",

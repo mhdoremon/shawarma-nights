@@ -122,7 +122,8 @@ export const getStoreSettings = (req, res) => {
             settings: config.settings, 
             payment: config.payment, 
             socials: config.socials, 
-            taxesAndCharges: config.taxesAndCharges 
+            taxesAndCharges: config.taxesAndCharges,
+            capabilities: config.capabilities
         });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });

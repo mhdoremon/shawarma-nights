@@ -4,15 +4,27 @@ import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as Image
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 
 export default function MenuTab() {
-  const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeInfo, storeId } = useMaster();
+  const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeInfo, storeId, capabilities } = useMaster();
   const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
   const isFashion = storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline');
+
+  // Capability-driven flags with backwards-compatible fallbacks
+  const hasVegNonVeg = capabilities?.catalog?.hasVegNonVeg ?? !isSalon;
+  const hasSizes = capabilities?.catalog?.hasSizes ?? isFashion;
+  const hasColors = capabilities?.catalog?.hasColors ?? isFashion;
+  const hasLookbook = capabilities?.catalog?.hasLookbook ?? isFashion;
+  const hasServiceDuration = capabilities?.catalog?.hasServiceDuration ?? isSalon;
+  const hasFoodAddons = capabilities?.catalog?.hasFoodAddons ?? (!isSalon && !isFashion);
+
+  const itemNoun = capabilities?.catalog?.itemNoun || (hasServiceDuration ? 'Service' : (hasSizes && hasColors) ? 'Product' : 'Dish');
+  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasServiceDuration ? 'Services' : (hasSizes && hasColors) ? 'Products' : 'Dishes');
+  const addBtnText = `+ ADD ${itemNoun.toUpperCase()}`;
 
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Modals state
-  const [modalItem, setModalItem] = useState(null); // Dish Add/Edit Modal
+  const [modalItem, setModalItem] = useState(null); // Item Add/Edit Modal
   const [heroModalDish, setHeroModalDish] = useState(null); // Set Hero Offer Modal
 
   // Hero Offer Modal form state
@@ -28,15 +40,15 @@ export default function MenuTab() {
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Ready Photo Presets
-  const photoPresets = isSalon ? [
+  // Ready Photo Presets adapted to capability
+  const photoPresets = hasServiceDuration ? [
     { name: 'Fade Haircut', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80' },
     { name: 'Beard Grooming', url: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&auto=format&fit=crop&q=80' },
     { name: 'Classic Scissors', url: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&auto=format&fit=crop&q=80' },
     { name: 'Hair Color & Styling', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80' },
     { name: 'Facial & Glow', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop&q=80' },
     { name: 'Head Massage', url: 'https://images.unsplash.com/photo-1519824145371-296894a0daa9?w=800&auto=format&fit=crop&q=80' }
-  ] : isFashion ? [
+  ] : (hasSizes && hasColors) ? [
     { name: 'Slick Pro Sneakers', url: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85' },
     { name: 'Retro Runners', url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80' },
     { name: 'Streetwear Lows', url: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80' },
@@ -158,8 +170,8 @@ export default function MenuTab() {
       }).filter(Boolean);
     }
 
-    // Process durationMinutes for salons
-    const durMins = modalItem.durationMinutes ? Number(modalItem.durationMinutes) : (isSalon ? 30 : null);
+    // Process durationMinutes for salons & appointment services
+    const durMins = modalItem.durationMinutes ? Number(modalItem.durationMinutes) : (hasServiceDuration ? 30 : null);
 
     // Process addons
     let addons = modalItem.addons;
@@ -174,15 +186,15 @@ export default function MenuTab() {
 
     const finalAddons = Array.isArray(addons) && addons.length > 0 ? addons : (modalItem.addons || []);
     const existingOptions = modalItem.options || {};
-    const updatedOptions = finalAddons.length > 0 ? { ...existingOptions, addons: finalAddons } : existingOptions;
+    const updatedOptions = (hasFoodAddons && finalAddons.length > 0) ? { ...existingOptions, addons: finalAddons } : existingOptions;
 
     const payload = {
       ...modalItem,
       name: modalItem.name.trim(),
       price: Number(modalItem.price) || 0,
       originalPrice: modalItem.originalPrice ? Number(modalItem.originalPrice) : 0,
-      category: (modalItem.category || (isFashion ? 'men' : isSalon ? 'haircut' : 'shawarmas')).toLowerCase(),
-      isVeg: Boolean(modalItem.isVeg),
+      category: (modalItem.category || (hasSizes && hasColors ? 'shoes' : hasServiceDuration ? 'haircut' : 'shawarmas')).toLowerCase(),
+      isVeg: hasVegNonVeg ? Boolean(modalItem.isVeg) : false,
       badge: modalItem.badge || '',
       prepTime: modalItem.prepTime || (durMins ? `${durMins} min` : '15-20 min'),
       durationMinutes: durMins,
@@ -190,10 +202,10 @@ export default function MenuTab() {
       description: modalItem.description || '',
       available: modalItem.available !== false,
       image: modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
-      availableSizes: Array.isArray(availableSizes) && availableSizes.length > 0 ? availableSizes : (modalItem.availableSizes || []),
-      colors: Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || []),
-      secondaryImage: modalItem.secondaryImage || '',
-      addons: finalAddons,
+      availableSizes: hasSizes ? (Array.isArray(availableSizes) && availableSizes.length > 0 ? availableSizes : (modalItem.availableSizes || [])) : [],
+      colors: hasColors ? (Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || [])) : [],
+      secondaryImage: hasLookbook ? (modalItem.secondaryImage || '') : '',
+      addons: hasFoodAddons ? finalAddons : [],
       options: updatedOptions
     };
 
@@ -253,8 +265,8 @@ export default function MenuTab() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isSalon ? "Search services by name or category..." : "Search dishes by name or category..."}
-              className={`w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
+              placeholder={hasServiceDuration ? "Search services by name or category..." : (hasSizes && hasColors) ? "Search products by name or category..." : "Search dishes by name or category..."}
+              className={`w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
             />
           </div>
 
@@ -262,22 +274,28 @@ export default function MenuTab() {
           <button
             onClick={() => setModalItem({ 
               name: '', 
-              price: isSalon ? '499' : '179', 
+              price: hasServiceDuration ? '499' : (hasSizes && hasColors ? '1499' : '179'), 
               originalPrice: '0',
-              category: isSalon ? 'haircut' : 'shawarmas', 
+              category: hasServiceDuration ? 'haircut' : (hasSizes && hasColors ? 'shoes' : 'shawarmas'), 
               isVeg: false,
               badge: '',
-              prepTime: isSalon ? '30 min' : '15-20 min',
+              prepTime: hasServiceDuration ? '30 min' : '15-20 min',
               available: true, 
-              image: isSalon 
+              image: hasServiceDuration 
                 ? 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80'
-                : 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
-              description: ''
+                : (hasSizes && hasColors
+                  ? 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85'
+                  : 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'),
+              description: '',
+              availableSizes: '',
+              colors: '',
+              secondaryImage: '',
+              addons: ''
             })}
-            className={`px-5 py-3 rounded-full ${isSalon ? 'bg-[#d4af37] hover:bg-[#b8972e]' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
+            className={`px-5 py-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{isSalon ? '+ ADD SERVICE' : '+ ADD DISH'}</span>
+            <span>{addBtnText}</span>
           </button>
         </div>
 
@@ -300,7 +318,7 @@ export default function MenuTab() {
                     : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
                 }`}
               >
-                <span>{cat === 'ALL' ? 'All Dishes' : cat}</span>
+                <span>{cat === 'ALL' ? `All ${itemNounPlural}` : cat}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                   active ? 'bg-white text-[#DC2626]' : 'bg-zinc-200 text-zinc-600'
                 }`}>
@@ -316,8 +334,8 @@ export default function MenuTab() {
       {/* Dishes Grid */}
       {filteredDishes.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
-          <p className="font-bold text-zinc-700">No dishes found in category "{activeCategory}"</p>
-          <p className="text-xs">Click "+ ADD DISH" to add your dish to this section.</p>
+          <p className="font-bold text-zinc-700">No {itemNounPlural.toLowerCase()} found in category "{activeCategory}"</p>
+          <p className="text-xs">Click "{addBtnText}" to add your {itemNoun.toLowerCase()} to this section.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -342,16 +360,18 @@ export default function MenuTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
-                        {dish.category || 'Food'}
+                        {dish.category || itemNoun}
                       </span>
-                      {dish.isVeg ? (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
-                          VEG
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-red-50 text-red-700">
-                          NON-VEG
-                        </span>
+                      {hasVegNonVeg && (
+                        dish.isVeg ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">
+                            VEG
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-red-50 text-red-700">
+                            NON-VEG
+                          </span>
+                        )
                       )}
                       {dish.badge && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800">
@@ -409,7 +429,7 @@ export default function MenuTab() {
                 )}
 
                 {/* BUTTON: SET ON HOMEPAGE HERO BANNER (Only when Hero Banner & Offers are toggled ON) */}
-                {storeInfo?.settings?.showHeroBanner !== false && storeInfo?.settings?.showOfferCards !== false && !isSalon && (
+                {storeInfo?.settings?.showHeroBanner !== false && storeInfo?.settings?.showOfferCards !== false && !hasServiceDuration && (capabilities?.settings?.hasHeroBanner !== false) && (
                   <button
                     type="button"
                     onClick={() => openHeroOfferModal(dish)}
@@ -474,7 +494,7 @@ export default function MenuTab() {
           <div className="bg-white text-zinc-900 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0 my-8">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <h3 className="text-base font-black text-zinc-900">
-                {modalItem.id ? (isSalon ? 'Edit Service' : 'Edit Dish') : (isSalon ? 'Add New Service' : 'Add New Dish')}
+                {modalItem.id ? `Edit ${itemNoun}` : `Add New ${itemNoun}`}
               </h3>
               <button
                 onClick={() => setModalItem(null)}
@@ -489,8 +509,8 @@ export default function MenuTab() {
               {/* 1. PHOTO PICKER SECTION (Device Upload + Presets + URL) */}
               <div className="bg-[#FFFBF7] p-4 rounded-2xl space-y-3 border-0">
                 <div className="flex items-center justify-between">
-                  <label className={`block text-xs font-black ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'} uppercase tracking-wider`}>
-                    {isSalon ? 'SERVICE PHOTO (GALLERY YA PRESET SE)' : 'DISH PHOTO (GALLERY YA PRESET SE)'}
+                  <label className={`block text-xs font-black ${hasServiceDuration ? 'text-[#d4af37]' : (hasSizes && hasColors) ? 'text-zinc-900' : 'text-[#DC2626]'} uppercase tracking-wider`}>
+                    {itemNoun.toUpperCase()} PHOTO (GALLERY YA PRESET SE)
                   </label>
                   {isUploading && <span className="text-[10px] text-zinc-500 font-bold">Uploading...</span>}
                 </div>
@@ -513,7 +533,7 @@ export default function MenuTab() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-2.5 px-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0"
+                      className={`w-full py-2.5 px-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0`}
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>Gallery Se Upload Karein</span>
@@ -529,10 +549,10 @@ export default function MenuTab() {
                   </div>
                 </div>
 
-                {/* 1-Tap Ready Food Photo Presets */}
+                {/* 1-Tap Ready Photo Presets */}
                 <div>
                   <span className="text-[10px] text-zinc-500 font-bold block mb-1">
-                    1-Tap Ready Food Photo Presets:
+                    1-Tap Ready {itemNoun} Photo Presets:
                   </span>
                   <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                     {photoPresets.map((preset, idx) => (
@@ -549,23 +569,25 @@ export default function MenuTab() {
                 </div>
               </div>
 
-              {/* 2. DISH / SERVICE NAME + QUICK CHIPS */}
+              {/* 2. ITEM NAME + QUICK CHIPS */}
               <div>
                 <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                  {isSalon ? 'SERVICE NAME *' : 'DISH NAME *'}
+                  {itemNoun.toUpperCase()} NAME *
                 </label>
                 <input
                   type="text"
                   required
                   value={modalItem.name || ''}
                   onChange={(e) => setModalItem({ ...modalItem, name: e.target.value })}
-                  placeholder={isSalon ? "e.g. Royal Fade Haircut & Beard Grooming" : "e.g. Charcoal Chicken Shawarma Roll"}
-                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
+                  placeholder={hasServiceDuration ? "e.g. Royal Fade Haircut & Beard Grooming" : (hasSizes && hasColors) ? "e.g. Slick Pro Streetwear Sneakers" : "e.g. Charcoal Chicken Shawarma Roll"}
+                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 scrollbar-none">
-                  {(isSalon
+                  {(hasServiceDuration
                     ? ['Fade Haircut', 'Beard Trim & Styling', 'Gold Facial', 'Head Massage', 'Hair Spa', 'Classic Shave']
-                    : ['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings']
+                    : (hasSizes && hasColors)
+                      ? ['Slick Pro Sneakers', 'Retro Runners', 'Streetwear Lows', 'Minimalist Oxford', 'Linen Shirt', 'Canvas Slip-on']
+                      : ['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings']
                   ).map(n => (
                     <button
                       key={n}
@@ -589,13 +611,15 @@ export default function MenuTab() {
                   required
                   value={modalItem.category || ''}
                   onChange={(e) => setModalItem({ ...modalItem, category: e.target.value })}
-                  placeholder={isSalon ? "haircut, beard, styling, facial, spa..." : "shawarmas, platters, fries, drinks..."}
-                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
+                  placeholder={hasServiceDuration ? "haircut, beard, styling, facial, spa..." : (hasSizes && hasColors) ? "shoes, shirts, jackets, trousers, accessories..." : "shawarmas, platters, fries, drinks..."}
+                  className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
-                  {(isSalon 
+                  {(hasServiceDuration 
                     ? ['haircut', 'beard', 'styling', 'facial', 'spa', 'massage'] 
-                    : ['shawarmas', 'platters', 'fries', 'drinks', 'starters']
+                    : (hasSizes && hasColors)
+                      ? ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories']
+                      : ['shawarmas', 'platters', 'fries', 'drinks', 'starters']
                   ).map(c => (
                     <button
                       key={c}
@@ -609,8 +633,8 @@ export default function MenuTab() {
                 </div>
               </div>
 
-              {/* 4. FOOD TYPE (Veg / Non-Veg) - Hidden for Salons */}
-              {!isSalon && (
+              {/* 4. FOOD TYPE (Veg / Non-Veg) - ONLY IF hasVegNonVeg */}
+              {hasVegNonVeg && (
                 <div>
                   <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1.5">
                     FOOD TYPE
@@ -721,17 +745,17 @@ export default function MenuTab() {
 
                 <div>
                   <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                    {isSalon ? 'SERVICE DURATION' : 'PREP TIME'}
+                    {hasServiceDuration ? 'SERVICE DURATION' : 'PREP TIME'}
                   </label>
                   <input
                     type="text"
-                    value={modalItem.prepTime || (isSalon ? '30 min' : '15-20 min')}
+                    value={modalItem.prepTime || (hasServiceDuration ? '30 min' : '15-20 min')}
                     onChange={(e) => setModalItem({ ...modalItem, prepTime: e.target.value })}
-                    placeholder={isSalon ? '30 min' : '15-20 min'}
-                    className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${isSalon ? 'focus:ring-[#d4af37]' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
+                    placeholder={hasServiceDuration ? '30 min' : '15-20 min'}
+                    className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                   />
                   <div className="flex items-center gap-1 pt-1.5 flex-wrap">
-                    {(isSalon ? ['20 min', '30 min', '45 min', '60 min'] : ['10-15 min', '15-20 min', '20-25 min']).map(t => (
+                    {(hasServiceDuration ? ['20 min', '30 min', '45 min', '60 min'] : ['10-15 min', '15-20 min', '20-25 min']).map(t => (
                       <button
                         key={t}
                         type="button"
@@ -754,7 +778,7 @@ export default function MenuTab() {
                   rows={2}
                   value={modalItem.description || ''}
                   onChange={(e) => setModalItem({ ...modalItem, description: e.target.value })}
-                  placeholder="Ingredients, toasted saj bread, garlic toum..."
+                  placeholder={hasServiceDuration ? "Service details, grooming products used..." : (hasSizes && hasColors) ? "Material, fabric, fit, styling tips..." : "Ingredients, toasted saj bread, garlic toum..."}
                   className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
                 />
               </div>
@@ -787,144 +811,152 @@ export default function MenuTab() {
               </div>
 
               {/* 9. DYNAMIC ATTRIBUTES: SIZES, COLORS, DURATION, ADDONS */}
-              <div className="pt-2 border-t border-zinc-100 space-y-3">
-                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                  ✦ Product Customization & Attributes
-                </div>
-
-                {/* SIZES (Footwear / Apparel / General) */}
-                <div>
-                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                    AVAILABLE SIZES (Comma Separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={Array.isArray(modalItem.availableSizes) ? modalItem.availableSizes.join(', ') : (modalItem.availableSizes || '')}
-                    onChange={(e) => setModalItem({ ...modalItem, availableSizes: e.target.value })}
-                    placeholder="e.g. UK 6, UK 7, UK 8, UK 9, UK 10 or S, M, L, XL"
-                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                  />
-                  <div className="flex items-center gap-1 pt-1 flex-wrap">
-                    {['UK 6, UK 7, UK 8, UK 9, UK 10', 'S, M, L, XL, XXL', 'UK 7', 'UK 8', 'UK 9', 'UK 10'].map(sz => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => setModalItem({ ...modalItem, availableSizes: sz })}
-                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
-                      >
-                        {sz}
-                      </button>
-                    ))}
+              {(hasSizes || hasColors || hasLookbook || hasServiceDuration || hasFoodAddons) && (
+                <div className="pt-2 border-t border-zinc-100 space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    ✦ {itemNoun} Customization & Attributes
                   </div>
-                </div>
 
-                {/* COLORS (Fashion & Retail) */}
-                <div>
-                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                    COLOR SWATCHES (Comma Separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={Array.isArray(modalItem.colors) ? modalItem.colors.map(c => typeof c === 'string' ? c : c.name).join(', ') : (modalItem.colors || '')}
-                    onChange={(e) => setModalItem({ ...modalItem, colors: e.target.value })}
-                    placeholder="e.g. Onyx Black, Glacier White, Camel Tan"
-                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                  />
-                  <div className="flex items-center gap-1 pt-1 flex-wrap">
-                    {['Onyx Black, Glacier White', 'Navy Blue, Camel Tan', 'Pure White', 'Jet Black'].map(col => (
-                      <button
-                        key={col}
-                        type="button"
-                        onClick={() => setModalItem({ ...modalItem, colors: col })}
-                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
-                      >
-                        {col}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* LOOKBOOK / SECONDARY PHOTO */}
-                <div>
-                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                    SECONDARY / LOOKBOOK PHOTO (URL)
-                  </label>
-                  <input
-                    type="url"
-                    value={modalItem.secondaryImage || ''}
-                    onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                  />
-                </div>
-
-                {/* SERVICE DURATION IN MINUTES (Salon / Appointments) */}
-                {isSalon && (
-                  <div>
-                    <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                      EXACT SERVICE DURATION (Minutes for Calendar Collision) *
-                    </label>
-                    <input
-                      type="number"
-                      value={modalItem.durationMinutes || ''}
-                      onChange={(e) => setModalItem({ ...modalItem, durationMinutes: e.target.value })}
-                      placeholder="30"
-                      className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#d4af37] focus:outline-none transition-all shadow-xs border-0"
-                    />
-                    <div className="flex items-center gap-1 pt-1 flex-wrap">
-                      {['15', '30', '45', '60', '90', '120'].map(m => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => setModalItem({ ...modalItem, durationMinutes: m, prepTime: `${m} min` })}
-                          className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
-                        >
-                          {m} Mins
-                        </button>
-                      ))}
+                  {/* SIZES (Footwear / Apparel / Fashion) */}
+                  {hasSizes && (
+                    <div>
+                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                        AVAILABLE SIZES (Comma Separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={Array.isArray(modalItem.availableSizes) ? modalItem.availableSizes.join(', ') : (modalItem.availableSizes || '')}
+                        onChange={(e) => setModalItem({ ...modalItem, availableSizes: e.target.value })}
+                        placeholder="e.g. UK 6, UK 7, UK 8, UK 9, UK 10 or S, M, L, XL"
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                      />
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {['UK 6, UK 7, UK 8, UK 9, UK 10', 'S, M, L, XL, XXL', 'UK 7', 'UK 8', 'UK 9', 'UK 10'].map(sz => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => setModalItem({ ...modalItem, availableSizes: sz })}
+                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* FOOD ADDONS & EXTRAS (Food Stores) */}
-                {!isSalon && (
-                  <div>
-                    <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                      ADDONS & EXTRAS (Format: Name:Price)
-                    </label>
-                    <input
-                      type="text"
-                      value={Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '')}
-                      onChange={(e) => setModalItem({ ...modalItem, addons: e.target.value })}
-                      placeholder="Extra Cheese:30, Extra Toum:20, Fries Inside:40"
-                      className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                    />
-                    <div className="flex items-center gap-1 pt-1 flex-wrap">
-                      {['Extra Cheese:30', 'Extra Toum:20', 'French Fries Inside:40', 'Toasted Saj Bread:20'].map(ad => (
-                        <button
-                          key={ad}
-                          type="button"
-                          onClick={() => {
-                            const curr = Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '');
-                            const next = curr ? `${curr}, ${ad}` : ad;
-                            setModalItem({ ...modalItem, addons: next });
-                          }}
-                          className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
-                        >
-                          + {ad}
-                        </button>
-                      ))}
+                  {/* COLORS (Fashion & Retail) */}
+                  {hasColors && (
+                    <div>
+                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                        COLOR SWATCHES (Comma Separated)
+                      </label>
+                      <input
+                        type="text"
+                        value={Array.isArray(modalItem.colors) ? modalItem.colors.map(c => typeof c === 'string' ? c : c.name).join(', ') : (modalItem.colors || '')}
+                        onChange={(e) => setModalItem({ ...modalItem, colors: e.target.value })}
+                        placeholder="e.g. Onyx Black, Glacier White, Camel Tan"
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                      />
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {['Onyx Black, Glacier White', 'Navy Blue, Camel Tan', 'Pure White', 'Jet Black'].map(col => (
+                          <button
+                            key={col}
+                            type="button"
+                            onClick={() => setModalItem({ ...modalItem, colors: col })}
+                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                          >
+                            {col}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+
+                  {/* LOOKBOOK / SECONDARY PHOTO */}
+                  {hasLookbook && (
+                    <div>
+                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                        SECONDARY / LOOKBOOK PHOTO (URL)
+                      </label>
+                      <input
+                        type="url"
+                        value={modalItem.secondaryImage || ''}
+                        onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                      />
+                    </div>
+                  )}
+
+                  {/* SERVICE DURATION IN MINUTES (Salon / Appointments) */}
+                  {hasServiceDuration && (
+                    <div>
+                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                        EXACT SERVICE DURATION (Minutes for Calendar Collision) *
+                      </label>
+                      <input
+                        type="number"
+                        value={modalItem.durationMinutes || ''}
+                        onChange={(e) => setModalItem({ ...modalItem, durationMinutes: e.target.value })}
+                        placeholder="30"
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#d4af37] focus:outline-none transition-all shadow-xs border-0"
+                      />
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {['15', '30', '45', '60', '90', '120'].map(m => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setModalItem({ ...modalItem, durationMinutes: m, prepTime: `${m} min` })}
+                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                          >
+                            {m} Mins
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FOOD ADDONS & EXTRAS (Food Stores) */}
+                  {hasFoodAddons && (
+                    <div>
+                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                        ADDONS & EXTRAS (Format: Name:Price)
+                      </label>
+                      <input
+                        type="text"
+                        value={Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '')}
+                        onChange={(e) => setModalItem({ ...modalItem, addons: e.target.value })}
+                        placeholder="Extra Cheese:30, Extra Toum:20, Fries Inside:40"
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                      />
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {['Extra Cheese:30', 'Extra Toum:20', 'French Fries Inside:40', 'Toasted Saj Bread:20'].map(ad => (
+                          <button
+                            key={ad}
+                            type="button"
+                            onClick={() => {
+                              const curr = Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '');
+                              const next = curr ? `${curr}, ${ad}` : ad;
+                              setModalItem({ ...modalItem, addons: next });
+                            }}
+                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                          >
+                            + {ad}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="pt-2 flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0"
+                  className={`flex-1 py-3.5 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0`}
                 >
-                  {modalItem.id ? 'UPDATE DISH' : 'ADD DISH TO MENU'}
+                  {modalItem.id ? `UPDATE ${itemNoun.toUpperCase()}` : `ADD ${itemNoun.toUpperCase()} TO ${hasServiceDuration ? 'SERVICES' : 'MENU'}`}
                 </button>
                 <button
                   type="button"

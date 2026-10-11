@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { MongoClient } from 'mongodb';
 import config from '../config/index.js';
+import { resolveStoreCapabilities } from '../utils/storeCapabilities.js';
 
 // In-memory cache: { "shawarma": { "menu.json": {...}, "orders.json": [...] } }
 const cache = {};
@@ -202,10 +203,27 @@ function storeExists(storeId) {
 }
 
 /**
- * Get store config.
+ * Get store config with resolved capabilities injected.
  */
 function getStoreConfig(storeId) {
-  return read(storeId, 'config.json');
+  const cfg = read(storeId, 'config.json');
+  if (!cfg) return null;
+  return {
+    ...cfg,
+    capabilities: resolveStoreCapabilities(storeId, cfg)
+  };
+}
+
+/**
+ * Get full store data package with resolved capabilities injected.
+ */
+function getStoreData(storeId) {
+  const cfg = getStoreConfig(storeId);
+  if (!cfg) return null;
+  return {
+    ...cfg,
+    capabilities: resolveStoreCapabilities(storeId, cfg)
+  };
 }
 
 /**
@@ -473,6 +491,7 @@ const DataLayer = {
   initStore,
   storeExists,
   getStoreConfig,
+  getStoreData,
   updateStoreConfig,
   listStoreIds,
   deleteStore,

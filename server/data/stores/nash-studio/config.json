@@ -1,8 +1,34 @@
 {
   "name": "Nash Studio",
   "slug": "nash-studio",
+  "type": "salon",
   "vertical": "salon",
   "status": "active",
+  "capabilities": {
+    "storeType": "salon",
+    "catalog": {
+      "hasVegNonVeg": false,
+      "hasFoodAddons": false,
+      "hasSizes": false,
+      "hasColors": false,
+      "hasLookbook": false,
+      "hasServiceDuration": true,
+      "hasUnitWeights": false
+    },
+    "orders": {
+      "hasKotPrinting": false,
+      "hasRiderDispatch": false,
+      "hasAppointments": true,
+      "hasAdvanceToken": true,
+      "hasDeliveryOtp": false
+    },
+    "settings": {
+      "hasDeliveryRadius": false,
+      "hasFreeDeliveryThreshold": false,
+      "hasAdvanceTokenFee": true,
+      "hasTableBooking": false
+    }
+  },
   "owner": {
     "name": "Nash Studio",
     "phone": "7023963189",

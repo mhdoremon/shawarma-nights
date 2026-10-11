@@ -18,6 +18,160 @@ const WS_BASE = window.location.hostname === 'localhost' || window.location.host
   ? 'ws://localhost:5000'
   : 'wss://churuone-backend.onrender.com';
 
+// ============================================================================
+// CLIENT CAPABILITY RESOLVER
+// Resolves store capabilities dynamically based on storeId, storeConfig, or vertical
+// ============================================================================
+export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
+  const rawVertical = (
+    storeConfig?.vertical ||
+    storeConfig?.type ||
+    storeConfig?.category ||
+    storeConfig?.businessType ||
+    ''
+  ).toLowerCase();
+  const sId = (storeId || '').toLowerCase();
+
+  let vertical = 'food';
+  if (
+    ['salon', 'barbershop', 'clinic', 'doctor', 'appointment', 'spa', 'dentist'].includes(rawVertical) ||
+    sId.includes('nash') || sId.includes('salon') || sId.includes('barber') || sId.includes('beard') || sId.includes('clinic') || sId.includes('doctor')
+  ) {
+    vertical = 'salon';
+  } else if (
+    ['fashion', 'apparel', 'clothing', 'footwear', 'shoes', 'boutique', 'retail'].includes(rawVertical) ||
+    sId.includes('skyline') || sId.includes('fashion') || sId.includes('cloth') || sId.includes('shoe') || sId.includes('wear')
+  ) {
+    vertical = 'fashion';
+  }
+
+  const profiles = {
+    salon: {
+      vertical: 'salon',
+      catalog: {
+        hasVegNonVeg: false,
+        hasSizes: false,
+        hasColors: false,
+        hasLookbook: false,
+        hasServiceDuration: true,
+        hasFoodAddons: false,
+        itemNoun: 'Service',
+        itemNounPlural: 'Services',
+        placeholderCategories: 'haircut, beard, facial, spa, styling...',
+        placeholderItemName: 'e.g. Royal Fade Haircut & Beard Grooming',
+        defaultCategory: 'haircut',
+        defaultPrice: '499',
+        categorySuggestions: ['haircut', 'beard', 'styling', 'facial', 'spa', 'massage'],
+        nameSuggestions: ['Fade Haircut', 'Beard Trim & Styling', 'Gold Facial', 'Head Massage', 'Hair Spa', 'Classic Shave'],
+      },
+      orders: {
+        hasKotPrinting: false,
+        hasRiderDispatch: false,
+        hasDeliveryOtp: false,
+        hasAppointments: true,
+        hasAdvanceToken: true,
+        hasTicketPrinting: true,
+      },
+      settings: {
+        hasAdvanceTokenFee: true,
+        hasFreeDeliveryThreshold: false,
+        hasDeliveryFee: false,
+        hasTaxesAndPackaging: false,
+        hasHeroBanner: false,
+        hasHeroVideo: true,
+        hasFranchise: false,
+        hasDayWiseHours: true,
+      }
+    },
+    fashion: {
+      vertical: 'fashion',
+      catalog: {
+        hasVegNonVeg: false,
+        hasSizes: true,
+        hasColors: true,
+        hasLookbook: true,
+        hasServiceDuration: false,
+        hasFoodAddons: false,
+        itemNoun: 'Product',
+        itemNounPlural: 'Products',
+        placeholderCategories: 'shoes, shirts, jackets, trousers, accessories...',
+        placeholderItemName: 'e.g. Slick Pro Streetwear Sneakers',
+        defaultCategory: 'shoes',
+        defaultPrice: '1499',
+        categorySuggestions: ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories'],
+        nameSuggestions: ['Slick Pro Sneakers', 'Retro Runners', 'Streetwear Lows', 'Minimalist Oxford', 'Linen Shirt', 'Canvas Slip-on'],
+      },
+      orders: {
+        hasKotPrinting: false,
+        hasRiderDispatch: true,
+        hasDeliveryOtp: true,
+        hasAppointments: false,
+        hasAdvanceToken: false,
+        hasTicketPrinting: false,
+      },
+      settings: {
+        hasAdvanceTokenFee: false,
+        hasFreeDeliveryThreshold: true,
+        hasDeliveryFee: true,
+        hasTaxesAndPackaging: true,
+        hasHeroBanner: true,
+        hasHeroVideo: false,
+        hasFranchise: false,
+        hasDayWiseHours: false,
+      }
+    },
+    food: {
+      vertical: 'food',
+      catalog: {
+        hasVegNonVeg: true,
+        hasSizes: false,
+        hasColors: false,
+        hasLookbook: false,
+        hasServiceDuration: false,
+        hasFoodAddons: true,
+        itemNoun: 'Dish',
+        itemNounPlural: 'Dishes',
+        placeholderCategories: 'shawarmas, platters, fries, drinks, starters...',
+        placeholderItemName: 'e.g. Charcoal Chicken Shawarma Roll',
+        defaultCategory: 'shawarmas',
+        defaultPrice: '179',
+        categorySuggestions: ['shawarmas', 'platters', 'fries', 'drinks', 'starters', 'rolls'],
+        nameSuggestions: ['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings'],
+      },
+      orders: {
+        hasKotPrinting: true,
+        hasRiderDispatch: true,
+        hasDeliveryOtp: true,
+        hasAppointments: false,
+        hasAdvanceToken: false,
+        hasTicketPrinting: false,
+      },
+      settings: {
+        hasAdvanceTokenFee: false,
+        hasFreeDeliveryThreshold: true,
+        hasDeliveryFee: true,
+        hasTaxesAndPackaging: true,
+        hasHeroBanner: true,
+        hasHeroVideo: false,
+        hasFranchise: true,
+        hasDayWiseHours: false,
+      }
+    }
+  };
+
+  const base = profiles[vertical] || profiles.food;
+  const custom = storeConfig?.capabilities || {};
+
+  return {
+    ...base,
+    ...custom,
+    vertical: custom.vertical || base.vertical,
+    catalog: { ...base.catalog, ...(custom.catalog || {}) },
+    orders: { ...base.orders, ...(custom.orders || {}) },
+    settings: { ...base.settings, ...(custom.settings || {}) },
+  };
+}
+
 export const MasterProvider = ({ children }) => {
   const [storeId, setStoreId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -72,6 +226,33 @@ export const MasterProvider = ({ children }) => {
   const [heroBanner, setHeroBanner] = useState({});
   const [smsLogs, setSmsLogs] = useState([]);
   const [assignedOrders, setAssignedOrders] = useState([]);
+
+  // Capabilities Matrix state dynamically resolved for the active store
+  const [capabilities, setCapabilities] = useState(() => resolveClientCapabilities(storeId, {}));
+
+  // Registered / Available Delivery Riders
+  const [deliveryBoys, setDeliveryBoys] = useState([
+    { id: 'db-1', name: 'Test Rider', phone: '9876543210', vehicle: 'Bike RJ-18' },
+    { id: 'db-2', name: 'Express Courier', phone: '7427050263', vehicle: 'Delivery Van' }
+  ]);
+
+  // Keep capabilities in sync whenever storeId or storeInfo changes
+  useEffect(() => {
+    setCapabilities(prev => {
+      const explicit = storeInfo?.capabilities;
+      const resolved = resolveClientCapabilities(storeId, storeInfo);
+      if (explicit) {
+        return {
+          ...resolved,
+          ...explicit,
+          catalog: { ...resolved.catalog, ...(explicit.catalog || {}) },
+          orders: { ...resolved.orders, ...(explicit.orders || {}) },
+          settings: { ...resolved.settings, ...(explicit.settings || {}) }
+        };
+      }
+      return resolved;
+    });
+  }, [storeId, storeInfo]);
 
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
@@ -148,7 +329,13 @@ export const MasterProvider = ({ children }) => {
         if (data.menu) setMenu(data.menu);
         if (data.categories) setCategories(data.categories);
         if (data.deals) setDeals(data.deals);
-        if (data.storeInfo) setStoreInfo(data.storeInfo);
+        if (data.storeInfo) {
+          setStoreInfo(data.storeInfo);
+          const resolved = resolveClientCapabilities(storeId, { ...data.storeInfo, capabilities: data.capabilities || data.storeInfo.capabilities });
+          setCapabilities(resolved);
+        } else if (data.capabilities) {
+          setCapabilities(resolveClientCapabilities(storeId, { capabilities: data.capabilities }));
+        }
         if (data.heroBanner) setHeroBanner(data.heroBanner);
         if (data.reviews) setReviews(data.reviews);
       }
@@ -219,7 +406,13 @@ export const MasterProvider = ({ children }) => {
               if (payload.reviews) setReviews(payload.reviews);
               if (payload.franchise) setFranchise(payload.franchise);
               if (payload.franchiseInquiries) setFranchiseInquiries(payload.franchiseInquiries);
-              if (payload.storeInfo) setStoreInfo(payload.storeInfo);
+              if (payload.storeInfo) {
+                setStoreInfo(payload.storeInfo);
+                const resolved = resolveClientCapabilities(storeId, { ...payload.storeInfo, capabilities: payload.capabilities || payload.storeInfo.capabilities });
+                setCapabilities(resolved);
+              } else if (payload.capabilities) {
+                setCapabilities(resolveClientCapabilities(storeId, { capabilities: payload.capabilities }));
+              }
               if (payload.heroBanner) setHeroBanner(payload.heroBanner);
               break;
             }
@@ -375,6 +568,9 @@ export const MasterProvider = ({ children }) => {
       const data = await res.json();
       if (data.success && data.token) {
         saveAuthSession(targetStoreId, data.token, 'dukandar', { username, storeId: targetStoreId });
+        const storeConf = data.storeInfo || data.storeConfig || {};
+        const caps = data.capabilities || storeConf.capabilities;
+        setCapabilities(resolveClientCapabilities(targetStoreId, { ...storeConf, capabilities: caps }));
         showToast('ChuruOne Dukandar Login Successful!', 'success');
         return { success: true };
       } else {
@@ -670,6 +866,7 @@ export const MasterProvider = ({ children }) => {
   const switchStoreId = (newId) => {
     const cleanId = (newId || 'shawarma').trim().toLowerCase();
     setStoreId(cleanId);
+    setCapabilities(resolveClientCapabilities(cleanId, {}));
     localStorage.setItem('churuone_master_store_id', cleanId);
     showToast(`Switched to Store: ${cleanId}`, 'success');
   };
@@ -679,6 +876,11 @@ export const MasterProvider = ({ children }) => {
       storeId,
       setStoreId,
       switchStoreId,
+      capabilities,
+      setCapabilities,
+      deliveryBoys,
+      setDeliveryBoys,
+      resolveClientCapabilities,
       token,
       role,
       user,

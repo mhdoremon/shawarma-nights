@@ -35,6 +35,7 @@ export default function MasterLayout() {
     role, 
     storeId, 
     storeInfo, 
+    capabilities,
     isConnected, 
     soundEnabled, 
     setSoundEnabled, 
@@ -56,24 +57,27 @@ export default function MasterLayout() {
     return <DeliveryPartnerView />;
   }
 
-  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
+  const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
+  const hasAppointments = capabilities?.orders?.hasAppointments ?? isSalon;
+  const hasFranchise = capabilities?.settings?.hasFranchise ?? (!isSalon);
+  const catalogTabLabel = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : 'Menu');
 
   // Active / pending orders count
   const activeOrdersCount = (orders || []).filter(o => 
     ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)
   ).length;
 
-  const showOffers = storeInfo?.settings?.showOfferCards !== false && (!isSalon || storeInfo?.settings?.dealsEnabled === true);
+  const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
 
   const tabsConfig = [
     { id: 0, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 1, label: isSalon ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
-    { id: 2, label: isSalon ? 'Services' : 'Menu', icon: UtensilsCrossed, badge: menu?.length || 0 },
+    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
+    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0 },
     ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 }] : []),
-    { id: 4, label: isSalon ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
+    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
     { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
     { id: 6, label: 'SMS Gateway', icon: Smartphone },
-    ...(!isSalon ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
+    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
     { id: 8, label: 'Settings', icon: Settings },
   ];
 

@@ -41,12 +41,22 @@ export default function SettingsTab() {
     switchStoreId,
     isConnected,
     refreshData,
+    capabilities,
     user
   } = useMaster();
 
   // Switch Store Dialog Modal State
   const [showSwitchStoreModal, setShowSwitchStoreModal] = useState(false);
   const [targetStoreInput, setTargetStoreInput] = useState(storeId || 'shawarma');
+
+  // Capability-driven feature flags
+  const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
+  const hasAdvanceTokenFee = Boolean(capabilities?.settings?.hasAdvanceTokenFee || capabilities?.orders?.hasAdvanceToken);
+  const hasFreeDeliveryThreshold = Boolean(capabilities?.settings?.hasFreeDeliveryThreshold ?? !isSalon);
+  const hasDeliveryFee = Boolean(capabilities?.settings?.hasDeliveryFee ?? hasFreeDeliveryThreshold);
+  const hasTaxesAndPackaging = Boolean(capabilities?.settings?.hasTaxesAndPackaging ?? !isSalon);
+  const hasHeroBannerFeature = Boolean(capabilities?.settings?.hasHeroBanner ?? !isSalon);
+  const hasHeroVideo = Boolean(capabilities?.settings?.hasHeroVideo || isSalon);
 
   // Free Delivery Threshold State
   const [freeDeliveryInput, setFreeDeliveryInput] = useState(
@@ -66,7 +76,6 @@ export default function SettingsTab() {
   // Store General & Operational Info Form
   const paymentObj = storeInfo?.payment || {};
   const socialsObj = storeInfo?.socials || {};
-  const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
 
   const [operationalForm, setOperationalForm] = useState({
     name: storeInfo?.name || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
@@ -488,184 +497,188 @@ export default function SettingsTab() {
       </div>
 
       {/* CARD 3: FREE DELIVERY THRESHOLD */}
-      <form onSubmit={handleSaveFreeDelivery} className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
-            <Truck className="w-4 h-4 text-[#DC2626]" />
-            <span>FREE DELIVERY THRESHOLD (फ्री डिलीवरी लिमिट)</span>
-          </h3>
-          <p className="text-xs text-zinc-500 mt-1">
-            Current Limit: <strong className="text-zinc-900 font-black">₹{freeDeliveryInput}</strong> (Customer ke bag me is amount se upar delivery FREE hogi)
-          </p>
-        </div>
-
-        {/* Quick Amount Suggestion Chips */}
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-2">
-            Quick Threshold Chips:
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {fdThresholdPresets.map(preset => {
-              const active = String(preset) === String(freeDeliveryInput);
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setFreeDeliveryInput(String(preset))}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
-                    active
-                      ? 'bg-[#DC2626] text-white shadow-sm'
-                      : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
-                  }`}
-                >
-                  ₹{preset}
-                </button>
-              );
-            })}
+      {hasFreeDeliveryThreshold && (
+        <form onSubmit={handleSaveFreeDelivery} className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
+              <Truck className="w-4 h-4 text-[#DC2626]" />
+              <span>FREE DELIVERY THRESHOLD (फ्री डिलीवरी लिमिट)</span>
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Current Limit: <strong className="text-zinc-900 font-black">₹{freeDeliveryInput}</strong> (Customer ke bag me is amount se upar delivery FREE hogi)
+            </p>
           </div>
-        </div>
 
-        {/* Custom Input */}
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-            Custom Threshold Amount (₹)
-          </label>
-          <input
-            type="number"
-            value={freeDeliveryInput}
-            onChange={(e) => setFreeDeliveryInput(e.target.value)}
-            placeholder="e.g. 350"
-            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-          />
-        </div>
+          {/* Quick Amount Suggestion Chips */}
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-2">
+              Quick Threshold Chips:
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {fdThresholdPresets.map(preset => {
+                const active = String(preset) === String(freeDeliveryInput);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setFreeDeliveryInput(String(preset))}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
+                      active
+                        ? 'bg-[#DC2626] text-white shadow-sm'
+                        : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                    }`}
+                  >
+                    ₹{preset}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        <button
-          type="submit"
-          className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all border-0"
-        >
-          <Check className="w-4 h-4 stroke-[2.5]" />
-          <span>SAVE THRESHOLD (वेबसाइट पर सेव करें)</span>
-        </button>
-      </form>
+          {/* Custom Input */}
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Custom Threshold Amount (₹)
+            </label>
+            <input
+              type="number"
+              value={freeDeliveryInput}
+              onChange={(e) => setFreeDeliveryInput(e.target.value)}
+              placeholder="e.g. 350"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all border-0"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>SAVE THRESHOLD (वेबसाइट पर सेव करें)</span>
+          </button>
+        </form>
+      )}
 
       {/* CARD 4: TAXES & CHARGES (GST & PACKAGING CONTROLS) */}
-      <form onSubmit={handleSaveTaxes} className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
-        <div>
-          <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-[#DC2626]" />
-            <span>TAXES & CHARGES (टैक्स व पैकेजिंग चार्ज)</span>
-          </h3>
-          <p className="text-xs text-zinc-500 mt-1">
-            Customer se GST Tax ya Packaging Charge lena hai ya nahi yahan se on/off aur set karein.
-          </p>
-        </div>
-
-        {/* Toggle Status Chips: OFF vs ON */}
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-2">
-            Tax & Charges Status:
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTaxEnabled(false)}
-              className={`px-5 py-2.5 rounded-full text-xs font-black transition-all cursor-pointer border-0 ${
-                !taxEnabled
-                  ? 'bg-red-600 text-white shadow-md'
-                  : 'bg-[#FFFBF7] text-zinc-600 hover:bg-zinc-100 shadow-xs'
-              }`}
-            >
-              🔴 OFF (टैक्स बंद)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTaxEnabled(true)}
-              className={`px-5 py-2.5 rounded-full text-xs font-black transition-all cursor-pointer border-0 ${
-                taxEnabled
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-[#FFFBF7] text-zinc-600 hover:bg-zinc-100 shadow-xs'
-              }`}
-            >
-              🟢 ON (टैक्स चालू)
-            </button>
+      {hasTaxesAndPackaging && (
+        <form onSubmit={handleSaveTaxes} className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-[#DC2626]" />
+              <span>TAXES & CHARGES (टैक्स व पैकेजिंग चार्ज)</span>
+            </h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Customer se GST Tax ya Packaging Charge lena hai ya nahi yahan se on/off aur set karein.
+            </p>
           </div>
-        </div>
 
-        {/* GST / Tax Percentage */}
-        <div className="space-y-2">
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
-            GST / Tax Percentage (%):
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {taxPresets.map(preset => {
-              const active = String(preset.val) === String(taxPercentInput);
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setTaxPercentInput(preset.val)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
-                    active
-                      ? 'bg-[#DC2626] text-white shadow-sm'
-                      : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
+          {/* Toggle Status Chips: OFF vs ON */}
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-2">
+              Tax & Charges Status:
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setTaxEnabled(false)}
+                className={`px-5 py-2.5 rounded-full text-xs font-black transition-all cursor-pointer border-0 ${
+                  !taxEnabled
+                    ? 'bg-red-600 text-white shadow-md'
+                    : 'bg-[#FFFBF7] text-zinc-600 hover:bg-zinc-100 shadow-xs'
+                }`}
+              >
+                🔴 OFF (टैक्स बंद)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTaxEnabled(true)}
+                className={`px-5 py-2.5 rounded-full text-xs font-black transition-all cursor-pointer border-0 ${
+                  taxEnabled
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'bg-[#FFFBF7] text-zinc-600 hover:bg-zinc-100 shadow-xs'
+                }`}
+              >
+                🟢 ON (टैक्स चालू)
+              </button>
+            </div>
           </div>
-          <input
-            type="number"
-            step="0.1"
-            value={taxPercentInput}
-            onChange={(e) => setTaxPercentInput(e.target.value)}
-            placeholder="Tax % (e.g. 5)"
-            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-          />
-        </div>
 
-        {/* Extra Packaging Charge */}
-        <div className="space-y-2">
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
-            Extra Packaging Charge (₹):
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {packagingPresets.map(preset => {
-              const active = String(preset.val) === String(packagingChargeInput);
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => setPackagingChargeInput(preset.val)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
-                    active
-                      ? 'bg-[#DC2626] text-white shadow-sm'
-                      : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              );
-            })}
+          {/* GST / Tax Percentage */}
+          <div className="space-y-2">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
+              GST / Tax Percentage (%):
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {taxPresets.map(preset => {
+                const active = String(preset.val) === String(taxPercentInput);
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setTaxPercentInput(preset.val)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
+                      active
+                        ? 'bg-[#DC2626] text-white shadow-sm'
+                        : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="number"
+              step="0.1"
+              value={taxPercentInput}
+              onChange={(e) => setTaxPercentInput(e.target.value)}
+              placeholder="Tax % (e.g. 5)"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
           </div>
-          <input
-            type="number"
-            value={packagingChargeInput}
-            onChange={(e) => setPackagingChargeInput(e.target.value)}
-            placeholder="Packaging ₹ (e.g. 10)"
-            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-          />
-        </div>
 
-        <button
-          type="submit"
-          className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all border-0"
-        >
-          <Check className="w-4 h-4 stroke-[2.5]" />
-          <span>SAVE TAXES & CHARGES (सेव करें)</span>
-        </button>
-      </form>
+          {/* Extra Packaging Charge */}
+          <div className="space-y-2">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
+              Extra Packaging Charge (₹):
+            </label>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {packagingPresets.map(preset => {
+                const active = String(preset.val) === String(packagingChargeInput);
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setPackagingChargeInput(preset.val)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
+                      active
+                        ? 'bg-[#DC2626] text-white shadow-sm'
+                        : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="number"
+              value={packagingChargeInput}
+              onChange={(e) => setPackagingChargeInput(e.target.value)}
+              placeholder="Packaging ₹ (e.g. 10)"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all border-0"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>SAVE TAXES & CHARGES (सेव करें)</span>
+          </button>
+        </form>
+      )}
 
       {/* CARD 5: DUKAN OPERATIONAL & SOCIAL INFO FORM */}
       <form onSubmit={handleSaveOperational} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
@@ -807,20 +820,22 @@ export default function SettingsTab() {
         </div>
 
         {/* Advance Chair Booking Fee (₹) & Day-Wise Timings */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Advance Chair Booking Fee (₹)
-            </label>
-            <input
-              type="number"
-              value={operationalForm.bookingFee}
-              onChange={(e) => setOperationalForm({ ...operationalForm, bookingFee: e.target.value })}
-              placeholder="50"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-            <span className="text-[10px] text-zinc-500 mt-1 block">Salon slot book karte waqt customer se li jane wali fee</span>
-          </div>
+        <div className={`grid grid-cols-1 ${hasAdvanceTokenFee ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
+          {hasAdvanceTokenFee && (
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Advance Token / Booking Fee (₹)
+              </label>
+              <input
+                type="number"
+                value={operationalForm.bookingFee}
+                onChange={(e) => setOperationalForm({ ...operationalForm, bookingFee: e.target.value })}
+                placeholder="50"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+              <span className="text-[10px] text-zinc-500 mt-1 block">Slot book karte waqt customer se li jane wali advance token fee</span>
+            </div>
+          )}
 
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
@@ -849,30 +864,32 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Delivery Note & Halal Badge Text */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Delivery Note
-            </label>
-            <input
-              type="text"
-              value={operationalForm.deliveryNote}
-              onChange={(e) => setOperationalForm({ ...operationalForm, deliveryNote: e.target.value })}
-              placeholder="Fast delivery in 25-30 minutes"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
+        {/* Delivery Note & Halal/Quality Badge Text */}
+        <div className={`grid grid-cols-1 ${hasFreeDeliveryThreshold || hasDeliveryFee ? 'sm:grid-cols-2' : ''} gap-4`}>
+          {(hasFreeDeliveryThreshold || hasDeliveryFee) && (
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Delivery Note
+              </label>
+              <input
+                type="text"
+                value={operationalForm.deliveryNote}
+                onChange={(e) => setOperationalForm({ ...operationalForm, deliveryNote: e.target.value })}
+                placeholder="Fast delivery in 25-30 minutes"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Halal Badge Text
+              {hasFreeDeliveryThreshold ? 'Halal / Quality Badge Text' : 'Quality / Brand Badge Text'}
             </label>
             <input
               type="text"
               value={operationalForm.halalBadgeText}
               onChange={(e) => setOperationalForm({ ...operationalForm, halalBadgeText: e.target.value })}
-              placeholder="100% Halal Certified Fresh"
+              placeholder="100% Certified Quality"
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
@@ -944,219 +961,223 @@ export default function SettingsTab() {
       </form>
 
       {/* CARD: HERO BACKGROUND VIDEO MANAGER (SALON / SHOWCASE SITES) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-          <div>
-            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
-              <Video className="w-5 h-5 text-indigo-600" />
-              <span>Hero Background Video Manager (हीरो वीडियो मैनेजर)</span>
-            </h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Website header me chalne wali background video set karein ya phone/device se upload karein
-            </p>
-          </div>
-          {operationalForm.heroVideoUrl && (
-            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center gap-1.5">
-              <Play className="w-3.5 h-3.5 fill-emerald-600" /> Live Video Set
-            </span>
-          )}
-        </div>
-
-        {/* Video Player Live Preview */}
-        <div className="relative rounded-2xl overflow-hidden bg-black aspect-video max-h-56 w-full flex items-center justify-center border border-zinc-200 shadow-inner">
-          {operationalForm.heroVideoUrl ? (
-            <video
-              key={operationalForm.heroVideoUrl}
-              src={operationalForm.heroVideoUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="text-zinc-400 text-xs flex flex-col items-center gap-2">
-              <Video className="w-8 h-8 opacity-40" />
-              <span>Koi video URL set nahi hai</span>
+      {hasHeroVideo && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+          <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
+            <div>
+              <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+                <Video className="w-5 h-5 text-indigo-600" />
+                <span>Hero Background Video Manager (हीरो वीडियो मैनेजर)</span>
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Website header me chalne wali background video set karein ya phone/device se upload karein
+              </p>
             </div>
-          )}
-          <div className="absolute bottom-2 left-3 right-3 bg-black/60 backdrop-blur-xs text-white/90 px-3 py-1.5 rounded-lg text-[11px] font-mono truncate flex items-center justify-between">
-            <span className="truncate">Active Video: {operationalForm.heroVideoUrl || 'None'}</span>
-          </div>
-        </div>
-
-        {/* Video Controls & Inputs */}
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Video Direct URL / File Path
-            </label>
-            <input
-              type="text"
-              value={operationalForm.heroVideoUrl}
-              onChange={(e) => setOperationalForm({ ...operationalForm, heroVideoUrl: e.target.value })}
-              placeholder="e.g. /video/hero.mp4 ya koi bhi direct .mp4 link"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:outline-none transition-all shadow-xs border-0"
-            />
+            {operationalForm.heroVideoUrl && (
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center gap-1.5">
+                <Play className="w-3.5 h-3.5 fill-emerald-600" /> Live Video Set
+              </span>
+            )}
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-3">
-              <label className="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-xs">
-                <Upload className="w-4 h-4" />
-                <span>{isVideoUploading ? 'Uploading Video...' : 'Upload Video From Device (डिवाइस से चुनें)'}</span>
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                  disabled={isVideoUploading}
-                />
+          {/* Video Player Live Preview */}
+          <div className="relative rounded-2xl overflow-hidden bg-black aspect-video max-h-56 w-full flex items-center justify-center border border-zinc-200 shadow-inner">
+            {operationalForm.heroVideoUrl ? (
+              <video
+                key={operationalForm.heroVideoUrl}
+                src={operationalForm.heroVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-zinc-400 text-xs flex flex-col items-center gap-2">
+                <Video className="w-8 h-8 opacity-40" />
+                <span>Koi video URL set nahi hai</span>
+              </div>
+            )}
+            <div className="absolute bottom-2 left-3 right-3 bg-black/60 backdrop-blur-xs text-white/90 px-3 py-1.5 rounded-lg text-[11px] font-mono truncate flex items-center justify-between">
+              <span className="truncate">Active Video: {operationalForm.heroVideoUrl || 'None'}</span>
+            </div>
+          </div>
+
+          {/* Video Controls & Inputs */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Video Direct URL / File Path
               </label>
+              <input
+                type="text"
+                value={operationalForm.heroVideoUrl}
+                onChange={(e) => setOperationalForm({ ...operationalForm, heroVideoUrl: e.target.value })}
+                placeholder="e.g. /video/hero.mp4 ya koi bhi direct .mp4 link"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-indigo-600 focus:outline-none transition-all shadow-xs border-0"
+              />
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setOperationalForm(prev => ({ ...prev, heroVideoUrl: '/video/hero.mp4' }));
-                showToast('Reset to default /video/hero.mp4', 'info');
-              }}
-              className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors border-0 self-start sm:self-auto"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Reset Default Video (डिफ़ॉल्ट रीसेट)</span>
-            </button>
-          </div>
-        </div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-3">
+                <label className="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-xs">
+                  <Upload className="w-4 h-4" />
+                  <span>{isVideoUploading ? 'Uploading Video...' : 'Upload Video From Device (डिवाइस से चुनें)'}</span>
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                    disabled={isVideoUploading}
+                  />
+                </label>
+              </div>
 
-        <button
-          type="button"
-          onClick={handleSaveOperational}
-          className="w-full py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
-        >
-          <Check className="w-4 h-4 stroke-[2.5]" />
-          <span>SAVE HERO VIDEO LIVE TO SERVER</span>
-        </button>
-      </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOperationalForm(prev => ({ ...prev, heroVideoUrl: '/video/hero.mp4' }));
+                  showToast('Reset to default /video/hero.mp4', 'info');
+                }}
+                className="px-4 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors border-0 self-start sm:self-auto"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Reset Default Video (डिफ़ॉल्ट रीसेट)</span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveOperational}
+            className="w-full py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>SAVE HERO VIDEO LIVE TO SERVER</span>
+          </button>
+        </div>
+      )}
 
       {/* CARD 6: HOMEPAGE HERO BANNER & MARQUEE STRIP COPY */}
-      <form onSubmit={handleSaveHero} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-100 pb-3.5 gap-2">
-          <div>
-            <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Homepage Hero Banner & Marquee Strip Copy</span>
-            </h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Customize the main headline and the scrolling ticker strip at top of website
-            </p>
+      {hasHeroBannerFeature && (
+        <form onSubmit={handleSaveHero} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-100 pb-3.5 gap-2">
+            <div>
+              <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Homepage Hero Banner & Marquee Strip Copy</span>
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Customize the main headline and the scrolling ticker strip at top of website
+              </p>
+            </div>
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto ${
+              showHeroBanner
+                ? 'bg-emerald-100 text-emerald-800'
+                : 'bg-zinc-100 text-zinc-600'
+            }`}>
+              {showHeroBanner ? '🟢 Banner Active On Site' : '🔴 Banner Toggled Off'}
+            </span>
           </div>
-          <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider self-start sm:self-auto ${
-            showHeroBanner
-              ? 'bg-emerald-100 text-emerald-800'
-              : 'bg-zinc-100 text-zinc-600'
-          }`}>
-            {showHeroBanner ? '🟢 Banner Active On Site' : '🔴 Banner Toggled Off'}
-          </span>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Title Line 1
+              </label>
+              <input
+                type="text"
+                value={heroForm.titleLine1}
+                onChange={(e) => setHeroForm({ ...heroForm, titleLine1: e.target.value })}
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Title Line 2
+              </label>
+              <input
+                type="text"
+                value={heroForm.titleLine2}
+                onChange={(e) => setHeroForm({ ...heroForm, titleLine2: e.target.value })}
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Highlight Word
+              </label>
+              <input
+                type="text"
+                value={heroForm.titleHighlight}
+                onChange={(e) => setHeroForm({ ...heroForm, titleHighlight: e.target.value })}
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Title Line 1
+              Badge Sticker Text
             </label>
             <input
               type="text"
-              value={heroForm.titleLine1}
-              onChange={(e) => setHeroForm({ ...heroForm, titleLine1: e.target.value })}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              value={heroForm.badgeText}
+              onChange={(e) => setHeroForm({ ...heroForm, badgeText: e.target.value })}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          {/* Marquee Ticker Copy */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
+                Scrolling Marquee Top Strip (Clickable Franchise Button)
+              </label>
+              <span className="text-[10px] text-zinc-400">Separate items using ● bullet</span>
+            </div>
+            <textarea
+              rows={3}
+              value={heroForm.marqueeText}
+              onChange={(e) => setHeroForm({ ...heroForm, marqueeText: e.target.value })}
+              className="w-full bg-[#FFFBF7] rounded-2xl p-4 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono leading-relaxed resize-none"
             />
           </div>
 
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Title Line 2
+              Subtitle Copy
             </label>
-            <input
-              type="text"
-              value={heroForm.titleLine2}
-              onChange={(e) => setHeroForm({ ...heroForm, titleLine2: e.target.value })}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            <textarea
+              rows={2}
+              value={heroForm.subtitle}
+              onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })}
+              className="w-full bg-[#FFFBF7] rounded-2xl p-3.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
             />
           </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Highlight Word
-            </label>
-            <input
-              type="text"
-              value={heroForm.titleHighlight}
-              onChange={(e) => setHeroForm({ ...heroForm, titleHighlight: e.target.value })}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-        </div>
+          <button
+            type="submit"
+            className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
+          >
+            <Check className="w-4 h-4 stroke-[2.5]" />
+            <span>UPDATE HERO BANNER & MARQUEE STRIP</span>
+          </button>
+        </form>
+      )}
 
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-            Badge Sticker Text
-          </label>
-          <input
-            type="text"
-            value={heroForm.badgeText}
-            onChange={(e) => setHeroForm({ ...heroForm, badgeText: e.target.value })}
-            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-          />
-        </div>
-
-        {/* Marquee Ticker Copy */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
-              Scrolling Marquee Top Strip (Clickable Franchise Button)
-            </label>
-            <span className="text-[10px] text-zinc-400">Separate items using ● bullet</span>
-          </div>
-          <textarea
-            rows={3}
-            value={heroForm.marqueeText}
-            onChange={(e) => setHeroForm({ ...heroForm, marqueeText: e.target.value })}
-            className="w-full bg-[#FFFBF7] rounded-2xl p-4 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono leading-relaxed resize-none"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-            Subtitle Copy
-          </label>
-          <textarea
-            rows={2}
-            value={heroForm.subtitle}
-            onChange={(e) => setHeroForm({ ...heroForm, subtitle: e.target.value })}
-            className="w-full bg-[#FFFBF7] rounded-2xl p-3.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0"
-        >
-          <Check className="w-4 h-4 stroke-[2.5]" />
-          <span>UPDATE HERO BANNER & MARQUEE STRIP</span>
-        </button>
-      </form>
-
-      {/* CARD 7: KITCHEN ORDER CHIME AUDIO TEST */}
+      {/* CARD 7: ORDER / APPOINTMENT NOTIFICATION CHIME AUDIO TEST */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
         <div>
           <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-2">
             <Bell className="w-4 h-4 text-emerald-600" />
-            <span>KITCHEN ORDER CHIME AUDIO TEST</span>
+            <span>{isSalon ? 'APPOINTMENT NOTIFICATION CHIME AUDIO TEST' : 'ORDER NOTIFICATION CHIME AUDIO TEST'}</span>
           </h3>
           <p className="text-xs text-zinc-500 mt-1">
-            Plays a synthesized 3-tone notification chime immediately when a new customer order arrives
+            Plays a synthesized 3-tone notification chime immediately when a new customer {isSalon ? 'appointment' : 'order'} arrives
           </p>
         </div>
 
@@ -1165,11 +1186,11 @@ export default function SettingsTab() {
             type="button"
             onClick={() => {
               playOrderSound();
-              showToast('Test kitchen chime played!', 'info');
+              showToast(isSalon ? 'Test booking chime played!' : 'Test order chime played!', 'info');
             }}
             className="px-5 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-xs font-black text-zinc-800 transition-colors cursor-pointer border-0"
           >
-            TEST KITCHEN ALERT CHIME
+            TEST {isSalon ? 'BOOKING' : 'ALERT'} CHIME
           </button>
 
           <button

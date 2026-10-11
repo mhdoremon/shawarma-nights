@@ -1,6 +1,7 @@
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
 import { generateId, generateOtp, generateUUID, now, normalizePhone, enrichCustomersWithOrderStats } from '../../utils/helpers.js';
+import { resolveStoreCapabilities } from '../../utils/storeCapabilities.js';
 
 const otpStore = new Map(); // Key: `${storeId}:${phone}` → { otp, expiresAt, attempts }
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -646,12 +647,19 @@ export const loginAdmin = (req, res) => {
         if (!uMatch || !pMatch) {
             return res.status(401).json({ success: false, message: 'Galat Username ya Password! Kripya sahi credentials dalein.' });
         }
+
+        const storeId = req.storeId;
+        const storeName = config.name || config.settings?.storeName || config.settings?.name || 'Shawarma Nights';
+        const capabilities = resolveStoreCapabilities(storeId, config);
         
         res.json({ 
             success: true, 
             token: owner.token,
+            storeId,
+            storeName,
+            dukanName: storeName,
+            capabilities,
             username: owner.username,
-            dukanName: config.name || 'Shawarma Nights',
             ownerPhone: owner.phone,
             message: 'Login successful!'
         });
@@ -669,7 +677,18 @@ export const verifyAdmin = (req, res) => {
         
         if (!isValid) return res.status(401).json({ success: false, message: 'Invalid token' });
         
-        res.json({ success: true, valid: true });
+        const storeId = req.storeId;
+        const storeName = config.name || config.settings?.storeName || config.settings?.name || 'Shawarma Nights';
+        const capabilities = resolveStoreCapabilities(storeId, config);
+
+        res.json({ 
+            success: true, 
+            valid: true,
+            storeId,
+            storeName,
+            dukanName: storeName,
+            capabilities
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

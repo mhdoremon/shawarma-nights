@@ -139,7 +139,9 @@ app.get('/api/data', (req, res) => {
     customers,
     franchise: franchiseData.config || {},
     heroBanner: storeConfig?.heroBanner || {},
+    capabilities: storeConfig?.capabilities,
     storeInfo: {
+      capabilities: storeConfig?.capabilities,
       ...(storeConfig?.settings || {}),
       payment: storeConfig?.payment || {},
       ...(storeConfig?.payment || {}),
