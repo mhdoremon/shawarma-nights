@@ -682,12 +682,8 @@ export default function SkylineApp() {
 
     if (activeCategory === 'men') {
       list = list.filter(item => item.category === 'men' || !item.category);
-    } else if (activeCategory === 'woman') {
-      list = list.filter(item => item.category === 'woman');
-    } else if (activeCategory === 'boy') {
-      list = list.filter(item => item.category === 'boy');
-    } else if (activeCategory === 'child') {
-      list = list.filter(item => item.category === 'child');
+    } else if (activeCategory && activeCategory !== 'all') {
+      list = list.filter(item => (item.category || '').toLowerCase() === activeCategory.toLowerCase());
     }
 
     if (searchQuery.trim()) {
@@ -707,6 +703,9 @@ export default function SkylineApp() {
 
   // ─── REVIEWS LIST ─────────────────────────────────────────────
   const customerReviews = useMemo(() => {
+    if (storeData?.reviews && storeData.reviews.length > 0) {
+      return storeData.reviews;
+    }
     return [
       {
         id: 'rev-1',
@@ -723,7 +722,7 @@ export default function SkylineApp() {
         comment: 'Hands down the cleanest aesthetic. Perfectly complements tailored outfits and streetwear. The ChuruOne SSO seamless checkout made ordering effortless!'
       }
     ];
-  }, []);
+  }, [storeData?.reviews]);
 
   return (
     <div className="min-h-screen bg-white text-stone-900 font-sans selection:bg-black selection:text-white antialiased">

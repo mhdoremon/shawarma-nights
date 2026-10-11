@@ -1612,6 +1612,23 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         </div>
       )}
 
+      {/* Post-Booking Feedback Modal */}
+      {showFeedback && done && (
+        <FeedbackModal
+          booking={done}
+          onClose={() => setShowFeedback(false)}
+          onSubmit={async (rating, comment) => {
+            try {
+              await saveFeedback(done.id, rating, comment);
+              setShowFeedback(false);
+              setToast({ msg: "Feedback submit ho gaya! Dhanyawad.", type: "success" });
+            } catch (err) {
+              alert("Feedback save error: " + (err.message || "Unknown"));
+            }
+          }}
+        />
+      )}
+
       {/* Legal Policies Modal */}
       <LegalPoliciesModal
         isOpen={legalModalOpen}
@@ -1635,10 +1652,15 @@ function SectionHead({ eyebrow, title, sub }) {
 
 function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot, realtimeBookings, onNext }) {
   const slots = [];
+  const now = new Date();
+  const currentMinutesToday = now.getHours() * 60 + now.getMinutes();
+
   for (let t = WORK_START; t + totalMinutes <= WORK_END; t += 15) {
-    let blocked = false;
-    for (const b of realtimeBookings) {
-      if (Math.max(b.startMin, t) < Math.min(b.startMin + b.totalMinutes, t + totalMinutes)) { blocked = true; break; }
+    let blocked = dateIndex === 0 && t <= currentMinutesToday;
+    if (!blocked) {
+      for (const b of realtimeBookings) {
+        if (Math.max(b.startMin, t) < Math.min(b.startMin + b.totalMinutes, t + totalMinutes)) { blocked = true; break; }
+      }
     }
     slots.push({ t, label: formatTime(Math.floor(t/60), t%60), blocked });
   }
