@@ -448,12 +448,12 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     return () => { if (typeof unsub === "function") unsub(); };
   }, [selectedDateISO]);
 
-  const workMinutes = selectedStyle ? selectedStyle.time : 0;
+  const workMinutes = selectedStyle ? Number(selectedStyle.durationMinutes || selectedStyle.time || 30) : 0;
   const totalMinutes = workMinutes > 0 ? workMinutes + BUFFER : 0;
   const totalPrice = selectedStyle ? selectedStyle.price : 0;
   const tier = selectedStyle ? selectedStyle.type : "standard";
 
-  const bookingFee = 50; // Fixed ₹50 Token Advance Payment
+  const bookingFee = Number(settings?.bookingFee ?? 50); // Dynamic from Dukandar Settings
   const remainingDue = Math.max(0, totalPrice - bookingFee);
 
   function scrollToBook() { bookRef.current?.scrollIntoView({ behavior: "smooth" }); }
@@ -545,10 +545,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     setSaving(true);
     const d = dates[dateIndex];
     const bookingToken = "NS-" + Math.floor(100000 + Math.random() * 900000);
-    const activeBookingFee = 50;
-    const activeRemainingDue = Math.max(0, totalPrice - 50);
-    const activePaymentStatus = "Token Paid (₹50 Advance - Cashfree)";
-    const activePaymentMethod = "Cashfree UPI (₹50 Token)";
+    const activeBookingFee = Number(settings?.bookingFee ?? 50);
+    const activeRemainingDue = Math.max(0, totalPrice - activeBookingFee);
+    const activePaymentStatus = `Token Paid (₹${activeBookingFee} Advance - Cashfree)`;
+    const activePaymentMethod = `Cashfree UPI (₹${activeBookingFee} Token)`;
     const activeTxnId = activeTxn;
 
     const payload = {

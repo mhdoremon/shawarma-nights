@@ -43,7 +43,8 @@ import {
   placeSkylineOrder,
   initiateSkylineUpiPayment,
   updateSkylineOrderStatus,
-  submitProductReview
+  submitProductReview,
+  connectSkylineWebSocket
 } from './skylineApiClient';
 import { 
   getChuruOneSession, 
@@ -109,6 +110,17 @@ export default function SkylineApp() {
   // Quick View & Product Modal State
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalSize, setModalSize] = useState('');
+  const [modalColor, setModalColor] = useState('');
+  const [modalActiveImage, setModalActiveImage] = useState('');
+
+  const openProductModal = (product) => {
+    if (!product) return;
+    setSelectedProduct(product);
+    setModalSize(product.availableSizes?.[0] || 'UK 8');
+    const defaultColor = product.colors?.[0];
+    setModalColor(typeof defaultColor === 'object' ? defaultColor.name : (defaultColor || 'Classic'));
+    setModalActiveImage(product.image || '');
+  };
 
   // Checkout & Location State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -239,9 +251,42 @@ export default function SkylineApp() {
     // 4. Fetch live catalog data from Smart Backend
     loadStoreData();
 
+    // 5. Connect real-time WebSocket for instant live sync when Dukandar updates
+    const unsubWs = connectSkylineWebSocket((action, payload) => {
+      console.log('⚡ [Skyline Realtime Event]', action, payload);
+      if (action === 'MENU_UPDATED') {
+        if (payload?.menu && Array.isArray(payload.menu)) {
+          setMenuItems(payload.menu);
+        } else if (Array.isArray(payload)) {
+          setMenuItems(payload);
+        } else {
+          loadStoreData();
+        }
+      } else if (action === 'STORE_INFO_UPDATED') {
+        if (payload) {
+          setStoreData(prev => ({ ...prev, storeInfo: payload }));
+        } else {
+          loadStoreData();
+        }
+      } else if (action === 'DEALS_UPDATED') {
+        if (payload) {
+          setStoreData(prev => ({ ...prev, deals: payload }));
+        } else {
+          loadStoreData();
+        }
+      } else if (action === 'ORDER_UPDATED' || action === 'ORDER_STATUS_CHANGED') {
+        const orderId = payload?.id || payload?.orderId;
+        const status = payload?.status;
+        if (orderId && status) {
+          setConfirmedOrder(prev => prev && prev.id === orderId ? { ...prev, status } : prev);
+        }
+      }
+    });
+
     return () => {
       window.removeEventListener('message', handleSsoMessage);
       unsubscribeSso();
+      if (typeof unsubWs === 'function') unsubWs();
     };
   }, []);
 
@@ -1006,7 +1051,7 @@ export default function SkylineApp() {
 
               {/* Floating Hero White Sneaker */}
               <div 
-                onClick={() => setSelectedProduct(heroProduct)}
+                onClick={() => openProductModal(heroProduct)}
                 className="relative z-10 w-full max-w-md mx-auto cursor-pointer group"
               >
                 <img
@@ -1108,7 +1153,7 @@ export default function SkylineApp() {
                 >
                   {/* Shoe Image */}
                   <div 
-                    onClick={() => setSelectedProduct(item)}
+                    onClick={() => openProductModal(item)}
                     className="h-36 sm:h-40 flex items-center justify-center cursor-pointer overflow-hidden"
                   >
                     <img
@@ -1207,7 +1252,7 @@ export default function SkylineApp() {
 
                 {/* Sneaker Image */}
                 <div
-                  onClick={() => setSelectedProduct(product)}
+                  onClick={() => openProductModal(product)}
                   className="h-44 sm:h-52 flex items-center justify-center my-4 cursor-pointer overflow-hidden"
                 >
                   <img
@@ -1221,7 +1266,7 @@ export default function SkylineApp() {
                 <div className="flex items-end justify-between pt-2">
                   <div>
                     <h3 
-                      onClick={() => setSelectedProduct(product)}
+                      onClick={() => openProductModal(product)}
                       className="text-xs font-semibold text-stone-900 hover:text-black cursor-pointer truncate max-w-[180px]"
                     >
                       {product.name}
@@ -1392,13 +1437,13 @@ export default function SkylineApp() {
       {/* ─── 8. PRODUCT QUICK VIEW MODAL ──────────────────────────── */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setSelectedProduct(null)} />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }} />
           
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="relative bg-white max-w-2xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 overflow-hidden">
               
               <button
-                onClick={() => setSelectedProduct(null)}
+                onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }}
                 className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 rounded-full cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -1406,13 +1451,43 @@ export default function SkylineApp() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                 
-                {/* Product Image Preview */}
-                <div className="bg-[#F6F6F6] rounded-xl p-6 flex items-center justify-center h-64">
-                  <img
-                    src={selectedProduct.image}
-                    alt={selectedProduct.name}
-                    className="max-h-full max-w-full object-contain drop-shadow-xl"
-                  />
+                {/* Product Image Preview & Lookbook */}
+                <div className="bg-[#F6F6F6] rounded-xl p-4 flex flex-col items-center justify-center">
+                  <div className="h-56 flex items-center justify-center w-full">
+                    <img
+                      src={modalActiveImage || selectedProduct.image}
+                      alt={selectedProduct.name}
+                      className="max-h-full max-w-full object-contain drop-shadow-xl transition-all duration-300"
+                    />
+                  </div>
+                  {selectedProduct.secondaryImage && (
+                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-200 w-full justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setModalActiveImage(selectedProduct.image)}
+                        className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
+                          (!modalActiveImage || modalActiveImage === selectedProduct.image)
+                            ? 'border-black ring-1 ring-black'
+                            : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
+                        }`}
+                        title="Primary Angle"
+                      >
+                        <img src={selectedProduct.image} alt="Primary" className="w-full h-full object-contain" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalActiveImage(selectedProduct.secondaryImage)}
+                        className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
+                          modalActiveImage === selectedProduct.secondaryImage
+                            ? 'border-black ring-1 ring-black'
+                            : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
+                        }`}
+                        title="Lookbook / Alternate Angle"
+                      >
+                        <img src={selectedProduct.secondaryImage} alt="Secondary" className="w-full h-full object-contain" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Details & Selection */}
@@ -1440,6 +1515,40 @@ export default function SkylineApp() {
                     {selectedProduct.description || 'Premium comfort engineering with architectural silhouette.'}
                   </p>
 
+                  {/* Color Swatch Selector */}
+                  {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
+                        Color / Shade: <span className="text-black font-extrabold">{modalColor || (typeof selectedProduct.colors[0] === 'object' ? selectedProduct.colors[0].name : selectedProduct.colors[0])}</span>
+                      </label>
+                      <div className="flex items-center flex-wrap gap-2">
+                        {selectedProduct.colors.map((c, idx) => {
+                          const cName = typeof c === 'string' ? c : (c.name || 'Classic');
+                          const cHex = typeof c === 'object' && c.hex ? c.hex : '#111827';
+                          const isSelected = (modalColor || (typeof selectedProduct.colors[0] === 'string' ? selectedProduct.colors[0] : selectedProduct.colors[0]?.name)) === cName;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setModalColor(cName)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-black text-white border-black shadow-xs'
+                                  : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
+                              }`}
+                            >
+                              <span
+                                className="w-3.5 h-3.5 rounded-full border border-white/50 shrink-0"
+                                style={{ backgroundColor: cHex }}
+                              />
+                              <span>{cName}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Size Selector */}
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
@@ -1449,6 +1558,7 @@ export default function SkylineApp() {
                       {(selectedProduct.availableSizes || ['UK 7', 'UK 8', 'UK 9', 'UK 10']).map((sz) => (
                         <button
                           key={sz}
+                          type="button"
                           onClick={() => setModalSize(sz)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                             (modalSize || selectedProduct.availableSizes?.[0]) === sz
@@ -1465,9 +1575,13 @@ export default function SkylineApp() {
                   {/* Add to Bag Button */}
                   <div className="pt-2">
                     <button
+                      type="button"
                       onClick={() => {
-                        addToCart(selectedProduct, modalSize);
+                        addToCart(selectedProduct, modalSize, modalColor);
                         setSelectedProduct(null);
+                        setModalActiveImage('');
+                        setModalColor('');
+                        setModalSize('');
                       }}
                       className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
                     >

@@ -51,6 +51,7 @@ export default function OffersTab() {
       minOrder: Number(dealModalData.minOrder) || 0,
       usageLimit: Number(dealModalData.usageLimit) || null,
       firstOrderOnly: Boolean(dealModalData.firstOrderOnly),
+      expiry: dealModalData.expiry || null,
       autoApply: Boolean(dealModalData.autoApply),
       isActive: dealModalData.isActive !== false,
       active: dealModalData.active !== false
@@ -564,7 +565,34 @@ export default function OffersTab() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 pt-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    EXPIRY DATE (VALID TILL)
+                  </label>
+                  <input
+                    type="date"
+                    value={dealModalData.expiry ? dealModalData.expiry.split('T')[0] : ''}
+                    onChange={(e) => setDealModalData({ ...dealModalData, expiry: e.target.value })}
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    USAGE LIMIT (TOTAL USES)
+                  </label>
+                  <input
+                    type="number"
+                    value={dealModalData.usageLimit || ''}
+                    onChange={(e) => setDealModalData({ ...dealModalData, usageLimit: e.target.value })}
+                    placeholder="e.g. 100 (Blank = No Limit)"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700">
                   <input
                     type="checkbox"
@@ -573,6 +601,16 @@ export default function OffersTab() {
                     className="rounded text-[#DC2626] focus:ring-[#DC2626]"
                   />
                   <span>Auto-apply at checkout</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={dealModalData.firstOrderOnly || false}
+                    onChange={(e) => setDealModalData({ ...dealModalData, firstOrderOnly: e.target.checked })}
+                    className="rounded text-[#DC2626] focus:ring-[#DC2626]"
+                  />
+                  <span>First Order Only (Naye Grahak)</span>
                 </label>
               </div>
 

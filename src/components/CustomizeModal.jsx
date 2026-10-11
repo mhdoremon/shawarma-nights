@@ -33,16 +33,21 @@ export default function CustomizeModal({ item, onClose }) {
 
   if (!item) return null;
 
+  const availableAddons = (item.options?.addons && item.options.addons.length > 0)
+    ? item.options.addons
+    : (Array.isArray(item.addons) ? item.addons : []);
+
   const breadPrice = selectedBread?.price || 0;
-  const addonsPrice = selectedAddons.reduce((sum, a) => sum + (a.price || 0), 0);
-  const unitPrice = item.price + breadPrice + addonsPrice;
+  const addonsPrice = selectedAddons.reduce((sum, a) => sum + (Number(a.price) || 0), 0);
+  const unitPrice = (Number(item.price) || 0) + breadPrice + addonsPrice;
   const totalPrice = unitPrice * quantity;
 
   const toggleAddon = (addon) => {
+    const key = addon.id || addon.name;
     setSelectedAddons((prev) => {
-      const exists = prev.some((a) => a.id === addon.id);
+      const exists = prev.some((a) => (a.id || a.name) === key);
       if (exists) {
-        return prev.filter((a) => a.id !== addon.id);
+        return prev.filter((a) => (a.id || a.name) !== key);
       } else {
         return [...prev, addon];
       }
@@ -172,7 +177,7 @@ export default function CustomizeModal({ item, onClose }) {
             )}
 
             {/* Extra Addons */}
-            {item.options?.addons && (
+            {availableAddons.length > 0 && (
               <div>
                 <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 stroke-[2] text-amber-500" />
@@ -180,11 +185,12 @@ export default function CustomizeModal({ item, onClose }) {
                 </h4>
 
                 <div className="space-y-2">
-                  {item.options.addons.map((addon) => {
-                    const isSelected = selectedAddons.some((a) => a.id === addon.id);
+                  {availableAddons.map((addon, aIdx) => {
+                    const key = addon.id || addon.name || `addon-${aIdx}`;
+                    const isSelected = selectedAddons.some((a) => (a.id || a.name) === (addon.id || addon.name));
                     return (
                       <div
-                        key={addon.id}
+                        key={key}
                         onClick={() => toggleAddon(addon)}
                         className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                           isSelected

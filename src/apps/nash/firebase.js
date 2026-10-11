@@ -206,7 +206,8 @@ export function subscribeToHairstyles(callback, defaultList = []) {
           name: item.name,
           type: item.type || (item.category?.includes('Premium') ? 'premium' : 'standard'),
           img: item.img || item.image || '/images/Soft-fade-edit.webp',
-          time: item.time || item.prepTime || 30,
+          time: Number(item.durationMinutes || item.time || item.prepTime || 30),
+          durationMinutes: Number(item.durationMinutes || item.time || item.prepTime || 30),
           price: Number(item.price) || 500,
           desc: item.desc || item.description || ''
         }));
@@ -314,7 +315,9 @@ export function subscribeToSiteSettings(callback, defaultSettings) {
           address: data.storeInfo.address || defaultSettings.address,
           phoneDisplay: data.storeInfo.phoneDisplay || defaultSettings.phoneDisplay,
           shopWhatsapp: data.storeInfo.whatsapp || data.storeInfo.shopWhatsapp || defaultSettings.shopWhatsapp,
-          bookingFee: data.storeInfo.bookingFee !== undefined ? data.storeInfo.bookingFee : defaultSettings.bookingFee,
+          bookingFee: data.storeInfo.bookingFee !== undefined 
+            ? Number(data.storeInfo.bookingFee) 
+            : (data.settings?.bookingFee !== undefined ? Number(data.settings.bookingFee) : defaultSettings.bookingFee),
           upiId: data.storeInfo.upiId || defaultSettings.upiId
         };
         localStorage.setItem("nash_studio_settings", JSON.stringify(s));

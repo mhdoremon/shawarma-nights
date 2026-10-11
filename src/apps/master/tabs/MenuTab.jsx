@@ -6,6 +6,7 @@ import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 export default function MenuTab() {
   const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeInfo, storeId } = useMaster();
   const isSalon = storeInfo?.vertical === 'salon' || (storeId || '').includes('nash');
+  const isFashion = storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline');
 
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +36,13 @@ export default function MenuTab() {
     { name: 'Hair Color & Styling', url: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&auto=format&fit=crop&q=80' },
     { name: 'Facial & Glow', url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&auto=format&fit=crop&q=80' },
     { name: 'Head Massage', url: 'https://images.unsplash.com/photo-1519824145371-296894a0daa9?w=800&auto=format&fit=crop&q=80' }
+  ] : isFashion ? [
+    { name: 'Slick Pro Sneakers', url: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85' },
+    { name: 'Retro Runners', url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800&q=80' },
+    { name: 'Streetwear Lows', url: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80' },
+    { name: 'Minimalist Oxford', url: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?auto=format&fit=crop&w=800&q=80' },
+    { name: 'Linen Shirt', url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80' },
+    { name: 'Canvas Slip-on', url: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80' }
   ] : [
     { name: 'Classic Roll', url: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80' },
     { name: 'Spicy Shawarma', url: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&auto=format&fit=crop&q=80' },
@@ -135,18 +143,58 @@ export default function MenuTab() {
       return;
     }
 
+    // Process availableSizes
+    let availableSizes = modalItem.availableSizes;
+    if (typeof availableSizes === 'string') {
+      availableSizes = availableSizes.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    // Process colors
+    let colors = modalItem.colors;
+    if (typeof colors === 'string') {
+      colors = colors.split(',').map(c => {
+        const trimmed = c.trim();
+        return { name: trimmed, hex: '#1A1A1A' };
+      }).filter(Boolean);
+    }
+
+    // Process durationMinutes for salons
+    const durMins = modalItem.durationMinutes ? Number(modalItem.durationMinutes) : (isSalon ? 30 : null);
+
+    // Process addons
+    let addons = modalItem.addons;
+    if (typeof addons === 'string') {
+      addons = addons.split(',').map(a => {
+        const parts = a.split(':');
+        const n = (parts[0] || '').trim();
+        const p = Number(parts[1]) || 20;
+        return n ? { id: `addon-${n.toLowerCase().replace(/[^a-z0-9]/g, '-')}`, name: n, price: p } : null;
+      }).filter(Boolean);
+    }
+
+    const finalAddons = Array.isArray(addons) && addons.length > 0 ? addons : (modalItem.addons || []);
+    const existingOptions = modalItem.options || {};
+    const updatedOptions = finalAddons.length > 0 ? { ...existingOptions, addons: finalAddons } : existingOptions;
+
     const payload = {
       ...modalItem,
       name: modalItem.name.trim(),
       price: Number(modalItem.price) || 0,
       originalPrice: modalItem.originalPrice ? Number(modalItem.originalPrice) : 0,
-      category: (modalItem.category || 'shawarmas').toLowerCase(),
+      category: (modalItem.category || (isFashion ? 'men' : isSalon ? 'haircut' : 'shawarmas')).toLowerCase(),
       isVeg: Boolean(modalItem.isVeg),
       badge: modalItem.badge || '',
-      prepTime: modalItem.prepTime || '15-20 min',
+      prepTime: modalItem.prepTime || (durMins ? `${durMins} min` : '15-20 min'),
+      durationMinutes: durMins,
+      time: durMins || modalItem.time,
       description: modalItem.description || '',
       available: modalItem.available !== false,
-      image: modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'
+      image: modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
+      availableSizes: Array.isArray(availableSizes) && availableSizes.length > 0 ? availableSizes : (modalItem.availableSizes || []),
+      colors: Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || []),
+      secondaryImage: modalItem.secondaryImage || '',
+      addons: finalAddons,
+      options: updatedOptions
     };
 
     if (modalItem.id) {
@@ -736,6 +784,139 @@ export default function MenuTab() {
                     Sold Out (Khatam)
                   </button>
                 </div>
+              </div>
+
+              {/* 9. DYNAMIC ATTRIBUTES: SIZES, COLORS, DURATION, ADDONS */}
+              <div className="pt-2 border-t border-zinc-100 space-y-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  ✦ Product Customization & Attributes
+                </div>
+
+                {/* SIZES (Footwear / Apparel / General) */}
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    AVAILABLE SIZES (Comma Separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={Array.isArray(modalItem.availableSizes) ? modalItem.availableSizes.join(', ') : (modalItem.availableSizes || '')}
+                    onChange={(e) => setModalItem({ ...modalItem, availableSizes: e.target.value })}
+                    placeholder="e.g. UK 6, UK 7, UK 8, UK 9, UK 10 or S, M, L, XL"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  />
+                  <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    {['UK 6, UK 7, UK 8, UK 9, UK 10', 'S, M, L, XL, XXL', 'UK 7', 'UK 8', 'UK 9', 'UK 10'].map(sz => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => setModalItem({ ...modalItem, availableSizes: sz })}
+                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                      >
+                        {sz}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* COLORS (Fashion & Retail) */}
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    COLOR SWATCHES (Comma Separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={Array.isArray(modalItem.colors) ? modalItem.colors.map(c => typeof c === 'string' ? c : c.name).join(', ') : (modalItem.colors || '')}
+                    onChange={(e) => setModalItem({ ...modalItem, colors: e.target.value })}
+                    placeholder="e.g. Onyx Black, Glacier White, Camel Tan"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  />
+                  <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    {['Onyx Black, Glacier White', 'Navy Blue, Camel Tan', 'Pure White', 'Jet Black'].map(col => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => setModalItem({ ...modalItem, colors: col })}
+                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                      >
+                        {col}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LOOKBOOK / SECONDARY PHOTO */}
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    SECONDARY / LOOKBOOK PHOTO (URL)
+                  </label>
+                  <input
+                    type="url"
+                    value={modalItem.secondaryImage || ''}
+                    onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                  />
+                </div>
+
+                {/* SERVICE DURATION IN MINUTES (Salon / Appointments) */}
+                {isSalon && (
+                  <div>
+                    <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                      EXACT SERVICE DURATION (Minutes for Calendar Collision) *
+                    </label>
+                    <input
+                      type="number"
+                      value={modalItem.durationMinutes || ''}
+                      onChange={(e) => setModalItem({ ...modalItem, durationMinutes: e.target.value })}
+                      placeholder="30"
+                      className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#d4af37] focus:outline-none transition-all shadow-xs border-0"
+                    />
+                    <div className="flex items-center gap-1 pt-1 flex-wrap">
+                      {['15', '30', '45', '60', '90', '120'].map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setModalItem({ ...modalItem, durationMinutes: m, prepTime: `${m} min` })}
+                          className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                        >
+                          {m} Mins
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* FOOD ADDONS & EXTRAS (Food Stores) */}
+                {!isSalon && (
+                  <div>
+                    <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                      ADDONS & EXTRAS (Format: Name:Price)
+                    </label>
+                    <input
+                      type="text"
+                      value={Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '')}
+                      onChange={(e) => setModalItem({ ...modalItem, addons: e.target.value })}
+                      placeholder="Extra Cheese:30, Extra Toum:20, Fries Inside:40"
+                      className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                    />
+                    <div className="flex items-center gap-1 pt-1 flex-wrap">
+                      {['Extra Cheese:30', 'Extra Toum:20', 'French Fries Inside:40', 'Toasted Saj Bread:20'].map(ad => (
+                        <button
+                          key={ad}
+                          type="button"
+                          onClick={() => {
+                            const curr = Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '');
+                            const next = curr ? `${curr}, ${ad}` : ad;
+                            setModalItem({ ...modalItem, addons: next });
+                          }}
+                          className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                        >
+                          + {ad}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 flex items-center gap-2">

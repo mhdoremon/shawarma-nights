@@ -158,3 +158,63 @@ export async function updateSkylineOrderStatus(orderId, status, paymentStatus = 
     })
   });
 }
+
+/**
+ * Real-time WebSocket connection to ChuruOne Smart Server for Skyline Outfits
+ */
+export function connectSkylineWebSocket(onEvent) {
+  let ws = null;
+  let reconnectTimer = null;
+  let isClosed = false;
+
+  function connect() {
+    if (isClosed) return;
+    const base = getApiBase();
+    const wsProto = base.startsWith('https') ? 'wss:' : 'ws:';
+    const host = base.replace(/^https?:\/\//, '');
+    const wsUrl = `${wsProto}//${host}/ws?storeId=${SKYLINE_CONFIG.storeId}`;
+
+    try {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        console.log('⚡ [Skyline] Connected to ChuruOne Smart WebSocket Hub');
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const action = data.action || data.type;
+          if (action && typeof onEvent === 'function') {
+            onEvent(action, data.payload);
+          }
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        if (!isClosed) {
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        try { ws.close(); } catch (e) {}
+      };
+    } catch (err) {
+      if (!isClosed) {
+        reconnectTimer = setTimeout(connect, 4000);
+      }
+    }
+  }
+
+  connect();
+
+  return () => {
+    isClosed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    if (ws) {
+      try { ws.close(); } catch (e) {}
+    }
+  };
+}
+

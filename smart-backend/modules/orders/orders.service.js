@@ -62,14 +62,15 @@ export const placeOrder = async (req, res) => {
             }
         }
 
-        // Strict Validation: Nash Studio appointments MUST have ₹50 Token Advance Payment
+        // Strict Validation: Nash Studio appointments MUST have Advance Token Payment
         if (storeId === 'nash-studio' || (storeConfig?.settings && storeConfig?.settings?.requireTokenPayment)) {
+            const requiredFee = Number(storeConfig?.settings?.bookingFee ?? 50);
             const bookingFee = safeNum(payload.bookingFee);
             const txnId = (payload.txnId || payload.utr || '').trim();
-            if (bookingFee < 50 || !txnId || txnId.length < 4) {
+            if (bookingFee < requiredFee || !txnId || txnId.length < 4) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Nash Studio me bina ₹50 Token Payment ke slot booking sambhav nahi hai. Kripya ₹50 UPI pay karke valid UTR number enter karein.'
+                    message: `Nash Studio me bina ₹${requiredFee} Token Payment ke slot booking sambhav nahi hai. Kripya ₹${requiredFee} UPI pay karke valid UTR number enter karein.`
                 });
             }
         }
