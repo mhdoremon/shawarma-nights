@@ -32,11 +32,26 @@ export const placeOrder = async (req, res) => {
         const orders = DataLayer.read(storeId, 'orders') || [];
         const payload = req.body;
 
-        // Check salon appointment slot collision
-        if (payload.dateISO && payload.startMin !== undefined && payload.totalMinutes) {
+        // Check salon appointment slot validation & collision
+        if (payload.dateISO && payload.startMin !== undefined) {
             const startMin = Number(payload.startMin);
-            const totalMinutes = Number(payload.totalMinutes);
+            const totalMinutes = Number(payload.totalMinutes || 30);
             const reqEnd = startMin + totalMinutes;
+
+            // IST (Indian Standard Time UTC+5:30) validation
+            const now = new Date();
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            const istNow = new Date(now.getTime() + istOffset);
+            const todayISO = istNow.toISOString().split('T')[0];
+            const currentMinutesToday = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+
+            if (payload.dateISO < todayISO) {
+                return res.status(400).json({ success: false, message: 'CANNOT_BOOK_PAST_DATE', error: 'Beete hue din ka appointment book nahi kiya ja sakta.' });
+            }
+            if (payload.dateISO === todayISO && startMin <= currentMinutesToday) {
+                return res.status(400).json({ success: false, message: 'CANNOT_BOOK_PAST_TIME_SLOT', error: 'Beete hue samay ka slot book nahi kiya ja sakta. Kripya aane wala slot chunein.' });
+            }
+
             const existingBookings = orders.filter(o => o.dateISO === payload.dateISO && o.status !== 'cancelled' && o.startMin !== undefined);
             for (const b of existingBookings) {
                 const bStart = Number(b.startMin);

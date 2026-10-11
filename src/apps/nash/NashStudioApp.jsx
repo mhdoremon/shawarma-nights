@@ -1619,7 +1619,15 @@ function SiteView({ hairstyles, settings, user, setUser }) {
           onClose={() => setShowFeedback(false)}
           onSubmit={async (rating, comment) => {
             try {
-              await saveFeedback(done.id, rating, comment);
+              await saveFeedback({
+                id: done.id,
+                bookingId: done.id || done.token,
+                name: done.name || name || "Customer",
+                phone: done.phone || phone || "",
+                rating,
+                comment,
+                dish: done.style?.name || done.serviceName || "Salon Service"
+              });
               setShowFeedback(false);
               setToast({ msg: "Feedback submit ho gaya! Dhanyawad.", type: "success" });
             } catch (err) {

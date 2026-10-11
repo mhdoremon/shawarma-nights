@@ -42,7 +42,8 @@ import {
   validateCouponCode, 
   placeSkylineOrder,
   initiateSkylineUpiPayment,
-  updateSkylineOrderStatus
+  updateSkylineOrderStatus,
+  submitProductReview
 } from './skylineApiClient';
 import { 
   getChuruOneSession, 
@@ -137,6 +138,13 @@ export default function SkylineApp() {
   const [trackPhoneInput, setTrackPhoneInput] = useState('');
   const [trackedOrders, setTrackedOrders] = useState([]);
   const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Write Review Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [newReviewName, setNewReviewName] = useState('');
+  const [newReviewSubmitting, setNewReviewSubmitting] = useState(false);
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState('');
@@ -676,14 +684,88 @@ export default function SkylineApp() {
     return menuItems.slice(7, 10).length > 0 ? menuItems.slice(7, 10) : menuItems.slice(0, 3);
   }, [menuItems]);
 
+  // ─── DYNAMIC CATEGORY TABS (BACKEND DB SYNCED) ──────────────
+  const displayCategoryTabs = useMemo(() => {
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      const dynamicTabs = categories.map(cat => {
+        if (typeof cat === 'string') {
+          return { id: cat.toLowerCase(), label: cat };
+        }
+        return {
+          id: (cat.id || cat.name || '').toLowerCase(),
+          label: cat.name || cat.label || cat.id || 'Category'
+        };
+      }).filter(t => t.id);
+
+      const hasAll = dynamicTabs.some(t => t.id === 'all');
+      return hasAll ? dynamicTabs : [...dynamicTabs, { id: 'all', label: 'All' }];
+    }
+    return [
+      { id: 'men', label: 'Men' },
+      { id: 'woman', label: 'Woman' },
+      { id: 'boy', label: 'Boy' },
+      { id: 'child', label: 'Child' },
+      { id: 'all', label: 'All' }
+    ];
+  }, [categories]);
+
+  // ─── SUBMIT LIVE CUSTOMER REVIEW ─────────────────────────────
+  const handleReviewSubmit = async (e) => {
+    e?.preventDefault();
+    const finalName = (newReviewName || currentUser?.name || '').trim();
+    if (!finalName) {
+      showToast('Please enter your name');
+      return;
+    }
+    if (!newReviewComment.trim()) {
+      showToast('Please write your review/experience');
+      return;
+    }
+    setNewReviewSubmitting(true);
+    try {
+      const reviewPayload = {
+        name: finalName,
+        phone: currentUser?.phone || checkoutPhone || '',
+        rating: newReviewRating,
+        comment: newReviewComment.trim(),
+        dish: 'Slick Collection',
+        type: 'store'
+      };
+      const res = await submitProductReview(reviewPayload);
+      if (res && res.success) {
+        showToast('Review submitted successfully! Dhanyawad.');
+        setShowReviewModal(false);
+        setNewReviewComment('');
+        if (res.review) {
+          setStoreData(prev => ({
+            ...prev,
+            reviews: [res.review, ...(prev?.reviews || [])]
+          }));
+        }
+      } else {
+        showToast('Review submission failed');
+      }
+    } catch (err) {
+      console.error('Review submit error:', err);
+      showToast('Review submit error: ' + (err.message || 'Network error'));
+    } finally {
+      setNewReviewSubmitting(false);
+    }
+  };
+
   // ─── BEST SELLING ITEMS (6 ITEMS AS IN SCREENSHOT) ───────────
   const bestSellingProducts = useMemo(() => {
     let list = menuItems.filter(item => item.id !== 'slick-shoe-00');
 
-    if (activeCategory === 'men') {
-      list = list.filter(item => item.category === 'men' || !item.category);
-    } else if (activeCategory && activeCategory !== 'all') {
-      list = list.filter(item => (item.category || '').toLowerCase() === activeCategory.toLowerCase());
+    if (activeCategory && activeCategory !== 'all') {
+      const activeCat = activeCategory.toLowerCase();
+      list = list.filter(item => {
+        const itemCat = (item.category || '').toLowerCase();
+        if (activeCat === 'men') {
+          return itemCat === 'men' || !item.category;
+        }
+        return itemCat === activeCat;
+      });
     }
 
     if (searchQuery.trim()) {
@@ -694,8 +776,15 @@ export default function SkylineApp() {
       );
     }
 
-    if (list.length < 6 && activeCategory === 'men') {
-      return menuItems.filter(i => i.id.startsWith('slick-shoe') && i.id !== 'slick-shoe-00').slice(0, 6);
+    if (list.length < 6 && (activeCategory === 'men' || activeCategory === 'all')) {
+      const fallbackShoes = menuItems.filter(i => i.id.startsWith('slick-shoe') && i.id !== 'slick-shoe-00');
+      if (fallbackShoes.length > 0) {
+        const combined = [...list];
+        fallbackShoes.forEach(shoe => {
+          if (!combined.some(c => c.id === shoe.id)) combined.push(shoe);
+        });
+        return combined.slice(0, 6);
+      }
     }
 
     return list.slice(0, 6);
@@ -1073,15 +1162,9 @@ export default function SkylineApp() {
             — Best Selling —
           </span>
 
-          {/* Category Filter Pills (Men, Woman, Boy, Child as in screenshot) */}
+          {/* Category Filter Pills (Dynamic from backend) */}
           <div className="flex items-center justify-center flex-wrap gap-2 pt-2">
-            {[
-              { id: 'men', label: 'Men' },
-              { id: 'woman', label: 'Woman' },
-              { id: 'boy', label: 'Boy' },
-              { id: 'child', label: 'Child' },
-              { id: 'all', label: 'All' }
-            ].map((tab) => (
+            {displayCategoryTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveCategory(tab.id)}
@@ -1175,55 +1258,69 @@ export default function SkylineApp() {
       {/* ─── 6. CUSTOMER REVIEW SECTION ───────────────────────────── */}
       <section id="reviews" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-stone-100">
         
-        {/* Section Tag */}
-        <div className="text-center space-y-2 mb-12">
-          <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
-            — Customer Review —
-          </span>
+        {/* Section Tag & Write Review Action */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 max-w-4xl mx-auto">
+          <div className="text-center sm:text-left space-y-1">
+            <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
+              — Customer Review —
+            </span>
+            <h3 className="text-xl sm:text-2xl font-extrabold text-stone-950 tracking-tight">
+              Community Voices & Testimonials
+            </h3>
+          </div>
+          <button
+            onClick={() => {
+              if (currentUser?.name) setNewReviewName(currentUser.name);
+              setShowReviewModal(true);
+            }}
+            className="px-6 py-2.5 rounded-full text-xs font-semibold bg-black text-white hover:bg-stone-800 transition-all flex items-center gap-2 cursor-pointer shadow-sm shrink-0"
+          >
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span>Write a Review</span>
+          </button>
         </div>
 
-        {/* 2 Side-by-Side Review Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {customerReviews.slice(0, 2).map((rev) => (
+        {/* Dynamic Reviews Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {customerReviews.slice(0, 4).map((rev) => (
             <div
               key={rev.id}
-              className="bg-[#F8F8F9] rounded-2xl p-6 sm:p-8 flex items-start gap-4 border border-stone-100 shadow-xs"
+              className="bg-[#F8F8F9] rounded-2xl p-6 sm:p-7 flex items-start gap-4 border border-stone-100 shadow-xs hover:border-stone-200 transition-all"
             >
               {/* Customer Avatar */}
               <img
-                src={rev.avatar}
+                src={rev.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
                 alt={rev.name}
                 className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-sm"
               />
 
               {/* Review Content */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-stone-950">
-                    {rev.name}
-                  </h4>
-                  {/* 5 Yellow Stars */}
-                  <div className="flex items-center gap-0.5 text-amber-400">
-                    {[...Array(rev.rating)].map((_, i) => (
+              <div className="space-y-2 flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="truncate">
+                    <h4 className="text-xs font-bold text-stone-950 truncate">
+                      {rev.name}
+                    </h4>
+                    {rev.date && (
+                      <span className="text-[10px] text-stone-400 font-light block">
+                        {rev.date}
+                      </span>
+                    )}
+                  </div>
+                  {/* Yellow Stars */}
+                  <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
+                    {[...Array(Math.min(5, Math.max(1, Number(rev.rating) || 5)))].map((_, i) => (
                       <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
                 </div>
 
-                <p className="text-xs text-stone-600 leading-relaxed font-light">
+                <p className="text-xs text-stone-600 leading-relaxed font-light break-words">
                   {rev.comment}
                 </p>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Carousel Pagination Dots */}
-        <div className="flex items-center justify-center gap-2 pt-8">
-          <span className="w-2 h-2 rounded-full bg-black"></span>
-          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
-          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
-          <span className="w-2 h-2 rounded-full bg-stone-300"></span>
         </div>
 
       </section>
@@ -2338,6 +2435,111 @@ export default function SkylineApp() {
               )}
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── WRITE A REVIEW MODAL ─────────────────────────────────── */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-stone-100 animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setShowReviewModal(false)}
+              className="absolute right-5 top-5 text-stone-400 hover:text-black p-1.5 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1 mb-6">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                SLICK • COMMUNITY FEEDBACK
+              </span>
+              <h3 className="text-xl font-bold text-stone-950">
+                Write a Review
+              </h3>
+              <p className="text-xs text-stone-500 font-light">
+                Share your experience with Skyline Outfits & footwear craftsmanship.
+              </p>
+            </div>
+
+            <form onSubmit={handleReviewSubmit} className="space-y-4">
+              {/* Star Rating Picker */}
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                  Your Rating
+                </label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setNewReviewRating(star)}
+                      className="p-1 cursor-pointer transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={`w-6 h-6 ${
+                          star <= newReviewRating
+                            ? 'fill-amber-400 text-amber-400'
+                            : 'text-stone-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <span className="text-xs font-bold text-stone-700 ml-2">
+                    {newReviewRating} / 5 Stars
+                  </span>
+                </div>
+              </div>
+
+              {/* Customer Name */}
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={newReviewName}
+                  onChange={(e) => setNewReviewName(e.target.value)}
+                  placeholder="e.g. Rahul Sharma"
+                  className="w-full border border-stone-200 focus:border-black rounded-xl px-3.5 py-2.5 text-xs outline-none transition-colors"
+                  required
+                />
+              </div>
+
+              {/* Review Comment */}
+              <div>
+                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
+                  Your Review / Experience
+                </label>
+                <textarea
+                  rows={4}
+                  value={newReviewComment}
+                  onChange={(e) => setNewReviewComment(e.target.value)}
+                  placeholder="Tell us what you liked about the material, comfort, or delivery..."
+                  className="w-full border border-stone-200 focus:border-black rounded-xl p-3 text-xs outline-none transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 border border-stone-200 hover:bg-stone-50 text-stone-700 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={newReviewSubmitting}
+                  className="flex-1 bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>{newReviewSubmitting ? 'Posting...' : 'Submit Review'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

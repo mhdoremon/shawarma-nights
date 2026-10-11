@@ -418,16 +418,43 @@ export async function saveCustomCSS(cssString) {
 }
 
 // 7. FEEDBACK & REVIEWS
-export async function saveFeedback(feedback) {
+export async function saveFeedback(arg1, arg2, arg3) {
   try {
-    await postSmartReview({
-      name: feedback.name || "Customer",
-      phone: feedback.phone || "",
-      rating: feedback.rating || 5,
-      comment: feedback.comment || "",
-      type: "feedback"
-    });
-  } catch (e) {}
+    let payload = {};
+    if (typeof arg1 === 'object' && arg1 !== null) {
+      payload = {
+        name: arg1.name || "Customer",
+        phone: arg1.phone || "",
+        rating: Number(arg1.rating) || 5,
+        comment: arg1.comment || "",
+        bookingId: arg1.bookingId || arg1.id || "",
+        dish: arg1.dish || arg1.serviceName || "Salon Service",
+        type: "feedback"
+      };
+    } else {
+      payload = {
+        name: "Customer",
+        phone: "",
+        rating: Number(arg2) || 5,
+        comment: arg3 || "",
+        bookingId: String(arg1 || ""),
+        dish: "Salon Service",
+        type: "feedback"
+      };
+    }
+
+    await postSmartReview(payload);
+
+    // Also persist to local reviews so it renders immediately
+    try {
+      const raw = localStorage.getItem("nash_reviews");
+      const list = raw ? JSON.parse(raw) : [];
+      list.unshift({ ...payload, id: `fb-${Date.now()}`, date: new Date().toLocaleDateString('en-IN') });
+      localStorage.setItem("nash_reviews", JSON.stringify(list));
+    } catch (_) {}
+  } catch (e) {
+    console.warn("saveFeedback error:", e);
+  }
   return true;
 }
 
