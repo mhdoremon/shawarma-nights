@@ -169,3 +169,161 @@ export function handleStoreWsMessage(data, ws, storeId, source) {
         WebSocketHub.broadcastToGateway(storeId, { action: 'HERO_UPDATED', payload: data.payload });
     }
 }
+
+/**
+ * ─── CHURUONE MARKETPLACE FEED & CITY DISCOVERY ALGORITHM (CDRA-v1) ───
+ * Aggregates real items across ALL connected stores, calculates city rankings,
+ * and delivers real-time marketplace feed to ChuruOne.
+ */
+export const getMarketplaceFeed = (req, res) => {
+    try {
+        const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+        const registeredStores = storesData.stores || [];
+        const storeDirIds = DataLayer.listStoreIds ? DataLayer.listStoreIds() : ['shawarma', 'skyline', 'nash-studio'];
+        
+        // Merge registered stores and store directories
+        const allStoreIds = Array.from(new Set([
+            ...registeredStores.map(s => s.id || s.slug),
+            ...storeDirIds
+        ])).filter(Boolean);
+
+        const marketplaceStores = [];
+        const allItems = [];
+        const allDeals = [];
+
+        for (const sId of allStoreIds) {
+            const config = DataLayer.getStoreConfig(sId) || {};
+            const storeInfo = DataLayer.read(sId, 'store_info') || {};
+            const rawMenu = DataLayer.read(sId, 'menu') || [];
+            const menuItems = Array.isArray(rawMenu)
+                ? rawMenu
+                : (Array.isArray(rawMenu?.menu) ? rawMenu.menu : (Array.isArray(rawMenu?.items) ? rawMenu.items : []));
+            const rawDeals = DataLayer.read(sId, 'deals') || [];
+            const dealsList = Array.isArray(rawDeals)
+                ? rawDeals
+                : (Array.isArray(rawDeals?.deals) ? rawDeals.deals : []);
+            const heroBanner = DataLayer.read(sId, 'hero_banner') || {};
+
+            const regStore = registeredStores.find(s => s.id === sId || s.slug === sId) || {};
+            const vertical = (regStore.vertical || config.vertical || storeInfo.vertical || (
+                sId.includes('nash') ? 'salon' :
+                sId.includes('skyline') ? 'fashion' : 'food'
+            )).toLowerCase();
+
+            const storeName = storeInfo.name || storeInfo.studioName || regStore.name || config.name || sId;
+            const storeTiming = vertical === 'salon' ? '15 min slot' : (storeInfo.timing || '20-30 min');
+            const storeRating = storeInfo.rating || '4.8';
+            const storeImg = storeInfo.image || heroBanner.circleImage || (menuItems[0]?.image || menuItems[0]?.img) || '';
+            const destination = vertical === 'salon' ? '/nash' : (vertical === 'fashion' ? '/skyline' : '/shawarma');
+
+            const storeSummary = {
+                id: sId,
+                name: storeName,
+                vertical,
+                category: vertical === 'food' ? 'Charcoal Kitchen & Dining' : (vertical === 'salon' ? 'Salon & Luxury Grooming' : 'Luxury Menswear & Outfits'),
+                rating: String(storeRating),
+                timing: storeTiming,
+                image: storeImg,
+                destination,
+                tag: vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits'),
+                isOpen: storeInfo.isOpen !== false,
+                address: storeInfo.address || 'Churu, Rajasthan',
+                phone: storeInfo.phone || storeInfo.whatsapp || '7023963189',
+                freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? 499,
+                upiId: storeInfo.upiId || '7023963189@fam',
+                payeeName: storeInfo.payeeName || storeName,
+                itemCount: menuItems.length,
+                dealsCount: dealsList.length
+            };
+            marketplaceStores.push(storeSummary);
+
+            // Add active deals
+            dealsList.forEach(d => {
+                if (d.isActive !== false && d.active !== false) {
+                    allDeals.push({
+                        ...d,
+                        storeId: sId,
+                        storeName
+                    });
+                }
+            });
+
+            // Add catalog items
+            menuItems.forEach(item => {
+                if (item.available !== false) {
+                    const isService = vertical === 'salon';
+                    const itemPrice = Number(item.price) || 0;
+                    const itemMrp = Number(item.originalPrice || item.mrp) || Math.round(itemPrice * 1.25);
+                    allItems.push({
+                        id: item.id || `${sId}-${item.name?.toLowerCase().replace(/\s+/g, '-')}`,
+                        storeId: sId,
+                        storeName,
+                        storeVertical: vertical,
+                        name: item.name,
+                            type: isService ? 'service' : 'product',
+                            category: (item.category || item.categoryId || vertical).toLowerCase(),
+                            price: itemPrice,
+                            originalPrice: itemMrp,
+                            image: item.image || item.img || storeImg,
+                            description: item.description || item.desc || '',
+                            rating: item.rating || 4.8,
+                            reviews: item.reviews || 25,
+                            isVeg: item.isVeg,
+                            durationMinutes: item.durationMinutes || item.time || 30,
+                            sizes: item.sizes || (vertical === 'fashion' ? ['UK 7', 'UK 8', 'UK 9', 'UK 10'] : null),
+                            colors: item.colors || null,
+                            destination,
+                            destinationStoreId: sId
+                        });
+                    }
+                });
+        }
+
+        // ─── CHURUONE CITY DISCOVERY & RANKING ALGORITHM (CDRA-v1) ────
+        // 1. Trending in Churu: High ratings and popular items
+        const trendingItems = [...allItems]
+            .sort((a, b) => ((b.rating || 4.8) * (b.reviews || 10)) - ((a.rating || 4.8) * (a.reviews || 10)))
+            .slice(0, 8);
+
+        // 2. Best Deals: Items with highest discount margin
+        const topDeals = [...allItems]
+            .map(item => ({
+                ...item,
+                discountPct: Math.round(((item.originalPrice - item.price) / (item.originalPrice || 1)) * 100)
+            }))
+            .sort((a, b) => b.discountPct - a.discountPct)
+            .slice(0, 6);
+
+        // 3. Category groupings
+        const foodItems = allItems.filter(i => i.storeVertical === 'food');
+        const fashionItems = allItems.filter(i => i.storeVertical === 'fashion');
+        const salonServices = allItems.filter(i => i.storeVertical === 'salon');
+
+        // Dynamic categories for UI
+        const categories = [
+            { id: 'all', name: 'All City Items', emoji: '🌟', count: allItems.length },
+            { id: 'food', name: 'Food & Shawarma', emoji: '🌯', count: foodItems.length },
+            { id: 'fashion', name: 'Fashion & Outfits', emoji: '👕', count: fashionItems.length },
+            { id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: salonServices.length },
+            { id: 'deals', name: 'Combos & Offers', emoji: '🎁', count: topDeals.length }
+        ];
+
+        return res.json({
+            success: true,
+            stores: marketplaceStores,
+            items: allItems,
+            trending: trendingItems,
+            topDeals,
+            deals: allDeals,
+            categories,
+            stats: {
+                totalStores: marketplaceStores.length,
+                totalProducts: allItems.length,
+                activeDeals: allDeals.length,
+                cityStatus: 'Fast Delivery in 20-30 Mins across Churu'
+            }
+        });
+    } catch (e) {
+        return res.status(500).json({ success: false, message: e.message });
+    }
+};

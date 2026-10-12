@@ -3,6 +3,7 @@ import * as service from './tenant.service.js';
 import { requireAdmin } from '../../middleware/auth.js';
 
 export const platformRouter = Router();
+platformRouter.get('/marketplace', service.getMarketplaceFeed);
 platformRouter.post('/stores', service.registerStore);
 platformRouter.get('/stores', service.listStores);
 platformRouter.get('/stores/:storeId', service.getStoreInfo);

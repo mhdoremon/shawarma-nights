@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as service from './tenant.service.js';
 
 export const platformRouter = Router();
+platformRouter.get('/marketplace', service.getMarketplaceFeed);
 platformRouter.post('/stores', service.registerStore);
 platformRouter.get('/stores', service.listStores);
 platformRouter.get('/stores/:storeId', service.getStoreInfo);
