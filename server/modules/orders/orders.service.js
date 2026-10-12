@@ -158,7 +158,6 @@ export const placeOrder = async (req, res) => {
         // Extract customer
         const customerName = payload.customer?.name || payload.customerName || payload.name || "";
         const customerPhone = payload.customer?.phone || payload.customerPhone || payload.phone || "";
-        const customerEmail = payload.customer?.email || payload.userEmail || payload.email || "";
 
         // Extract items (support single service/hairstyle or item array)
         let items = payload.items || [];
