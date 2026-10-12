@@ -554,6 +554,7 @@ export default function ChuruOneHomePage() {
   const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
   const deliveryFee = 0; // Free express delivery across Churu City
   const finalCartTotal = Math.max(0, cartSubtotal - couponDiscount + deliveryFee);
+  const cartTotal = finalCartTotal;
   const totalSavings = (cartMrpTotal - cartSubtotal) + couponDiscount;
 
   // ─── GPS CAPTURE ENGINE ───────────────────────────────────────────

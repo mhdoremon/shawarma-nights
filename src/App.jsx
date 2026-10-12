@@ -89,10 +89,54 @@ function RootEntry() {
   return <ChuruOneHomePage />;
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('Unhandled UI Crash caught by ErrorBoundary:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'sans-serif', background: '#FDFCF9', color: '#1c1917', textAlign: 'center' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#1c1917', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '16px' }}>
+            🛍️
+          </div>
+          <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px' }}>ChuruOne Update Ready</h2>
+          <p style={{ fontSize: '14px', color: '#78716c', maxWidth: '380px', marginBottom: '20px' }}>
+            Kuch naye updates sync karne ke liye page ko 1-tap refresh karein.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => { window.location.reload(); }}
+              style={{ background: '#1c1917', color: '#fff', padding: '10px 20px', borderRadius: '12px', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+            >
+              🔄 Refresh Page
+            </button>
+            <button
+              onClick={() => { try { localStorage.removeItem('churuone_cart'); } catch(e){} window.location.href = '/'; }}
+              style={{ background: '#e7e5e4', color: '#1c1917', padding: '10px 20px', borderRadius: '12px', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+            >
+              🏠 Clean Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
         {/* PhonePe Compliant Legal & Compliance Routes */}
         <Route path="/contact-us/*" element={<LegalPage />} />
         <Route path="/contact/*" element={<LegalPage />} />
@@ -153,5 +197,6 @@ export default function App() {
         <Route path="/*" element={<RootEntry />} />
       </Routes>
     </BrowserRouter>
+  </ErrorBoundary>
   );
 }
