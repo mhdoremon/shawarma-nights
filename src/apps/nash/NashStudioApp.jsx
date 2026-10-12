@@ -11,7 +11,8 @@ import {
   logoutUser,
   saveFeedback,
   saveReview,
-  subscribeToReviews
+  subscribeToReviews,
+  subscribeToDeals
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
@@ -45,7 +46,10 @@ import {
   Printer,
   Share2,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Tag,
+  Gift,
+  Copy
 } from 'lucide-react';
 
 // =========================================================================
@@ -65,9 +69,9 @@ const DEFAULT_SETTINGS = {
   heroButtonText: "",
   heroVideoUrl: "/video/hero.mp4",
   showHeroBanner: false,
-  showOfferCards: false,
+  showOfferCards: true,
   showMarqueeStrip: false,
-  dealsEnabled: false,
+  dealsEnabled: true,
   shopWhatsapp: "917023963189",
   phoneDisplay: "+91 70239 63189",
   address: "Main Market, Churu, Rajasthan, PIN - 331001",
@@ -88,6 +92,9 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_HAIRSTYLES = [
+  // COMBOS & PACKAGES
+  { id: 'hs_royal_combo', name: 'Royal Grooming Combo', type: 'premium', img: '/images/hs_scissor_sculpt.jpg', time: 75, price: 1800, desc: 'Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).' },
+
   // PREMIUM (60 min • Rs 1500)
   { id: 'hs1', name: 'Messy Spiky Undercut', type: 'premium', img: '/images/10-messy-spiky-undercut-for-men.webp', time: 60, price: 1500, desc: 'High-texture spiky top with ultra-sharp disconnected fade.' },
   { id: 'hs2', name: 'Messy Flow & Texture', type: 'premium', img: '/images/Messy_Hairstyles_For_Men_76d77f7a-be86-4de0-802f-5fd01f933356.webp', time: 60, price: 1500, desc: 'Natural flow length with textured layers and soft taper.' },
@@ -180,7 +187,9 @@ function printStandaloneTicket(b, settings = DEFAULT_SETTINGS) {
     "<div style='font-size:12px;font-weight:bold;margin-bottom:6px'>Services:</div>" + svcHtml,
     "<div class='div'></div>",
     "<div class='row'><span><b>Total Duration:</b></span><span>" + b.totalMinutes + " Mins</span></div>",
-    "<div class='row'><span><b>Service Price:</b></span><span>Rs " + (b.totalPrice||0) + "</span></div>",
+    "<div class='row'><span><b>Service Price:</b></span><span>Rs " + (b.basePrice || b.totalPrice || 0) + "</span></div>",
+    (b.discountAmount ? "<div class='row' style='color:#b8860b;font-weight:bold'><span><b>Promo Discount (" + (b.couponCode || "DEAL") + "):</b></span><span>- Rs " + b.discountAmount + "</span></div>" : ""),
+    "<div class='row' style='font-weight:bold'><span><b>Final Total Price:</b></span><span>Rs " + (b.totalPrice||0) + "</span></div>",
     "<div class='row' style='color:#2e7d32;font-weight:bold'><span><b>Booking Fee Paid:</b></span><span>Rs " + (b.bookingFee||50) + (b.txnId ? " (UTR: " + b.txnId + ")" : "") + "</span></div>",
     "<div class='row' style='font-size:14px;border-top:1px dashed #1c1712;padding-top:6px'><span><b>Remaining Due at Salon:</b></span><span style='color:#7a5222;font-weight:bold'>Rs " + (b.remainingDue !== undefined ? b.remainingDue : Math.max(0, (b.totalPrice||0) - (b.bookingFee||50))) + "</span></div>",
     "<div class='div'></div>",
@@ -195,6 +204,7 @@ function printStandaloneTicket(b, settings = DEFAULT_SETTINGS) {
 export default function App() {
   const [hairstyles, setHairstyles] = useState(DEFAULT_HAIRSTYLES);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [deals, setDeals] = useState([]);
   const [user, setUser] = useState(null);
   const [customCss, setCustomCss] = useState("");
 
@@ -206,6 +216,10 @@ export default function App() {
     const unsubS = subscribeToSiteSettings((s) => {
       if (s && typeof s === "object") setSettings(prev => ({ ...prev, ...s }));
     }, DEFAULT_SETTINGS);
+
+    const unsubD = subscribeToDeals((list) => {
+      if (Array.isArray(list)) setDeals(list);
+    });
 
     const unsubAuth = subscribeToAuth((u) => {
       setUser(u);
@@ -219,6 +233,7 @@ export default function App() {
     return () => {
       if (typeof unsubH === "function") unsubH();
       if (typeof unsubS === "function") unsubS();
+      if (typeof unsubD === "function") unsubD();
       if (typeof unsubAuth === "function") unsubAuth();
       if (typeof unsubCSS === "function") unsubCSS();
     };
@@ -235,7 +250,7 @@ export default function App() {
     styleEl.textContent = customCss;
   }, [customCss]);
 
-  return <SiteView hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} />;
+  return <SiteView hairstyles={hairstyles} settings={settings} user={user} setUser={setUser} deals={deals} />;
 }
 
 function Reveal({ children, delay = 0 }) {
@@ -255,9 +270,13 @@ function Reveal({ children, delay = 0 }) {
   );
 }
 
-function SiteView({ hairstyles, settings, user, setUser }) {
+function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
   const [step, setStep] = useState(1);
   const [selectedStyle, setSelectedStyle] = useState(null);
+  const [appliedDeal, setAppliedDeal] = useState(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [copiedCode, setCopiedCode] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [filterT, setFilterT] = useState("all");
   const [expandedGallery, setExpandedGallery] = useState(false);
@@ -470,9 +489,28 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
   const workMinutes = selectedStyle ? Number(selectedStyle.durationMinutes || selectedStyle.time || 30) : 0;
   const totalMinutes = workMinutes > 0 ? workMinutes + BUFFER : 0;
-  const totalPrice = selectedStyle ? selectedStyle.price : 0;
+  const basePrice = selectedStyle ? Number(selectedStyle.price || 0) : 0;
   const tier = selectedStyle ? selectedStyle.type : "standard";
 
+  // Coupon / Combo discount calculation
+  let discountAmount = 0;
+  if (appliedDeal && basePrice > 0) {
+    const minRequired = Number(appliedDeal.minOrder || 0);
+    if (!minRequired || basePrice >= minRequired) {
+      if (appliedDeal.discountType === 'percentage' || appliedDeal.discountPercent) {
+        const pct = Number(appliedDeal.discountPercent || appliedDeal.discount || 0);
+        discountAmount = Math.round((basePrice * pct) / 100);
+        if (appliedDeal.maxDiscount) {
+          discountAmount = Math.min(discountAmount, Number(appliedDeal.maxDiscount));
+        }
+      } else {
+        discountAmount = Number(appliedDeal.flatDiscount || appliedDeal.discountAmount || appliedDeal.discount || 0);
+      }
+      discountAmount = Math.min(discountAmount, basePrice);
+    }
+  }
+
+  const totalPrice = Math.max(0, basePrice - discountAmount);
   const bookingFee = selectedStyle && selectedStyle.bookingFee !== undefined 
     ? Number(selectedStyle.bookingFee) 
     : Number(settings?.bookingFee ?? 50); // Dynamic per style or from Dukandar Settings
@@ -480,6 +518,53 @@ function SiteView({ hairstyles, settings, user, setUser }) {
 
   function scrollToBook() { bookRef.current?.scrollIntoView({ behavior: "smooth" }); }
   function goStep(n) { setStep(n); setTimeout(() => bookRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
+
+  function handleApplyCouponCode(codeToApply) {
+    const clean = (codeToApply || "").trim().toUpperCase();
+    if (!clean) {
+      setCouponError("Please enter a voucher / promo code");
+      return;
+    }
+    const found = (deals || []).find(d => (d.code || "").toUpperCase() === clean && d.isActive !== false && d.active !== false);
+    if (!found) {
+      setCouponError(`Invalid or inactive code: "${clean}"`);
+      return;
+    }
+    const minReq = Number(found.minOrder || 0);
+    if (minReq && basePrice > 0 && basePrice < minReq) {
+      setCouponError(`Code "${clean}" requires minimum booking of ₹${minReq}`);
+      return;
+    }
+    setAppliedDeal(found);
+    setCouponInput(clean);
+    setCouponError("");
+    showToast(`✓ Promo code ${found.code} applied!`, "success");
+  }
+
+  function handleApplyDealFromBanner(deal) {
+    setAppliedDeal(deal);
+    setCouponInput(deal.code);
+    setCopiedCode(deal.code);
+    setTimeout(() => setCopiedCode(""), 2500);
+    showToast(`Promo ${deal.code} applied! Discount will reflect in your booking summary.`, "success");
+  }
+
+  function handleBookComboPackage(deal) {
+    setAppliedDeal(deal);
+    setCouponInput(deal.code);
+    const matchingStyle = (hairstyles || []).find(h => 
+      h.name.toLowerCase().includes('combo') || 
+      h.name.toLowerCase().includes('royal') ||
+      h.type === 'premium'
+    ) || hairstyles?.[0];
+    
+    if (matchingStyle) {
+      setSelectedStyle(matchingStyle);
+      setStep(2);
+    }
+    scrollToBook();
+    showToast(`Selected ${deal.title}! Choose your preferred appointment slot.`, "success");
+  }
 
   async function handlePayWithCashfree() {
     if (!name.trim()) {
@@ -584,6 +669,10 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       userUid: currentUserObj?.uid || currentUserObj?.id || "",
       tier,
       styleName: selectedStyle.name,
+      basePrice,
+      discountAmount,
+      couponCode: appliedDeal ? appliedDeal.code : null,
+      couponTitle: appliedDeal ? appliedDeal.title : null,
       totalPrice,
       bookingFee: activeBookingFee,
       remainingDue: activeRemainingDue,
@@ -812,27 +901,183 @@ function SiteView({ hairstyles, settings, user, setUser }) {
         </section>
       )}
 
-      {/* SMART MODULAR WIRE: SPECIAL OFFER CARDS (TOGGLED FROM DUKANDAR OS) */}
-      {settings.showOfferCards && (
-        <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"30px 20px"}}>
-          <div style={{maxWidth:1100, margin:"0 auto"}}>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-              <span style={{fontSize:12, fontWeight:700, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--paper)", display:"inline-flex", alignItems:"center", gap:6}}>
-                <Sparkles size={14} color="#d4af37" />
-                <span>SPECIAL SALON PACKAGES & DEALS</span>
-              </span>
-              <span style={{fontSize:11, color:"#d4af37", fontWeight:600}}>Limited Slots</span>
-            </div>
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(280px, 1fr))", gap:16}}>
-              <div style={{background:"var(--surface)", border:"1px solid var(--line)", borderRadius:8, padding:20}}>
-                <span style={{fontSize:10, fontWeight:700, background:"rgba(212,175,55,0.15)", color:"#d4af37", padding:"3px 8px", borderRadius:4}}>COMBO OFFER</span>
-                <h3 style={{fontSize:16, fontWeight:700, color:"var(--paper)", margin:"8px 0 4px"}}>Royal Grooming Combo</h3>
-                <p style={{fontSize:12, color:"var(--muted)", margin:0}}>Haircut + Hot Towel Razor Shave + Beard Blend</p>
+      {/* SMART MODULAR WIRE: DYNAMIC SALON PACKAGES & COMBOS (REALTIME SYNC FROM DUKANDAR OS) */}
+      {(() => {
+        const activeDeals = (deals || []).filter(d => d.isActive !== false && d.active !== false);
+        if (activeDeals.length === 0 || settings.showOfferCards === false) return null;
+
+        return (
+          <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"36px 20px"}}>
+            <div style={{maxWidth:1100, margin:"0 auto"}}>
+              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10}}>
+                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                  <div style={{width:28, height:28, borderRadius:8, background:"rgba(212,175,55,0.15)", display:"flex", alignItems:"center", justifyContent:"center"}}>
+                    <Sparkles size={16} color="#d4af37" />
+                  </div>
+                  <div>
+                    <h2 style={{fontFamily:"var(--display)", fontSize:15, fontWeight:800, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--paper)", margin:0}}>
+                      EXCLUSIVE SALON PACKAGES & COMBOS
+                    </h2>
+                    <p style={{fontSize:11, color:"var(--muted)", margin:0}}>
+                      Curated grooming packages & limited-time appointment promo vouchers
+                    </p>
+                  </div>
+                </div>
+                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                  <span style={{fontSize:10, color:"#d4af37", fontWeight:800, letterSpacing:"0.15em", textTransform:"uppercase", background:"rgba(212,175,55,0.1)", padding:"4px 10px", borderRadius:20, border:"1px solid rgba(212,175,55,0.3)"}}>
+                    {activeDeals.length} ACTIVE OFFERS
+                  </span>
+                </div>
+              </div>
+
+              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(290px, 1fr))", gap:16}}>
+                {activeDeals.map((deal) => {
+                  const isApplied = appliedDeal?.code === deal.code;
+                  const isCopied = copiedCode === deal.code;
+                  const discountBadge = deal.discountType === 'percentage' || deal.discountPercent
+                    ? `${deal.discountPercent || deal.discount}% OFF`
+                    : `FLAT ₹${deal.flatDiscount || deal.discountAmount || deal.discount || 100} OFF`;
+
+                  return (
+                    <div 
+                      key={deal.id || deal.code}
+                      style={{
+                        background:"var(--surface)",
+                        border: isApplied ? "1px solid #d4af37" : "1px solid var(--line)",
+                        borderRadius:14,
+                        padding:22,
+                        display:"flex",
+                        flexDirection:"column",
+                        justifyContent:"space-between",
+                        gap:16,
+                        boxShadow: isApplied ? "0 8px 30px rgba(212,175,55,0.2)" : "var(--card-shadow)",
+                        position:"relative",
+                        overflow:"hidden",
+                        transition:"all 0.25s ease"
+                      }}
+                    >
+                      {/* Top Badges */}
+                      <div>
+                        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, gap:8, flexWrap:"wrap"}}>
+                          <div style={{display:"flex", alignItems:"center", gap:6}}>
+                            <span style={{
+                              fontSize:10, 
+                              fontWeight:800, 
+                              background: deal.isCombo ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.06)", 
+                              color: deal.isCombo ? "#d4af37" : "var(--paper)", 
+                              padding:"3px 8px", 
+                              borderRadius:4,
+                              letterSpacing:"0.1em",
+                              textTransform:"uppercase",
+                              display:"inline-flex",
+                              alignItems:"center",
+                              gap:4
+                            }}>
+                              {deal.isCombo ? <Gift size={11} color="#d4af37" /> : <Tag size={11} />}
+                              <span>{deal.isCombo ? "COMBO PACKAGE" : "PROMO VOUCHER"}</span>
+                            </span>
+                            {deal.minOrder > 0 && (
+                              <span style={{fontSize:9, color:"var(--muted)", fontWeight:600}}>
+                                Min ₹{deal.minOrder}
+                              </span>
+                            )}
+                          </div>
+
+                          <span style={{
+                            fontSize:11,
+                            fontWeight:800,
+                            color: "#d4af37",
+                            background: "rgba(212,175,55,0.12)",
+                            padding: "3px 8px",
+                            borderRadius: 4,
+                            letterSpacing: "0.08em"
+                          }}>
+                            {discountBadge}
+                          </span>
+                        </div>
+
+                        {/* Title & Desc */}
+                        <h3 style={{fontFamily:"var(--display)", fontSize:17, fontWeight:800, color:"var(--paper)", margin:"0 0 6px", letterSpacing:"0.04em"}}>
+                          {deal.title}
+                        </h3>
+                        <p style={{fontSize:12, color:"var(--muted)", margin:0, lineHeight:1.5}}>
+                          {deal.desc || "Special discount voucher crafted for gentlemen."}
+                        </p>
+                      </div>
+
+                      {/* Code Pill & Action Buttons */}
+                      <div style={{borderTop:"1px dashed var(--line)", paddingTop:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
+                        <div style={{
+                          display:"inline-flex",
+                          alignItems:"center",
+                          gap:6,
+                          background:"rgba(255,255,255,0.04)",
+                          border:"1px dashed rgba(212,175,55,0.4)",
+                          padding:"6px 10px",
+                          borderRadius:6
+                        }}>
+                          <span style={{fontSize:9, color:"var(--muted)", fontWeight:700, letterSpacing:"0.1em"}}>CODE:</span>
+                          <span style={{fontSize:11, fontWeight:900, color:"#d4af37", letterSpacing:"0.12em", textTransform:"uppercase"}}>
+                            {deal.code}
+                          </span>
+                        </div>
+
+                        <div style={{display:"flex", alignItems:"center", gap:6}}>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyDealFromBanner(deal)}
+                            style={{
+                              background: isApplied ? "rgba(16,185,129,0.15)" : "transparent",
+                              border: isApplied ? "1px solid #10b981" : "1px solid var(--line)",
+                              color: isApplied ? "#10b981" : "var(--paper)",
+                              padding: "7px 12px",
+                              borderRadius: 6,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4
+                            }}
+                          >
+                            {isApplied ? <Check size={11} strokeWidth={3} /> : <Tag size={11} />}
+                            <span>{isApplied ? "APPLIED" : (isCopied ? "COPIED" : "APPLY")}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleBookComboPackage(deal)}
+                            style={{
+                              background: "#d4af37",
+                              border: "none",
+                              color: "#000000",
+                              padding: "7px 14px",
+                              borderRadius: 6,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4
+                            }}
+                          >
+                            <span>BOOK NOW</span>
+                            <ChevronRight size={11} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* ─── HAIRSTYLE SELECTION & BOOKING SECTION ────────────────── */}
       <section id="book" ref={bookRef} style={{...S.section, borderBottom:"1px solid var(--line)"}}>
@@ -1159,30 +1404,144 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         ["Reserved Slot", slot ? slot.label : "--"],
                         ["Estimated Time", `${totalMinutes} min session`],
                         ...(ENABLE_ONLINE_PAYMENT ? [
-                          ["Service Total Price", `Rs ${totalPrice}`],
+                          ["Service Base Price", `Rs ${basePrice}`],
+                          ...(discountAmount > 0 ? [
+                            [`Promo Discount (${appliedDeal?.code || 'VOUCHER'})`, `- Rs ${discountAmount}`],
+                            ["Final Discounted Total", `Rs ${totalPrice}`]
+                          ] : [
+                            ["Service Total Price", `Rs ${totalPrice}`]
+                          ]),
                           ["Fixed Token Advance (Pay Now)", `Rs ${bookingFee}`],
                           ["Remaining Due at Salon", `Rs ${remainingDue}`]
                         ] : [
-                          ["Total Price (Pay at Salon)", `Rs ${totalPrice}`]
+                          ...(discountAmount > 0 ? [
+                            ["Base Price", `Rs ${basePrice}`],
+                            [`Promo Discount (${appliedDeal?.code || 'VOUCHER'})`, `- Rs ${discountAmount}`],
+                            ["Total Price (Pay at Salon)", `Rs ${totalPrice}`]
+                          ] : [
+                            ["Total Price (Pay at Salon)", `Rs ${totalPrice}`]
+                          ])
                         ])
                       ].map(([k,v]) => {
                         const isPayNow = k.includes("Advance") || k.includes("Pay Now");
                         const isRemain = k.includes("Remaining");
+                        const isDiscount = k.includes("Promo Discount");
                         return (
                           <div key={k} style={{
                             ...S.summaryRow,
                             ...(isPayNow ? {color:"var(--paper)", fontWeight:700, borderTop:"1px solid var(--line)", marginTop:8, paddingTop:10} : {}),
-                            ...(isRemain ? {color:"var(--muted)", fontSize:12, paddingBottom:4} : {})
+                            ...(isRemain ? {color:"var(--muted)", fontSize:12, paddingBottom:4} : {}),
+                            ...(isDiscount ? {color:"#d4af37", fontWeight:700} : {})
                           }}>
-                            <span style={isPayNow ? {color:"var(--paper)", fontWeight:700} : S.srKey}>{k}</span>
+                            <span style={isPayNow ? {color:"var(--paper)", fontWeight:700} : (isDiscount ? {color:"#d4af37"} : S.srKey)}>{k}</span>
                             <span style={{
                               ...S.srVal,
                               ...(isPayNow ? {color:"#10b981", fontWeight:800, fontSize:15} : {}),
-                              ...(isRemain ? {color:"var(--muted)"} : {})
+                              ...(isRemain ? {color:"var(--muted)"} : {}),
+                              ...(isDiscount ? {color:"#d4af37", fontWeight:800} : {})
                             }}>{v}</span>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Promo Code & Voucher Input Box */}
+                    <div style={{
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid var(--line)",
+                      borderRadius: 14,
+                      padding: "18px 20px",
+                      marginBottom: 24
+                    }}>
+                      <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 6}}>
+                        <span style={{fontSize: 11, fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--paper)", display: "flex", alignItems: "center", gap: 6}}>
+                          <Tag size={13} color="#d4af37" />
+                          <span>HAVE A SALON VOUCHER OR COMBO CODE?</span>
+                        </span>
+                        {appliedDeal && (
+                          <span style={{fontSize: 10, color: "#10b981", fontWeight: 800, textTransform: "uppercase", background: "rgba(16,185,129,0.15)", padding: "2px 8px", borderRadius: 4}}>
+                            {appliedDeal.code} APPLIED ✓
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{display: "flex", gap: 8}}>
+                        <input
+                          type="text"
+                          value={couponInput}
+                          onChange={(e) => {
+                            setCouponInput(e.target.value.toUpperCase());
+                            setCouponError("");
+                          }}
+                          placeholder="Enter Code (e.g. ROYALCOMBO, NASH20)"
+                          style={{
+                            flex: 1,
+                            background: "var(--surface)",
+                            border: "1px solid var(--line)",
+                            borderRadius: 8,
+                            color: "var(--paper)",
+                            padding: "10px 14px",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            outline: "none"
+                          }}
+                        />
+                        {appliedDeal ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAppliedDeal(null);
+                              setCouponInput("");
+                              showToast("Voucher code removed", "info");
+                            }}
+                            style={{
+                              background: "rgba(239,68,68,0.15)",
+                              border: "1px solid rgba(239,68,68,0.3)",
+                              color: "#ef4444",
+                              padding: "0 16px",
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase"
+                            }}
+                          >
+                            REMOVE
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleApplyCouponCode(couponInput)}
+                            style={{
+                              background: "#d4af37",
+                              border: "none",
+                              color: "#000000",
+                              padding: "0 18px",
+                              borderRadius: 8,
+                              fontSize: 11,
+                              fontWeight: 800,
+                              cursor: "pointer",
+                              letterSpacing: "0.1em",
+                              textTransform: "uppercase"
+                            }}
+                          >
+                            APPLY
+                          </button>
+                        )}
+                      </div>
+                      {couponError && (
+                        <div style={{fontSize: 11, color: "#ef4444", marginTop: 6, fontWeight: 600}}>
+                          {couponError}
+                        </div>
+                      )}
+                      {appliedDeal && (
+                        <div style={{fontSize: 11, color: "#10b981", marginTop: 6, fontWeight: 600}}>
+                          ✓ Success! {appliedDeal.title}: Rs {discountAmount} discount applied to your appointment.
+                        </div>
+                      )}
                     </div>
 
                     {/* Cashfree Payment Gateway Box */}

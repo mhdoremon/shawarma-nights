@@ -589,7 +589,7 @@ export default function MenuTab() {
                 />
                 <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 scrollbar-none">
                   {(hasServiceDuration
-                    ? ['Fade Haircut', 'Beard Trim & Styling', 'Gold Facial', 'Head Massage', 'Hair Spa', 'Classic Shave']
+                    ? ['Fade Haircut', 'Beard Trim & Styling', 'Gold Facial', 'Head Massage', 'Hair Spa', 'Classic Shave', 'Royal Grooming Combo', 'Executive Hair + Beard Combo']
                     : (hasSizes && hasColors)
                       ? ['Slick Pro Sneakers', 'Retro Runners', 'Streetwear Lows', 'Minimalist Oxford', 'Linen Shirt', 'Canvas Slip-on']
                       : ['Classic Chicken Shawarma', 'Spicy Garlic Shawarma', 'Charcoal Platter Special', 'Loaded Cheese Fries', 'Falafel Hummus Roll', 'Mint Mojito', 'Crispy Chicken Wings']
@@ -616,12 +616,12 @@ export default function MenuTab() {
                   required
                   value={modalItem.category || ''}
                   onChange={(e) => setModalItem({ ...modalItem, category: e.target.value })}
-                  placeholder={hasServiceDuration ? "haircut, beard, styling, facial, spa..." : (hasSizes && hasColors) ? "shoes, shirts, jackets, trousers, accessories..." : "shawarmas, platters, fries, drinks..."}
+                  placeholder={hasServiceDuration ? "haircut, beard, combo, packages, styling, facial, spa..." : (hasSizes && hasColors) ? "shoes, shirts, jackets, trousers, accessories..." : "shawarmas, platters, fries, drinks..."}
                   className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
                   {(hasServiceDuration 
-                    ? ['haircut', 'beard', 'styling', 'facial', 'spa', 'massage'] 
+                    ? ['haircut', 'beard', 'combo', 'packages', 'styling', 'facial', 'spa', 'massage'] 
                     : (hasSizes && hasColors)
                       ? ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories']
                       : ['shawarmas', 'platters', 'fries', 'drinks', 'starters']

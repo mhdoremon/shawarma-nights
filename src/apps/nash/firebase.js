@@ -367,6 +367,46 @@ export async function saveSiteSettings(settingsData) {
 }
 
 /**
+ * 5.5 REAL-TIME SALON DEALS & COMBOS (CHURUONE SMART SERVER SYNC)
+ */
+export function subscribeToDeals(callback, defaultDeals = []) {
+  const loadDeals = async () => {
+    try {
+      const data = await getStoreData();
+      if (data && Array.isArray(data.deals) && data.deals.length > 0) {
+        localStorage.setItem("nash_deals_cache", JSON.stringify(data.deals));
+        callback(data.deals);
+        return;
+      }
+    } catch (e) {}
+
+    const raw = localStorage.getItem("nash_deals_cache");
+    if (raw) {
+      try { callback(JSON.parse(raw)); return; } catch (e) {}
+    }
+    callback(defaultDeals);
+  };
+
+  loadDeals();
+
+  const onWsEvent = (action, payload) => {
+    if (action === 'DEALS_UPDATED') {
+      if (Array.isArray(payload)) {
+        localStorage.setItem("nash_deals_cache", JSON.stringify(payload));
+        callback(payload);
+      } else {
+        loadDeals();
+      }
+    }
+  };
+  wsSubscribers.add(onWsEvent);
+
+  return () => {
+    wsSubscribers.delete(onWsEvent);
+  };
+}
+
+/**
  * 6. CUSTOM CSS — LIVE WEBSITE STYLING
  */
 export function subscribeToCustomCSS(callback) {

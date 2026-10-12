@@ -4,7 +4,10 @@ import { Plus, Tag, Trash2, X, Percent, Check, IndianRupee, Truck, Sparkles, Edi
 import { getImageUrl } from '../../../utils/imageHelper';
 
 export default function OffersTab() {
-  const { deals, menu, heroBanner, storeInfo, addDeal, toggleDealActive, deleteDeal, updateStoreSettings, updateHeroBanner, showToast } = useMaster();
+  const { deals, menu, heroBanner, storeInfo, storeId, capabilities, addDeal, toggleDealActive, deleteDeal, updateStoreSettings, updateHeroBanner, showToast } = useMaster();
+
+  const isSalon = capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon';
+  const hasFreeDelivery = !isSalon && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
 
   // Free delivery threshold state
   const [fdLimit, setFdLimit] = useState(String(storeInfo?.freeDeliveryThreshold ?? 499));
@@ -53,6 +56,7 @@ export default function OffersTab() {
       firstOrderOnly: Boolean(dealModalData.firstOrderOnly),
       expiry: dealModalData.expiry || null,
       autoApply: Boolean(dealModalData.autoApply),
+      isCombo: Boolean(dealModalData.isCombo),
       isActive: dealModalData.isActive !== false,
       active: dealModalData.active !== false
     };
@@ -87,83 +91,88 @@ export default function OffersTab() {
   return (
     <div className="space-y-6 pb-20 max-w-5xl mx-auto">
       
-      {/* 0. FREE DELIVERY THRESHOLD CARD (Prominent at top, matching Android app) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-xs">
-            <Truck className="w-6 h-6 stroke-[2.2]" />
+      {/* 0. FREE DELIVERY THRESHOLD CARD (Only for delivery-enabled stores) */}
+      {hasFreeDelivery && (
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-xs">
+              <Truck className="w-6 h-6 stroke-[2.2]" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-emerald-800">FREE DELIVERY THRESHOLD (BAG LIMIT)</h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Current Limit: <strong className="text-zinc-900">₹{storeInfo?.freeDeliveryThreshold ?? 499}</strong> (Customer ke bag me is amount se upar delivery FREE hogi)
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-black text-emerald-800">FREE DELIVERY THRESHOLD (BAG LIMIT)</h3>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Current Limit: <strong className="text-zinc-900">₹{storeInfo?.freeDeliveryThreshold ?? 499}</strong> (Customer ke bag me is amount se upar delivery FREE hogi)
-            </p>
-          </div>
-        </div>
 
-        <form onSubmit={handleSaveFreeDelivery} className="space-y-3">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {['199', '299', '399', '499', '599', '799', '999'].map(val => (
+          <form onSubmit={handleSaveFreeDelivery} className="space-y-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {['199', '299', '399', '499', '599', '799', '999'].map(val => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setFdLimit(val)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border-0 cursor-pointer ${
+                    fdLimit === val ? 'bg-emerald-600 text-white shadow-sm' : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
+                  }`}
+                >
+                  ₹{val}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={fdLimit}
+                onChange={(e) => setFdLimit(e.target.value)}
+                placeholder="e.g. 499"
+                className="flex-1 bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-bold"
+              />
               <button
-                key={val}
-                type="button"
-                onClick={() => setFdLimit(val)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border-0 cursor-pointer ${
-                  fdLimit === val ? 'bg-emerald-600 text-white shadow-sm' : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
-                }`}
+                type="submit"
+                className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-md cursor-pointer border-0"
               >
-                ₹{val}
+                SAVE THRESHOLD
               </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={fdLimit}
-              onChange={(e) => setFdLimit(e.target.value)}
-              placeholder="e.g. 499"
-              className="flex-1 bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-bold"
-            />
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-md cursor-pointer border-0"
-            >
-              SAVE THRESHOLD
-            </button>
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* 1. PROMO CODES & DEALS SECTION */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
           <div>
-            <h2 className="text-xl font-black text-zinc-900">PROMO CODES & DEALS ({deals?.length || 0})</h2>
+            <h2 className="text-xl font-black text-zinc-900">
+              {isSalon ? `SPECIAL SALON PACKAGES, COMBOS & PROMO CODES (${deals?.length || 0})` : `PROMO CODES & DEALS (${deals?.length || 0})`}
+            </h2>
             <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-              Manage discount codes, checkout vouchers, and auto-applied offers
+              {isSalon ? 'Manage salon packages, combo deals, and discount vouchers' : 'Manage discount codes, checkout vouchers, and auto-applied offers'}
             </p>
           </div>
 
           <button
             onClick={() => setDealModalData({
-              code: '',
-              title: '',
-              discountType: 'percentage',
+              code: isSalon ? 'ROYALCOMBO' : '',
+              title: isSalon ? 'Royal Grooming Combo' : '',
+              discountType: isSalon ? 'flat' : 'percentage',
               discountPercent: 50,
-              flatDiscount: 50,
-              maxDiscount: 100,
-              minOrder: 199,
+              flatDiscount: isSalon ? 200 : 50,
+              maxDiscount: isSalon ? 200 : 100,
+              minOrder: isSalon ? 1200 : 199,
               usageLimit: 0,
               firstOrderOnly: false,
-              autoApply: false,
+              autoApply: isSalon,
+              isCombo: isSalon,
               isActive: true,
               active: true
             })}
             className="px-5 py-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>+ NEW DEAL</span>
+            <span>{isSalon ? '+ ADD COMBO / DEAL' : '+ NEW DEAL'}</span>
           </button>
         </div>
 
@@ -187,11 +196,18 @@ export default function OffersTab() {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <span className="text-xs font-black px-3 py-1 rounded-xl bg-zinc-900 text-white tracking-widest uppercase">
-                          {deal.code}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-black px-3 py-1 rounded-xl bg-zinc-900 text-white tracking-widest uppercase">
+                            {deal.code}
+                          </span>
+                          {deal.isCombo && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                              COMBO PACKAGE
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-base font-black text-zinc-900 mt-2">
-                          {deal.title || 'Special Discount'}
+                          {deal.title || (deal.isCombo ? 'Special Combo Package' : 'Special Discount')}
                         </h3>
                       </div>
 
@@ -463,7 +479,9 @@ export default function OffersTab() {
           <div className="bg-white text-zinc-900 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <h3 className="text-base font-black text-zinc-900">
-                {dealModalData.id ? 'Edit Promo Deal' : 'Create New Deal'}
+                {dealModalData.id 
+                  ? (dealModalData.isCombo ? 'Edit Combo Package' : 'Edit Promo Deal') 
+                  : (isSalon ? 'Create New Salon Package / Deal' : 'Create New Deal')}
               </h3>
               <button
                 onClick={() => setDealModalData(null)}
@@ -474,6 +492,44 @@ export default function OffersTab() {
             </div>
 
             <form onSubmit={handleSaveDeal} className="space-y-3.5">
+              {/* 1-Tap Quick Salon Presets */}
+              {isSalon && (
+                <div className="bg-[#FFFBF7] p-3 rounded-2xl border-0">
+                  <span className="text-[10px] text-zinc-600 font-black uppercase tracking-wider block mb-1.5">
+                    ⚡ 1-Tap Salon Presets (Packages & Deals):
+                  </span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    {[
+                      { code: 'ROYALCOMBO', title: 'Royal Grooming Combo', desc: 'Haircut + Hot Towel Shave + Beard Blend', type: 'flat', flat: 200, min: 1200, isCombo: true },
+                      { code: 'NASH20', title: '20% OFF — First Appointment', desc: 'Flat 20% discount on any premium haircut or grooming service', type: 'percentage', pct: 20, max: 300, min: 500, isCombo: false },
+                      { code: 'ROYAL100', title: '₹100 Flat Off — Royal Grooming', desc: 'Save ₹100 on appointments above ₹1000', type: 'flat', flat: 100, min: 1000, isCombo: false },
+                      { code: 'VIPGROOM', title: 'VIP Grooming Package — ₹300 Off', desc: 'Complete luxury head-to-beard bespoke package', type: 'flat', flat: 300, min: 1500, isCombo: true },
+                    ].map(p => (
+                      <button
+                        key={p.code}
+                        type="button"
+                        onClick={() => setDealModalData(prev => ({
+                          ...prev,
+                          code: p.code,
+                          title: p.title,
+                          desc: p.desc,
+                          discountType: p.type,
+                          discountPercent: p.pct || null,
+                          flatDiscount: p.flat || null,
+                          minOrder: p.min,
+                          maxDiscount: p.max || p.flat || null,
+                          isCombo: p.isCombo,
+                          autoApply: p.isCombo
+                        }))}
+                        className="px-3 py-1.5 rounded-full bg-white hover:bg-amber-100 text-amber-900 text-[10px] font-black whitespace-nowrap border border-amber-300 shadow-2xs cursor-pointer"
+                      >
+                        {p.code} ({p.title.split('—')[0]})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
                   COUPON CODE *
@@ -483,7 +539,7 @@ export default function OffersTab() {
                   required
                   value={dealModalData.code || ''}
                   onChange={(e) => setDealModalData({ ...dealModalData, code: e.target.value.toUpperCase() })}
-                  placeholder="e.g. NIGHT50, FESTIVE100"
+                  placeholder={isSalon ? "e.g. ROYALCOMBO, NASH20" : "e.g. NIGHT50, FESTIVE100"}
                   className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 uppercase tracking-widest font-black focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                 />
               </div>
@@ -611,6 +667,16 @@ export default function OffersTab() {
                     className="rounded text-[#DC2626] focus:ring-[#DC2626]"
                   />
                   <span>First Order Only (Naye Grahak)</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={dealModalData.isCombo || false}
+                    onChange={(e) => setDealModalData({ ...dealModalData, isCombo: e.target.checked })}
+                    className="rounded text-[#DC2626] focus:ring-[#DC2626]"
+                  />
+                  <span className="text-amber-800">Special Combo Package (Website hero / packages cards me dikhega)</span>
                 </label>
               </div>
 

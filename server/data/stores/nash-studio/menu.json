@@ -3,9 +3,28 @@
     { "id": "cat_premium", "name": "Premium Styling", "icon": "👑" },
     { "id": "cat_standard", "name": "Standard Cuts", "icon": "✂️" },
     { "id": "cat_beard", "name": "Beard & Grooming", "icon": "🧔" },
-    { "id": "cat_spa", "name": "Facial & Spa", "icon": "🧖" }
+    { "id": "cat_spa", "name": "Facial & Spa", "icon": "🧖" },
+    { "id": "cat_combo", "name": "Combo Packages", "icon": "🎁" }
   ],
   "menu": [
+    {
+      "id": "hs_royal_combo",
+      "name": "Royal Grooming Combo",
+      "type": "premium",
+      "category": "Combo Packages",
+      "categoryId": "cat_combo",
+      "img": "/images/hs_scissor_sculpt.jpg",
+      "image": "/images/hs_scissor_sculpt.jpg",
+      "time": 75,
+      "prepTime": 75,
+      "price": 1800,
+      "originalPrice": 2200,
+      "desc": "Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).",
+      "description": "Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).",
+      "available": true,
+      "rating": 5.0,
+      "reviews": 54
+    },
     {
       "id": "hs1",
       "name": "Messy Spiky Undercut",

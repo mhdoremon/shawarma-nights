@@ -29,6 +29,23 @@
     "minOrder": 1000,
     "usageLimit": 1000,
     "usageCount": 35,
-    "autoApply": true
+    "autoApply": false
+  },
+  {
+    "id": "deal-nash3",
+    "code": "ROYALCOMBO",
+    "title": "Royal Grooming Combo",
+    "desc": "Haircut + Hot Towel Razor Shave + Beard Blend (Special Salon Package)",
+    "isActive": true,
+    "active": true,
+    "discountType": "flat",
+    "discountPercent": null,
+    "maxDiscount": 200,
+    "flatDiscount": 200,
+    "minOrder": 1200,
+    "usageLimit": 500,
+    "usageCount": 18,
+    "autoApply": true,
+    "isCombo": true
   }
 ]
