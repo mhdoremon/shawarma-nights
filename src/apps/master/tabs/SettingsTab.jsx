@@ -45,18 +45,43 @@ export default function SettingsTab() {
     user
   } = useMaster();
 
-  // Switch Store Dialog Modal State
-  const [showSwitchStoreModal, setShowSwitchStoreModal] = useState(false);
-  const [targetStoreInput, setTargetStoreInput] = useState(storeId || 'shawarma');
-
-  // Capability-driven feature flags
+  // Domain Capability-driven feature guards (Strict separation for Salon vs Fashion vs Food)
   const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
-  const hasAdvanceTokenFee = Boolean(capabilities?.settings?.hasAdvanceTokenFee || capabilities?.orders?.hasAdvanceToken);
-  const hasFreeDeliveryThreshold = Boolean(capabilities?.settings?.hasFreeDeliveryThreshold ?? !isSalon);
-  const hasDeliveryFee = Boolean(capabilities?.settings?.hasDeliveryFee ?? hasFreeDeliveryThreshold);
-  const hasTaxesAndPackaging = Boolean(capabilities?.settings?.hasTaxesAndPackaging ?? !isSalon);
-  const hasHeroBannerFeature = Boolean(capabilities?.settings?.hasHeroBanner ?? !isSalon);
+  const isFashion = capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
+  const hasFood = !isSalon && !isFashion && (capabilities?.storeType === 'restaurant' || capabilities?.vertical === 'restaurant');
+  const hasFreeDeliveryThreshold = !isSalon && Boolean(capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
+  const hasDeliveryFee = !isSalon && Boolean(capabilities?.settings?.hasDeliveryFee ?? hasFreeDeliveryThreshold);
+  const hasTaxesAndPackaging = !isSalon && Boolean(capabilities?.settings?.hasTaxesAndPackaging ?? true);
+  const hasHeroBannerFeature = !isSalon && Boolean(capabilities?.settings?.hasHeroBanner ?? true);
   const hasHeroVideo = Boolean(capabilities?.settings?.hasHeroVideo || isSalon);
+
+  // 7-Day Interactive Weekly Schedule Editor
+  const DAYS_OF_WEEK = [
+    { key: 'mon', label: 'Monday (सोमवार)' },
+    { key: 'tue', label: 'Tuesday (मंगलवार)' },
+    { key: 'wed', label: 'Wednesday (बुधवार)' },
+    { key: 'thu', label: 'Thursday (गुरुवार)' },
+    { key: 'fri', label: 'Friday (शुक्रवार)' },
+    { key: 'sat', label: 'Saturday (शनिवार)' },
+    { key: 'sun', label: 'Sunday (रविवार)' }
+  ];
+
+  const DEFAULT_SCHEDULE = {
+    mon: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    tue: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    wed: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    thu: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    fri: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    sat: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
+    sun: { isOpen: false, open: '11:00 AM', close: '11:00 PM' }
+  };
+
+  const [weeklySchedule, setWeeklySchedule] = useState(() => {
+    if (storeInfo?.weeklySchedule && typeof storeInfo.weeklySchedule === 'object') {
+      return { ...DEFAULT_SCHEDULE, ...storeInfo.weeklySchedule };
+    }
+    return DEFAULT_SCHEDULE;
+  });
 
   // Free Delivery Threshold State
   const [freeDeliveryInput, setFreeDeliveryInput] = useState(
@@ -78,14 +103,9 @@ export default function SettingsTab() {
   const socialsObj = storeInfo?.socials || {};
 
   const [operationalForm, setOperationalForm] = useState({
-    name: storeInfo?.name || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
+    name: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
     tagline: storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
-    heroTagline: storeInfo?.heroTagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : ''),
-    heroButtonText: storeInfo?.heroButtonText || (isSalon ? 'BOOK APPOINTMENT NOW' : ''),
     heroVideoUrl: storeInfo?.heroVideoUrl || '/video/hero.mp4',
-    bookingFee: storeInfo?.bookingFee !== undefined ? String(storeInfo.bookingFee) : '50',
-    monSatHours: storeInfo?.monSatHours || '11:00 AM to 11:00 PM',
-    sundayHours: storeInfo?.sundayHours || 'Closed',
     timing: storeInfo?.timing || (isSalon ? 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed' : 'Open Daily: 12:00 PM – 04:00 AM'),
     address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
@@ -146,18 +166,17 @@ export default function SettingsTab() {
         setShowOfferCards(false);
       }
 
+      if (storeInfo.weeklySchedule && typeof storeInfo.weeklySchedule === 'object') {
+        setWeeklySchedule(prev => ({ ...prev, ...storeInfo.weeklySchedule }));
+      }
+
       const pay = storeInfo.payment || {};
       const soc = storeInfo.socials || {};
       setOperationalForm(prev => ({
         ...prev,
-        name: storeInfo.name || prev.name,
+        name: storeInfo.name || storeInfo.studioName || prev.name,
         tagline: storeInfo.tagline || prev.tagline,
-        heroTagline: storeInfo.heroTagline || prev.heroTagline,
-        heroButtonText: storeInfo.heroButtonText || prev.heroButtonText,
         heroVideoUrl: storeInfo.heroVideoUrl || prev.heroVideoUrl,
-        bookingFee: storeInfo.bookingFee !== undefined ? String(storeInfo.bookingFee) : prev.bookingFee,
-        monSatHours: storeInfo.monSatHours || prev.monSatHours,
-        sundayHours: storeInfo.sundayHours || prev.sundayHours,
         timing: storeInfo.timing || prev.timing,
         address: storeInfo.address || prev.address,
         deliveryNote: storeInfo.deliveryNote || prev.deliveryNote,
@@ -260,38 +279,50 @@ export default function SettingsTab() {
   // 3. SAVE OPERATIONAL SETTINGS
   const handleSaveOperational = async (e) => {
     e.preventDefault();
-    await updateStoreSettings({
+
+    // Auto-generate timing string for backwards compatibility
+    const openDays = DAYS_OF_WEEK.filter(d => weeklySchedule[d.key]?.isOpen);
+    const closedDays = DAYS_OF_WEEK.filter(d => !weeklySchedule[d.key]?.isOpen);
+    let autoTiming = '';
+    if (closedDays.length === 0) {
+      autoTiming = 'Open All 7 Days: 11:00 AM – 11:00 PM';
+    } else if (closedDays.length === 1 && closedDays[0].key === 'sun') {
+      autoTiming = 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed';
+    } else {
+      autoTiming = `${openDays.map(d => d.label.split(' ')[0]).join(', ')} Open | ${closedDays.map(d => d.label.split(' ')[0]).join(', ')} Closed`;
+    }
+
+    const payload = {
       name: operationalForm.name,
       tagline: operationalForm.tagline,
-      heroTagline: operationalForm.heroTagline,
-      heroButtonText: operationalForm.heroButtonText,
       heroVideoUrl: operationalForm.heroVideoUrl,
-      bookingFee: Number(operationalForm.bookingFee) || 50,
-      monSatHours: operationalForm.monSatHours,
-      sundayHours: operationalForm.sundayHours,
-      timing: operationalForm.timing,
+      weeklySchedule: weeklySchedule,
+      timing: operationalForm.timing || autoTiming,
       address: operationalForm.address,
-      deliveryNote: operationalForm.deliveryNote,
-      halalBadgeText: operationalForm.halalBadgeText,
       aboutText: operationalForm.aboutText,
       isOpen: operationalForm.isOpen,
-      deliveryFee: Number(operationalForm.deliveryFee),
-      showHeroBanner,
-      showOfferCards,
-      showMarqueeStrip: showHeroBanner,
-      dealsEnabled: showOfferCards,
       payment: {
         upiId: operationalForm.upiId.trim(),
         payeeName: operationalForm.payeeName.trim(),
         autoSmsVerification: true,
-        codEnabled: operationalForm.codEnabled
+        codEnabled: isSalon ? false : operationalForm.codEnabled
       },
       socials: {
         whatsapp: operationalForm.whatsapp.trim(),
         instagram: operationalForm.instagram.trim()
       }
-    });
-    showToast(isSalon ? 'Salon Settings & Hero Video Saved Live!' : 'Store Operational Details & UPI Saved!', 'success');
+    };
+
+    if (hasDeliveryFee || hasFreeDeliveryThreshold) {
+      payload.deliveryFee = Number(operationalForm.deliveryFee) || 0;
+      payload.deliveryNote = operationalForm.deliveryNote;
+    }
+    if (hasFood) {
+      payload.halalBadgeText = operationalForm.halalBadgeText;
+    }
+
+    await updateStoreSettings(payload);
+    showToast(isSalon ? 'Salon Settings & Weekly Schedule Saved Live!' : 'Store Operational Details & UPI Saved!', 'success');
   };
 
   // 4. SAVE HERO & MARQUEE COPY
@@ -306,14 +337,6 @@ export default function SettingsTab() {
       showMarqueeStrip: showHeroBanner
     });
     showToast('Homepage Hero Banner & Marquee Strip Saved!', 'success');
-  };
-
-  // 5. SWITCH STORE ACTION
-  const handleSwitchStore = () => {
-    const cleanId = (targetStoreInput || 'shawarma').trim().toLowerCase();
-    switchStoreId(cleanId);
-    setShowSwitchStoreModal(false);
-    refreshData();
   };
 
   const fdThresholdPresets = [199, 249, 299, 349, 399, 499];
@@ -349,151 +372,6 @@ export default function SettingsTab() {
           <LogOut className="w-4 h-4" />
           <span>Exit / Logout</span>
         </button>
-      </div>
-
-      {/* CARD 1: ACTIVE DUKAN / STORE ID SWITCHER */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
-              <Store className="w-4 h-4 text-[#DC2626]" />
-              <span>ACTIVE DUKAN / STORE ID</span>
-            </h3>
-            <p className="text-sm font-bold text-zinc-800 mt-1">
-              Connected Store: <span className="font-mono text-[#DC2626] bg-red-50 px-2 py-0.5 rounded-lg font-black">[{storeId}]</span>
-            </p>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Website, real-time gateway and customer orders are live synced to this store ID
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowSwitchStoreModal(true)}
-            className="px-5 py-2.5 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer border-0 shrink-0"
-          >
-            SWITCH DUKAN / STORE ID (बदलें)
-          </button>
-        </div>
-      </div>
-
-      {/* CARD 2: SERVER CONNECTION & WI-FI IP */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-500 flex items-center gap-2">
-              <Wifi className="w-4 h-4 text-sky-600" />
-              <span>SERVER CONNECTION & WI-FI IP</span>
-            </h3>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-              <span className="text-sm font-black text-zinc-900">
-                {isConnected ? 'Connected | Gateway SIM Active' : 'Retrying / Offline Fallback Active'}
-              </span>
-            </div>
-            <p className="text-xs text-zinc-500 mt-0.5 font-mono">
-              Server Host: https://churuone-backend.onrender.com
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              refreshData();
-              showToast('Syncing orders and catalog with server...', 'info');
-            }}
-            className="px-5 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer border-0 shrink-0 self-start sm:self-center"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>RECONNECT / REFRESH CONNECTION</span>
-          </button>
-        </div>
-      </div>
-
-      {/* CARD: SMART MODULAR FEATURE CONNECTIONS (MODULE TOGGLES) */}
-      <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
-        <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#DC2626]" />
-              <span>SMART FEATURE CONNECTIONS (स्मार्ट ऑन / ऑफ़ टॉगल)</span>
-            </h3>
-            <p className="text-xs text-zinc-500 mt-1">
-              Website aur portal par kaunse modules connect karne hain aur kaunse band rakhne hain yahan se 1-click me control karein
-            </p>
-          </div>
-          <span className="text-[10px] px-2.5 py-1 rounded-full bg-zinc-100 font-mono font-bold text-zinc-600 uppercase">
-            Store: [{storeId}]
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          
-          {/* TOGGLE 1: HERO PROMOTIONAL BANNER & MARQUEE */}
-          <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-zinc-900">
-                  Homepage Hero Promotional Banner & Marquee Strip
-                </span>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${showHeroBanner ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>
-                  {showHeroBanner ? '🟢 ON (CONNECTED)' : '🔴 OFF (TOGGLED OFF)'}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Website ke main header par restaurant-style bada banner aur offer strip chalana ya band rakhna. (Nash Studio ke liye filhal band rakha gaya hai).
-              </p>
-            </div>
-
-            <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-              <input
-                type="checkbox"
-                checked={showHeroBanner}
-                onChange={async (e) => {
-                  const val = e.target.checked;
-                  setShowHeroBanner(val);
-                  await updateStoreSettings({ showHeroBanner: val, showMarqueeStrip: val });
-                  showToast(val ? 'Hero Banner Connection Toggled ON' : 'Hero Banner Connection Toggled OFF', val ? 'success' : 'info');
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#DC2626]"></div>
-            </label>
-          </div>
-
-          {/* TOGGLE 2: SPECIAL OFFER CARDS & DEALS */}
-          <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-zinc-900">
-                  Special Offer Cards & Deals Module
-                </span>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${showOfferCards ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'}`}>
-                  {showOfferCards ? '🟢 ON (CONNECTED)' : '🔴 OFF (TOGGLED OFF)'}
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                Website par discount offer cards, coupon codes (`NIGHT50`) aur deals card dikhana ya band rakhna. (Nash Studio ke liye filhal band rakha gaya hai).
-              </p>
-            </div>
-
-            <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-              <input
-                type="checkbox"
-                checked={showOfferCards}
-                onChange={async (e) => {
-                  const val = e.target.checked;
-                  setShowOfferCards(val);
-                  await updateStoreSettings({ showOfferCards: val, dealsEnabled: val });
-                  showToast(val ? 'Offers & Deals Connection Toggled ON' : 'Offer Cards Connection Toggled OFF', val ? 'success' : 'info');
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#DC2626]"></div>
-            </label>
-          </div>
-
-        </div>
       </div>
 
       {/* CARD 3: FREE DELIVERY THRESHOLD */}
@@ -730,35 +608,6 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Hero Tagline / Slogan & CTA Button Text */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Hero Tagline / Slogan (वेबसाइट स्लोगन)
-            </label>
-            <input
-              type="text"
-              value={operationalForm.heroTagline}
-              onChange={(e) => setOperationalForm({ ...operationalForm, heroTagline: e.target.value })}
-              placeholder={isSalon ? "e.g. PRECISION GROOMING. BINA INTEZAAR KE." : "e.g. Authentic Charcoal Shawarma"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Hero CTA Button Text (मुख्य बटन का नाम)
-            </label>
-            <input
-              type="text"
-              value={operationalForm.heroButtonText}
-              onChange={(e) => setOperationalForm({ ...operationalForm, heroButtonText: e.target.value })}
-              placeholder={isSalon ? "e.g. BOOK APPOINTMENT NOW" : "e.g. ORDER NOW"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-        </div>
-
         {/* UPI Payments & Payee Name */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div>
@@ -770,7 +619,7 @@ export default function SettingsTab() {
               required
               value={operationalForm.upiId}
               onChange={(e) => setOperationalForm({ ...operationalForm, upiId: e.target.value })}
-              placeholder="e.g. 7023963189@paytm"
+              placeholder={isSalon ? "e.g. nashstudio@upi" : "e.g. 7023963189@paytm"}
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
@@ -784,116 +633,176 @@ export default function SettingsTab() {
               required
               value={operationalForm.payeeName}
               onChange={(e) => setOperationalForm({ ...operationalForm, payeeName: e.target.value })}
-              placeholder="e.g. Shawarma Nights"
+              placeholder={isSalon ? "e.g. Nash Studio" : "e.g. Shawarma Nights"}
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
         </div>
 
-        {/* Working Hours & Store Kitchen Address */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Store Working Hours (Timings)
-            </label>
-            <input
-              type="text"
-              value={operationalForm.timing}
-              onChange={(e) => setOperationalForm({ ...operationalForm, timing: e.target.value })}
-              placeholder={isSalon ? "Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed" : "Open Daily: 12:00 PM – 04:00 AM"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Store Physical Address
-            </label>
-            <input
-              type="text"
-              value={operationalForm.address}
-              onChange={(e) => setOperationalForm({ ...operationalForm, address: e.target.value })}
-              placeholder={isSalon ? "Shop 12, Main Boulevard, Gulberg" : "Near Railway Station, Churu, Rajasthan"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-        </div>
-
-        {/* Advance Chair Booking Fee (₹) & Day-Wise Timings */}
-        <div className={`grid grid-cols-1 ${hasAdvanceTokenFee ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
-          {hasAdvanceTokenFee && (
+        {/* 7-DAY WEEKLY SCHEDULE & HOLIDAY MANAGER */}
+        <div className="space-y-3 bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl border-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-200/60 pb-3">
             <div>
-              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                Advance Token / Booking Fee (₹)
-              </label>
-              <input
-                type="number"
-                value={operationalForm.bookingFee}
-                onChange={(e) => setOperationalForm({ ...operationalForm, bookingFee: e.target.value })}
-                placeholder="50"
-                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-              />
-              <span className="text-[10px] text-zinc-500 mt-1 block">Slot book karte waqt customer se li jane wali advance token fee</span>
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#DC2626]" />
+                <span>Weekly Working Days & Holiday Schedule (साप्ताहिक कार्य दिवस एवं अवकाश)</span>
+              </h4>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Har din ka open/close timing aur weekly off tay karein. Jis din OFF hoga, us din customer appointment/booking band rahegi.
+              </p>
             </div>
-          )}
-
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Mon-Sat Hours
-            </label>
-            <input
-              type="text"
-              value={operationalForm.monSatHours}
-              onChange={(e) => setOperationalForm({ ...operationalForm, monSatHours: e.target.value })}
-              placeholder="11:00 AM to 11:00 PM"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase">Quick Timings:</span>
+              {[
+                { label: '11 AM - 11 PM', o: '11:00 AM', c: '11:00 PM' },
+                { label: '10 AM - 10 PM', o: '10:00 AM', c: '10:00 PM' },
+                { label: '9 AM - 9 PM', o: '09:00 AM', c: '09:00 PM' }
+              ].map(preset => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    setWeeklySchedule(prev => {
+                      const updated = { ...prev };
+                      DAYS_OF_WEEK.forEach(d => {
+                        if (updated[d.key]?.isOpen) {
+                          updated[d.key] = { ...updated[d.key], open: preset.o, close: preset.c };
+                        }
+                      });
+                      return updated;
+                    });
+                  }}
+                  className="px-2 py-0.5 rounded-md bg-white hover:bg-zinc-100 text-zinc-700 text-[10px] font-bold shadow-2xs border-0 cursor-pointer"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Sunday Hours
-            </label>
-            <input
-              type="text"
-              value={operationalForm.sundayHours}
-              onChange={(e) => setOperationalForm({ ...operationalForm, sundayHours: e.target.value })}
-              placeholder="Closed"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
+          <div className="grid grid-cols-1 gap-2.5 pt-1">
+            {DAYS_OF_WEEK.map(day => {
+              const sched = weeklySchedule[day.key] || { isOpen: true, open: '11:00 AM', close: '11:00 PM' };
+              return (
+                <div
+                  key={day.key}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl transition-all ${
+                    sched.isOpen ? 'bg-white shadow-2xs' : 'bg-red-50/50 border border-red-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-[170px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWeeklySchedule(prev => ({
+                          ...prev,
+                          [day.key]: { ...sched, isOpen: !sched.isOpen }
+                        }));
+                      }}
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                        sched.isOpen
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'bg-red-600 text-white shadow-2xs'
+                      }`}
+                    >
+                      {sched.isOpen ? '🟢 OPEN' : '🔴 CLOSED (OFF)'}
+                    </button>
+                    <span className={`text-xs font-black ${sched.isOpen ? 'text-zinc-900' : 'text-red-700'}`}>
+                      {day.label}
+                    </span>
+                  </div>
+
+                  {sched.isOpen ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">From:</span>
+                        <input
+                          type="text"
+                          value={sched.open || '11:00 AM'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setWeeklySchedule(prev => ({
+                              ...prev,
+                              [day.key]: { ...sched, open: val }
+                            }));
+                          }}
+                          placeholder="11:00 AM"
+                          className="w-24 bg-[#FFFBF7] rounded-lg px-2.5 py-1 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-1 focus:ring-[#DC2626] border-0"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">To:</span>
+                        <input
+                          type="text"
+                          value={sched.close || '11:00 PM'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setWeeklySchedule(prev => ({
+                              ...prev,
+                              [day.key]: { ...sched, close: val }
+                            }));
+                          }}
+                          placeholder="11:00 PM"
+                          className="w-24 bg-[#FFFBF7] rounded-lg px-2.5 py-1 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-1 focus:ring-[#DC2626] border-0"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] font-bold text-red-600 flex items-center gap-1">
+                      <span>Weekly Off (इस दिन सैलून/दुकान बंद रहेगी)</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Delivery Note & Halal/Quality Badge Text */}
-        <div className={`grid grid-cols-1 ${hasFreeDeliveryThreshold || hasDeliveryFee ? 'sm:grid-cols-2' : ''} gap-4`}>
-          {(hasFreeDeliveryThreshold || hasDeliveryFee) && (
-            <div>
-              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                Delivery Note
-              </label>
-              <input
-                type="text"
-                value={operationalForm.deliveryNote}
-                onChange={(e) => setOperationalForm({ ...operationalForm, deliveryNote: e.target.value })}
-                placeholder="Fast delivery in 25-30 minutes"
-                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-              />
-            </div>
-          )}
+        {/* Store Physical Address */}
+        <div>
+          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+            Store Physical Address
+          </label>
+          <input
+            type="text"
+            value={operationalForm.address}
+            onChange={(e) => setOperationalForm({ ...operationalForm, address: e.target.value })}
+            placeholder={isSalon ? "Shop 12, Main Boulevard, Gulberg" : "Near Railway Station, Churu, Rajasthan"}
+            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+          />
+        </div>
 
+        {/* Delivery Note (Delivery / Food stores only - strictly hidden for Salon) */}
+        {!isSalon && (hasFreeDeliveryThreshold || hasDeliveryFee) && (
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              {hasFreeDeliveryThreshold ? 'Halal / Quality Badge Text' : 'Quality / Brand Badge Text'}
+              Delivery Note
+            </label>
+            <input
+              type="text"
+              value={operationalForm.deliveryNote}
+              onChange={(e) => setOperationalForm({ ...operationalForm, deliveryNote: e.target.value })}
+              placeholder="Fast delivery in 25-30 minutes"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+        )}
+
+        {/* Halal / Quality Badge Text (Restaurant only - strictly hidden for Salon & Fashion) */}
+        {hasFood && (
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Halal / Food Quality Badge Text
             </label>
             <input
               type="text"
               value={operationalForm.halalBadgeText}
               onChange={(e) => setOperationalForm({ ...operationalForm, halalBadgeText: e.target.value })}
-              placeholder="100% Certified Quality"
+              placeholder="100% Halal Certified Fresh"
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
-        </div>
+        )}
 
         {/* About Store Description */}
         <div>
@@ -918,7 +827,7 @@ export default function SettingsTab() {
               type="text"
               value={operationalForm.whatsapp}
               onChange={(e) => setOperationalForm({ ...operationalForm, whatsapp: e.target.value })}
-              placeholder="e.g. 7023963189"
+              placeholder={isSalon ? "e.g. 923001234567" : "e.g. 7023963189"}
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
@@ -931,25 +840,27 @@ export default function SettingsTab() {
               type="text"
               value={operationalForm.instagram}
               onChange={(e) => setOperationalForm({ ...operationalForm, instagram: e.target.value })}
-              placeholder="e.g. https://instagram.com/shawarmanights_churu"
+              placeholder={isSalon ? "e.g. https://instagram.com/nashstudio" : "e.g. https://instagram.com/shawarmanights_churu"}
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>
         </div>
 
-        {/* Accept Cash on Delivery Switch */}
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
-          <div>
-            <span className="text-xs font-black text-zinc-900 block">Accept Cash on Delivery (COD)</span>
-            <span className="text-[11px] text-zinc-500">Enable or disable cash payment option at checkout</span>
+        {/* Accept Cash on Delivery Switch (Delivery stores only - strictly hidden for Salon) */}
+        {!isSalon && (
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
+            <div>
+              <span className="text-xs font-black text-zinc-900 block">Accept Cash on Delivery (COD)</span>
+              <span className="text-[11px] text-zinc-500">Enable or disable cash payment option at checkout</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={operationalForm.codEnabled}
+              onChange={(e) => setOperationalForm({ ...operationalForm, codEnabled: e.target.checked })}
+              className="w-4 h-4 rounded text-[#DC2626] focus:ring-[#DC2626]"
+            />
           </div>
-          <input
-            type="checkbox"
-            checked={operationalForm.codEnabled}
-            onChange={(e) => setOperationalForm({ ...operationalForm, codEnabled: e.target.checked })}
-            className="w-4 h-4 rounded text-[#DC2626] focus:ring-[#DC2626]"
-          />
-        </div>
+        )}
 
         <button
           type="submit"
@@ -1237,72 +1148,6 @@ export default function SettingsTab() {
           <span>LOGOUT DUKANDAR ACCOUNT</span>
         </button>
       </div>
-
-      {/* SWITCH STORE ID MODAL */}
-      {showSwitchStoreModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
-              <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
-                <Store className="w-4 h-4 text-[#DC2626]" />
-                <span>Switch Store / Dukan ID</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowSwitchStoreModal(false)}
-                className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 border-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-zinc-500">
-              Enter the Store ID of the shop you want to manage (e.g. shawarma, pizza, fashion):
-            </p>
-
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {['shawarma', 'pizza', 'burger', 'fashion'].map(id => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTargetStoreInput(id)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all border-0 ${
-                    targetStoreInput === id ? 'bg-[#DC2626] text-white' : 'bg-[#FFFBF7] text-zinc-600'
-                  }`}
-                >
-                  {id}
-                </button>
-              ))}
-            </div>
-
-            <input
-              type="text"
-              autoFocus
-              value={targetStoreInput}
-              onChange={(e) => setTargetStoreInput(e.target.value.toLowerCase())}
-              placeholder="store id (lowercase)"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-mono focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleSwitchStore}
-                className="flex-1 py-3 rounded-full bg-sky-600 hover:bg-sky-700 text-white font-black text-xs uppercase tracking-wider shadow-md border-0 cursor-pointer"
-              >
-                Switch & Connect
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowSwitchStoreModal(false)}
-                className="py-3 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs border-0 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

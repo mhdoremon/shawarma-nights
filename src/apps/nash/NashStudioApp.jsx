@@ -73,6 +73,15 @@ const DEFAULT_SETTINGS = {
   address: "Main Market, Churu, Rajasthan, PIN - 331001",
   monSatHours: "11:00 AM to 11:00 PM",
   sundayHours: "Closed",
+  weeklySchedule: {
+    mon: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    tue: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    wed: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    thu: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    fri: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    sat: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
+    sun: { isOpen: false, open: "11:00 AM", close: "11:00 PM" }
+  },
   bookingFee: 50,
   upiId: "nashstudio@upi",
   accountTitle: "Nash Studio",
@@ -128,6 +137,17 @@ function formatTime(hh, mm) {
   const period = hh >= 12 ? "PM" : "AM";
   let h12 = hh % 12; if (h12 === 0) h12 = 12;
   return `${h12}:${mm.toString().padStart(2, "0")} ${period}`;
+}
+function parseTimeToMinutes(timeStr, defaultMin) {
+  if (!timeStr || typeof timeStr !== 'string') return defaultMin;
+  const match = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!match) return defaultMin;
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const period = (match[3] || '').toUpperCase();
+  if (period === 'PM' && hours < 12) hours += 12;
+  if (period === 'AM' && hours === 12) hours = 0;
+  return hours * 60 + minutes;
 }
 function fmtDate(d, opts) { return d.toLocaleDateString("en-GB", opts); }
 
@@ -453,7 +473,9 @@ function SiteView({ hairstyles, settings, user, setUser }) {
   const totalPrice = selectedStyle ? selectedStyle.price : 0;
   const tier = selectedStyle ? selectedStyle.type : "standard";
 
-  const bookingFee = Number(settings?.bookingFee ?? 50); // Dynamic from Dukandar Settings
+  const bookingFee = selectedStyle && selectedStyle.bookingFee !== undefined 
+    ? Number(selectedStyle.bookingFee) 
+    : Number(settings?.bookingFee ?? 50); // Dynamic per style or from Dukandar Settings
   const remainingDue = Math.max(0, totalPrice - bookingFee);
 
   function scrollToBook() { bookRef.current?.scrollIntoView({ behavior: "smooth" }); }
@@ -481,7 +503,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
       const res = await smartFetch('/api/create-order', {
         method: 'POST',
         body: JSON.stringify({
-          amount: 50,
+          amount: bookingFee || 50,
           customerPhone: cleanDigits || '7023963189',
           customerName: name.trim() || 'Client',
           orderId: orderId,
@@ -545,7 +567,9 @@ function SiteView({ hairstyles, settings, user, setUser }) {
     setSaving(true);
     const d = dates[dateIndex];
     const bookingToken = "NS-" + Math.floor(100000 + Math.random() * 900000);
-    const activeBookingFee = Number(settings?.bookingFee ?? 50);
+    const activeBookingFee = selectedStyle && selectedStyle.bookingFee !== undefined 
+      ? Number(selectedStyle.bookingFee) 
+      : Number(settings?.bookingFee ?? 50);
     const activeRemainingDue = Math.max(0, totalPrice - activeBookingFee);
     const activePaymentStatus = `Token Paid (₹${activeBookingFee} Advance - Cashfree)`;
     const activePaymentMethod = `Cashfree UPI (₹${activeBookingFee} Token)`;
@@ -1116,6 +1140,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                     setSlot={setSlot} 
                     realtimeBookings={realtimeBookings} 
                     onNext={() => goStep(3)} 
+                    settings={settings}
                   />
                 )}
 
@@ -1172,7 +1197,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                       <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14}}>
                         <span style={{color: "var(--paper)", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 8}}>
                           <ShieldCheck size={16} color={cashfreePaid ? "#10b981" : "#d4af37"} />
-                          <span>Mandatory Token Advance: ₹50 Fixed</span>
+                          <span>Mandatory Token Advance: ₹{bookingFee}</span>
                         </span>
                         <span style={{
                           fontSize: 9, 
@@ -1197,7 +1222,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                           textAlign: "center"
                         }}>
                           <div style={{fontSize: 14, fontWeight: 800, color: "#10b981", marginBottom: 4}}>
-                            ✓ ₹50 Token Advance Paid & Verified
+                            ✓ ₹{bookingFee} Token Advance Paid & Verified
                           </div>
                           <div style={{fontSize: 11, color: "var(--paper)", fontFamily: "monospace"}}>
                             Cashfree Txn Ref: #{cashfreeTxnId}
@@ -1218,7 +1243,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                             color: "var(--muted)",
                             lineHeight: 1.5
                           }}>
-                            💡 <b>Instant Auto-Verification:</b> GPay, PhonePe, Paytm ya UPI se ₹50 advance pay karein. Cashfree popup screen par hi open hoga aur payment hote hi slot turant lock ho jayega.
+                            💡 <b>Instant Auto-Verification:</b> GPay, PhonePe, Paytm ya UPI se ₹{bookingFee} advance pay karein. Cashfree popup screen par hi open hoga aur payment hote hi slot turant lock ho jayega.
                           </div>
 
                           <button
@@ -1245,7 +1270,7 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                               transition: "all 0.2s ease"
                             }}
                           >
-                            {isOpeningCashfree ? "Opening Cashfree Gateway..." : "⚡ Pay ₹50 via Cashfree (UPI / QR / Test)"}
+                            {isOpeningCashfree ? "Opening Cashfree Gateway..." : `⚡ Pay ₹${bookingFee} via Cashfree (UPI / QR / Test)`}
                           </button>
 
                           <div style={{fontSize: 10, color: "var(--muted)", textAlign: "center", marginTop: 10}}>
@@ -1361,8 +1386,8 @@ function SiteView({ hairstyles, settings, user, setUser }) {
                         : isOpeningCashfree
                         ? "OPENING GATEWAY..."
                         : cashfreePaid
-                        ? "CONFIRM APPOINTMENT (₹50 TOKEN VERIFIED) ✓"
-                        : "PAY ₹50 VIA CASHFREE & CONFIRM APPOINTMENT"}
+                        ? `CONFIRM APPOINTMENT (₹${bookingFee} TOKEN VERIFIED) ✓`
+                        : `PAY ₹${bookingFee} VIA CASHFREE & CONFIRM APPOINTMENT`}
                     </button>
 
                   </div>
@@ -1658,53 +1683,138 @@ function SectionHead({ eyebrow, title, sub }) {
   );
 }
 
-function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot, realtimeBookings, onNext }) {
+function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot, realtimeBookings, onNext, settings }) {
+  const schedule = settings?.weeklySchedule || DEFAULT_SETTINGS.weeklySchedule;
+  const selectedDate = dates[dateIndex] || new Date();
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const currentDayKey = dayKeys[selectedDate.getDay()];
+  const currentDayConfig = schedule?.[currentDayKey] || { 
+    isOpen: selectedDate.getDay() !== 0, 
+    open: "11:00 AM", 
+    close: "11:00 PM" 
+  };
+  const isCurrentDayClosed = currentDayConfig.isOpen === false;
+
+  const dayWorkStart = parseTimeToMinutes(currentDayConfig.open, WORK_START);
+  const dayWorkEnd = parseTimeToMinutes(currentDayConfig.close, WORK_END);
+
   const slots = [];
   const now = new Date();
   const currentMinutesToday = now.getHours() * 60 + now.getMinutes();
 
-  for (let t = WORK_START; t + totalMinutes <= WORK_END; t += 15) {
-    let blocked = dateIndex === 0 && t <= currentMinutesToday;
-    if (!blocked) {
-      for (const b of realtimeBookings) {
-        if (Math.max(b.startMin, t) < Math.min(b.startMin + b.totalMinutes, t + totalMinutes)) { blocked = true; break; }
+  if (!isCurrentDayClosed) {
+    for (let t = dayWorkStart; t + totalMinutes <= dayWorkEnd; t += 15) {
+      let blocked = dateIndex === 0 && t <= currentMinutesToday;
+      if (!blocked) {
+        for (const b of realtimeBookings) {
+          if (Math.max(b.startMin, t) < Math.min(b.startMin + b.totalMinutes, t + totalMinutes)) { blocked = true; break; }
+        }
       }
+      slots.push({ t, label: formatTime(Math.floor(t/60), t%60), blocked });
     }
-    slots.push({ t, label: formatTime(Math.floor(t/60), t%60), blocked });
   }
+
   return (
     <div>
       <div style={S.fieldGroup}>
         <span style={S.fieldLabel}>Select Appointment Date</span>
         <div style={S.dateStrip}>
           {dates.map((d, i) => {
-            const isSun = d.getDay() === 0, sel = i === dateIndex;
+            const dKey = dayKeys[d.getDay()];
+            const dConfig = schedule?.[dKey] || { isOpen: d.getDay() !== 0 };
+            const isDayClosed = dConfig.isOpen === false;
+            const sel = i === dateIndex;
+
             return (
-              <button key={i} style={{...S.dateChip,...(sel?S.dateChipSelected:{}),...(isSun?S.dateChipDisabled:{})}}
-                disabled={isSun} onClick={() => { setDateIndex(i); setSlot(null); }} className="nash-date-chip">
+              <button 
+                key={i} 
+                style={{
+                  ...S.dateChip,
+                  ...(sel ? S.dateChipSelected : {}),
+                  ...(isDayClosed ? { ...S.dateChipDisabled, opacity: 0.6 } : {})
+                }}
+                disabled={isDayClosed} 
+                onClick={() => { setDateIndex(i); setSlot(null); }} 
+                className="nash-date-chip"
+                title={isDayClosed ? `${DOW[d.getDay()]} is Closed (Weekly Off)` : "Available"}
+              >
                 <span style={S.dow}>{DOW[d.getDay()]}</span>
-                <span style={sel ? { ...S.dnum, color: "var(--ink)" } : { ...S.dnum, color: "var(--paper)" }}>{d.getDate()}</span>
+                <span style={sel ? { ...S.dnum, color: "var(--ink)" } : { ...S.dnum, color: isDayClosed ? "var(--muted)" : "var(--paper)" }}>
+                  {d.getDate()}
+                </span>
+                {isDayClosed && (
+                  <span style={{ fontSize: 8, fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', marginTop: 2 }}>
+                    OFF
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
-      <div style={S.fieldGroup}>
-        <span style={S.fieldLabel}>Select Slot (Every 15 Mins)</span>
-        <div style={S.slotGrid}>
-          {slots.map((s, i) => (
-            <button key={i} disabled={s.blocked}
-              style={{...S.slot,...(s.blocked?S.slotTaken:{}),...(slot&&slot.startMin===s.t?S.slotSelected:{})}}
-              className={!s.blocked?"nash-slot-hover":""}
-              onClick={() => setSlot({label:s.label,startMin:s.t})}>
-              {s.label}
-            </button>
-          ))}
+
+      {isCurrentDayClosed ? (
+        <div style={{
+          padding: '28px 20px',
+          background: 'rgba(239, 68, 68, 0.08)',
+          border: '1.5px dashed rgba(239, 68, 68, 0.4)',
+          borderRadius: 18,
+          textAlign: 'center',
+          marginTop: 18,
+          marginBottom: 18
+        }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: 'rgba(239, 68, 68, 0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#EF4444',
+            marginBottom: 10
+          }}>
+            <Calendar size={22} strokeWidth={2.5} />
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--paper)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            SALON IS CLOSED ON THIS DAY ({DOW[selectedDate.getDay()]} WEEKLY OFF)
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6, maxWidth: 420, margin: '8px auto 0' }}>
+            Nash Studio is observing its scheduled weekly off on {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}. 
+            Kripya upar date calendar se koi doosra open din chunein apna slot reserve karne ke liye.
+          </p>
         </div>
-      </div>
-      <button style={!slot?{...S.btnConfirm,...S.btnDisabled}:S.btnConfirm} className="nash-btn-confirm" disabled={!slot} onClick={onNext}>
-        CONTINUE TO TOKEN LOCK
-      </button>
+      ) : (
+        <>
+          <div style={S.fieldGroup}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={S.fieldLabel}>Select Slot (Every 15 Mins)</span>
+              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
+                Operating Hours: {currentDayConfig.open} – {currentDayConfig.close}
+              </span>
+            </div>
+            {slots.length === 0 ? (
+              <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
+                Is din ke sabhi slots fill ya out of business hours ho chuke hain. Kripya koi agla din select karein.
+              </div>
+            ) : (
+              <div style={S.slotGrid}>
+                {slots.map((s, i) => (
+                  <button key={i} disabled={s.blocked}
+                    style={{...S.slot,...(s.blocked?S.slotTaken:{}),...(slot&&slot.startMin===s.t?S.slotSelected:{})}}
+                    className={!s.blocked?"nash-slot-hover":""}
+                    onClick={() => setSlot({label:s.label,startMin:s.t})}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button style={!slot?{...S.btnConfirm,...S.btnDisabled}:S.btnConfirm} className="nash-btn-confirm" disabled={!slot} onClick={onNext}>
+            CONTINUE TO TOKEN LOCK
+          </button>
+        </>
+      )}
     </div>
   );
 }

@@ -392,7 +392,9 @@ export default function OrdersTab() {
             <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none">
               {dateTabs.map(iso => {
                 const d = new Date(iso + 'T00:00:00');
-                const isSun = d.getDay() === 0;
+                const dayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+                const dayConfig = storeInfo?.weeklySchedule?.[dayKey];
+                const isDayClosed = dayConfig ? !dayConfig.isOpen : (d.getDay() === 0);
                 const isSel = iso === selectedDate;
                 const cnt = dayBookings.length > 0 && iso === selectedDate
                   ? dayBookings.length
@@ -402,12 +404,12 @@ export default function OrdersTab() {
                   <button
                     key={iso}
                     type="button"
-                    disabled={isSun}
-                    onClick={() => !isSun && setSelectedDate(iso)}
+                    disabled={isDayClosed}
+                    onClick={() => !isDayClosed && setSelectedDate(iso)}
                     className={`flex flex-col items-center justify-center min-w-[70px] px-3 py-2.5 rounded-2xl transition-all cursor-pointer border-0 shrink-0 ${
                       isSel
                         ? 'bg-[#DC2626] text-white shadow-lg scale-105'
-                        : isSun
+                        : isDayClosed
                           ? 'bg-zinc-100/60 text-zinc-400 opacity-60 cursor-not-allowed'
                           : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
                     }`}
@@ -418,7 +420,7 @@ export default function OrdersTab() {
                     <span className="text-lg font-black leading-tight mt-0.5">
                       {d.getDate()}
                     </span>
-                    {isSun ? (
+                    {isDayClosed ? (
                       <span className="text-[9px] font-bold text-red-500 mt-1 uppercase">Closed</span>
                     ) : cnt > 0 ? (
                       <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full mt-1 ${isSel ? 'bg-white text-[#DC2626]' : 'bg-red-100 text-red-700'}`}>

@@ -67,6 +67,15 @@
     "address": "Shop 12, Main Boulevard, Gulberg",
     "monSatHours": "11:00 AM to 11:00 PM",
     "sundayHours": "Closed",
+    "weeklySchedule": {
+      "mon": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "tue": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "wed": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "thu": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "fri": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "sat": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
+      "sun": { "isOpen": false, "open": "11:00 AM", "close": "11:00 PM" }
+    },
     "bookingFee": 50,
     "upiId": "nashstudio@upi",
     "accountTitle": "Nash Studio",
@@ -91,7 +100,7 @@
     "upiId": "nashstudio@upi",
     "payeeName": "Nash Studio",
     "razorpayKeyId": null,
-    "codEnabled": true,
+    "codEnabled": false,
     "autoSmsVerification": false
   },
   "tax": {

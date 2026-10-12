@@ -206,7 +206,8 @@ export default function MenuTab() {
       colors: hasColors ? (Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || [])) : [],
       secondaryImage: hasLookbook ? (modalItem.secondaryImage || '') : '',
       addons: hasFoodAddons ? finalAddons : [],
-      options: updatedOptions
+      options: updatedOptions,
+      bookingFee: hasServiceDuration ? (modalItem.bookingFee !== undefined ? Number(modalItem.bookingFee) : 50) : undefined
     };
 
     if (modalItem.id) {
@@ -290,7 +291,8 @@ export default function MenuTab() {
               availableSizes: '',
               colors: '',
               secondaryImage: '',
-              addons: ''
+              addons: '',
+              bookingFee: hasServiceDuration ? '50' : undefined
             })}
             className={`px-5 py-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
           >
@@ -461,9 +463,12 @@ export default function MenuTab() {
                   {/* Actions */}
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setModalItem({ ...dish })}
+                      onClick={() => setModalItem({ 
+                        ...dish, 
+                        bookingFee: dish.bookingFee !== undefined ? String(dish.bookingFee) : (hasServiceDuration ? '50' : undefined) 
+                      })}
                       className="p-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer border-0"
-                      title="Edit Dish"
+                      title="Edit Item"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -914,6 +919,37 @@ export default function MenuTab() {
                           </button>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* ADVANCE BOOKING TOKEN FEE (Salon / Appointments) */}
+                  {hasServiceDuration && (
+                    <div>
+                      <label className="block text-[11px] font-black text-[#d4af37] uppercase tracking-wider mb-1">
+                        ADVANCE BOOKING TOKEN FEE (₹ FOR RESERVING THIS SERVICE) *
+                      </label>
+                      <input
+                        type="number"
+                        value={modalItem.bookingFee !== undefined ? modalItem.bookingFee : '50'}
+                        onChange={(e) => setModalItem({ ...modalItem, bookingFee: e.target.value })}
+                        placeholder="50"
+                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#d4af37] focus:outline-none transition-all shadow-xs border-0 font-bold"
+                      />
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {['0', '30', '50', '100', '150', '200'].map(fee => (
+                          <button
+                            key={fee}
+                            type="button"
+                            onClick={() => setModalItem({ ...modalItem, bookingFee: fee })}
+                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                          >
+                            ₹{fee} {fee === '0' ? '(Free)' : 'Advance'}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-zinc-500 mt-1 block">
+                        Customer ko is specific service ke slot book karte waqt itna token advance jama karna hoga.
+                      </span>
                     </div>
                   )}
 
