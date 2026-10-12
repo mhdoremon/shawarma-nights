@@ -181,17 +181,35 @@ export const getMarketplaceFeed = (req, res) => {
         const registeredStores = storesData.stores || [];
         const storeDirIds = DataLayer.listStoreIds ? DataLayer.listStoreIds() : ['shawarma', 'skyline', 'nash-studio'];
         
-        // Merge registered stores and store directories
+        // Filter out platform names, typos, and non-merchant IDs
+        const RESERVED_NON_MERCHANTS = new Set([
+            'churuone', 'admin', 'platform', 'api', 'www', 'hub', 'test', '10', 'sawarma'
+        ]);
+
+        const DEFAULT_STORE_IMAGES = {
+            food: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80',
+            fashion: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
+            salon: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
+            general: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80'
+        };
+
         const allStoreIds = Array.from(new Set([
             ...registeredStores.map(s => s.id || s.slug),
             ...storeDirIds
         ])).filter(Boolean);
 
+        const validStoreIds = allStoreIds.filter(id => {
+            const clean = String(id).toLowerCase().trim();
+            if (RESERVED_NON_MERCHANTS.has(clean)) return false;
+            if (clean.length < 3 || /^\d+$/.test(clean)) return false;
+            return true;
+        });
+
         const marketplaceStores = [];
         const allItems = [];
         const allDeals = [];
 
-        for (const sId of allStoreIds) {
+        for (const sId of validStoreIds) {
             const config = DataLayer.getStoreConfig(sId) || {};
             const storeInfo = DataLayer.read(sId, 'store_info') || {};
             const rawMenu = DataLayer.read(sId, 'menu') || [];
@@ -204,6 +222,11 @@ export const getMarketplaceFeed = (req, res) => {
                 : (Array.isArray(rawDeals?.deals) ? rawDeals.deals : []);
             const heroBanner = DataLayer.read(sId, 'hero_banner') || {};
 
+            // Skip any non-core store with 0 items
+            if (menuItems.length === 0 && !['shawarma', 'skyline', 'nash-studio'].includes(sId)) {
+                continue;
+            }
+
             const regStore = registeredStores.find(s => s.id === sId || s.slug === sId) || {};
             const vertical = (regStore.vertical || config.vertical || storeInfo.vertical || (
                 sId.includes('nash') ? 'salon' :
@@ -213,7 +236,7 @@ export const getMarketplaceFeed = (req, res) => {
             const storeName = storeInfo.name || storeInfo.studioName || regStore.name || config.name || sId;
             const storeTiming = vertical === 'salon' ? '15 min slot' : (storeInfo.timing || '20-30 min');
             const storeRating = storeInfo.rating || '4.8';
-            const storeImg = storeInfo.image || heroBanner.circleImage || (menuItems[0]?.image || menuItems[0]?.img) || '';
+            const storeImg = storeInfo.image || heroBanner.circleImage || (menuItems[0]?.image || menuItems[0]?.img) || DEFAULT_STORE_IMAGES[vertical] || DEFAULT_STORE_IMAGES.general;
             const destination = vertical === 'salon' ? '/nash' : (vertical === 'fashion' ? '/skyline' : '/shawarma');
 
             const storeSummary = {

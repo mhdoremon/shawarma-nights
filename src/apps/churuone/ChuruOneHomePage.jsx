@@ -57,6 +57,9 @@ export const CHURU_POPULAR_LANDMARKS = [
   'Naya Bass'
 ];
 
+export const FALLBACK_STORE_IMAGE = 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80';
+export const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80';
+
 // Fallback Real Stores (Used during initial mount or offline network)
 const FALLBACK_REAL_STORES = [
   {
@@ -333,7 +336,11 @@ export default function ChuruOneHomePage() {
         const data = await res.json();
         if (isMounted && data.success) {
           if (Array.isArray(data.stores) && data.stores.length > 0) {
-            setStores(data.stores);
+            const valid = data.stores.filter(s => {
+              const id = String(s?.id || '').toLowerCase().trim();
+              return id && !['churuone', '10', 'sawarma', 'admin', 'platform', 'api'].includes(id);
+            });
+            setStores(valid.length > 0 ? valid : FALLBACK_REAL_STORES);
           }
           if (Array.isArray(data.items) && data.items.length > 0) {
             setItems(data.items);
@@ -1097,8 +1104,12 @@ export default function ChuruOneHomePage() {
                 <div>
                   <div className="h-40 sm:h-44 w-full overflow-hidden bg-stone-100 relative">
                     <img
-                      src={store.image}
+                      src={store.image || FALLBACK_STORE_IMAGE}
                       alt={store.name}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_STORE_IMAGE;
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
@@ -1183,8 +1194,12 @@ export default function ChuruOneHomePage() {
                     {/* Item Image */}
                     <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-stone-100">
                       <img
-                        src={item.image}
+                        src={item.image || FALLBACK_PRODUCT_IMAGE}
                         alt={item.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       />
 
@@ -1397,8 +1412,12 @@ export default function ChuruOneHomePage() {
                           className="flex items-center gap-3.5 p-3 rounded-2xl border border-stone-200 bg-stone-50/50 hover:bg-stone-50 transition-colors"
                         >
                           <img
-                            src={item.image}
+                            src={item.image || FALLBACK_PRODUCT_IMAGE}
                             alt=""
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                            }}
                             className="w-14 h-14 rounded-xl object-cover bg-stone-200 shrink-0"
                           />
                           <div className="flex-1 min-w-0">
@@ -1918,8 +1937,12 @@ export default function ChuruOneHomePage() {
                   {/* Selected Service Card */}
                   <div className="flex items-center gap-3.5 p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl">
                     <img 
-                      src={selectedService.image} 
+                      src={selectedService.image || FALLBACK_PRODUCT_IMAGE} 
                       alt="" 
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                      }}
                       className="w-14 h-14 rounded-xl object-cover bg-amber-100" 
                     />
                     <div className="flex-1">
