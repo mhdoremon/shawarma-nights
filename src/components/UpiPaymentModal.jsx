@@ -47,8 +47,8 @@ export default function UpiPaymentModal({
   // Extract critical payment parameters
   const orderId = effectiveData.orderId || effectiveData.id || 'SN-000000';
   const grandTotal = Number(effectiveData.grandTotal || effectiveData.total || 0);
-  const upiId = effectiveData.upiId || storeInfo?.payment?.upiId || 'shawarmanights@upi';
-  const payeeName = effectiveData.payeeName || storeInfo?.payment?.payeeName || 'Shawarma Nights';
+  const upiId = effectiveData.upiId || storeInfo?.payment?.upiId || '7023963189@fam';
+  const payeeName = effectiveData.payeeName || effectiveData.storeName || storeInfo?.payment?.payeeName || 'ChuruOne Marketplace';
 
   // Construct standard UPI intent link
   const fallbackUpiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${encodeURIComponent(orderId)}&tr=${encodeURIComponent(orderId)}`;
@@ -337,7 +337,7 @@ export default function UpiPaymentModal({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-black tracking-wide text-white font-display">
-                    Shawarma Nights
+                    {effectiveData.payeeName || effectiveData.storeName || 'ChuruOne Marketplace'}
                   </h2>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-red-950/80 text-red-400 border border-red-800/60">
                     Auto-UPI
@@ -389,7 +389,9 @@ export default function UpiPaymentModal({
                     Payment Verified!
                   </h3>
                   <p className="text-sm font-bold text-emerald-400 flex items-center justify-center gap-1.5">
-                    <span>Order Sent to Kitchen</span>
+                    <span>
+                      {effectiveData.storeId === 'skyline' ? 'Order Sent to Wardrobe' : (effectiveData.storeId === 'nash-studio' ? 'Slot Confirmed at Studio' : (effectiveData.storeId === 'shawarma' ? 'Order Sent to Kitchen' : 'Order Confirmed & Sent to Store'))}
+                    </span>
                     <Flame className="w-4 h-4 fill-emerald-400" />
                   </p>
                 </div>

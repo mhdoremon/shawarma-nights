@@ -132,15 +132,17 @@ export const placeOrder = async (req, res) => {
             }
         }
 
-        // 2. Mandatory Phone Verification Enforcement (For Delivery Stores like Skyline & Shawarma)
-        if (requirePhone && !isPosExempt) {
-            const isPhoneVerified = authenticatedUser?.phoneVerified === true || payload.phoneVerified === true || payload.customer?.phoneVerified === true;
+        // 2. Mandatory Phone Verification Enforcement (For Home Delivery items)
+        const isBooking = payload.deliveryType === 'booking' || payload.deliveryType === 'salon_slot' || storeId.includes('nash');
+        const isDelivery = payload.deliveryType === 'delivery' || requirePhone;
+        if (isDelivery && !isPosExempt && !isBooking) {
+            const isPhoneVerified = authenticatedUser?.phoneVerified === true || (authenticatedUser && payload.phoneVerified === true);
 
             if (!isPhoneVerified) {
                 return res.status(403).json({
                     success: false,
                     requirePhoneOtp: true,
-                    message: `${storeConfig?.settings?.storeName || storeId} par delivery ke liye Mobile Number OTP verify hona anivarya hai. Kripya apna mobile number verify karein.`
+                    message: `${storeConfig?.settings?.storeName || storeId} par home delivery ke liye Mobile Number OTP verify hona anivarya hai. Kripya apna mobile number verify karein.`
                 });
             }
         }

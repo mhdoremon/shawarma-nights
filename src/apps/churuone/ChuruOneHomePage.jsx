@@ -30,11 +30,13 @@ import {
   AlertCircle,
   ExternalLink,
   Store,
-  RotateCcw
+  RotateCcw,
+  Lock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LegalPoliciesModal from '../../components/LegalPoliciesModal';
+import UpiPaymentModal from '../../components/UpiPaymentModal';
 import { 
   getChuruOneSession, 
   setChuruOneSession, 
@@ -301,11 +303,41 @@ export default function ChuruOneHomePage() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [selectedLandmark, setSelectedLandmark] = useState('Subhash Chowk');
   const [orderNotes, setOrderNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' | 'upi'
+  const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' (SmartPay QR) | 'cod'
   const [orderGps, setOrderGps] = useState(null);
   const [isCapturingGps, setIsCapturingGps] = useState(false);
   const [gpsStatusText, setGpsStatusText] = useState('');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+
+  // ─── UNIFIED PAYMENT SYSTEM & AUTH GATING STATE ─────────────────
+  const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState(null);
+  const [pendingOrder, setPendingOrder] = useState(null);
+  const [pendingStoreId, setPendingStoreId] = useState('shawarma');
+  const [isAuthPromptOpen, setIsAuthPromptOpen] = useState(false);
+  const [authPromptTitle, setAuthPromptTitle] = useState('ChuruOne Login Required');
+  const [authPromptMessage, setAuthPromptMessage] = useState('');
+  const [authPromptRedirectMode, setAuthPromptRedirectMode] = useState('login');
+  const [authPromptRequirePhone, setAuthPromptRequirePhone] = useState(false);
+
+  // Computed Auth & Phone OTP Verification Status
+  const cleanUserPhone = String(currentUser?.phone || currentUser?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+  const isUserLoggedIn = Boolean(currentUser && (currentUser.id || currentUser.phone || currentUser.email || currentUser.name));
+  const isUserPhoneVerified = Boolean(
+    isUserLoggedIn && 
+    (currentUser.phoneVerified === true || currentUser.isPhoneAuth === true || currentUser.isPhoneVerified === true) && 
+    cleanUserPhone.length === 10
+  );
+
+  const navigateToChuruOneAuth = (mode = 'login', requirePhoneOtp = false) => {
+    try {
+      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      const phoneParam = requirePhoneOtp ? '&requirePhoneOtp=true' : '';
+      window.location.href = `/auth?mode=${mode}&returnUrl=${returnUrl}${phoneParam}`;
+    } catch {
+      window.location.href = `/auth?mode=${mode}`;
+    }
+  };
 
   // Order Confirmation State
   const [orderSuccessData, setOrderSuccessData] = useState(null);
@@ -599,12 +631,52 @@ export default function ChuruOneHomePage() {
   // ─── MULTI-STORE ORDER PLACEMENT FLOW ────────────────────────────
   const handleProceedToCheckout = () => {
     if (cartItems.length === 0) return;
+
+    // 1. Mandatory Login Check (Bina login ke order block)
+    if (!isUserLoggedIn) {
+      showToast('🔒 Order karne ke liye ChuruOne account me login hona aniwarya hai.');
+      setAuthPromptTitle('ChuruOne Account Login Required');
+      setAuthPromptMessage('Order complete karne ke liye pehle apna ChuruOne account login karein. Aap Google ya Mobile OTP se 1-click login kar sakte hain.');
+      setAuthPromptRedirectMode('login');
+      setAuthPromptRequirePhone(false);
+      setIsAuthPromptOpen(true);
+      return;
+    }
+
+    // 2. Mandatory Phone Verification for Home Delivery Items
+    if (!isUserPhoneVerified) {
+      showToast('📱 Home delivery ke liye verified mobile number aniwarya hai.');
+      setAuthPromptTitle('Mobile Verification Required');
+      setAuthPromptMessage('Churu City home delivery dispatch aur rider direct verification ke liye aapka mobile number OTP verified hona aniwarya hai.');
+      setAuthPromptRedirectMode('verify_phone');
+      setAuthPromptRequirePhone(true);
+      setIsAuthPromptOpen(true);
+      return;
+    }
+
     setIsCartOpen(false);
     setIsCheckoutModalOpen(true);
   };
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+
+    // 1. Strict Login Check
+    if (!isUserLoggedIn) {
+      showToast('🔒 Order place karne ke liye ChuruOne account login hona aniwarya hai.');
+      setIsCheckoutModalOpen(false);
+      navigateToChuruOneAuth('login');
+      return;
+    }
+
+    // 2. Strict Phone Verification Check for Home Delivery
+    if (!isUserPhoneVerified) {
+      showToast('📱 Home delivery orders ke liye mobile number OTP verify hona aniwarya hai.');
+      setIsCheckoutModalOpen(false);
+      navigateToChuruOneAuth('verify_phone', true);
+      return;
+    }
+
     if (!customerName.trim()) {
       showToast('Please enter your full name');
       return;
@@ -638,17 +710,19 @@ export default function ChuruOneHomePage() {
 
         const fullAddress = `${deliveryAddress ? deliveryAddress + ' • ' : ''}Near ${selectedLandmark}, Churu, Rajasthan`;
 
+        const isOnline = paymentMethod === 'upi';
         const payload = {
           storeId,
           customer: {
             name: customerName.trim(),
-            phone: cleanPhone,
+            phone: `+91${cleanPhone}`,
             email: currentUser?.email || ''
           },
           customerName: customerName.trim(),
-          customerPhone: cleanPhone,
-          phoneVerified: true,
-          authenticated: Boolean(currentUser),
+          customerPhone: `+91${cleanPhone}`,
+          phoneVerified: isUserPhoneVerified,
+          authenticated: isUserLoggedIn,
+          customerToken: authToken || currentUser?.token || '',
           items: storeItems.map(it => ({
             id: it.id,
             name: it.name,
@@ -663,7 +737,9 @@ export default function ChuruOneHomePage() {
           orderGps,
           lat: orderGps?.lat,
           lng: orderGps?.lng,
-          paymentMethod: paymentMethod === 'cod' ? 'cod' : 'upi',
+          paymentMethod: isOnline ? 'upi' : 'cod',
+          paymentStatus: isOnline ? 'pending_upi' : 'pending',
+          status: isOnline ? 'payment_pending' : 'confirmed',
           couponCode: appliedCoupon?.code || null,
           discount: storeDiscount,
           subtotal: storeSubtotal,
@@ -685,60 +761,167 @@ export default function ChuruOneHomePage() {
         const data = await res.json().catch(() => ({}));
         if (data.success && data.order) {
           orderResults.push({ storeId, order: data.order });
+        } else if (res.status === 401 || data.requireAuth) {
+          showToast('🔒 Order karne ke liye login aniwarya hai');
+          setIsCheckoutModalOpen(false);
+          navigateToChuruOneAuth('login');
+          return;
+        } else if (res.status === 403 || data.requirePhoneOtp) {
+          showToast('📱 Home delivery ke liye verified phone number aniwarya hai');
+          setIsCheckoutModalOpen(false);
+          navigateToChuruOneAuth('verify_phone', true);
+          return;
         } else {
-          // Generate a synthetic confirmation ID if offline fallback
+          // Fallback order creation
           orderResults.push({
             storeId,
             order: {
               id: `ORD-${Date.now().toString().slice(-6)}`,
               orderNumber: `CHURU-${Math.floor(1000 + Math.random() * 9000)}`,
               total: storeTotal,
-              status: 'confirmed',
+              status: isOnline ? 'payment_pending' : 'confirmed',
+              paymentStatus: isOnline ? 'pending_upi' : 'pending',
               customer: { name: customerName, phone: cleanPhone }
             }
           });
         }
       }
 
-      // Order placed successfully!
-      const primaryOrder = orderResults[0]?.order || {};
-      setOrderSuccessData({
-        orderNumber: primaryOrder.orderNumber || primaryOrder.id || 'CHURU-SUCCESS',
-        ordersCount: orderResults.length,
-        itemsCount: cartCount,
-        totalAmount: finalCartTotal,
-        paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : 'Instant UPI',
-        customerName: customerName.trim(),
-        customerPhone: cleanPhone,
-        address: `${deliveryAddress ? deliveryAddress + ', ' : ''}Near ${selectedLandmark}, Churu`,
-        estimatedTime: '20-30 Mins Express Dispatch'
-      });
+      const primaryStoreResult = orderResults[0] || {};
+      const primaryOrder = primaryStoreResult.order || {};
+      const primaryStoreId = primaryStoreResult.storeId || 'shawarma';
+      const primaryStore = stores.find(s => s.id === primaryStoreId) || {};
 
-      // Clear Cart
-      setCartItems([]);
-      setAppliedCoupon(null);
-      setIsCheckoutModalOpen(false);
-      showToast('Order placed successfully!');
+      // ─── IF CASH ON DELIVERY (COD) ───
+      if (paymentMethod === 'cod') {
+        setOrderSuccessData({
+          orderNumber: primaryOrder.orderNumber || primaryOrder.id || 'CHURU-SUCCESS',
+          ordersCount: orderResults.length,
+          itemsCount: cartCount,
+          totalAmount: finalCartTotal,
+          paymentMethod: 'Cash on Delivery (COD)',
+          paymentStatus: 'Pending (Cash to Rider)',
+          customerName: customerName.trim(),
+          customerPhone: cleanPhone,
+          address: `${deliveryAddress ? deliveryAddress + ', ' : ''}Near ${selectedLandmark}, Churu`,
+          estimatedTime: '20-30 Mins Express Dispatch'
+        });
+
+        clearCart();
+        setIsCheckoutModalOpen(false);
+        showToast('Order placed successfully via Cash on Delivery!');
+      } else {
+        // ─── IF INSTANT UPI / SMARTPAY (UNIFIED PAYMENT SYSTEM) ───
+        // DO NOT confirm order yet! Open Unified UpiPaymentModal Engine!
+        const upiPayload = {
+          orderId: primaryOrder.orderNumber || primaryOrder.id || `CHURU-${Date.now().toString().slice(-6)}`,
+          id: primaryOrder.id || primaryOrder.orderNumber,
+          storeId: primaryStoreId,
+          storeName: primaryStore.name || 'ChuruOne Marketplace',
+          grandTotal: finalCartTotal,
+          total: finalCartTotal,
+          upiId: primaryStore.upiId || '7023963189@fam',
+          payeeName: primaryStore.payeeName || primaryStore.name || 'ChuruOne Marketplace',
+          customerName: customerName.trim(),
+          customerPhone: `+91 ${cleanPhone}`,
+          address: `${deliveryAddress ? deliveryAddress + ' • ' : ''}Near ${selectedLandmark}, Churu`,
+          orderGps,
+          items: cartItems
+        };
+
+        setPendingPaymentData(upiPayload);
+        setPendingOrder(primaryOrder);
+        setPendingStoreId(primaryStoreId);
+        setIsCheckoutModalOpen(false);
+        setIsUpiModalOpen(true);
+      }
     } catch (err) {
       console.error('Order placement error:', err);
-      showToast('Order placed! Store has received your request.');
-      setIsCheckoutModalOpen(false);
-      setCartItems([]);
+      showToast('Server issue. Kripya punah prayas karein.');
     } finally {
       setIsSubmittingOrder(false);
     }
   };
 
-  // ─── SALON BOOKING HANDLERS ───────────────────────────────────────
+  // ─── UPI MODAL PAYMENT SUCCESS CALLBACK ───────────────────────────
+  const handlePaymentSuccess = async (paymentResult) => {
+    const orderToConfirm = pendingOrder;
+    try {
+      if (orderToConfirm?.id) {
+        const sId = pendingStoreId || 'shawarma';
+        await fetch('/api/orders/update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-store-id': sId,
+            ...(authToken ? { 'x-auth-token': authToken } : {})
+          },
+          body: JSON.stringify({
+            orderId: orderToConfirm.id,
+            status: 'confirmed',
+            paymentStatus: 'paid',
+            storeId: sId,
+            utr: paymentResult?.utr || null
+          })
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Order status update error:', e);
+    }
+
+    const cleanPhone = (customerPhone || currentUser?.phone || '').replace(/\D/g, '').slice(-10);
+    setOrderSuccessData({
+      orderNumber: orderToConfirm?.orderNumber || orderToConfirm?.id || pendingPaymentData?.orderId || 'CHURU-SUCCESS',
+      ordersCount: 1,
+      itemsCount: cartCount,
+      totalAmount: finalCartTotal,
+      paymentMethod: 'Instant UPI (Auto-Paid ✓)',
+      paymentStatus: 'PAID',
+      customerName: customerName.trim() || currentUser?.name || 'Customer',
+      customerPhone: cleanPhone,
+      address: `${deliveryAddress ? deliveryAddress + ', ' : ''}Near ${selectedLandmark}, Churu`,
+      estimatedTime: '20-30 Mins Express Dispatch'
+    });
+
+    clearCart();
+    setIsUpiModalOpen(false);
+    setPendingPaymentData(null);
+    setPendingOrder(null);
+    showToast('Payment verified successfully! Order confirmed.');
+  };
+
+  // ─── SALON BOOKING HANDLERS (Nash Studio) ─────────────────────────
   const openBookingModal = (service) => {
+    // 1. Mandatory Login Check (Bina login ke booking allow nahi)
+    if (!isUserLoggedIn) {
+      showToast('🔒 Salon appointment book karne ke liye pehle login karein.');
+      setAuthPromptTitle('Login Required for Salon Booking');
+      setAuthPromptMessage('Nash Studio me appointment slot reserve karne ke liye pehle apna ChuruOne account login karein.');
+      setAuthPromptRedirectMode('login');
+      setAuthPromptRequirePhone(false);
+      setIsAuthPromptOpen(true);
+      return;
+    }
+
     setSelectedService(service);
     setBookingConfirmed(false);
     setBookingOrderResult(null);
+    if (currentUser?.name && !bookingCustomerName) setBookingCustomerName(currentUser.name);
+    if (currentUser?.phone && !bookingCustomerPhone) setBookingCustomerPhone(currentUser.phone);
     setIsBookingModalOpen(true);
   };
 
   const handleConfirmBooking = async (e) => {
     e.preventDefault();
+
+    // 1. Strict Login Check
+    if (!isUserLoggedIn) {
+      showToast('🔒 Appointment book karne ke liye pehle login karein.');
+      setIsBookingModalOpen(false);
+      navigateToChuruOneAuth('login');
+      return;
+    }
+
     if (!bookingCustomerName.trim() || !bookingCustomerPhone.trim()) {
       showToast('Please enter your name and phone number');
       return;
@@ -749,20 +932,23 @@ export default function ChuruOneHomePage() {
       return;
     }
 
+    // NOTE: For Salon Booking, phone verification is NOT mandatory! (As instructed: "aur booking wale me no. verification jruri nhi")
     try {
       const res = await fetch('/api/orders?storeId=nash-studio', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-store-id': 'nash-studio'
+          'x-store-id': 'nash-studio',
+          ...(authToken ? { 'x-auth-token': authToken } : {})
         },
         body: JSON.stringify({
           storeId: 'nash-studio',
-          customer: { name: bookingCustomerName.trim(), phone: cleanPhone },
+          customer: { name: bookingCustomerName.trim(), phone: `+91${cleanPhone}` },
           customerName: bookingCustomerName.trim(),
-          customerPhone: cleanPhone,
-          phoneVerified: true,
-          authenticated: Boolean(currentUser),
+          customerPhone: `+91${cleanPhone}`,
+          phoneVerified: false, // NOT mandatory for bookings
+          authenticated: isUserLoggedIn,
+          customerToken: authToken || currentUser?.token || '',
           items: [{
             id: selectedService.id,
             name: selectedService.name,
@@ -1621,9 +1807,45 @@ export default function ChuruOneHomePage() {
                 
                 {/* 1. Customer Contact Details */}
                 <div className="space-y-3">
-                  <div className="text-xs font-bold uppercase tracking-wider text-stone-400">
-                    1. Contact Information
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+                      1. Contact Information
+                    </span>
+                    {isUserPhoneVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        OTP Verified
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        Verification Required
+                      </span>
+                    )}
                   </div>
+
+                  {/* Verification Notice Banner */}
+                  {!isUserPhoneVerified && (
+                    <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-start justify-between gap-3 text-left">
+                      <div className="space-y-0.5">
+                        <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                          <span>Mobile Number Not Verified</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 leading-normal">
+                          Home delivery rider dispatch aur safety ke liye mobile number OTP verify hona mandatory hai.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigateToChuruOneAuth('verify_phone', true)}
+                        className="shrink-0 bg-amber-900 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                      >
+                        Verify OTP
+                      </button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[11px] font-bold uppercase text-stone-600 block mb-1">
@@ -1725,16 +1947,46 @@ export default function ChuruOneHomePage() {
 
                 {/* 4. Payment Selection */}
                 <div className="space-y-2 pt-2 border-t border-stone-100">
-                  <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block mb-1">
-                    4. Payment Method
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-stone-400 block mb-1">
+                      4. Payment Method
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-mono">
+                      Unified Payment System
+                    </span>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('upi')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden ${
+                        paymentMethod === 'upi'
+                          ? 'bg-amber-900 text-white border-amber-900 shadow-md ring-2 ring-amber-700/50'
+                          : 'bg-stone-50 text-stone-800 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <div className="font-bold text-xs flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <QrCode className="w-3.5 h-3.5" />
+                          <span>Instant UPI QR</span>
+                        </div>
+                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full ${
+                          paymentMethod === 'upi' ? 'bg-amber-700 text-amber-100' : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          Fastest
+                        </span>
+                      </div>
+                      <span className={`text-[10px] block mt-0.5 ${paymentMethod === 'upi' ? 'text-amber-200' : 'text-stone-500'}`}>
+                        PhonePe, GPay, Paytm, QR
+                      </span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('cod')}
                       className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                         paymentMethod === 'cod'
-                          ? 'bg-stone-950 text-white border-stone-950 shadow-xs'
+                          ? 'bg-stone-950 text-white border-stone-950 shadow-md ring-2 ring-stone-800/50'
                           : 'bg-stone-50 text-stone-800 border-stone-200 hover:bg-stone-100'
                       }`}
                     >
@@ -1743,25 +1995,7 @@ export default function ChuruOneHomePage() {
                         <span>Cash on Delivery</span>
                       </div>
                       <span className={`text-[10px] block mt-0.5 ${paymentMethod === 'cod' ? 'text-stone-300' : 'text-stone-500'}`}>
-                        Pay rider at delivery
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('upi')}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                        paymentMethod === 'upi'
-                          ? 'bg-amber-900 text-white border-amber-900 shadow-xs'
-                          : 'bg-stone-50 text-stone-800 border-stone-200 hover:bg-stone-100'
-                      }`}
-                    >
-                      <div className="font-bold text-xs flex items-center gap-1.5">
-                        <QrCode className="w-3.5 h-3.5" />
-                        <span>Instant UPI QR</span>
-                      </div>
-                      <span className={`text-[10px] block mt-0.5 ${paymentMethod === 'upi' ? 'text-amber-200' : 'text-stone-500'}`}>
-                        SmartPay direct to store
+                        Pay cash to rider at doorstep
                       </span>
                     </button>
                   </div>
@@ -1775,7 +2009,9 @@ export default function ChuruOneHomePage() {
                     className="w-full bg-stone-950 hover:bg-black text-white text-xs uppercase font-bold tracking-wider py-4 px-5 rounded-2xl flex items-center justify-between shadow-md transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <span>
-                      {isSubmittingOrder ? 'Placing Order...' : `Confirm & Place Order (₹${finalCartTotal})`}
+                      {isSubmittingOrder 
+                        ? 'Processing...' 
+                        : (paymentMethod === 'upi' ? `Proceed to Pay via UPI (₹${finalCartTotal})` : `Confirm Order via COD (₹${finalCartTotal})`)}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
@@ -2155,6 +2391,82 @@ export default function ChuruOneHomePage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── UNIFIED PAYMENT SYSTEM MODAL (ChuruOne Unified Engine) ─── */}
+      {isUpiModalOpen && pendingPaymentData && (
+        <UpiPaymentModal
+          isOpen={isUpiModalOpen}
+          onClose={() => {
+            setIsUpiModalOpen(false);
+            setPendingPaymentData(null);
+            setPendingOrder(null);
+            showToast('Payment poora nahi hua. Items bag me surakshit hain.');
+          }}
+          orderData={pendingPaymentData}
+          paymentData={pendingPaymentData}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
+
+      {/* ─── MANDATORY AUTH & PHONE OTP PROMPT MODAL ─── */}
+      <AnimatePresence>
+        {isAuthPromptOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAuthPromptOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl z-10 overflow-hidden border border-stone-200 p-6 sm:p-7 text-center space-y-4"
+            >
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-inner ${
+                authPromptRequirePhone ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'
+              }`}>
+                {authPromptRequirePhone ? <Phone className="w-7 h-7" /> : <Lock className="w-7 h-7" />}
+              </div>
+
+              <div>
+                <span className="text-[10px] font-mono font-bold tracking-widest text-amber-800 uppercase">
+                  {authPromptRequirePhone ? 'HOME DELIVERY VERIFICATION' : 'CHURUONE AUTHENTICATION'}
+                </span>
+                <h4 className="text-xl font-black text-stone-950 mt-1">
+                  {authPromptTitle}
+                </h4>
+                <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                  {authPromptMessage}
+                </p>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAuthPromptOpen(false);
+                    navigateToChuruOneAuth(authPromptRedirectMode, authPromptRequirePhone);
+                  }}
+                  className="w-full bg-stone-950 hover:bg-black text-white text-xs uppercase font-bold tracking-wider py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
+                >
+                  <span>{authPromptRequirePhone ? 'Verify Mobile via SMS OTP' : 'Continue with 1-Click Login'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthPromptOpen(false)}
+                  className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Legal Policies Modal */}
       <LegalPoliciesModal
