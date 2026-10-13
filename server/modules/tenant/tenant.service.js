@@ -224,10 +224,12 @@ export const getMarketplaceFeed = (req, res) => {
             ...storeDirIds
         ])).filter(Boolean);
 
+        const showAll = req.query.all === 'true';
         const validStoreIds = allStoreIds.filter(id => {
             const clean = String(id).toLowerCase().trim();
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
             if (clean.length < 3 || /^\d+$/.test(clean)) return false;
+            if (!showAll && clean !== 'skyline') return false; // Hide shawarma & nash from ChuruOne home feed (available on /shawarma and /nash)
             return true;
         });
 
@@ -254,10 +256,11 @@ export const getMarketplaceFeed = (req, res) => {
             }
 
             const regStore = registeredStores.find(s => s.id === sId || s.slug === sId) || {};
-            const vertical = (regStore.vertical || config.vertical || storeInfo.vertical || (
+            const rawVert = (regStore.vertical || config.vertical || storeInfo.vertical || (
                 sId.includes('nash') ? 'salon' :
                 sId.includes('skyline') ? 'fashion' : 'food'
             )).toLowerCase();
+            const vertical = (rawVert === 'clothing' || rawVert === 'apparel') ? 'fashion' : rawVert;
 
             const storeName = storeInfo.name || storeInfo.studioName || regStore.name || config.name || sId;
             const storeTiming = vertical === 'salon' ? '15 min slot' : (storeInfo.timing || '20-30 min');
@@ -343,18 +346,28 @@ export const getMarketplaceFeed = (req, res) => {
             .sort((a, b) => b.discountPct - a.discountPct)
             .slice(0, 6);
 
-        // 3. Category groupings
-        const foodItems = allItems.filter(i => i.storeVertical === 'food');
-        const fashionItems = allItems.filter(i => i.storeVertical === 'fashion');
-        const salonServices = allItems.filter(i => i.storeVertical === 'salon');
-
         // Dynamic categories for UI
-        const categories = [
+        const countFor = (catId) => {
+            if (catId === 'all') return allItems.length;
+            if (catId === 'deals') return topDeals.length;
+            return allItems.filter(i => (i.category || '').toLowerCase() === catId).length;
+        };
+
+        const categories = showAll ? [
             { id: 'all', name: 'All City Items', emoji: '🌟', count: allItems.length },
-            { id: 'food', name: 'Food & Shawarma', emoji: '🌯', count: foodItems.length },
-            { id: 'fashion', name: 'Fashion & Outfits', emoji: '👕', count: fashionItems.length },
-            { id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: salonServices.length },
+            { id: 'food', name: 'Food & Shawarma', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length },
+            { id: 'fashion', name: 'Fashion & Outfits', emoji: '👕', count: allItems.filter(i => i.storeVertical === 'fashion').length },
+            { id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length },
             { id: 'deals', name: 'Combos & Offers', emoji: '🎁', count: topDeals.length }
+        ] : [
+            { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
+            { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
+            { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
+            { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
+            { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
+            { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
+            { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
+            { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
         ];
 
         return res.json({

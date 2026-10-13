@@ -368,12 +368,31 @@ async function syncMongoData() {
       for (const doc of docs) {
         const { storeId, collection: colName, data } = doc;
         if (storeId && colName && data !== undefined) {
+          // If local disk file has MORE items (e.g. freshly deployed catalog), prioritize local and update Mongo
+          const filePath = getFilePath(storeId, colName);
+          let localData = null;
+          try {
+            if (fs.existsSync(filePath)) {
+              localData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            }
+          } catch {}
+
+          const localItems = Array.isArray(localData) ? localData : (Array.isArray(localData?.menu) ? localData.menu : []);
+          const mongoItems = Array.isArray(data) ? data : (Array.isArray(data?.menu) ? data.menu : []);
+
+          if (localItems.length > mongoItems.length) {
+            if (!cache[storeId]) cache[storeId] = {};
+            cache[storeId][colName] = localData;
+            persistToMongo(storeId, colName, localData);
+            console.log(`🚀 [MongoDB Atlas] Local file has ${localItems.length} items > Mongo ${mongoItems.length} items. Synced Mongo Atlas with latest local catalog.`);
+            continue;
+          }
+
           if (!cache[storeId]) cache[storeId] = {};
           cache[storeId][colName] = data;
 
           // Also update local file as persistent offline backup
           try {
-            const filePath = getFilePath(storeId, colName);
             ensureDir(getStorePath(storeId));
             fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
           } catch {}
