@@ -1007,22 +1007,6 @@ export default function ChuruOneHomePage() {
   const [deals, setDeals] = useState([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
 
-  // Real-time live activity notification cycle (Macro-animation)
-  const [activityIndex, setActivityIndex] = useState(0);
-  const [liveActivities, setLiveActivities] = useState([
-    { text: "Rahul in Subhash Chowk ordered Crisp White Oxford Shirt", time: "Just now", icon: "👔" },
-    { text: "Faizan in Station Road purchased Japanese Raw Selvedge Jeans", time: "1m ago", icon: "👖" },
-    { text: "Aman in Nai Sarak ordered Milano Gurkha Trousers", time: "2m ago", icon: "👖" },
-    { text: "Skyline Pro Sneakers dispatched to Pankha Circle", time: "Just now", icon: "👟" }
-  ]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActivityIndex(prev => (prev + 1) % liveActivities.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [liveActivities.length]);
-
   // Unified ChuruOne SSO User State
   const [currentUser, setCurrentUser] = useState(null);
   const [authToken, setAuthToken] = useState('');
@@ -1136,16 +1120,6 @@ export default function ChuruOneHomePage() {
             const skylineItems = data.items.filter(it => String(it.storeId || '').toLowerCase() === 'skyline');
             const finalItems = skylineItems.length > 0 ? skylineItems : FALLBACK_REAL_ITEMS;
             setItems(finalItems);
-            // Dynamic activity ticker based on Skyline fashion items
-            const sampleActs = finalItems.slice(0, 4).map((it, idx) => {
-              const landmark = CHURU_POPULAR_LANDMARKS[idx % CHURU_POPULAR_LANDMARKS.length];
-              return {
-                text: `${it.storeName} item ${it.name} ordered near ${landmark}`,
-                time: `${idx + 1}m ago`,
-                icon: it.category === 'footwear' ? '👟' : (it.category === 'shirts' ? '👔' : '👖')
-              };
-            });
-            if (sampleActs.length > 0) setLiveActivities(sampleActs);
 
             // Dynamically calculate fashion category counts
             const countFor = (catId) => {
@@ -3163,30 +3137,6 @@ export default function ChuruOneHomePage() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ─── FLOATING LIVE SOCIAL PROOF ACTIVITY TICKER (Macro Animation) ── */}
-      <div className="fixed bottom-6 left-6 z-40 hidden sm:block pointer-events-none">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activityIndex}
-            initial={{ opacity: 0, y: 25, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-            className="bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl rounded-full px-4 py-2.5 flex items-center gap-3 text-xs max-w-sm pointer-events-auto"
-          >
-            <span className="text-base select-none">{liveActivities[activityIndex]?.icon || '✨'}</span>
-            <div className="flex flex-col min-w-0 pr-1">
-              <span className="font-semibold text-stone-900 truncate">
-                {liveActivities[activityIndex]?.text}
-              </span>
-              <span className="text-[10px] text-stone-400 font-mono">
-                {liveActivities[activityIndex]?.time}
-              </span>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
 
       {/* ─── FLOATING BOTTOM BAG BAR (Appears when items added, doesn't interrupt shopping) ─── */}
       <AnimatePresence>
