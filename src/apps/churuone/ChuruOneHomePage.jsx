@@ -97,15 +97,6 @@ function CategoryLineIcon({ categoryId, className = "w-7 h-7 sm:w-8 sm:h-8" }) {
           <path d="M10 3a2 2 0 0 0 4 0" />
         </svg>
       );
-    case 'footwear':
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
-          <path d="M3.5 16.5l2-5 3.5 1 3.5-3 4.5 1.5L21 14v4.5H3.5a1.5 1.5 0 0 1 0-2z" />
-          <path d="M3 18.5h18" />
-          <path d="M9 12.5l3.5-1.5" />
-          <path d="M13.5 13l2.5-1" />
-        </svg>
-      );
     case 'jackets':
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
@@ -127,7 +118,7 @@ const FALLBACK_REAL_STORES = [
     id: 'skyline',
     name: 'Skyline Premium Outfits',
     vertical: 'fashion',
-    category: 'Luxury Menswear • Shirts, Pants, Jeans & Sneakers',
+    category: 'Luxury Menswear • Shirts, Pants, Jeans, Kurtas & Jackets',
     rating: '4.9',
     timing: 'Same Day Dispatch',
     image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
@@ -144,226 +135,6 @@ const FALLBACK_REAL_STORES = [
 
 // Fallback Real Catalog Items (Skyline Premium Outfits Fashion Collection)
 const FALLBACK_REAL_ITEMS = [
-  {
-    "id": "slick-shoe-00",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Pro Ergonomic Sneaker",
-    "type": "product",
-    "category": "footwear",
-    "price": 3999,
-    "originalPrice": 6999,
-    "discount": "-43%",
-    "image": "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85",
-    "description": "Ultra-lightweight luxury leather sneaker featuring ergonomic cloud cushioning, high-abrasion rubber cupsole, and breathable perforated micro-grain leather.",
-    "rating": 5,
-    "reviews": 128,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-01",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Formal Tailored Sneaker",
-    "type": "product",
-    "category": "footwear",
-    "price": 2399,
-    "originalPrice": 4999,
-    "discount": "-52%",
-    "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=85",
-    "description": "Sophisticated low-profile sneaker that bridges formal tailoring and casual comfort. Matte ecru leather with subtle tonal stitching.",
-    "rating": 4.9,
-    "reviews": 94,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-02",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Casual Retro Runner",
-    "type": "product",
-    "category": "footwear",
-    "price": 2599,
-    "originalPrice": 5199,
-    "discount": "-50%",
-    "image": "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=85",
-    "description": "Multi-layered retro-modern silhouette with suede overlays and responsive rebound sole for all-day urban walking.",
-    "rating": 4.8,
-    "reviews": 76,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-03",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Minimal Chalk Sneaker",
-    "type": "product",
-    "category": "footwear",
-    "price": 2499,
-    "originalPrice": 4999,
-    "discount": "-50%",
-    "image": "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=85",
-    "description": "Classic Scandinavian minimalism with clean rounded toe and soft padded collar. Perfect everyday neutral companion.",
-    "rating": 4.9,
-    "reviews": 88,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-04",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Suede Court Trainer",
-    "type": "product",
-    "category": "footwear",
-    "price": 2299,
-    "originalPrice": 4499,
-    "discount": "-49%",
-    "image": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=85",
-    "description": "Textured suede trainer built with reinforced heel counter and shock-absorbing EVA midsole for durable performance.",
-    "rating": 4.7,
-    "reviews": 52,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-05",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline Aerated Cupsole Sneaker",
-    "type": "product",
-    "category": "footwear",
-    "price": 2799,
-    "originalPrice": 5499,
-    "discount": "-49%",
-    "image": "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=800&q=85",
-    "description": "Contemporary two-tone pastel colorway with premium aerated toe box and lightweight cupsole architecture.",
-    "rating": 4.9,
-    "reviews": 64,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-06",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Skyline 14oz Washed Canvas Sneaker",
-    "type": "product",
-    "category": "footwear",
-    "price": 1999,
-    "originalPrice": 3999,
-    "discount": "-50%",
-    "image": "https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=800&q=85",
-    "description": "Heavy-duty 14oz washed duck canvas low sneaker with vulcanized gum sole and antique brass eyelets.",
-    "rating": 4.8,
-    "reviews": 110,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-07",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Running sport shoe",
-    "type": "product",
-    "category": "footwear",
-    "price": 3999,
-    "originalPrice": 6499,
-    "discount": "-38%",
-    "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",
-    "description": "Breathable knit running shoe with carbon-infused propulsion plate and responsive energy return midsole.",
-    "rating": 5,
-    "reviews": 142,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-08",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Running sport shoe",
-    "type": "product",
-    "category": "footwear",
-    "price": 3999,
-    "originalPrice": 6499,
-    "discount": "-38%",
-    "image": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=85",
-    "description": "Aerated sport runner with seamless dual-density foam sole engineered for sprints and high-impact training.",
-    "rating": 4.9,
-    "reviews": 98,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
-  {
-    "id": "slick-shoe-09",
-    "storeId": "skyline",
-    "storeName": "Skyline Premium Outfits",
-    "storeVertical": "fashion",
-    "name": "Running sport shoe",
-    "type": "product",
-    "category": "footwear",
-    "price": 3999,
-    "originalPrice": 6499,
-    "discount": "-38%",
-    "image": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800&q=85",
-    "description": "Dynamic racing shoe featuring high-visibility color accents, torsion stabilizer, and grippy rubber lugs.",
-    "rating": 4.9,
-    "reviews": 87,
-    "sizes": [
-      "M",
-      "L",
-      "XL"
-    ],
-    "destination": "/skyline"
-  },
   {
     "id": "sky-item-01",
     "storeId": "skyline",
@@ -1000,7 +771,6 @@ export default function ChuruOneHomePage() {
     { id: 'pants', name: 'Pants & Chinos', count: 6 },
     { id: 'jeans', name: 'Jeans & Denim', count: 6 },
     { id: 'tshirts', name: 'T-Shirts & Polos', count: 4 },
-    { id: 'footwear', name: 'Sneakers & Shoes', count: 10 },
     { id: 'jackets', name: 'Jackets & Outerwear', count: 2 },
     { id: 'deals', name: 'Special Offers', count: FALLBACK_REAL_ITEMS.length }
   ]);
@@ -1117,7 +887,12 @@ export default function ChuruOneHomePage() {
             setStores(valid.length > 0 ? valid : FALLBACK_REAL_STORES);
           }
           if (Array.isArray(data.items) && data.items.length > 0) {
-            const skylineItems = data.items.filter(it => String(it.storeId || '').toLowerCase() === 'skyline');
+            const skylineItems = data.items.filter(it => 
+              String(it.storeId || '').toLowerCase() === 'skyline' &&
+              it.category !== 'footwear' &&
+              !it.id?.startsWith('slick-shoe') &&
+              !/shoe|sneaker|footwear/i.test(it.name || '')
+            );
             const finalItems = skylineItems.length > 0 ? skylineItems : FALLBACK_REAL_ITEMS;
             setItems(finalItems);
 
@@ -1133,7 +908,6 @@ export default function ChuruOneHomePage() {
               { id: 'pants', name: 'Pants & Chinos', count: countFor('pants') },
               { id: 'jeans', name: 'Jeans & Denim', count: countFor('jeans') },
               { id: 'tshirts', name: 'T-Shirts & Polos', count: countFor('tshirts') },
-              { id: 'footwear', name: 'Sneakers & Shoes', count: countFor('footwear') },
               { id: 'jackets', name: 'Jackets & Outerwear', count: countFor('jackets') },
               { id: 'deals', name: 'Special Offers', count: countFor('deals') }
             ]);
@@ -1929,7 +1703,7 @@ export default function ChuruOneHomePage() {
                 Skyline<br />Premium
               </motion.h1>
               <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-600 max-w-md">
-                Architectural Menswear, Italian Linen Shirts, Gurkha Trousers, Japanese Selvedge Denim & Ergonomic Sneakers.
+                Architectural Menswear, Italian Linen Shirts, Gurkha Trousers, Japanese Selvedge Denim & Bespoke Outfits.
               </p>
             </div>
 
@@ -1939,7 +1713,7 @@ export default function ChuruOneHomePage() {
                 <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
                 <input
                   type="text"
-                  placeholder="Kya chahiye? Shirts, Pants, Jeans, Sneakers..."
+                  placeholder="Kya chahiye? Shirts, Pants, Jeans, Kurta, Jackets..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
@@ -1983,7 +1757,7 @@ export default function ChuruOneHomePage() {
                 <span className="text-stone-700">✦</span>
                 <span className="text-stone-300">JAPANESE RAW SELVEDGE DENIM</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-white font-sans font-bold">SKYLINE ULTRA-LIGHT SNEAKERS</span>
+                <span className="text-white font-sans font-bold">SKYLINE ITALIAN LINEN SHIRTS & DENIM</span>
                 <span className="text-stone-700">✦</span>
                 <span className="text-emerald-400 font-sans font-bold">SAME-DAY EXPRESS CHURU DISPATCH</span>
                 <span className="text-stone-700">✦</span>
@@ -2118,7 +1892,7 @@ export default function ChuruOneHomePage() {
                 Skyline Outfits & Premium Apparel
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Shirts, Trousers, Jeans & Sneakers delivered express across Churu
+                Shirts, Trousers, Jeans & Jackets delivered express across Churu
               </p>
             </div>
             <div className="text-xs font-mono text-stone-500">
@@ -2248,7 +2022,7 @@ export default function ChuruOneHomePage() {
                 Churu ki Apni Digital Market. Direct Store Pricing.
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                ChuruOne connects citizens directly with verified local businesses — featuring Skyline Outfits for premium menswear, luxury shirts, trousers, denim and sneakers.
+                ChuruOne connects citizens directly with verified local businesses — featuring Skyline Outfits for premium menswear, luxury shirts, trousers, denim and bespoke outfits.
               </p>
               <p className="text-xs text-stone-500 leading-relaxed font-normal">
                 Zero middleman commissions. Direct merchant payments with express 20–30 minute local city delivery.
@@ -2341,7 +2115,7 @@ export default function ChuruOneHomePage() {
                     <div className="space-y-1">
                       <h4 className="font-extrabold text-stone-900 text-base">Your Bag is Empty</h4>
                       <p className="text-xs text-stone-500 max-w-xs">
-                        Browse shirts, pants, jeans and sneakers from Skyline Outfits and tap Add to place items in your bag.
+                        Browse shirts, pants, jeans and jackets from Skyline Outfits and tap Add to place items in your bag.
                       </p>
                     </div>
                     <button

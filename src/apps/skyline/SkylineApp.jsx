@@ -67,13 +67,23 @@ const CHURU_POPULAR_LANDMARKS = [
   'Naya Bass'
 ];
 
+function sanitizeClothesOnly(items) {
+  if (!Array.isArray(items)) return [];
+  return items.filter(it => 
+    it &&
+    it.category !== 'footwear' &&
+    it.subCategory !== 'sneakers' &&
+    !String(it.id || '').toLowerCase().startsWith('slick-shoe') &&
+    !/shoe|sneaker|footwear/i.test(it.name || '')
+  );
+}
+
 export default function SkylineApp() {
   // ─── STATE MANAGEMENT ──────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [storeData, setStoreData] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('men');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -256,9 +266,9 @@ export default function SkylineApp() {
       console.log('⚡ [Skyline Realtime Event]', action, payload);
       if (action === 'MENU_UPDATED') {
         if (payload?.menu && Array.isArray(payload.menu)) {
-          setMenuItems(payload.menu);
+          setMenuItems(sanitizeClothesOnly(payload.menu));
         } else if (Array.isArray(payload)) {
-          setMenuItems(payload);
+          setMenuItems(sanitizeClothesOnly(payload));
         } else {
           loadStoreData();
         }
@@ -314,7 +324,7 @@ export default function SkylineApp() {
       const data = await getSkylineData();
       if (data) {
         setStoreData(data);
-        setMenuItems(data.menu || []);
+        setMenuItems(sanitizeClothesOnly(data.menu || []));
         setCategories(data.categories || []);
       }
     } catch (err) {
@@ -706,53 +716,34 @@ export default function SkylineApp() {
     }
   };
 
-  // ─── HERO & TRENDING ITEMS ────────────────────────────────────
+  // ─── HERO & TRENDING ITEMS (CLOTHES ONLY) ──────────────────────
   const heroProduct = useMemo(() => {
-    return menuItems.find(item => item.id === 'slick-shoe-00') || menuItems[0] || {
-      id: 'slick-shoe-00',
-      name: 'Skyline Pro Ergonomic Sneaker',
-      price: 3999,
-      originalPrice: 6999,
-      image: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85',
-      badge: 'HERO EDIT'
+    const clothes = sanitizeClothesOnly(menuItems);
+    return clothes.find(item => item.id === 'sky-item-01') || clothes[0] || {
+      id: 'sky-item-01',
+      name: 'Normandy Flax Camp-Collar Linen Shirt',
+      category: 'shirts',
+      price: 1699,
+      originalPrice: 2799,
+      image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
+      badge: 'HERO EDIT',
+      description: 'Woven from 100% Normandy long-staple flax linen. Naturally breathable, relaxed drape with mother-of-pearl buttons.'
     };
   }, [menuItems]);
 
   const trendingProducts = useMemo(() => {
-    const candidates = menuItems.filter(item => 
-      item.subCategory === 'trending' || 
-      item.id === 'slick-shoe-07' || 
-      item.id === 'slick-shoe-08' || 
-      item.id === 'slick-shoe-09'
+    const clothes = sanitizeClothesOnly(menuItems);
+    const candidates = clothes.filter(item => 
+      item.badge === 'BESTSELLER' || 
+      item.badge === 'SIGNATURE PIECE' || 
+      item.badge === 'NEW ARRIVAL' ||
+      item.id === 'sky-item-01' ||
+      item.id === 'sky-item-03' ||
+      item.id === 'sky-jean-01'
     );
-    if (candidates.length >= 3) return candidates;
-    return menuItems.slice(7, 10).length > 0 ? menuItems.slice(7, 10) : menuItems.slice(0, 3);
+    if (candidates.length >= 3) return candidates.slice(0, 3);
+    return clothes.slice(0, 3);
   }, [menuItems]);
-
-  // ─── DYNAMIC CATEGORY TABS (BACKEND DB SYNCED) ──────────────
-  const displayCategoryTabs = useMemo(() => {
-    if (categories && Array.isArray(categories) && categories.length > 0) {
-      const dynamicTabs = categories.map(cat => {
-        if (typeof cat === 'string') {
-          return { id: cat.toLowerCase(), label: cat };
-        }
-        return {
-          id: (cat.id || cat.name || '').toLowerCase(),
-          label: cat.name || cat.label || cat.id || 'Category'
-        };
-      }).filter(t => t.id);
-
-      const hasAll = dynamicTabs.some(t => t.id === 'all');
-      return hasAll ? dynamicTabs : [...dynamicTabs, { id: 'all', label: 'All' }];
-    }
-    return [
-      { id: 'men', label: 'Men' },
-      { id: 'woman', label: 'Woman' },
-      { id: 'boy', label: 'Boy' },
-      { id: 'child', label: 'Child' },
-      { id: 'all', label: 'All' }
-    ];
-  }, [categories]);
 
   // ─── SUBMIT LIVE CUSTOMER REVIEW ─────────────────────────────
   const handleReviewSubmit = async (e) => {
@@ -773,7 +764,7 @@ export default function SkylineApp() {
         phone: currentUser?.phone || checkoutPhone || '',
         rating: newReviewRating,
         comment: newReviewComment.trim(),
-        dish: 'Skyline Collection',
+        dish: 'Skyline Clothing Collection',
         type: 'store'
       };
       const res = await submitProductReview(reviewPayload);
@@ -798,62 +789,50 @@ export default function SkylineApp() {
     }
   };
 
-  // ─── BEST SELLING ITEMS (6 ITEMS AS IN SCREENSHOT) ───────────
-  const bestSellingProducts = useMemo(() => {
-    let list = menuItems.filter(item => item.id !== 'slick-shoe-00');
-
-    if (activeCategory && activeCategory !== 'all') {
-      const activeCat = activeCategory.toLowerCase();
-      list = list.filter(item => {
-        const itemCat = (item.category || '').toLowerCase();
-        if (activeCat === 'men') {
-          return itemCat === 'men' || !item.category;
-        }
-        return itemCat === activeCat;
-      });
-    }
+  // ─── ALL PRODUCTS (CLOTHES ONLY — UNIFIED CATALOG WITHOUT CATEGORY TABS) ──
+  const allClothingProducts = useMemo(() => {
+    let list = sanitizeClothesOnly(menuItems);
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(item => 
-        item.name.toLowerCase().includes(q) ||
-        (item.description && item.description.toLowerCase().includes(q))
+        (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.description && item.description.toLowerCase().includes(q)) ||
+        (item.category && item.category.toLowerCase().includes(q)) ||
+        (item.fabric && item.fabric.toLowerCase().includes(q))
       );
     }
 
-    if (list.length < 6 && (activeCategory === 'men' || activeCategory === 'all')) {
-      const fallbackShoes = menuItems.filter(i => i.id.startsWith('slick-shoe') && i.id !== 'slick-shoe-00');
-      if (fallbackShoes.length > 0) {
-        const combined = [...list];
-        fallbackShoes.forEach(shoe => {
-          if (!combined.some(c => c.id === shoe.id)) combined.push(shoe);
-        });
-        return combined.slice(0, 6);
-      }
-    }
+    return list;
+  }, [menuItems, searchQuery]);
 
-    return list.slice(0, 6);
-  }, [menuItems, activeCategory, searchQuery]);
+  // Alias for backward-compatibility in JSX
+  const bestSellingProducts = allClothingProducts;
 
-  // ─── REVIEWS LIST ─────────────────────────────────────────────
+  // ─── REVIEWS LIST (CLOTHING ONLY) ─────────────────────────────
   const customerReviews = useMemo(() => {
     if (storeData?.reviews && storeData.reviews.length > 0) {
-      return storeData.reviews;
+      const cleanRevs = storeData.reviews.filter(r => 
+        !r.dishId?.startsWith('slick-shoe') &&
+        !/sneaker|shoe|slick pro/i.test(r.comment || '') &&
+        !/sneaker|shoe/i.test(r.dish || '')
+      );
+      if (cleanRevs.length > 0) return cleanRevs;
     }
     return [
       {
         id: 'rev-1',
-        name: 'Ravi Joshi',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        name: 'Arjun Rathore',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
         rating: 5,
-        comment: 'The craftsmanship and cloud comfort of the Skyline Pro sneakers are unmatched. Premium lightweight sole and luxurious finish.'
+        comment: 'The French Normandy Linen Shirt has an unbelievable drape and feel. Skyline has completely upgraded menswear in Churu!'
       },
       {
         id: 'rev-2',
-        name: 'Otis Binkley',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+        name: 'Vikram Shekhawat',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         rating: 5,
-        comment: 'Hands down the cleanest aesthetic. Perfectly complements tailored outfits and streetwear. The ChuruOne SSO seamless checkout made ordering effortless!'
+        comment: 'The double-pleated Gurkha trousers fit like a dream. Sharp tailored silhouettes and high-grade fabric. Seamless Churu express delivery!'
       }
     ];
   }, [storeData?.reviews]);
@@ -939,7 +918,7 @@ export default function SkylineApp() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search shoes..."
+                    placeholder="Search shirts, trousers, jeans..."
                     className="bg-transparent outline-none w-full text-xs text-stone-900"
                     autoFocus
                   />
@@ -1062,7 +1041,7 @@ export default function SkylineApp() {
             </h1>
             
             <p className="text-stone-600 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0">
-              Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & ergonomic sneakers curated in Churu.
+              Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & bespoke outfits curated in Churu.
             </p>
 
             <div className="pt-2 flex items-center justify-center lg:justify-start gap-4">
@@ -1090,7 +1069,7 @@ export default function SkylineApp() {
                 SKYLINE
               </div>
 
-              {/* Floating Hero White Sneaker */}
+              {/* Floating Hero Clothing Showcase */}
               <div 
                 onClick={() => openProductModal(heroProduct)}
                 className="relative z-10 w-full max-w-md mx-auto cursor-pointer group"
@@ -1098,11 +1077,11 @@ export default function SkylineApp() {
                 <img
                   src={heroProduct.image}
                   alt={heroProduct.name}
-                  className="w-full h-64 sm:h-80 object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-2"
+                  className="w-full h-72 sm:h-96 object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
 
-              {/* Floating Badge / Card Below the Sneaker */}
+              {/* Floating Badge / Card Below the Showcase */}
               <div className="absolute bottom-6 right-6 sm:right-10 z-20 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-stone-100 shadow-xl flex items-center gap-4">
                 <div>
                   <span className="block text-xs font-semibold text-stone-950 tracking-tight">
@@ -1136,19 +1115,19 @@ export default function SkylineApp() {
           <span className="text-stone-700">✦</span>
           <span className="text-amber-400 font-extrabold">RAW SELVEDGE DENIM</span>
           <span className="text-stone-700">✦</span>
-          <span>CLOUD COMFORT SOLES</span>
+          <span>BESPOKE HANDCRAFTED TAILORING</span>
           <span className="text-stone-700">✦</span>
           <span className="text-emerald-400 font-extrabold">CHURU SAME-DAY EXPRESS</span>
         </div>
       </section>
 
-      {/* ─── 4. OUR TRENDING SHOE / MOST POPULAR PRODUCTS ─────────── */}
+      {/* ─── 4. OUR TRENDING CLOTHING / MOST POPULAR PRODUCTS ─────────── */}
       <section id="trending" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         
         {/* Section Tag */}
         <div className="text-center sm:text-left mb-3">
           <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400">
-            — Our Trending Menswear & Footwear —
+            — Our Trending Menswear Collection —
           </span>
         </div>
 
@@ -1158,22 +1137,22 @@ export default function SkylineApp() {
           <div className="lg:col-span-4 space-y-4 text-center sm:text-left">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-950 tracking-tight leading-tight">
               Most Popular<br />
-              Products
+              Garments
             </h2>
             <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-sm mx-auto sm:mx-0">
-              Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod.
+              Curated luxury essentials engineered for sharp tailoring, comfort and enduring elegance in Churu.
             </p>
             <div className="pt-2">
               <a
                 href="#bestselling"
                 className="inline-block bg-black text-white hover:bg-stone-800 transition-colors px-6 py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider cursor-pointer no-underline"
               >
-                Explore
+                Explore All Outfits
               </a>
             </div>
           </div>
 
-          {/* Right Column: 3 Trending Shoe Cards + Controls */}
+          {/* Right Column: 3 Trending Clothing Cards + Controls */}
           <div className="lg:col-span-8 space-y-6">
             
             {/* 3-Card Grid */}
@@ -1183,15 +1162,15 @@ export default function SkylineApp() {
                   key={item.id || idx}
                   className="bg-[#F5F5F7] rounded-2xl p-5 relative group hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
                 >
-                  {/* Shoe Image */}
+                  {/* Garment Image */}
                   <div 
                     onClick={() => openProductModal(item)}
-                    className="h-36 sm:h-40 flex items-center justify-center cursor-pointer overflow-hidden"
+                    className="h-44 sm:h-48 flex items-center justify-center cursor-pointer overflow-hidden p-2"
                   >
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="max-h-full max-w-full object-contain group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md rounded-lg"
                     />
                   </div>
 
@@ -1230,34 +1209,27 @@ export default function SkylineApp() {
         </div>
       </section>
 
-      {/* ─── 5. BEST SELLING SECTION (MATCHES RIGHT PANEL) ─────────── */}
+      {/* ─── 5. ALL PRODUCTS SECTION (CLOTHES ONLY — UNIFIED CATALOG) ─── */}
       <section id="bestselling" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 border-t border-stone-100">
         
-        {/* Section Header */}
-        <div className="text-center space-y-4 mb-10">
+        {/* Section Header (No Category Pills — All Outfits Displayed Together) */}
+        <div className="text-center space-y-3 mb-12">
           <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
-            — Best Selling —
+            — Complete Collection —
           </span>
-
-          {/* Category Filter Pills (Dynamic from backend) */}
-          <div className="flex items-center justify-center flex-wrap gap-2 pt-2">
-            {displayCategoryTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveCategory(tab.id)}
-                className={`px-6 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-                  activeCategory === tab.id
-                    ? 'bg-black text-white shadow-md'
-                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <h2 className="text-3xl sm:text-4xl font-black text-stone-950 tracking-tight">
+            Skyline Premium Outfits
+          </h2>
+          <p className="text-stone-500 text-xs sm:text-sm max-w-lg mx-auto">
+            Pure French linen shirts, pleated Gurkha trousers, authentic Japanese selvedge denim, kurtas & jackets — all garments in one place.
+          </p>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Showing all {bestSellingProducts.length} premium pieces</span>
           </div>
         </div>
 
-        {/* 6-Card Product Grid (3 Columns x 2 Rows as in screenshot) */}
+        {/* All Products Grid (Unified Catalog) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {bestSellingProducts.map((product) => {
             const isWishlisted = wishlist.includes(product.id);
@@ -1282,15 +1254,15 @@ export default function SkylineApp() {
                   </button>
                 </div>
 
-                {/* Sneaker Image */}
+                {/* Garment Image */}
                 <div
                   onClick={() => openProductModal(product)}
-                  className="h-44 sm:h-52 flex items-center justify-center my-4 cursor-pointer overflow-hidden"
+                  className="h-52 sm:h-60 flex items-center justify-center my-4 cursor-pointer overflow-hidden p-2"
                 >
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300 drop-shadow-md"
+                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md rounded-xl"
                   />
                 </div>
 
@@ -1409,7 +1381,7 @@ export default function SkylineApp() {
             <div className="space-y-3">
               <span className="text-2xl font-black text-black">Skyline Premium</span>
               <p className="text-stone-500 text-xs leading-relaxed">
-                Skyline Premium Outfits. Architectural menswear and footwear studio in Churu, Rajasthan.
+                Skyline Premium Outfits. Architectural menswear and tailored clothing studio in Churu, Rajasthan.
               </p>
               <div className="flex items-center gap-2 text-stone-800 font-medium">
                 <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
@@ -1419,10 +1391,10 @@ export default function SkylineApp() {
 
             <div className="space-y-2">
               <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Collections</h5>
-              <p className="hover:text-black cursor-pointer">Skyline Pro Sneakers</p>
-              <p className="hover:text-black cursor-pointer">Casual Retro Runners</p>
-              <p className="hover:text-black cursor-pointer">Canvas Street Lows</p>
-              <p className="hover:text-black cursor-pointer">Normandy Flax Linens</p>
+              <p className="hover:text-black cursor-pointer">Normandy Flax Linen Shirts</p>
+              <p className="hover:text-black cursor-pointer">Double-Pleated Gurkha Trousers</p>
+              <p className="hover:text-black cursor-pointer">Japanese Selvedge Denim</p>
+              <p className="hover:text-black cursor-pointer">Chore Jackets & Kurtas</p>
             </div>
 
             <div className="space-y-2">
@@ -2604,7 +2576,7 @@ export default function SkylineApp() {
                 Write a Review
               </h3>
               <p className="text-xs text-stone-500 font-light">
-                Share your experience with Skyline Outfits & footwear craftsmanship.
+                Share your experience with Skyline Outfits & tailored clothing craftsmanship.
               </p>
             </div>
 
