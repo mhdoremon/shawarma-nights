@@ -31,7 +31,9 @@ import {
   ExternalLink,
   Store,
   RotateCcw,
-  Lock
+  Lock,
+  Shirt,
+  Footprints
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,6 +63,63 @@ export const CHURU_POPULAR_LANDMARKS = [
 
 export const FALLBACK_STORE_IMAGE = 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80';
 export const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80';
+
+// ─── LARGE MINIMAL LINE ICONS FOR FASHION CATEGORIES ─────────────────
+function CategoryLineIcon({ categoryId, className = "w-7 h-7 sm:w-8 sm:h-8" }) {
+  const common = `${className} shrink-0 stroke-[1.8]`;
+  switch (categoryId) {
+    case 'all':
+      return <Sparkles className={common} />;
+    case 'shirts':
+      return <Shirt className={common} />;
+    case 'pants':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M5 4h14v2.5l-1.5 13.5h-4l-1.5-8-1.5 8h-4L5 6.5V4z" />
+          <path d="M12 4v3" />
+          <path d="M5 6.5h14" />
+        </svg>
+      );
+    case 'jeans':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M5 4h14v2.5l-1.5 13.5h-4l-1.5-8-1.5 8h-4L5 6.5V4z" />
+          <path d="M5 6.5h14" />
+          <path d="M7 9.5c0 1.2 1.3 2 2.5 2" />
+          <path d="M17 9.5c0 1.2-1.3 2-2.5 2" />
+          <circle cx="12" cy="5.25" r="0.6" fill="currentColor" />
+        </svg>
+      );
+    case 'tshirts':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M8 3h8l2.5 4.5-3 1.5V20H8.5V9L5.5 7.5 8 3z" />
+          <path d="M10 3a2 2 0 0 0 4 0" />
+        </svg>
+      );
+    case 'footwear':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M3.5 16.5l2-5 3.5 1 3.5-3 4.5 1.5L21 14v4.5H3.5a1.5 1.5 0 0 1 0-2z" />
+          <path d="M3 18.5h18" />
+          <path d="M9 12.5l3.5-1.5" />
+          <path d="M13.5 13l2.5-1" />
+        </svg>
+      );
+    case 'jackets':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={common}>
+          <path d="M6 4h12l3 5-3 2v8a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-8L3 9l3-5z" />
+          <path d="M12 4v16" />
+          <path d="M6 4l6 7 6-7" />
+        </svg>
+      );
+    case 'deals':
+      return <Tag className={common} />;
+    default:
+      return <Sparkles className={common} />;
+  }
+}
 
 // Fallback Real Stores (Skyline Premium Outfits)
 const FALLBACK_REAL_STORES = [
@@ -936,14 +995,14 @@ export default function ChuruOneHomePage() {
   const [stores, setStores] = useState(FALLBACK_REAL_STORES);
   const [items, setItems] = useState(FALLBACK_REAL_ITEMS);
   const [categories, setCategories] = useState([
-    { id: 'all', name: 'All Collection', emoji: '🌟', count: FALLBACK_REAL_ITEMS.length },
-    { id: 'shirts', name: 'Shirts', emoji: '👔', count: 8 },
-    { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: 6 },
-    { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: 6 },
-    { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: 4 },
-    { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: 10 },
-    { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: 2 },
-    { id: 'deals', name: 'Special Offers', emoji: '🎁', count: FALLBACK_REAL_ITEMS.length }
+    { id: 'all', name: 'All Collection', count: FALLBACK_REAL_ITEMS.length },
+    { id: 'shirts', name: 'Shirts', count: 8 },
+    { id: 'pants', name: 'Pants & Chinos', count: 6 },
+    { id: 'jeans', name: 'Jeans & Denim', count: 6 },
+    { id: 'tshirts', name: 'T-Shirts & Polos', count: 4 },
+    { id: 'footwear', name: 'Sneakers & Shoes', count: 10 },
+    { id: 'jackets', name: 'Jackets & Outerwear', count: 2 },
+    { id: 'deals', name: 'Special Offers', count: FALLBACK_REAL_ITEMS.length }
   ]);
   const [deals, setDeals] = useState([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
@@ -1053,7 +1112,7 @@ export default function ChuruOneHomePage() {
 
   // Set browser title
   useEffect(() => {
-    document.title = "ChuruOne | Churu ki har dukaan ab online";
+    document.title = "Skyline Premium | Luxury Menswear & Fashion • Churu";
   }, []);
 
   // ─── FETCH REAL MARKETPLACE FEED (CDRA-v1 Backend Algorithm) ─────
@@ -1095,14 +1154,14 @@ export default function ChuruOneHomePage() {
               return finalItems.filter(i => i.category === catId).length;
             };
             setCategories([
-              { id: 'all', name: 'All Collection', emoji: '🌟', count: countFor('all') },
-              { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
-              { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
-              { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
-              { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
-              { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
-              { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
-              { id: 'deals', name: 'Special Offers', emoji: '🎁', count: countFor('deals') }
+              { id: 'all', name: 'All Collection', count: countFor('all') },
+              { id: 'shirts', name: 'Shirts', count: countFor('shirts') },
+              { id: 'pants', name: 'Pants & Chinos', count: countFor('pants') },
+              { id: 'jeans', name: 'Jeans & Denim', count: countFor('jeans') },
+              { id: 'tshirts', name: 'T-Shirts & Polos', count: countFor('tshirts') },
+              { id: 'footwear', name: 'Sneakers & Shoes', count: countFor('footwear') },
+              { id: 'jackets', name: 'Jackets & Outerwear', count: countFor('jackets') },
+              { id: 'deals', name: 'Special Offers', count: countFor('deals') }
             ]);
           }
           if (Array.isArray(data.deals)) {
@@ -1882,16 +1941,23 @@ export default function ChuruOneHomePage() {
           {/* Left Content Area + Search Bar Overlaid Direct Onto Photo */}
           <div className="relative z-20 w-full p-6 sm:p-10 lg:p-14 space-y-6 max-w-2xl">
             
-            <motion.h1 
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-stone-950 leading-[1.08]"
-            >
-              Churu ki<br />
-              har dukaan<br />
-              ab online
-            </motion.h1>
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-stone-900 text-stone-200 text-xs font-mono font-bold tracking-wider uppercase border border-stone-800 shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Station Road, Churu • Flagship Store
+              </span>
+              <motion.h1 
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-950 leading-[1.02]"
+              >
+                Skyline<br />Premium
+              </motion.h1>
+              <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-600 max-w-md">
+                Architectural Menswear, Italian Linen Shirts, Gurkha Trousers, Japanese Selvedge Denim & Ergonomic Sneakers.
+              </p>
+            </div>
 
             {/* OVERLAPPING FLOATING SEARCH BAR (Physically sits across the photo) */}
             <div className="relative z-30 max-w-xl w-full pt-2">
@@ -1922,31 +1988,40 @@ export default function ChuruOneHomePage() {
 
         </section>
 
-        {/* ─── LIVE KINETIC MARQUEE STREAM (Macro Animation) ───────── */}
-        <div className="py-3 border-y border-stone-200/80 bg-gradient-to-r from-stone-50 via-white to-stone-50 overflow-hidden whitespace-nowrap select-none rounded-2xl shadow-2xs">
-          <div className="flex gap-8 items-center animate-marquee w-max text-xs font-mono font-bold uppercase tracking-wider text-stone-800">
+        {/* ─── LIVE KINETIC MARQUEE STREAM (Thick Black Slow Ribbon) ── */}
+        <div className="py-5 sm:py-6 border-y border-stone-800 bg-black text-white overflow-hidden whitespace-nowrap select-none rounded-2xl shadow-xl">
+          <div 
+            className="flex gap-10 items-center animate-marquee w-max text-xs sm:text-sm font-mono font-bold uppercase tracking-widest text-stone-300"
+            style={{ animationDuration: '65s' }}
+          >
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-8">
-                <span className="flex items-center gap-1.5 text-emerald-700">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  SKYLINE PREMIUM DISPATCHING ACROSS CHURU
+              <div key={i} className="flex items-center gap-10">
+                <span className="flex items-center gap-2 text-amber-400 font-sans font-black tracking-wider text-sm sm:text-base">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                  SKYLINE PREMIUM OUTFITS
                 </span>
-                <span className="text-stone-300">✦</span>
-                <span>0% PLATFORM COMMISSIONS</span>
-                <span className="text-stone-300">✦</span>
-                <span className="text-indigo-800 font-sans font-bold">SKYLINE OUTFITS • PREMIUM APPAREL</span>
-                <span className="text-stone-300">✦</span>
-                <span className="text-stone-900 font-sans font-bold">SHIRTS • PANTS • JEANS • FOOTWEAR</span>
-                <span className="text-stone-300">✦</span>
-                <span>INSTANT UPI SMARTPAY SETTLEMENTS</span>
-                <span className="text-stone-300">✦</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-white font-sans font-bold">LUXURY BESPOKE MENSWEAR</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-stone-300">BESPOKE LINEN & CRISP OXFORD SHIRTS</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-amber-300 font-sans font-bold">ITALIAN GURKHA TROUSERS & PLEATED CHINOS</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-stone-300">JAPANESE RAW SELVEDGE DENIM</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-white font-sans font-bold">SLICK ULTRA-LIGHT SNEAKERS</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-emerald-400 font-sans font-bold">SAME-DAY EXPRESS CHURU DISPATCH</span>
+                <span className="text-stone-700">✦</span>
+                <span className="text-stone-400">100% FACTORY FINISHED CURATED APPAREL</span>
+                <span className="text-stone-700">✦</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ─── CATEGORY SQUIRCLE ROW ───────────────────────────────── */}
-        <section className="overflow-x-auto no-scrollbar py-1">
+        {/* ─── CATEGORY SQUIRCLE ROW (Clean Large Line Icons) ─────────── */}
+        <section className="overflow-x-auto no-scrollbar py-2">
           <div className="flex items-center gap-3 sm:gap-4 w-max min-w-full">
             {categories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
@@ -1954,21 +2029,23 @@ export default function ChuruOneHomePage() {
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex flex-col items-center justify-center gap-2 p-3 sm:p-3.5 rounded-2xl transition-all cursor-pointer min-w-[80px] sm:min-w-[96px] ${
+                  className={`flex flex-col items-center justify-center gap-2.5 p-3.5 sm:p-4 rounded-2xl transition-all cursor-pointer min-w-[88px] sm:min-w-[106px] group ${
                     isSelected 
-                    ? 'bg-stone-950 text-white shadow-md' 
-                    : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-2xs'
+                    ? 'bg-stone-950 text-white shadow-xl ring-2 ring-stone-950 ring-offset-2' 
+                    : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 shadow-2xs'
                   }`}
                 >
-                  <span className="text-2xl sm:text-3xl select-none">
-                    {cat.emoji}
-                  </span>
-                  <span className="text-[11px] sm:text-xs font-semibold whitespace-nowrap">
+                  <div className={`transition-transform duration-200 group-hover:scale-110 ${
+                    isSelected ? 'text-white' : 'text-stone-700 group-hover:text-stone-950'
+                  }`}>
+                    <CategoryLineIcon categoryId={cat.id} className="w-7 h-7 sm:w-8 sm:h-8" />
+                  </div>
+                  <span className="text-xs sm:text-xs font-bold tracking-tight whitespace-nowrap">
                     {cat.name}
                   </span>
                   {cat.count !== undefined && (
-                    <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
                     }`}>
                       {cat.count}
                     </span>
