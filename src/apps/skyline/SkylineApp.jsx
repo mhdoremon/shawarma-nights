@@ -126,7 +126,7 @@ export default function SkylineApp() {
   const openProductModal = (product) => {
     if (!product) return;
     setSelectedProduct(product);
-    setModalSize(product.availableSizes?.[0] || 'UK 8');
+    setModalSize(product.availableSizes?.[0] || product.sizes?.[0] || 'M');
     const defaultColor = product.colors?.[0];
     setModalColor(typeof defaultColor === 'object' ? defaultColor.name : (defaultColor || 'Classic'));
     setModalActiveImage(product.image || '');
@@ -368,6 +368,7 @@ export default function SkylineApp() {
   }, [appliedCoupon, cartSubtotal]);
 
   const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);
+  const cartTotal = grandTotal;
   const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   // ─── GPS & LOCATION HANDLERS ───────────────────────────────────
@@ -436,8 +437,14 @@ export default function SkylineApp() {
 
   // ─── CART HANDLERS ─────────────────────────────────────────────
   const addToCart = (product, selectedSize, selectedColor) => {
-    const size = selectedSize || (product.availableSizes && product.availableSizes[0]) || 'UK 8';
-    const color = selectedColor || (product.colors && product.colors[0]?.name) || 'Classic';
+    if (!product) return;
+    const size = selectedSize || 
+      (Array.isArray(product.availableSizes) && product.availableSizes[0]) || 
+      (Array.isArray(product.sizes) && product.sizes[0]) || 
+      'M';
+    const color = selectedColor || 
+      (Array.isArray(product.colors) ? (typeof product.colors[0] === 'string' ? product.colors[0] : product.colors[0]?.name) : null) || 
+      'Classic';
     const cartItemId = `${product.id}-${size}-${color}`;
 
     setCartItems(prev => {
@@ -452,17 +459,17 @@ export default function SkylineApp() {
       return [...prev, {
         cartItemId,
         id: product.id,
-        name: product.name,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        image: product.image,
+        name: product.name || 'Skyline Outfits',
+        price: Number(product.price) || 0,
+        originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
+        image: product.image || (Array.isArray(product.images) && product.images[0]) || '',
         size,
         color,
         quantity: 1
       }];
     });
 
-    showToast(`Added to Bag: ${product.name}`);
+    showToast(`Added to Bag: ${product.name || 'Item'}`);
     // Cart is not auto-opened on add so user can continue shopping smoothly
   };
 
@@ -857,14 +864,14 @@ export default function SkylineApp() {
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
-                {cartItems.reduce((sum, it) => sum + it.quantity, 0)}
+                {totalItemsCount}
               </div>
               <div>
                 <span className="text-xs font-bold block">
-                  {cartItems.reduce((sum, it) => sum + it.quantity, 0)} {cartItems.reduce((sum, it) => sum + it.quantity, 0) === 1 ? 'item' : 'items'} in bag
+                  {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} in bag
                 </span>
                 <span className="text-[11px] text-stone-400 font-mono">
-                  Subtotal: ₹ {cartTotal}.00
+                  Subtotal: ₹ {cartSubtotal}.00
                 </span>
               </div>
             </div>
@@ -1559,13 +1566,13 @@ export default function SkylineApp() {
                       Select Size
                     </label>
                     <div className="flex items-center flex-wrap gap-2">
-                      {(selectedProduct.availableSizes || ['UK 7', 'UK 8', 'UK 9', 'UK 10']).map((sz) => (
+                      {(selectedProduct.availableSizes || selectedProduct.sizes || ['S', 'M', 'L', 'XL', 'XXL']).map((sz) => (
                         <button
                           key={sz}
                           type="button"
                           onClick={() => setModalSize(sz)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                            (modalSize || selectedProduct.availableSizes?.[0]) === sz
+                            (modalSize || (selectedProduct.availableSizes || selectedProduct.sizes)?.[0] || 'M') === sz
                               ? 'bg-black text-white border-black shadow-xs'
                               : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
                           }`}

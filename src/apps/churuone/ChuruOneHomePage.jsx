@@ -1044,9 +1044,9 @@ export default function ChuruOneHomePage() {
       }
       return [...prev, {
         id: product.id,
-        storeId: product.storeId || 'shawarma',
-        storeName: product.storeName || 'Shawarma Nights',
-        storeVertical: product.storeVertical || 'food',
+        storeId: product.storeId || 'skyline',
+        storeName: product.storeName || 'Skyline Premium Outfits',
+        storeVertical: product.storeVertical || 'fashion',
         name: product.name,
         price: Number(product.price) || 0,
         mrp: Number(product.originalPrice || product.mrp) || Math.round((Number(product.price) || 0) * 1.25),
