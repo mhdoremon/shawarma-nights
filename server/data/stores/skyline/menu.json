@@ -3,7 +3,7 @@
     {
       "id": "slick-shoe-00",
       "name": "Trendy Slick Pro",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 3999,
       "originalPrice": 6999,
@@ -39,7 +39,7 @@
     {
       "id": "slick-shoe-01",
       "name": "Slick formal sneaker shoe",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 2399,
       "originalPrice": 4999,
@@ -73,7 +73,7 @@
     {
       "id": "slick-shoe-02",
       "name": "Slick casual sneaker shoe",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 2599,
       "originalPrice": 5199,
@@ -108,7 +108,7 @@
     {
       "id": "slick-shoe-03",
       "name": "Slick sneaker shoe",
-      "category": "woman",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 2499,
       "originalPrice": 4999,
@@ -143,7 +143,7 @@
     {
       "id": "slick-shoe-04",
       "name": "Slick sneaker shoe",
-      "category": "boy",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 2299,
       "originalPrice": 4499,
@@ -177,7 +177,7 @@
     {
       "id": "slick-shoe-05",
       "name": "Slick trendy sneaker shoe",
-      "category": "child",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 2799,
       "originalPrice": 5499,
@@ -211,7 +211,7 @@
     {
       "id": "slick-shoe-06",
       "name": "Slick canvas shoe",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "sneakers",
       "price": 1999,
       "originalPrice": 3999,
@@ -245,7 +245,7 @@
     {
       "id": "slick-shoe-07",
       "name": "Running sport shoe",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "trending",
       "price": 3999,
       "originalPrice": 6499,
@@ -276,7 +276,7 @@
     {
       "id": "slick-shoe-08",
       "name": "Running sport shoe",
-      "category": "men",
+      "category": "footwear",
       "subCategory": "trending",
       "price": 3999,
       "originalPrice": 6499,
@@ -306,7 +306,7 @@
     {
       "id": "slick-shoe-09",
       "name": "Running sport shoe",
-      "category": "woman",
+      "category": "footwear",
       "subCategory": "trending",
       "price": 3999,
       "originalPrice": 6499,
@@ -337,7 +337,7 @@
     {
       "id": "sky-item-01",
       "name": "Normandy Flax Camp-Collar Linen Shirt",
-      "category": "linen-shirts",
+      "category": "shirts",
       "price": 1699,
       "originalPrice": 2799,
       "prepTime": "Same Day Dispatch",
@@ -371,12 +371,13 @@
       ],
       "rating": 4.9,
       "reviews": 84,
-      "available": true
+      "available": true,
+      "subCategory": "shirts"
     },
     {
       "id": "sky-item-02",
       "name": "Striped Riviera Mandarin Linen Shirt",
-      "category": "linen-shirts",
+      "category": "shirts",
       "price": 1849,
       "originalPrice": 2999,
       "prepTime": "Same Day Dispatch",
@@ -405,12 +406,13 @@
       ],
       "rating": 4.8,
       "reviews": 46,
-      "available": true
+      "available": true,
+      "subCategory": "shirts"
     },
     {
       "id": "sky-item-03",
       "name": "Milano Double-Pleated Gurkha Trousers",
-      "category": "trousers",
+      "category": "pants",
       "price": 2199,
       "originalPrice": 3699,
       "prepTime": "Same Day Dispatch",
@@ -444,12 +446,13 @@
       ],
       "rating": 5,
       "reviews": 112,
-      "available": true
+      "available": true,
+      "subCategory": "pants"
     },
     {
       "id": "sky-item-04",
       "name": "Minimalist Japanese Stretch Chino",
-      "category": "trousers",
+      "category": "pants",
       "price": 1799,
       "originalPrice": 2899,
       "prepTime": "Same Day Dispatch",
@@ -482,12 +485,13 @@
       ],
       "rating": 4.8,
       "reviews": 68,
-      "available": true
+      "available": true,
+      "subCategory": "pants"
     },
     {
       "id": "sky-item-05",
       "name": "Heavyweight 340 GSM Canvas Overshirt",
-      "category": "overshirts",
+      "category": "shirts",
       "price": 2499,
       "originalPrice": 3999,
       "prepTime": "Same Day Dispatch",
@@ -521,12 +525,13 @@
       ],
       "rating": 4.9,
       "reviews": 53,
-      "available": true
+      "available": true,
+      "subCategory": "shirts"
     },
     {
       "id": "sky-item-06",
       "name": "Wale Ribbed Corduroy Chore Jacket",
-      "category": "overshirts",
+      "category": "jackets",
       "price": 2799,
       "originalPrice": 4499,
       "prepTime": "Same Day Dispatch",
@@ -554,12 +559,13 @@
       ],
       "rating": 4.9,
       "reviews": 39,
-      "available": true
+      "available": true,
+      "subCategory": "jackets"
     },
     {
       "id": "sky-item-07",
       "name": "Handloom Raw Silk Angrakha Kurta Set",
-      "category": "heritage-kurtas",
+      "category": "ethnic",
       "price": 3499,
       "originalPrice": 5999,
       "prepTime": "Custom Fitted / 24h",
@@ -592,12 +598,13 @@
       ],
       "rating": 5,
       "reviews": 77,
-      "available": true
+      "available": true,
+      "subCategory": "ethnic"
     },
     {
       "id": "sky-item-08",
       "name": "Chanderi Embroidered Short Kurta",
-      "category": "heritage-kurtas",
+      "category": "ethnic",
       "price": 2199,
       "originalPrice": 3499,
       "prepTime": "Same Day Dispatch",
@@ -631,12 +638,13 @@
       ],
       "rating": 4.8,
       "reviews": 51,
-      "available": true
+      "available": true,
+      "subCategory": "ethnic"
     },
     {
       "id": "sky-item-09",
       "name": "Supima Heavyweight 260 GSM Relaxed Tee",
-      "category": "tees",
+      "category": "tshirts",
       "price": 899,
       "originalPrice": 1499,
       "prepTime": "Same Day Dispatch",
@@ -674,12 +682,13 @@
       ],
       "rating": 4.9,
       "reviews": 164,
-      "available": true
+      "available": true,
+      "subCategory": "tshirts"
     },
     {
       "id": "sky-item-10",
       "name": "Textured Open-Knit Milano Polo",
-      "category": "knitwear",
+      "category": "tshirts",
       "price": 1999,
       "originalPrice": 3199,
       "prepTime": "Same Day Dispatch",
@@ -708,41 +717,591 @@
       ],
       "rating": 4.9,
       "reviews": 42,
+      "available": true,
+      "subCategory": "tshirts"
+    },
+    {
+      "id": "sky-pant-03",
+      "name": "Tailored Slim-Fit Italian Formal Trousers",
+      "category": "pants",
+      "subCategory": "formal-trousers",
+      "price": 1999,
+      "originalPrice": 3499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Popular",
+      "description": "Premium poly-viscose blend with sharp permanent front crease, tailored waistband with side adjusters, breathable formal drape.",
+      "fabric": "Italian Wool-Viscose Stretch Composite",
+      "fit": "Tailored Slim Tapered Cut",
+      "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Midnight Charcoal",
+          "hex": "#2C3539"
+        },
+        {
+          "name": "Jet Black",
+          "hex": "#111111"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 64,
       "available": true
-    }
-  ],
-  "categories": [
-    {
-      "id": "all",
-      "name": "All Collection"
     },
     {
-      "id": "men",
-      "name": "Men"
+      "id": "sky-pant-04",
+      "name": "Pure European Flax Linen Drawstring Pants",
+      "category": "pants",
+      "subCategory": "linen-pants",
+      "price": 2299,
+      "originalPrice": 3999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Summer Edit",
+      "description": "100% natural pre-washed European linen with elasticated drawstring waist, relaxed tapered drape, effortless airy comfort.",
+      "fabric": "100% French Flax Natural Linen",
+      "fit": "Relaxed Tapered Fit with Drawstring",
+      "image": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Oatmeal Beige",
+          "hex": "#D8C3A5"
+        },
+        {
+          "name": "Crisp Off-White",
+          "hex": "#FAF9F6"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 49,
+      "available": true
     },
     {
-      "id": "woman",
-      "name": "Woman"
+      "id": "sky-pant-05",
+      "name": "Heavy Twill Tactical 6-Pocket Cargo Pants",
+      "category": "pants",
+      "subCategory": "cargos",
+      "price": 2499,
+      "originalPrice": 4299,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Streetwear",
+      "description": "320 GSM rugged cotton twill, 6 functional bellows pockets with concealed snap buttons, relaxed street silhouette.",
+      "fabric": "Heavyweight 320 GSM Cotton Twill",
+      "fit": "Relaxed Ergonomic Street Fit",
+      "image": "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Military Olive",
+          "hex": "#556B2F"
+        },
+        {
+          "name": "Matte Stealth Black",
+          "hex": "#1C1C1C"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 78,
+      "available": true
     },
     {
-      "id": "boy",
-      "name": "Boy"
+      "id": "sky-pant-06",
+      "name": "Classic British Khaki Slim Stretch Chinos",
+      "category": "pants",
+      "subCategory": "chinos",
+      "price": 1799,
+      "originalPrice": 2999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Best Value",
+      "description": "98% combed cotton with 2% elastane flex, peach-finish soft handfeel, versatile work-to-weekend clean tailored staple.",
+      "fabric": "Peached Cotton Satin Weave with Spandex Flex",
+      "fit": "Slim Straight Contemporary Fit",
+      "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Classic Khaki Tan",
+          "hex": "#C3B091"
+        },
+        {
+          "name": "Deep Navy",
+          "hex": "#0B1C3A"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 53,
+      "available": true
     },
     {
-      "id": "child",
-      "name": "Child"
+      "id": "sky-shirt-03",
+      "name": "Crisp White Oxford Button-Down Shirt",
+      "category": "shirts",
+      "subCategory": "formal-shirts",
+      "price": 1899,
+      "originalPrice": 3299,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Timeless",
+      "description": "100% long-staple Egyptian cotton basketweave, structured button-down collar, mother-of-pearl finish buttons, wrinkle-resistant finish.",
+      "fabric": "100% Egyptian Giza Cotton Oxford",
+      "fit": "Modern Slim Tailored Fit",
+      "image": "https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Crisp White",
+          "hex": "#FFFFFF"
+        },
+        {
+          "name": "Ice Blue",
+          "hex": "#CFE2EC"
+        }
+      ],
+      "rating": 5,
+      "reviews": 87,
+      "available": true
     },
     {
-      "id": "linen-shirts",
-      "name": "Pure Linen Shirts"
+      "id": "sky-shirt-04",
+      "name": "Skyline Indigo Chambray Denim Casual Shirt",
+      "category": "shirts",
+      "subCategory": "casual-shirts",
+      "price": 1999,
+      "originalPrice": 3499,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Bestseller",
+      "description": "Lightweight indigo-dyed chambray cotton with double chest patch pockets and subtle enzyme wash. Gets softer with each laundry wash.",
+      "fabric": "Pure Yarn-Dyed Indigo Chambray Cotton",
+      "fit": "Relaxed Regular Drape",
+      "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Washed Chambray Blue",
+          "hex": "#4682B4"
+        },
+        {
+          "name": "Faded Slate",
+          "hex": "#708090"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 92,
+      "available": true
     },
     {
-      "id": "trousers",
-      "name": "Tailored Trousers"
+      "id": "sky-shirt-05",
+      "name": "Resort Drape Cuban Collar Casual Shirt",
+      "category": "shirts",
+      "subCategory": "casual-shirts",
+      "price": 1699,
+      "originalPrice": 2899,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Trending",
+      "description": "Breathable high-grade viscose rayon with camp open collar, relaxed holiday silhouette and soft fluid drape for tropical warmth.",
+      "fabric": "100% Soft-Flow Rayon Viscose",
+      "fit": "Relaxed Resort Camp Fit",
+      "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Sage Palm Green",
+          "hex": "#9CAF88"
+        },
+        {
+          "name": "Terracotta Rust",
+          "hex": "#CC4E33"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 61,
+      "available": true
     },
     {
-      "id": "overshirts",
-      "name": "Overshirts & Jackets"
+      "id": "sky-shirt-06",
+      "name": "Heritage Heavyweight Brushed Flannel Check Shirt",
+      "category": "shirts",
+      "subCategory": "flannel-shirts",
+      "price": 2199,
+      "originalPrice": 3699,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Winter Ready",
+      "description": "Double-brushed 240 GSM organic cotton flannel, authentic buffalo check pattern, warm and cozy layering staple with twin flap pockets.",
+      "fabric": "240 GSM Double-Brushed Cotton Flannel",
+      "fit": "Comfort Fit Layering Silhouette",
+      "image": "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Crimson Buffalo Check",
+          "hex": "#8B0000"
+        },
+        {
+          "name": "Forest Green Plaid",
+          "hex": "#2E8B57"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 73,
+      "available": true
+    },
+    {
+      "id": "sky-shirt-07",
+      "name": "Luxury Matte Black Tailored Casual Shirt",
+      "category": "shirts",
+      "subCategory": "casual-shirts",
+      "price": 1799,
+      "originalPrice": 2999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Night Edit",
+      "description": "Deep pigment jet black poplin cotton with modern spread collar, streamlined French placket, dinner & evening occasion ready.",
+      "fabric": "100% Mercerized Combed Cotton Poplin",
+      "fit": "Tailored Slim Fit",
+      "image": "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Jet Pitch Black",
+          "hex": "#0D0D0D"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 82,
+      "available": true
+    },
+    {
+      "id": "sky-jean-01",
+      "name": "Japanese Raw Selvedge Straight-Leg Jeans",
+      "category": "jeans",
+      "subCategory": "raw-denim",
+      "price": 2899,
+      "originalPrice": 4999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Premium Selvedge",
+      "description": "13.5 oz authentic vintage shuttle-loom selvedge denim, deep dark indigo raw finish with redline selvedge ID, develops custom fades over wear.",
+      "fabric": "13.5 oz 100% Cotton Japanese Selvedge Denim",
+      "fit": "Straight Leg Authentic Vintage Cut",
+      "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Deep Raw Indigo",
+          "hex": "#1C2951"
+        }
+      ],
+      "rating": 5,
+      "reviews": 114,
+      "available": true
+    },
+    {
+      "id": "sky-jean-02",
+      "name": "Vintage Blue Slim-Tapered Stretch Jeans",
+      "category": "jeans",
+      "subCategory": "slim-jeans",
+      "price": 2399,
+      "originalPrice": 3999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Top Rated",
+      "description": "Authentic vintage faded mid-blue wash with hand-sanded whisker details, 12 oz ring-spun denim with 2% comfort stretch for all-day ease.",
+      "fabric": "12 oz Ring-Spun Cotton Denim with 2% Spandex",
+      "fit": "Slim Tapered Clean Hem",
+      "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Vintage Mid Blue",
+          "hex": "#3B6A9A"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 95,
+      "available": true
+    },
+    {
+      "id": "sky-jean-03",
+      "name": "Stay-Black Slim Straight Stretch Denim",
+      "category": "jeans",
+      "subCategory": "black-jeans",
+      "price": 2199,
+      "originalPrice": 3799,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Essential",
+      "description": "Reactive-dyed non-fade pitch black denim that maintains deep shade through dozens of washes, tailored clean ankle break.",
+      "fabric": "Stay-Black Reactive Dyed 11.5 oz Stretch Denim",
+      "fit": "Slim Straight Modern Cut",
+      "image": "https://images.unsplash.com/photo-1582552938357-32b906df40cb?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Stealth Stay-Black",
+          "hex": "#141414"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 88,
+      "available": true
+    },
+    {
+      "id": "sky-jean-04",
+      "name": "90s Retro Loose Relaxed Baggy Jeans",
+      "category": "jeans",
+      "subCategory": "baggy-jeans",
+      "price": 2599,
+      "originalPrice": 4299,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Street Trend",
+      "description": "100% heavyweight cotton stone-washed denim in a relaxed 90s skater cut with generous thigh room and wide straight leg drape.",
+      "fabric": "14 oz 100% Rigid Heavyweight Cotton Denim",
+      "fit": "90s Skater Relaxed Baggy Cut",
+      "image": "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Light Stone Wash Blue",
+          "hex": "#779ECB"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 67,
+      "available": true
+    },
+    {
+      "id": "sky-jean-05",
+      "name": "Smoke Charcoal Washed Slim Denim Jeans",
+      "category": "jeans",
+      "subCategory": "grey-jeans",
+      "price": 2299,
+      "originalPrice": 3899,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Urban Style",
+      "description": "Charcoal grey mineral-washed finish with subtle textured distress, reinforced chain stitching, modern urban tapered silhouette.",
+      "fabric": "12 oz Mineral Washed Slub Stretch Denim",
+      "fit": "Slim Tapered Contemporary Fit",
+      "image": "https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Smoke Charcoal Grey",
+          "hex": "#4A4A4A"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 74,
+      "available": true
+    },
+    {
+      "id": "sky-jean-06",
+      "name": "Classic Rinse Indigo Regular Fit Jeans",
+      "category": "jeans",
+      "subCategory": "regular-jeans",
+      "price": 1999,
+      "originalPrice": 3299,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Daily Favorite",
+      "description": "Everyday essential 5-pocket denim with clean single-rinse dark indigo wash, durable copper rivets and hardware, straight leg cut.",
+      "fabric": "12.5 oz 100% Cotton Indigo Denim",
+      "fit": "Classic Regular Straight Fit",
+      "image": "https://images.unsplash.com/photo-1604176354204-9268737828e4?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ],
+      "colors": [
+        {
+          "name": "Classic Dark Rinse",
+          "hex": "#1F2A44"
+        }
+      ],
+      "rating": 4.8,
+      "reviews": 58,
+      "available": true
+    },
+    {
+      "id": "sky-tee-02",
+      "name": "Heavyweight 280 GSM Boxy Streetwear Tee",
+      "category": "tshirts",
+      "subCategory": "oversized-tees",
+      "price": 999,
+      "originalPrice": 1699,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Bestseller",
+      "description": "100% bio-washed combed cotton, drop-shoulder boxy cut, ribbed thick collar that retains shape even after dozens of machine washes.",
+      "fabric": "280 GSM 100% Combed Compact Cotton",
+      "fit": "Boxy Drop-Shoulder Oversized Cut",
+      "image": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "colors": [
+        {
+          "name": "Vintage Acid Black",
+          "hex": "#262626"
+        },
+        {
+          "name": "Chalk White",
+          "hex": "#F0EFEA"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 104,
+      "available": true
+    },
+    {
+      "id": "sky-polo-02",
+      "name": "Double-Mercerized Luxury Tipped Polo",
+      "category": "tshirts",
+      "subCategory": "polos",
+      "price": 1599,
+      "originalPrice": 2699,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Luxury Knit",
+      "description": "Silk-like luster double-mercerized Egyptian cotton, contrast tipping detail on collar and cuffs, engraved horn buttons.",
+      "fabric": "100% Double-Mercerized Giza Cotton Interlock",
+      "fit": "Athletic Tailored Polo Fit",
+      "image": "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Emerald Forest Green",
+          "hex": "#1B4D3E"
+        },
+        {
+          "name": "Royal French Navy",
+          "hex": "#002366"
+        }
+      ],
+      "rating": 4.9,
+      "reviews": 79,
+      "available": true
+    },
+    {
+      "id": "sky-jacket-03",
+      "name": "Classic Suede Harrington Bomber Jacket",
+      "category": "jackets",
+      "subCategory": "bomber",
+      "price": 3499,
+      "originalPrice": 5999,
+      "prepTime": "Same Day Dispatch",
+      "badge": "Luxury Outerwear",
+      "description": "Soft vegan micro-suede exterior with heritage tartan plaid lining, antique metal two-way zipper, ribbed elastic hem and cuffs.",
+      "fabric": "Premium Micro-Suede with Cotton Plaid Lining",
+      "fit": "Classic Harrington Bomber Fit",
+      "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80",
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ],
+      "colors": [
+        {
+          "name": "Camel Tan Suede",
+          "hex": "#C19A6B"
+        },
+        {
+          "name": "Espresso Brown",
+          "hex": "#3D2817"
+        }
+      ],
+      "rating": 5,
+      "reviews": 62,
+      "available": true
     }
   ]
 }

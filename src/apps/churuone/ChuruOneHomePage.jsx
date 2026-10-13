@@ -62,168 +62,864 @@ export const CHURU_POPULAR_LANDMARKS = [
 export const FALLBACK_STORE_IMAGE = 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80';
 export const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80';
 
-// Fallback Real Stores (Used during initial mount or offline network)
+// Fallback Real Stores (Skyline Premium Outfits)
 const FALLBACK_REAL_STORES = [
-  {
-    id: 'shawarma',
-    name: 'Shawarma Nights',
-    vertical: 'food',
-    category: 'Charcoal Kitchen & Dining',
-    rating: '4.8',
-    timing: '20-25 min',
-    image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80',
-    destination: '/shawarma',
-    tag: 'Food Delivery',
-    isOpen: true,
-    address: 'Near Subhash Chowk, Churu',
-    phone: '7023963189',
-    freeDeliveryThreshold: 299,
-    upiId: '7023963189@fam',
-    payeeName: 'Shawarma Nights Churu'
-  },
   {
     id: 'skyline',
     name: 'Skyline Premium Outfits',
     vertical: 'fashion',
-    category: 'Luxury Menswear & Outfits',
+    category: 'Luxury Menswear • Shirts, Pants, Jeans & Sneakers',
     rating: '4.9',
     timing: 'Same Day Dispatch',
     image: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
     destination: '/skyline',
     tag: 'Fashion & Outfits',
     isOpen: true,
-    address: 'Station Road, Churu',
+    address: 'Station Road, Churu, Rajasthan',
     phone: '7023963189',
     freeDeliveryThreshold: 499,
     upiId: '7023963189@fam',
     payeeName: 'Skyline Premium Outfits'
-  },
-  {
-    id: 'nash-studio',
-    name: 'Nash Studio',
-    vertical: 'salon',
-    category: 'Salon & Luxury Grooming',
-    rating: '4.9',
-    timing: '15 min slot',
-    image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
-    destination: '/nash',
-    tag: 'Salon Booking',
-    isOpen: true,
-    address: 'Main Market, Opp. Kotwali, Churu',
-    phone: '7023963189',
-    freeDeliveryThreshold: 0,
-    upiId: '7023963189@fam',
-    payeeName: 'Nash Studio Churu'
   }
 ];
 
-// Fallback Real Catalog Items from Platform Stores
+// Fallback Real Catalog Items (Skyline Premium Outfits Fashion Collection)
 const FALLBACK_REAL_ITEMS = [
   {
-    id: 'sn-classic',
-    storeId: 'shawarma',
-    storeName: 'Shawarma Nights',
-    storeVertical: 'food',
-    name: 'Classic Chicken Shawarma',
-    type: 'product',
-    category: 'food',
-    price: 149,
-    originalPrice: 180,
-    discount: '-17%',
-    image: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=500&q=80',
-    description: 'Slow-roasted succulent shredded chicken wrapped in warm khubz with garlic toum.',
-    rating: 4.8,
-    reviews: 42,
-    destination: '/shawarma'
+    "id": "slick-shoe-00",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Trendy Slick Pro",
+    "type": "product",
+    "category": "footwear",
+    "price": 3999,
+    "originalPrice": 6999,
+    "discount": "-43%",
+    "image": "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85",
+    "description": "Ultra-lightweight luxury leather sneaker featuring ergonomic cloud cushioning, high-abrasion rubber cupsole, and breathable perforated micro-grain leather.",
+    "rating": 5,
+    "reviews": 128,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   },
   {
-    id: 'sn-jumbo',
-    storeId: 'shawarma',
-    storeName: 'Shawarma Nights',
-    storeVertical: 'food',
-    name: 'Charcoal Spit Jumbo Roll',
-    type: 'product',
-    category: 'food',
-    price: 199,
-    originalPrice: 240,
-    discount: '-17%',
-    image: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=500&q=80',
-    description: 'Double charcoal meat, pickled jalapenos, melted cheese and peri-peri drizzle.',
-    rating: 4.9,
-    reviews: 58,
-    destination: '/shawarma'
+    "id": "slick-shoe-01",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick formal sneaker shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 2399,
+    "originalPrice": 4999,
+    "discount": "-52%",
+    "image": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=85",
+    "description": "Sophisticated low-profile sneaker that bridges formal tailoring and casual comfort. Matte ecru leather with subtle tonal stitching.",
+    "rating": 4.9,
+    "reviews": 94,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   },
   {
-    id: 'sky-tee-01',
-    storeId: 'skyline',
-    storeName: 'Skyline Premium Outfits',
-    storeVertical: 'fashion',
-    name: 'Slick Heavyweight Oversized Tee',
-    type: 'product',
-    category: 'fashion',
-    price: 499,
-    originalPrice: 799,
-    discount: '-38%',
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80',
-    description: '240 GSM 100% bio-washed cotton, relaxed drop-shoulder luxury streetwear fit.',
-    rating: 4.9,
-    reviews: 31,
-    sizes: ['M', 'L', 'XL'],
-    destination: '/skyline'
+    "id": "slick-shoe-02",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick casual sneaker shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 2599,
+    "originalPrice": 5199,
+    "discount": "-50%",
+    "image": "https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=85",
+    "description": "Multi-layered retro-modern silhouette with suede overlays and responsive rebound sole for all-day urban walking.",
+    "rating": 4.8,
+    "reviews": 76,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   },
   {
-    id: 'sky-hoodie-01',
-    storeId: 'skyline',
-    storeName: 'Skyline Premium Outfits',
-    storeVertical: 'fashion',
-    name: 'Skyline Signature Pullover Hoodie',
-    type: 'product',
-    category: 'fashion',
-    price: 999,
-    originalPrice: 1499,
-    discount: '-33%',
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=500&q=80',
-    description: '380 GSM fleece lined hoodie with ribbed cuffs and signature metallic emblem.',
-    rating: 4.8,
-    reviews: 24,
-    sizes: ['L', 'XL'],
-    destination: '/skyline'
+    "id": "slick-shoe-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick sneaker shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 2499,
+    "originalPrice": 4999,
+    "discount": "-50%",
+    "image": "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=800&q=85",
+    "description": "Classic Scandinavian minimalism with clean rounded toe and soft padded collar. Perfect everyday neutral companion.",
+    "rating": 4.9,
+    "reviews": 88,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   },
   {
-    id: 'nash-fade',
-    storeId: 'nash-studio',
-    storeName: 'Nash Studio',
-    storeVertical: 'salon',
-    name: 'Precision Skin Fade & Style',
-    type: 'service',
-    category: 'salon',
-    price: 199,
-    originalPrice: 250,
-    discount: '-20%',
-    image: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=500&q=80',
-    description: 'Zero to low taper skin fade with precision scissor shear work and premium matte clay finish.',
-    rating: 4.9,
-    reviews: 64,
-    durationMinutes: 30,
-    destination: '/nash'
+    "id": "slick-shoe-04",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick sneaker shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 2299,
+    "originalPrice": 4499,
+    "discount": "-49%",
+    "image": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=85",
+    "description": "Textured suede trainer built with reinforced heel counter and shock-absorbing EVA midsole for durable performance.",
+    "rating": 4.7,
+    "reviews": 52,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   },
   {
-    id: 'nash-beard',
-    storeId: 'nash-studio',
-    storeName: 'Nash Studio',
-    storeVertical: 'salon',
-    name: 'Royal Beard Sculpt & Hot Towel',
-    type: 'service',
-    category: 'salon',
-    price: 149,
-    originalPrice: 180,
-    discount: '-17%',
-    image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=500&q=80',
-    description: 'Straight razor line definition, organic beard balm massage and soothing essential oil hot towel.',
-    rating: 4.8,
-    reviews: 49,
-    durationMinutes: 25,
-    destination: '/nash'
+    "id": "slick-shoe-05",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick trendy sneaker shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 2799,
+    "originalPrice": 5499,
+    "discount": "-49%",
+    "image": "https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=800&q=85",
+    "description": "Contemporary two-tone pastel colorway with premium aerated toe box and lightweight cupsole architecture.",
+    "rating": 4.9,
+    "reviews": 64,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "slick-shoe-06",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Slick canvas shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 1999,
+    "originalPrice": 3999,
+    "discount": "-50%",
+    "image": "https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=800&q=85",
+    "description": "Heavy-duty 14oz washed duck canvas low sneaker with vulcanized gum sole and antique brass eyelets.",
+    "rating": 4.8,
+    "reviews": 110,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "slick-shoe-07",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Running sport shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 3999,
+    "originalPrice": 6499,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=85",
+    "description": "Breathable knit running shoe with carbon-infused propulsion plate and responsive energy return midsole.",
+    "rating": 5,
+    "reviews": 142,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "slick-shoe-08",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Running sport shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 3999,
+    "originalPrice": 6499,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=85",
+    "description": "Aerated sport runner with seamless dual-density foam sole engineered for sprints and high-impact training.",
+    "rating": 4.9,
+    "reviews": 98,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "slick-shoe-09",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Running sport shoe",
+    "type": "product",
+    "category": "footwear",
+    "price": 3999,
+    "originalPrice": 6499,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800&q=85",
+    "description": "Dynamic racing shoe featuring high-visibility color accents, torsion stabilizer, and grippy rubber lugs.",
+    "rating": 4.9,
+    "reviews": 87,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-01",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Normandy Flax Camp-Collar Linen Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1699,
+    "originalPrice": 2799,
+    "discount": "-39%",
+    "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+    "description": "Woven from 100% Normandy long-staple flax linen. Enzyme garment-washed for a naturally breathable, relaxed drape with real mother-of-pearl buttons.",
+    "rating": 4.9,
+    "reviews": 84,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-02",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Striped Riviera Mandarin Linen Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1849,
+    "originalPrice": 2999,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80",
+    "description": "Band-collar shirt featuring subtle vertical chalk stripes. Breathable open-weave construction designed to keep you cool under the desert sun.",
+    "rating": 4.8,
+    "reviews": 46,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Milano Double-Pleated Gurkha Trousers",
+    "type": "product",
+    "category": "pants",
+    "price": 2199,
+    "originalPrice": 3699,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
+    "description": "High-rise tailored trousers with twin forward pleats and extended side buckle adjusters. Delivers a dramatic, sharp taper silhouette.",
+    "rating": 5,
+    "reviews": 112,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-04",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Minimalist Japanese Stretch Chino",
+    "type": "product",
+    "category": "pants",
+    "price": 1799,
+    "originalPrice": 2899,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=80",
+    "description": "Constructed from densely woven Japanese cotton twill with 4-way mechanical stretch. Clean flat front with hidden interior coin pocket.",
+    "rating": 4.8,
+    "reviews": 68,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-05",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Heavyweight 340 GSM Canvas Overshirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 2499,
+    "originalPrice": 3999,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
+    "description": "Rugged yet refined workwear silhouette cut from heavyweight duck canvas with matte horn buttons and dual chest bellows pockets.",
+    "rating": 4.9,
+    "reviews": 53,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-06",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Wale Ribbed Corduroy Chore Jacket",
+    "type": "product",
+    "category": "jackets",
+    "price": 2799,
+    "originalPrice": 4499,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80",
+    "description": "Rich 8-wale plush corduroy jacket with antique brass snap buttons and tailored interior satin sleeve lining.",
+    "rating": 4.9,
+    "reviews": 39,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-07",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Handloom Raw Silk Angrakha Kurta Set",
+    "type": "product",
+    "category": "ethnic",
+    "price": 3499,
+    "originalPrice": 5999,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80",
+    "description": "Asymmetrical overlapping Angrakha placket tailored from handwoven tussar raw silk with tonal piping and matching tailored churidar.",
+    "rating": 5,
+    "reviews": 77,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-08",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Chanderi Embroidered Short Kurta",
+    "type": "product",
+    "category": "ethnic",
+    "price": 2199,
+    "originalPrice": 3499,
+    "discount": "-37%",
+    "image": "https://images.unsplash.com/photo-1605518216938-7c31b7b14ad0?auto=format&fit=crop&w=800&q=80",
+    "description": "Modern short kurta crafted from lightweight Chanderi blend with intricate geometric threadwork across collar and cuffs. Pairs effortlessly with linen trousers or denims.",
+    "rating": 4.8,
+    "reviews": 51,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-09",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Supima Heavyweight 260 GSM Relaxed Tee",
+    "type": "product",
+    "category": "tshirts",
+    "price": 899,
+    "originalPrice": 1499,
+    "discount": "-40%",
+    "image": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80",
+    "description": "Engineered with 100% California Supima extra-long staple cotton. Dense 260 GSM fabric prevents transparency and holds its structured boxy silhouette wash after wash.",
+    "rating": 4.9,
+    "reviews": 164,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-item-10",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Textured Open-Knit Milano Polo",
+    "type": "product",
+    "category": "tshirts",
+    "price": 1999,
+    "originalPrice": 3199,
+    "discount": "-38%",
+    "image": "https://images.unsplash.com/photo-1578932750294-f5075e85f44a?auto=format&fit=crop&w=800&q=80",
+    "description": "Vintage European resort aesthetic featuring a retro open-stitch waffle knit pattern, Johnny collar with no buttons, and ribbed hems.",
+    "rating": 4.9,
+    "reviews": 42,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-pant-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Tailored Slim-Fit Italian Formal Trousers",
+    "type": "product",
+    "category": "pants",
+    "price": 1999,
+    "originalPrice": 3499,
+    "discount": "-43%",
+    "image": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800&q=80",
+    "description": "Premium poly-viscose blend with sharp permanent front crease, tailored waistband with side adjusters, breathable formal drape.",
+    "rating": 4.9,
+    "reviews": 64,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-pant-04",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Pure European Flax Linen Drawstring Pants",
+    "type": "product",
+    "category": "pants",
+    "price": 2299,
+    "originalPrice": 3999,
+    "discount": "-43%",
+    "image": "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800&q=80",
+    "description": "100% natural pre-washed European linen with elasticated drawstring waist, relaxed tapered drape, effortless airy comfort.",
+    "rating": 4.8,
+    "reviews": 49,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-pant-05",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Heavy Twill Tactical 6-Pocket Cargo Pants",
+    "type": "product",
+    "category": "pants",
+    "price": 2499,
+    "originalPrice": 4299,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?auto=format&fit=crop&w=800&q=80",
+    "description": "320 GSM rugged cotton twill, 6 functional bellows pockets with concealed snap buttons, relaxed street silhouette.",
+    "rating": 4.9,
+    "reviews": 78,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-pant-06",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Classic British Khaki Slim Stretch Chinos",
+    "type": "product",
+    "category": "pants",
+    "price": 1799,
+    "originalPrice": 2999,
+    "discount": "-40%",
+    "image": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?auto=format&fit=crop&w=800&q=80",
+    "description": "98% combed cotton with 2% elastane flex, peach-finish soft handfeel, versatile work-to-weekend clean tailored staple.",
+    "rating": 4.8,
+    "reviews": 53,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-shirt-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Crisp White Oxford Button-Down Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1899,
+    "originalPrice": 3299,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1607345366928-199ea26cfe3e?auto=format&fit=crop&w=800&q=80",
+    "description": "100% long-staple Egyptian cotton basketweave, structured button-down collar, mother-of-pearl finish buttons, wrinkle-resistant finish.",
+    "rating": 5,
+    "reviews": 87,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-shirt-04",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Skyline Indigo Chambray Denim Casual Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1999,
+    "originalPrice": 3499,
+    "discount": "-43%",
+    "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+    "description": "Lightweight indigo-dyed chambray cotton with double chest patch pockets and subtle enzyme wash. Gets softer with each laundry wash.",
+    "rating": 4.9,
+    "reviews": 92,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-shirt-05",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Resort Drape Cuban Collar Casual Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1699,
+    "originalPrice": 2899,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
+    "description": "Breathable high-grade viscose rayon with camp open collar, relaxed holiday silhouette and soft fluid drape for tropical warmth.",
+    "rating": 4.8,
+    "reviews": 61,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-shirt-06",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Heritage Heavyweight Brushed Flannel Check Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 2199,
+    "originalPrice": 3699,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80",
+    "description": "Double-brushed 240 GSM organic cotton flannel, authentic buffalo check pattern, warm and cozy layering staple with twin flap pockets.",
+    "rating": 4.9,
+    "reviews": 73,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-shirt-07",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Luxury Matte Black Tailored Casual Shirt",
+    "type": "product",
+    "category": "shirts",
+    "price": 1799,
+    "originalPrice": 2999,
+    "discount": "-40%",
+    "image": "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+    "description": "Deep pigment jet black poplin cotton with modern spread collar, streamlined French placket, dinner & evening occasion ready.",
+    "rating": 4.9,
+    "reviews": 82,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-01",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Japanese Raw Selvedge Straight-Leg Jeans",
+    "type": "product",
+    "category": "jeans",
+    "price": 2899,
+    "originalPrice": 4999,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
+    "description": "13.5 oz authentic vintage shuttle-loom selvedge denim, deep dark indigo raw finish with redline selvedge ID, develops custom fades over wear.",
+    "rating": 5,
+    "reviews": 114,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-02",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Vintage Blue Slim-Tapered Stretch Jeans",
+    "type": "product",
+    "category": "jeans",
+    "price": 2399,
+    "originalPrice": 3999,
+    "discount": "-40%",
+    "image": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80",
+    "description": "Authentic vintage faded mid-blue wash with hand-sanded whisker details, 12 oz ring-spun denim with 2% comfort stretch for all-day ease.",
+    "rating": 4.9,
+    "reviews": 95,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Stay-Black Slim Straight Stretch Denim",
+    "type": "product",
+    "category": "jeans",
+    "price": 2199,
+    "originalPrice": 3799,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1582552938357-32b906df40cb?auto=format&fit=crop&w=800&q=80",
+    "description": "Reactive-dyed non-fade pitch black denim that maintains deep shade through dozens of washes, tailored clean ankle break.",
+    "rating": 4.9,
+    "reviews": 88,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-04",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "90s Retro Loose Relaxed Baggy Jeans",
+    "type": "product",
+    "category": "jeans",
+    "price": 2599,
+    "originalPrice": 4299,
+    "discount": "-40%",
+    "image": "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?auto=format&fit=crop&w=800&q=80",
+    "description": "100% heavyweight cotton stone-washed denim in a relaxed 90s skater cut with generous thigh room and wide straight leg drape.",
+    "rating": 4.8,
+    "reviews": 67,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-05",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Smoke Charcoal Washed Slim Denim Jeans",
+    "type": "product",
+    "category": "jeans",
+    "price": 2299,
+    "originalPrice": 3899,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?auto=format&fit=crop&w=800&q=80",
+    "description": "Charcoal grey mineral-washed finish with subtle textured distress, reinforced chain stitching, modern urban tapered silhouette.",
+    "rating": 4.9,
+    "reviews": 74,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jean-06",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Classic Rinse Indigo Regular Fit Jeans",
+    "type": "product",
+    "category": "jeans",
+    "price": 1999,
+    "originalPrice": 3299,
+    "discount": "-39%",
+    "image": "https://images.unsplash.com/photo-1604176354204-9268737828e4?auto=format&fit=crop&w=800&q=80",
+    "description": "Everyday essential 5-pocket denim with clean single-rinse dark indigo wash, durable copper rivets and hardware, straight leg cut.",
+    "rating": 4.8,
+    "reviews": 58,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-tee-02",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Heavyweight 280 GSM Boxy Streetwear Tee",
+    "type": "product",
+    "category": "tshirts",
+    "price": 999,
+    "originalPrice": 1699,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80",
+    "description": "100% bio-washed combed cotton, drop-shoulder boxy cut, ribbed thick collar that retains shape even after dozens of machine washes.",
+    "rating": 4.9,
+    "reviews": 104,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-polo-02",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Double-Mercerized Luxury Tipped Polo",
+    "type": "product",
+    "category": "tshirts",
+    "price": 1599,
+    "originalPrice": 2699,
+    "discount": "-41%",
+    "image": "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=800&q=80",
+    "description": "Silk-like luster double-mercerized Egyptian cotton, contrast tipping detail on collar and cuffs, engraved horn buttons.",
+    "rating": 4.9,
+    "reviews": 79,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
+  },
+  {
+    "id": "sky-jacket-03",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Classic Suede Harrington Bomber Jacket",
+    "type": "product",
+    "category": "jackets",
+    "price": 3499,
+    "originalPrice": 5999,
+    "discount": "-42%",
+    "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800&q=80",
+    "description": "Soft vegan micro-suede exterior with heritage tartan plaid lining, antique metal two-way zipper, ribbed elastic hem and cuffs.",
+    "rating": 5,
+    "reviews": 62,
+    "sizes": [
+      "M",
+      "L",
+      "XL"
+    ],
+    "destination": "/skyline"
   }
 ];
 
@@ -240,11 +936,14 @@ export default function ChuruOneHomePage() {
   const [stores, setStores] = useState(FALLBACK_REAL_STORES);
   const [items, setItems] = useState(FALLBACK_REAL_ITEMS);
   const [categories, setCategories] = useState([
-    { id: 'all', name: 'All City Items', emoji: '🌟', count: FALLBACK_REAL_ITEMS.length },
-    { id: 'food', name: 'Food & Shawarma', emoji: '🌯', count: 2 },
-    { id: 'fashion', name: 'Fashion & Outfits', emoji: '👕', count: 2 },
-    { id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: 2 },
-    { id: 'deals', name: 'Combos & Offers', emoji: '🎁', count: 3 }
+    { id: 'all', name: 'All Collection', emoji: '🌟', count: FALLBACK_REAL_ITEMS.length },
+    { id: 'shirts', name: 'Shirts', emoji: '👔', count: 8 },
+    { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: 6 },
+    { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: 6 },
+    { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: 4 },
+    { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: 10 },
+    { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: 2 },
+    { id: 'deals', name: 'Special Offers', emoji: '🎁', count: FALLBACK_REAL_ITEMS.length }
   ]);
   const [deals, setDeals] = useState([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
@@ -252,10 +951,10 @@ export default function ChuruOneHomePage() {
   // Real-time live activity notification cycle (Macro-animation)
   const [activityIndex, setActivityIndex] = useState(0);
   const [liveActivities, setLiveActivities] = useState([
-    { text: "Rahul in Subhash Chowk ordered Classic Chicken Shawarma", time: "Just now", icon: "🌯" },
-    { text: "Aman booked a Skin Fade & Beard Sculpt at Nash Studio", time: "1m ago", icon: "✂️" },
-    { text: "Faizan in Station Road purchased Slick Oversized Tee", time: "2m ago", icon: "👕" },
-    { text: "Charcoal Spit Jumbo Roll dispatched to Nai Sarak", time: "Just now", icon: "🔥" }
+    { text: "Rahul in Subhash Chowk ordered Crisp White Oxford Shirt", time: "Just now", icon: "👔" },
+    { text: "Faizan in Station Road purchased Japanese Raw Selvedge Jeans", time: "1m ago", icon: "👖" },
+    { text: "Aman in Nai Sarak ordered Milano Gurkha Trousers", time: "2m ago", icon: "👖" },
+    { text: "Trendy Slick Pro Sneakers dispatched to Pankha Circle", time: "Just now", icon: "👟" }
   ]);
 
   useEffect(() => {
@@ -370,29 +1069,44 @@ export default function ChuruOneHomePage() {
           if (Array.isArray(data.stores) && data.stores.length > 0) {
             const valid = data.stores.filter(s => {
               const id = String(s?.id || '').toLowerCase().trim();
-              return id && !['churuone', '10', 'sawarma', 'admin', 'platform', 'api'].includes(id);
+              return id === 'skyline';
             });
             setStores(valid.length > 0 ? valid : FALLBACK_REAL_STORES);
           }
           if (Array.isArray(data.items) && data.items.length > 0) {
-            setItems(data.items);
-            // Dynamic activity ticker based on real items & stores
-            const sampleActs = data.items.slice(0, 4).map((it, idx) => {
+            const skylineItems = data.items.filter(it => String(it.storeId || '').toLowerCase() === 'skyline');
+            const finalItems = skylineItems.length > 0 ? skylineItems : FALLBACK_REAL_ITEMS;
+            setItems(finalItems);
+            // Dynamic activity ticker based on Skyline fashion items
+            const sampleActs = finalItems.slice(0, 4).map((it, idx) => {
               const landmark = CHURU_POPULAR_LANDMARKS[idx % CHURU_POPULAR_LANDMARKS.length];
-              const emoji = it.storeVertical === 'food' ? '🌯' : (it.storeVertical === 'salon' ? '✂️' : '👕');
               return {
                 text: `${it.storeName} item ${it.name} ordered near ${landmark}`,
                 time: `${idx + 1}m ago`,
-                icon: emoji
+                icon: it.category === 'footwear' ? '👟' : (it.category === 'shirts' ? '👔' : '👖')
               };
             });
             if (sampleActs.length > 0) setLiveActivities(sampleActs);
-          }
-          if (Array.isArray(data.categories) && data.categories.length > 0) {
-            setCategories(data.categories);
+
+            // Dynamically calculate fashion category counts
+            const countFor = (catId) => {
+              if (catId === 'all') return finalItems.length;
+              if (catId === 'deals') return finalItems.filter(i => (i.originalPrice || 0) > i.price).length;
+              return finalItems.filter(i => i.category === catId).length;
+            };
+            setCategories([
+              { id: 'all', name: 'All Collection', emoji: '🌟', count: countFor('all') },
+              { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
+              { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
+              { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
+              { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
+              { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
+              { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
+              { id: 'deals', name: 'Special Offers', emoji: '🎁', count: countFor('deals') }
+            ]);
           }
           if (Array.isArray(data.deals)) {
-            setDeals(data.deals);
+            setDeals(data.deals.filter(d => String(d.storeId || '').toLowerCase() === 'skyline'));
           }
         }
       } catch (err) {
@@ -976,20 +1690,27 @@ export default function ChuruOneHomePage() {
 
   // ─── FILTERING LOGIC (Intelligent Search & Categorization) ────────
   const filteredItems = items.filter(item => {
+    // Strictly Skyline items only (hide all Shawarma & Nash Studio items on ChuruOne)
+    if (String(item.storeId || '').toLowerCase() !== 'skyline') return false;
+
     const matchCat = selectedCategory === 'all' 
       ? true 
       : (selectedCategory === 'deals' ? (item.originalPrice > item.price) : item.category === selectedCategory);
-    const matchQuery = !searchQuery || 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      item.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const q = searchQuery.toLowerCase().trim();
+    const matchQuery = !q || 
+      item.name.toLowerCase().includes(q) || 
+      (item.category && item.category.toLowerCase().includes(q)) ||
+      item.storeName.toLowerCase().includes(q) ||
+      (item.description && item.description.toLowerCase().includes(q));
     return matchCat && matchQuery;
   });
 
   const filteredStores = stores.filter(s => {
-    const matchQuery = !searchQuery || 
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      s.category.toLowerCase().includes(searchQuery.toLowerCase());
+    if (String(s.id || '').toLowerCase() !== 'skyline') return false;
+    const q = searchQuery.toLowerCase().trim();
+    const matchQuery = !q || 
+      s.name.toLowerCase().includes(q) || 
+      s.category.toLowerCase().includes(q);
     return matchQuery;
   });
 
@@ -1178,7 +1899,7 @@ export default function ChuruOneHomePage() {
                 <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
                 <input
                   type="text"
-                  placeholder="Kya chahiye? Shawarma, Kurta, Haircut..."
+                  placeholder="Kya chahiye? Shirts, Pants, Jeans, Sneakers..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
@@ -1208,16 +1929,14 @@ export default function ChuruOneHomePage() {
               <div key={i} className="flex items-center gap-8">
                 <span className="flex items-center gap-1.5 text-emerald-700">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  LIVE ORDERS DISPATCHING ACROSS CHURU
+                  SKYLINE PREMIUM DISPATCHING ACROSS CHURU
                 </span>
                 <span className="text-stone-300">✦</span>
                 <span>0% PLATFORM COMMISSIONS</span>
                 <span className="text-stone-300">✦</span>
-                <span className="text-amber-800 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
-                <span className="text-stone-300">✦</span>
                 <span className="text-indigo-800 font-sans font-bold">SKYLINE OUTFITS • PREMIUM APPAREL</span>
                 <span className="text-stone-300">✦</span>
-                <span className="text-stone-900 font-sans font-bold">NASH STUDIO • PRIVATE APPOINTMENTS</span>
+                <span className="text-stone-900 font-sans font-bold">SHIRTS • PANTS • JEANS • FOOTWEAR</span>
                 <span className="text-stone-300">✦</span>
                 <span>INSTANT UPI SMARTPAY SETTLEMENTS</span>
                 <span className="text-stone-300">✦</span>
@@ -1237,8 +1956,8 @@ export default function ChuruOneHomePage() {
                   onClick={() => setSelectedCategory(cat.id)}
                   className={`flex flex-col items-center justify-center gap-2 p-3 sm:p-3.5 rounded-2xl transition-all cursor-pointer min-w-[80px] sm:min-w-[96px] ${
                     isSelected 
-                      ? 'bg-stone-950 text-white shadow-md' 
-                      : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-2xs'
+                    ? 'bg-stone-950 text-white shadow-md' 
+                    : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-2xs'
                   }`}
                 >
                   <span className="text-2xl sm:text-3xl select-none">
@@ -1265,10 +1984,10 @@ export default function ChuruOneHomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Churu Famous Outlets & Brands
+                Churu Premier Fashion Outlets
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Direct in-store menus • Verified merchant partners in Churu
+                Direct in-store collection • Verified fashion partner in Churu
               </p>
             </div>
             <a 
@@ -1345,10 +2064,10 @@ export default function ChuruOneHomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Citywide Catalog & Direct Ordering
+                Skyline Outfits & Premium Apparel
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Food & outfits go directly to ChuruOne Bag • Salon grooming slots book instantly
+                Shirts, Trousers, Jeans & Sneakers delivered express across Churu
               </p>
             </div>
             <div className="text-xs font-mono text-stone-500">
@@ -1478,7 +2197,7 @@ export default function ChuruOneHomePage() {
                 Churu ki Apni Digital Market. Direct Store Pricing.
               </h3>
               <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                ChuruOne connects citizens directly with verified local businesses — including Shawarma Nights for artisanal charcoal dining, Skyline Outfits for premium streetwear, and Nash Studio for private salon grooming.
+                ChuruOne connects citizens directly with verified local businesses — featuring Skyline Outfits for premium menswear, luxury shirts, trousers, denim and sneakers.
               </p>
               <p className="text-xs text-stone-500 leading-relaxed font-normal">
                 Zero middleman commissions. Direct merchant payments with express 20–30 minute local city delivery.
@@ -1571,7 +2290,7 @@ export default function ChuruOneHomePage() {
                     <div className="space-y-1">
                       <h4 className="font-extrabold text-stone-900 text-base">Your Bag is Empty</h4>
                       <p className="text-xs text-stone-500 max-w-xs">
-                        Browse food from Shawarma Nights or outfits from Skyline and tap Add to place items in your bag.
+                        Browse shirts, pants, jeans and sneakers from Skyline Outfits and tap Add to place items in your bag.
                       </p>
                     </div>
                     <button
