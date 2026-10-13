@@ -168,7 +168,7 @@ export default function SkylineApp() {
 
   // ─── INITIAL DATA LOAD & CHURUONE SSO SYNC ────────────────────
   useEffect(() => {
-    document.title = "Slick • Find Your Sole Mate | Skyline Churu";
+    document.title = "Skyline Premium • Luxury Menswear & Outfits | Churu";
 
     // 1. Check for incoming redirect from ChuruOne SSO (/auth)
     try {
@@ -710,7 +710,7 @@ export default function SkylineApp() {
   const heroProduct = useMemo(() => {
     return menuItems.find(item => item.id === 'slick-shoe-00') || menuItems[0] || {
       id: 'slick-shoe-00',
-      name: 'Trendy Slick Pro',
+      name: 'Skyline Pro Ergonomic Sneaker',
       price: 3999,
       originalPrice: 6999,
       image: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85',
@@ -773,7 +773,7 @@ export default function SkylineApp() {
         phone: currentUser?.phone || checkoutPhone || '',
         rating: newReviewRating,
         comment: newReviewComment.trim(),
-        dish: 'Slick Collection',
+        dish: 'Skyline Collection',
         type: 'store'
       };
       const res = await submitProductReview(reviewPayload);
@@ -846,7 +846,7 @@ export default function SkylineApp() {
         name: 'Ravi Joshi',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         rating: 5,
-        comment: 'The craftsmanship and cloud comfort of the Slick Pro sneakers are unmatched. Premium lightweight sole and luxurious finish.'
+        comment: 'The craftsmanship and cloud comfort of the Skyline Pro sneakers are unmatched. Premium lightweight sole and luxurious finish.'
       },
       {
         id: 'rev-2',
@@ -869,22 +869,53 @@ export default function SkylineApp() {
         </div>
       )}
 
+      {/* ─── FLOATING BOTTOM BAG PILL (Appears when items in bag, doesn't interrupt shopping) ─── */}
+      {cartItems.length > 0 && !isCartOpen && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div
+            onClick={() => setIsCartOpen(true)}
+            className="bg-black text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-stone-900 transition-all active:scale-98"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
+                {cartItems.reduce((sum, it) => sum + it.quantity, 0)}
+              </div>
+              <div>
+                <span className="text-xs font-bold block">
+                  {cartItems.reduce((sum, it) => sum + it.quantity, 0)} {cartItems.reduce((sum, it) => sum + it.quantity, 0) === 1 ? 'item' : 'items'} in bag
+                </span>
+                <span className="text-[11px] text-stone-400 font-mono">
+                  Subtotal: ₹ {cartTotal}.00
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+              <span>View Bag</span>
+              <ArrowUpRight className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── 1. MINIMALIST HEADER / NAVBAR ────────────────────────── */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-100 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           
-          {/* Brand Logo: Slick (as in screenshot) */}
+          {/* Brand Logo: Skyline Premium */}
           <div className="flex items-center gap-6">
-            <a href="/skyline" className="group flex items-center gap-1.5 text-stone-950 no-underline">
+            <a href="/skyline" className="group flex items-center gap-2 text-stone-950 no-underline">
               <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-black">
-                Slick
+                Skyline
+              </span>
+              <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase bg-stone-950 text-white px-2 py-0.5 rounded-md">
+                Premium
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:scale-150 transition-transform"></span>
             </a>
 
             {/* ChuruOne Network Pill */}
             <span className="hidden xl:inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-stone-400 font-medium px-2 py-0.5 rounded-full bg-stone-50 border border-stone-100">
-              Skyline • Churu Flagship
+              Station Road, Churu • Flagship
             </span>
           </div>
 
@@ -1020,22 +1051,32 @@ export default function SkylineApp() {
           
           {/* Left Text Column */}
           <div className="lg:col-span-5 space-y-5 text-center lg:text-left">
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-stone-950 tracking-tight leading-[1.08]">
-              Find Your<br />
-              Sole Mate<br />
-              With Us
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-bold tracking-wider uppercase">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              Churu Flagship Menswear Studio
+            </span>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-stone-950 tracking-tight leading-[1.05]">
+              Skyline<br />
+              Premium<br />
+              Outfits
             </h1>
             
-            <p className="text-stone-500 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0">
-              Lorem Ipsum Dolor Sit Amet, Consectetur Adipiscing Elit, Sed Do Eiusmod.
+            <p className="text-stone-600 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0">
+              Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & ergonomic sneakers curated in Churu.
             </p>
 
-            <div className="pt-2">
+            <div className="pt-2 flex items-center justify-center lg:justify-start gap-4">
               <a
                 href="#bestselling"
                 className="inline-block bg-black text-white hover:bg-stone-800 transition-all px-8 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold shadow-md active:scale-95 no-underline cursor-pointer"
               >
-                Shop Now
+                Shop Collection
+              </a>
+              <a
+                href="#trending"
+                className="inline-block bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all px-6 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold active:scale-95 no-underline cursor-pointer"
+              >
+                Trending
               </a>
             </div>
           </div>
@@ -1044,9 +1085,9 @@ export default function SkylineApp() {
           <div className="lg:col-span-7">
             <div className="relative bg-[#F6F6F6] rounded-3xl p-6 sm:p-12 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
               
-              {/* Giant Translucent Vertical Watermark: ULTIMATE */}
+              {/* Giant Translucent Vertical Watermark: SKYLINE */}
               <div className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-6xl sm:text-8xl lg:text-9xl font-black text-stone-200/90 tracking-[0.25em] select-none pointer-events-none">
-                ULTIMATE
+                SKYLINE
               </div>
 
               {/* Floating Hero White Sneaker */}
@@ -1086,27 +1127,18 @@ export default function SkylineApp() {
         </div>
       </section>
 
-      {/* ─── 3. SOLID BLACK BRAND STRIP (MARQUEE / PARTNERS) ─────── */}
+      {/* ─── 3. SOLID BLACK BRAND STRIP (SKYLINE LUXURY ATTRIBUTES) ─── */}
       <section className="bg-black text-white py-5 px-4 overflow-hidden select-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-around flex-wrap gap-8 sm:gap-14 text-center">
-          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white/90 lowercase hover:text-white transition-colors cursor-default">
-            ebay
-          </span>
-          <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-default">
-            amazon<span className="text-amber-400">.com</span>
-          </span>
-          <span className="text-xl sm:text-2xl font-black tracking-widest text-white/90 uppercase hover:text-white transition-colors cursor-default">
-            AJIO
-          </span>
-          <span className="text-xl sm:text-2xl font-bold tracking-tight text-white/90 lowercase hover:text-white transition-colors cursor-default">
-            ebay
-          </span>
-          <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-white/90 hover:text-white transition-colors cursor-default">
-            amazon<span className="text-amber-400">.com</span>
-          </span>
-          <span className="text-xl sm:text-2xl font-black tracking-widest text-white/90 uppercase hover:text-white transition-colors cursor-default">
-            AJIO
-          </span>
+        <div className="max-w-7xl mx-auto flex items-center justify-around flex-wrap gap-8 sm:gap-14 text-center font-mono font-bold text-xs sm:text-sm uppercase tracking-widest text-stone-300">
+          <span className="text-white font-extrabold tracking-wider">SKYLINE BESPOKE</span>
+          <span className="text-stone-700">✦</span>
+          <span>100% ITALIAN LINEN</span>
+          <span className="text-stone-700">✦</span>
+          <span className="text-amber-400 font-extrabold">RAW SELVEDGE DENIM</span>
+          <span className="text-stone-700">✦</span>
+          <span>CLOUD COMFORT SOLES</span>
+          <span className="text-stone-700">✦</span>
+          <span className="text-emerald-400 font-extrabold">CHURU SAME-DAY EXPRESS</span>
         </div>
       </section>
 
@@ -1116,7 +1148,7 @@ export default function SkylineApp() {
         {/* Section Tag */}
         <div className="text-center sm:text-left mb-3">
           <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400">
-            — Our Trending Shoe —
+            — Our Trending Menswear & Footwear —
           </span>
         </div>
 
@@ -1375,19 +1407,19 @@ export default function SkylineApp() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div className="space-y-3">
-              <span className="text-2xl font-black text-black">Slick</span>
+              <span className="text-2xl font-black text-black">Skyline Premium</span>
               <p className="text-stone-500 text-xs leading-relaxed">
-                By Skyline Premium Outfits. Architectural footwear and menswear studio in Churu, Rajasthan.
+                Skyline Premium Outfits. Architectural menswear and footwear studio in Churu, Rajasthan.
               </p>
               <div className="flex items-center gap-2 text-stone-800 font-medium">
                 <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
-                <span>Subhash Chowk, Churu – 331001</span>
+                <span>Station Road / Subhash Chowk, Churu – 331001</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Collections</h5>
-              <p className="hover:text-black cursor-pointer">Slick Pro Sneakers</p>
+              <p className="hover:text-black cursor-pointer">Skyline Pro Sneakers</p>
               <p className="hover:text-black cursor-pointer">Casual Retro Runners</p>
               <p className="hover:text-black cursor-pointer">Canvas Street Lows</p>
               <p className="hover:text-black cursor-pointer">Normandy Flax Linens</p>
@@ -1428,7 +1460,7 @@ export default function SkylineApp() {
           </div>
 
           <div className="border-t border-stone-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
-            <span>© 2026 Slick • Skyline Premium Outfits. Powered by ChuruOne Smart Engine.</span>
+            <span>© 2026 Skyline Premium Outfits. Powered by ChuruOne Smart Engine.</span>
             <span>All rights reserved. Designed with precision.</span>
           </div>
         </div>
@@ -1494,7 +1526,7 @@ export default function SkylineApp() {
                 <div className="space-y-4">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                      {selectedProduct.badge || 'Slick Exclusive'}
+                      {selectedProduct.badge || 'Skyline Exclusive'}
                     </span>
                     <h3 className="text-lg font-bold text-stone-950 mt-1">
                       {selectedProduct.name}
@@ -1655,7 +1687,7 @@ export default function SkylineApp() {
                       onClick={() => setIsCartOpen(false)}
                       className="bg-black text-white px-5 py-2 rounded-full text-xs font-semibold cursor-pointer"
                     >
-                      Browse Slick Collection
+                      Browse Skyline Collection
                     </button>
                   </div>
                 ) : (
@@ -1820,7 +1852,7 @@ export default function SkylineApp() {
 
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                  SLICK • EXPRESS CHECKOUT SYSTEM
+                  SKYLINE • EXPRESS CHECKOUT SYSTEM
                 </span>
                 <h3 className="text-xl font-bold text-stone-950">
                   Delivery Details & Payment Method
@@ -2287,7 +2319,7 @@ export default function SkylineApp() {
 
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                  SLICK • WARDROBE DISPATCH READY
+                  SKYLINE • WARDROBE DISPATCH READY
                 </span>
                 <h3 className="text-2xl font-black text-stone-950">
                   Order Successfully Placed!
@@ -2505,7 +2537,7 @@ export default function SkylineApp() {
 
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                  SLICK • REAL-TIME DISPATCH
+                  SKYLINE • REAL-TIME DISPATCH
                 </span>
                 <h3 className="text-xl font-bold text-stone-950">
                   Track Your Orders
@@ -2566,7 +2598,7 @@ export default function SkylineApp() {
 
             <div className="space-y-1 mb-6">
               <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                SLICK • COMMUNITY FEEDBACK
+                SKYLINE • COMMUNITY FEEDBACK
               </span>
               <h3 className="text-xl font-bold text-stone-950">
                 Write a Review

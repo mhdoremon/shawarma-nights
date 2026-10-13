@@ -149,7 +149,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Trendy Slick Pro",
+    "name": "Skyline Pro Ergonomic Sneaker",
     "type": "product",
     "category": "footwear",
     "price": 3999,
@@ -171,7 +171,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick formal sneaker shoe",
+    "name": "Skyline Formal Tailored Sneaker",
     "type": "product",
     "category": "footwear",
     "price": 2399,
@@ -193,7 +193,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick casual sneaker shoe",
+    "name": "Skyline Casual Retro Runner",
     "type": "product",
     "category": "footwear",
     "price": 2599,
@@ -215,7 +215,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick sneaker shoe",
+    "name": "Skyline Minimal Chalk Sneaker",
     "type": "product",
     "category": "footwear",
     "price": 2499,
@@ -237,7 +237,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick sneaker shoe",
+    "name": "Skyline Suede Court Trainer",
     "type": "product",
     "category": "footwear",
     "price": 2299,
@@ -259,7 +259,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick trendy sneaker shoe",
+    "name": "Skyline Aerated Cupsole Sneaker",
     "type": "product",
     "category": "footwear",
     "price": 2799,
@@ -281,7 +281,7 @@ const FALLBACK_REAL_ITEMS = [
     "storeId": "skyline",
     "storeName": "Skyline Premium Outfits",
     "storeVertical": "fashion",
-    "name": "Slick canvas shoe",
+    "name": "Skyline 14oz Washed Canvas Sneaker",
     "type": "product",
     "category": "footwear",
     "price": 1999,
@@ -1013,7 +1013,7 @@ export default function ChuruOneHomePage() {
     { text: "Rahul in Subhash Chowk ordered Crisp White Oxford Shirt", time: "Just now", icon: "👔" },
     { text: "Faizan in Station Road purchased Japanese Raw Selvedge Jeans", time: "1m ago", icon: "👖" },
     { text: "Aman in Nai Sarak ordered Milano Gurkha Trousers", time: "2m ago", icon: "👖" },
-    { text: "Trendy Slick Pro Sneakers dispatched to Pankha Circle", time: "Just now", icon: "👟" }
+    { text: "Skyline Pro Sneakers dispatched to Pankha Circle", time: "Just now", icon: "👟" }
   ]);
 
   useEffect(() => {
@@ -1306,8 +1306,8 @@ export default function ChuruOneHomePage() {
         qty: 1
       }];
     });
-    showToast(`Added ${product.name} to cart!`);
-    setIsCartOpen(true);
+    showToast(`Added ${product.name} to bag!`);
+    // Do not auto-open cart drawer: let customer shop smoothly without interruption!
   };
 
   const updateCartQty = (id, delta) => {
@@ -2009,7 +2009,7 @@ export default function ChuruOneHomePage() {
                 <span className="text-stone-700">✦</span>
                 <span className="text-stone-300">JAPANESE RAW SELVEDGE DENIM</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-white font-sans font-bold">SLICK ULTRA-LIGHT SNEAKERS</span>
+                <span className="text-white font-sans font-bold">SKYLINE ULTRA-LIGHT SNEAKERS</span>
                 <span className="text-stone-700">✦</span>
                 <span className="text-emerald-400 font-sans font-bold">SAME-DAY EXPRESS CHURU DISPATCH</span>
                 <span className="text-stone-700">✦</span>
@@ -3187,6 +3187,43 @@ export default function ChuruOneHomePage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ─── FLOATING BOTTOM BAG BAR (Appears when items added, doesn't interrupt shopping) ─── */}
+      <AnimatePresence>
+        {cartCount > 0 && !isCartOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md pointer-events-auto"
+          >
+            <div 
+              onClick={() => setIsCartOpen(true)}
+              className="bg-stone-950 text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-black transition-all active:scale-98"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
+                  {cartCount}
+                </div>
+                <div>
+                  <div className="text-xs font-bold tracking-tight">
+                    {cartCount} {cartCount === 1 ? 'item' : 'items'} in bag
+                  </div>
+                  <div className="text-[11px] text-stone-400 font-mono">
+                    Subtotal: ₹{finalCartTotal}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                <span>View Bag</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── UNIFIED PAYMENT SYSTEM MODAL (ChuruOne Unified Engine) ─── */}
       {isUpiModalOpen && pendingPaymentData && (

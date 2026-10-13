@@ -2,7 +2,7 @@
   "menu": [
     {
       "id": "slick-shoe-00",
-      "name": "Trendy Slick Pro",
+      "name": "Skyline Pro Ergonomic Sneaker",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 3999,
@@ -38,7 +38,7 @@
     },
     {
       "id": "slick-shoe-01",
-      "name": "Slick formal sneaker shoe",
+      "name": "Skyline Formal Tailored Sneaker",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 2399,
@@ -72,7 +72,7 @@
     },
     {
       "id": "slick-shoe-02",
-      "name": "Slick casual sneaker shoe",
+      "name": "Skyline Casual Retro Runner",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 2599,
@@ -107,7 +107,7 @@
     },
     {
       "id": "slick-shoe-03",
-      "name": "Slick sneaker shoe",
+      "name": "Skyline Minimal Chalk Sneaker",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 2499,
@@ -142,7 +142,7 @@
     },
     {
       "id": "slick-shoe-04",
-      "name": "Slick sneaker shoe",
+      "name": "Skyline Suede Court Trainer",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 2299,
@@ -176,7 +176,7 @@
     },
     {
       "id": "slick-shoe-05",
-      "name": "Slick trendy sneaker shoe",
+      "name": "Skyline Aerated Cupsole Sneaker",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 2799,
@@ -210,7 +210,7 @@
     },
     {
       "id": "slick-shoe-06",
-      "name": "Slick canvas shoe",
+      "name": "Skyline 14oz Washed Canvas Sneaker",
       "category": "footwear",
       "subCategory": "sneakers",
       "price": 1999,
