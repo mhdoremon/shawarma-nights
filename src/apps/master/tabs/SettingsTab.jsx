@@ -117,6 +117,7 @@ export default function SettingsTab() {
     whatsapp: socialsObj.whatsapp || (isSalon ? '923001234567' : '7023963189'),
     instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio' : 'https://instagram.com/shawarmanights_churu'),
     isOpen: storeInfo?.isOpen !== false,
+    marketplaceVisible: storeInfo?.marketplaceVisible !== false,
     deliveryFee: storeInfo?.deliveryFee ?? 30
   });
 
@@ -188,6 +189,7 @@ export default function SettingsTab() {
         whatsapp: soc.whatsapp || prev.whatsapp,
         instagram: soc.instagram || prev.instagram,
         isOpen: storeInfo.isOpen !== false,
+        marketplaceVisible: storeInfo.marketplaceVisible !== false,
         deliveryFee: storeInfo.deliveryFee ?? prev.deliveryFee
       }));
     }
@@ -301,6 +303,7 @@ export default function SettingsTab() {
       address: operationalForm.address,
       aboutText: operationalForm.aboutText,
       isOpen: operationalForm.isOpen,
+      marketplaceVisible: operationalForm.marketplaceVisible,
       payment: {
         upiId: operationalForm.upiId.trim(),
         payeeName: operationalForm.payeeName.trim(),
@@ -566,19 +569,48 @@ export default function SettingsTab() {
             <span>Store Operational & Social Info</span>
           </h3>
 
-          {/* Dukan Open/Close Switch */}
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={operationalForm.isOpen}
-              onChange={(e) => setOperationalForm({ ...operationalForm, isOpen: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
-            <span className={`text-xs font-black ${operationalForm.isOpen ? 'text-emerald-700' : 'text-zinc-400'}`}>
-              {operationalForm.isOpen ? 'STORE OPEN' : 'STORE CLOSED'}
-            </span>
-          </label>
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Dukan Open/Close Switch */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={operationalForm.isOpen}
+                onChange={(e) => setOperationalForm({ ...operationalForm, isOpen: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+              <span className={`text-xs font-black ${operationalForm.isOpen ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                {operationalForm.isOpen ? 'STORE OPEN' : 'STORE CLOSED'}
+              </span>
+            </label>
+
+            {/* ChuruOne Marketplace Visibility Toggle */}
+            <label className="flex items-center gap-2 cursor-pointer select-none bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200">
+              <input
+                type="checkbox"
+                checked={operationalForm.marketplaceVisible}
+                onChange={async (e) => {
+                  const nextVal = e.target.checked;
+                  setOperationalForm({ ...operationalForm, marketplaceVisible: nextVal });
+                  try {
+                    await fetch(`/api/platform/stores/${storeId}/toggle-marketplace`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ visible: nextVal })
+                    });
+                    showToast(nextVal ? '✅ Dukan ChuruOne par LIVE kar di gayi!' : '⚪ Dukan ChuruOne se HIDE kar di gayi.', 'success');
+                  } catch (err) {
+                    showToast('Error syncing marketplace visibility', 'error');
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+              <span className={`text-xs font-black ${operationalForm.marketplaceVisible ? 'text-indigo-700' : 'text-zinc-400'}`}>
+                {operationalForm.marketplaceVisible ? 'LIVE ON CHURUONE' : 'HIDDEN FROM CHURUONE'}
+              </span>
+            </label>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

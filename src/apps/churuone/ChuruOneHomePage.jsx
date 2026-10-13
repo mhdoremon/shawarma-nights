@@ -33,7 +33,8 @@ import {
   RotateCcw,
   Lock,
   Shirt,
-  Footprints
+  Footprints,
+  SlidersHorizontal
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,6 +71,12 @@ function CategoryLineIcon({ categoryId, className = "w-7 h-7 sm:w-8 sm:h-8" }) {
   switch (categoryId) {
     case 'all':
       return <Sparkles className={common} />;
+    case 'food':
+      return <Utensils className={common} />;
+    case 'fashion':
+      return <Shirt className={common} />;
+    case 'salon':
+      return <Scissors className={common} />;
     case 'shirts':
       return <Shirt className={common} />;
     case 'pants':
@@ -112,8 +119,25 @@ function CategoryLineIcon({ categoryId, className = "w-7 h-7 sm:w-8 sm:h-8" }) {
   }
 }
 
-// Fallback Real Stores (Skyline Premium Outfits)
+// Fallback Real Stores (Shawarma Nights, Skyline Premium Outfits, Nash Studio)
 const FALLBACK_REAL_STORES = [
+  {
+    id: 'shawarma',
+    name: 'Shawarma Nights',
+    vertical: 'food',
+    category: 'Charcoal Kitchen & Dining • Shawarmas, Platters & Rolls',
+    rating: '4.8',
+    timing: '20-25 min',
+    image: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80',
+    destination: '/shawarma',
+    tag: 'Food Delivery',
+    isOpen: true,
+    address: 'Near Subhash Chowk, Churu',
+    phone: '7023963189',
+    freeDeliveryThreshold: 299,
+    upiId: '7023963189@fam',
+    payeeName: 'Shawarma Nights Churu'
+  },
   {
     id: 'skyline',
     name: 'Skyline Premium Outfits',
@@ -130,11 +154,136 @@ const FALLBACK_REAL_STORES = [
     freeDeliveryThreshold: 499,
     upiId: '7023963189@fam',
     payeeName: 'Skyline Premium Outfits'
+  },
+  {
+    id: 'nash-studio',
+    name: 'Nash Studio',
+    vertical: 'salon',
+    category: 'Salon & Luxury Grooming • Haircuts, Beard & Facials',
+    rating: '4.9',
+    timing: '15 min slot',
+    image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
+    destination: '/nash',
+    tag: 'Salon Booking',
+    isOpen: true,
+    address: 'Main Market, Opp. Kotwali, Churu',
+    phone: '7023963189',
+    freeDeliveryThreshold: 0,
+    upiId: '7023963189@fam',
+    payeeName: 'Nash Studio Churu'
   }
 ];
 
-// Fallback Real Catalog Items (Skyline Premium Outfits Fashion Collection)
+// Fallback Real Catalog Items (Multi-Store: Shawarma Nights, Skyline Outfits, Nash Studio)
 const FALLBACK_REAL_ITEMS = [
+  // ─── SHAWARMA NIGHTS (FOOD DELIVERY) ───
+  {
+    "id": "sn-classic",
+    "storeId": "shawarma",
+    "storeName": "Shawarma Nights",
+    "storeVertical": "food",
+    "name": "Classic Charcoal Chicken Shawarma",
+    "type": "product",
+    "category": "food",
+    "price": 149,
+    "originalPrice": 180,
+    "discount": "-17%",
+    "image": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=80",
+    "description": "Slow-roasted succulent shredded chicken wrapped in warm khubz with garlic toum and pickles.",
+    "rating": 4.8,
+    "reviews": 86,
+    "destination": "/shawarma"
+  },
+  {
+    "id": "sn-jumbo",
+    "storeId": "shawarma",
+    "storeName": "Shawarma Nights",
+    "storeVertical": "food",
+    "name": "Charcoal Spit Jumbo Roll",
+    "type": "product",
+    "category": "food",
+    "price": 199,
+    "originalPrice": 240,
+    "discount": "-17%",
+    "image": "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=800&q=80",
+    "description": "Double charcoal meat, pickled jalapenos, melted cheese and peri-peri drizzle.",
+    "rating": 4.9,
+    "reviews": 92,
+    "destination": "/shawarma"
+  },
+  {
+    "id": "sn-fries",
+    "storeId": "shawarma",
+    "storeName": "Shawarma Nights",
+    "storeVertical": "food",
+    "name": "Crispy Peri-Peri Fries Platter",
+    "type": "product",
+    "category": "food",
+    "price": 99,
+    "originalPrice": 140,
+    "discount": "-29%",
+    "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+    "description": "Golden salted fries tossed in spicy peri-peri dust served with garlic mayonnaise.",
+    "rating": 4.7,
+    "reviews": 54,
+    "destination": "/shawarma"
+  },
+  // ─── NASH STUDIO (SALON & GROOMING SERVICES) ───
+  {
+    "id": "nash-fade",
+    "storeId": "nash-studio",
+    "storeName": "Nash Studio",
+    "storeVertical": "salon",
+    "name": "Precision Skin Fade & Style",
+    "type": "service",
+    "category": "salon",
+    "price": 199,
+    "originalPrice": 250,
+    "discount": "-20%",
+    "image": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=800&q=80",
+    "description": "Zero to low taper skin fade with precision scissor shear work and premium matte clay finish.",
+    "rating": 4.9,
+    "reviews": 64,
+    "durationMinutes": 30,
+    "destination": "/nash"
+  },
+  {
+    "id": "nash-beard",
+    "storeId": "nash-studio",
+    "storeName": "Nash Studio",
+    "storeVertical": "salon",
+    "name": "Royal Beard Sculpt & Hot Towel",
+    "type": "service",
+    "category": "salon",
+    "price": 149,
+    "originalPrice": 180,
+    "discount": "-17%",
+    "image": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=800&q=80",
+    "description": "Straight razor line definition, organic beard balm massage and soothing essential oil hot towel.",
+    "rating": 4.8,
+    "reviews": 49,
+    "durationMinutes": 25,
+    "destination": "/nash"
+  },
+  {
+    "id": "nash-detan",
+    "storeId": "nash-studio",
+    "storeName": "Nash Studio",
+    "storeVertical": "salon",
+    "name": "Charcoal Deep Detan Facial",
+    "type": "service",
+    "category": "salon",
+    "price": 399,
+    "originalPrice": 500,
+    "discount": "-20%",
+    "image": "https://images.unsplash.com/photo-1512290900672-1f41d916bbbe?auto=format&fit=crop&w=800&q=80",
+    "description": "Deep pore cleansing with activated charcoal mask and vitamin-C glow serum application.",
+    "rating": 4.9,
+    "reviews": 38,
+    "durationMinutes": 45,
+    "destination": "/nash"
+  },
+  // ─── SKYLINE PREMIUM OUTFITS (FASHION) ───
   {
     "id": "sky-item-01",
     "storeId": "skyline",
@@ -767,15 +916,64 @@ export default function ChuruOneHomePage() {
   const [items, setItems] = useState(FALLBACK_REAL_ITEMS);
   const [categories, setCategories] = useState([
     { id: 'all', name: 'All Collection', count: FALLBACK_REAL_ITEMS.length },
-    { id: 'shirts', name: 'Shirts', count: 8 },
-    { id: 'pants', name: 'Pants & Chinos', count: 6 },
-    { id: 'jeans', name: 'Jeans & Denim', count: 6 },
-    { id: 'tshirts', name: 'T-Shirts & Polos', count: 4 },
-    { id: 'jackets', name: 'Jackets & Outerwear', count: 2 },
-    { id: 'deals', name: 'Special Offers', count: FALLBACK_REAL_ITEMS.length }
+    { id: 'food', name: 'Food & Dining', count: 3 },
+    { id: 'fashion', name: 'Fashion & Outfits', count: 38 },
+    { id: 'salon', name: 'Salon & Grooming', count: 3 },
+    { id: 'deals', name: 'Special Offers', count: 12 }
   ]);
   const [deals, setDeals] = useState([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+
+  // ─── 1-SECOND STORE VISIBILITY STATE & TOGGLE ENGINE ───────────
+  const [storeVisibility, setStoreVisibility] = useState(() => {
+    try {
+      const saved = localStorage.getItem('churuone_store_visibility');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return { shawarma: true, skyline: true, 'nash-studio': true };
+  });
+
+  const isStoreVisible = (storeId) => {
+    const clean = String(storeId || '').toLowerCase().trim();
+    if (storeVisibility[clean] !== undefined) return storeVisibility[clean];
+    return true;
+  };
+
+  const toggleStoreVisibility = async (targetStoreId) => {
+    const cleanId = String(targetStoreId).toLowerCase().trim();
+    const currentVal = isStoreVisible(cleanId);
+    const nextVal = !currentVal;
+    const updated = { ...storeVisibility, [cleanId]: nextVal };
+    
+    // 1. Instant 0-second UI Update (reactive local state)
+    setStoreVisibility(updated);
+    try {
+      localStorage.setItem('churuone_store_visibility', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+
+    const storeNames = {
+      shawarma: 'Shawarma Nights',
+      skyline: 'Skyline Premium Outfits',
+      'nash-studio': 'Nash Studio'
+    };
+    const storeLabel = storeNames[cleanId] || cleanId;
+    showToast(nextVal ? `✅ ${storeLabel} ab ChuruOne par LIVE hai!` : `⚪ ${storeLabel} ko ChuruOne se HIDE kar diya gaya.`);
+
+    // 2. Background Sync to Server API
+    try {
+      await fetch(`/api/platform/stores/${cleanId}/toggle-marketplace`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visible: nextVal })
+      });
+    } catch (err) {
+      console.warn('Store visibility background sync:', err);
+    }
+  };
 
   // Unified ChuruOne SSO User State
   const [currentUser, setCurrentUser] = useState(null);
@@ -866,7 +1064,7 @@ export default function ChuruOneHomePage() {
 
   // Set browser title
   useEffect(() => {
-    document.title = "Skyline Premium | Luxury Menswear & Fashion • Churu";
+    document.title = "ChuruOne • Churu Ki Apni Digital Market";
   }, []);
 
   // ─── FETCH REAL MARKETPLACE FEED (CDRA-v1 Backend Algorithm) ─────
@@ -880,40 +1078,23 @@ export default function ChuruOneHomePage() {
         const data = await res.json();
         if (isMounted && data.success) {
           if (Array.isArray(data.stores) && data.stores.length > 0) {
-            const valid = data.stores.filter(s => {
-              const id = String(s?.id || '').toLowerCase().trim();
-              return id === 'skyline';
-            });
-            setStores(valid.length > 0 ? valid : FALLBACK_REAL_STORES);
+            setStores(data.stores);
           }
           if (Array.isArray(data.items) && data.items.length > 0) {
-            const skylineItems = data.items.filter(it => 
-              String(it.storeId || '').toLowerCase() === 'skyline' &&
+            const validItems = data.items.filter(it => 
               it.category !== 'footwear' &&
               !it.id?.startsWith('slick-shoe') &&
               !/shoe|sneaker|footwear/i.test(it.name || '')
             );
-            const finalItems = skylineItems.length > 0 ? skylineItems : FALLBACK_REAL_ITEMS;
+            const finalItems = validItems.length > 0 ? validItems : FALLBACK_REAL_ITEMS;
             setItems(finalItems);
 
-            // Dynamically calculate fashion category counts
-            const countFor = (catId) => {
-              if (catId === 'all') return finalItems.length;
-              if (catId === 'deals') return finalItems.filter(i => (i.originalPrice || 0) > i.price).length;
-              return finalItems.filter(i => i.category === catId).length;
-            };
-            setCategories([
-              { id: 'all', name: 'All Collection', count: countFor('all') },
-              { id: 'shirts', name: 'Shirts', count: countFor('shirts') },
-              { id: 'pants', name: 'Pants & Chinos', count: countFor('pants') },
-              { id: 'jeans', name: 'Jeans & Denim', count: countFor('jeans') },
-              { id: 'tshirts', name: 'T-Shirts & Polos', count: countFor('tshirts') },
-              { id: 'jackets', name: 'Jackets & Outerwear', count: countFor('jackets') },
-              { id: 'deals', name: 'Special Offers', count: countFor('deals') }
-            ]);
+            if (Array.isArray(data.categories) && data.categories.length > 0) {
+              setCategories(data.categories);
+            }
           }
           if (Array.isArray(data.deals)) {
-            setDeals(data.deals.filter(d => String(d.storeId || '').toLowerCase() === 'skyline'));
+            setDeals(data.deals);
           }
         }
       } catch (err) {
@@ -1042,11 +1223,17 @@ export default function ChuruOneHomePage() {
       if (existing) {
         return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
       }
+      const rawStoreId = product.storeId || 'shawarma';
+      const storeNameMap = {
+        shawarma: 'Shawarma Nights',
+        skyline: 'Skyline Premium Outfits',
+        'nash-studio': 'Nash Studio'
+      };
       return [...prev, {
         id: product.id,
-        storeId: product.storeId || 'skyline',
-        storeName: product.storeName || 'Skyline Premium Outfits',
-        storeVertical: product.storeVertical || 'fashion',
+        storeId: rawStoreId,
+        storeName: product.storeName || storeNameMap[rawStoreId] || 'Churu Store',
+        storeVertical: product.storeVertical || (rawStoreId === 'skyline' ? 'fashion' : 'food'),
         name: product.name,
         price: Number(product.price) || 0,
         mrp: Number(product.originalPrice || product.mrp) || Math.round((Number(product.price) || 0) * 1.25),
@@ -1495,30 +1682,39 @@ export default function ChuruOneHomePage() {
     setBookingConfirmed(true);
   };
 
-  // ─── FILTERING LOGIC (Intelligent Search & Categorization) ────────
-  const filteredItems = items.filter(item => {
-    // Strictly Skyline items only (hide all Shawarma & Nash Studio items on ChuruOne)
-    if (String(item.storeId || '').toLowerCase() !== 'skyline') return false;
-
-    const matchCat = selectedCategory === 'all' 
-      ? true 
-      : (selectedCategory === 'deals' ? (item.originalPrice > item.price) : item.category === selectedCategory);
-    const q = searchQuery.toLowerCase().trim();
-    const matchQuery = !q || 
-      item.name.toLowerCase().includes(q) || 
-      (item.category && item.category.toLowerCase().includes(q)) ||
-      item.storeName.toLowerCase().includes(q) ||
-      (item.description && item.description.toLowerCase().includes(q));
-    return matchCat && matchQuery;
-  });
-
+  // ─── FILTERING LOGIC (Intelligent Search & Categorization & 1-Sec Dukan Visibility) ──
   const filteredStores = stores.filter(s => {
-    if (String(s.id || '').toLowerCase() !== 'skyline') return false;
+    const sId = String(s.id || '').toLowerCase().trim();
+    if (!isStoreVisible(sId)) return false;
+
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = !q || 
       s.name.toLowerCase().includes(q) || 
       s.category.toLowerCase().includes(q);
     return matchQuery;
+  });
+
+  const filteredItems = items.filter(item => {
+    const sId = String(item.storeId || '').toLowerCase().trim();
+    if (!isStoreVisible(sId)) return false;
+
+    // Multi-vertical category matching (handles food, fashion, salon, and granular categories)
+    const matchCat = selectedCategory === 'all' 
+      ? true 
+      : (selectedCategory === 'deals' 
+          ? ((item.originalPrice || 0) > item.price) 
+          : (selectedCategory === 'food' ? (item.storeVertical === 'food' || item.category === 'food' || ['shawarmas', 'platters', 'fries'].includes(item.category))
+            : selectedCategory === 'fashion' ? (item.storeVertical === 'fashion' || item.category === 'fashion' || ['shirts', 'pants', 'jeans', 'tshirts', 'jackets'].includes(item.category))
+            : selectedCategory === 'salon' ? (item.storeVertical === 'salon' || item.category === 'salon')
+            : item.category === selectedCategory));
+
+    const q = searchQuery.toLowerCase().trim();
+    const matchQuery = !q || 
+      item.name.toLowerCase().includes(q) || 
+      (item.category && item.category.toLowerCase().includes(q)) ||
+      (item.storeName && item.storeName.toLowerCase().includes(q)) ||
+      (item.description && item.description.toLowerCase().includes(q));
+    return matchCat && matchQuery;
   });
 
   return (
@@ -1744,24 +1940,20 @@ export default function ChuruOneHomePage() {
           >
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center gap-10">
-                <span className="flex items-center gap-2 text-amber-400 font-sans font-black tracking-wider text-sm sm:text-base">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-                  SKYLINE PREMIUM OUTFITS
+                <span className="flex items-center gap-2 text-emerald-400 font-sans font-black tracking-wider text-sm sm:text-base">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  LIVE ORDERS DISPATCHING ACROSS CHURU
                 </span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-white font-sans font-bold">LUXURY BESPOKE MENSWEAR</span>
+                <span className="text-amber-400 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-stone-300">BESPOKE LINEN & CRISP OXFORD SHIRTS</span>
+                <span className="text-white font-sans font-bold">SKYLINE PREMIUM OUTFITS • BESPOKE APPAREL</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-amber-300 font-sans font-bold">ITALIAN GURKHA TROUSERS & PLEATED CHINOS</span>
+                <span className="text-indigo-300 font-sans font-bold">NASH STUDIO • PRIVATE SALON GROOMING</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-stone-300">JAPANESE RAW SELVEDGE DENIM</span>
+                <span className="text-stone-300">0% PLATFORM COMMISSIONS • DIRECT PRICING</span>
                 <span className="text-stone-700">✦</span>
-                <span className="text-white font-sans font-bold">SKYLINE ITALIAN LINEN SHIRTS & DENIM</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-emerald-400 font-sans font-bold">SAME-DAY EXPRESS CHURU DISPATCH</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-stone-400">100% FACTORY FINISHED CURATED APPAREL</span>
+                <span className="text-emerald-400 font-sans font-bold">INSTANT UPI SMARTPAY SETTLEMENTS</span>
                 <span className="text-stone-700">✦</span>
               </div>
             ))}
@@ -1804,15 +1996,81 @@ export default function ChuruOneHomePage() {
           </div>
         </section>
 
+        {/* ─── 1-SECOND STORE VISIBILITY CONTROLLER ─── */}
+        <div className="bg-stone-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-sm">
+              <SlidersHorizontal className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-extrabold text-white tracking-wide">1-Tap Dukan Toggle</h3>
+                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">1-Sec Switch</span>
+              </div>
+              <p className="text-[11px] text-stone-400">1 tap mein kisi bhi dukan ko ChuruOne par dikhayein ya hide karein:</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
+            {/* Shawarma Nights Toggle */}
+            <button
+              type="button"
+              onClick={() => toggleStoreVisibility('shawarma')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                isStoreVisible('shawarma')
+                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
+                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
+              }`}
+              title="Toggle Shawarma Nights on ChuruOne"
+            >
+              <span>🌯 Shawarma Nights</span>
+              <span className={`w-2 h-2 rounded-full ${isStoreVisible('shawarma') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
+              <span className="text-[10px] font-mono">{isStoreVisible('shawarma') ? 'LIVE' : 'HIDDEN'}</span>
+            </button>
+
+            {/* Skyline Premium Outfits Toggle */}
+            <button
+              type="button"
+              onClick={() => toggleStoreVisibility('skyline')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                isStoreVisible('skyline')
+                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
+                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
+              }`}
+              title="Toggle Skyline Outfits on ChuruOne"
+            >
+              <span>👔 Skyline Outfits</span>
+              <span className={`w-2 h-2 rounded-full ${isStoreVisible('skyline') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
+              <span className="text-[10px] font-mono">{isStoreVisible('skyline') ? 'LIVE' : 'HIDDEN'}</span>
+            </button>
+
+            {/* Nash Studio Toggle */}
+            <button
+              type="button"
+              onClick={() => toggleStoreVisibility('nash-studio')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                isStoreVisible('nash-studio')
+                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
+                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
+              }`}
+              title="Toggle Nash Studio on ChuruOne"
+            >
+              <span>✂️ Nash Studio</span>
+              <span className={`w-2 h-2 rounded-full ${isStoreVisible('nash-studio') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
+              <span className="text-[10px] font-mono">{isStoreVisible('nash-studio') ? 'LIVE' : 'HIDDEN'}</span>
+            </button>
+          </div>
+        </div>
+
         {/* ─── VERIFIED CHURU OUTLETS ROW ──────────────────────────── */}
         <section id="stores-grid" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Churu Premier Fashion Outlets
+                Churu Famous Outlets & Brands
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Direct in-store collection • Verified fashion partner in Churu
+                Direct in-store menus • Verified merchant partners in Churu
               </p>
             </div>
             <a 
@@ -1889,10 +2147,10 @@ export default function ChuruOneHomePage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Skyline Outfits & Premium Apparel
+                Citywide Catalog & Direct Ordering
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Shirts, Trousers, Jeans & Jackets delivered express across Churu
+                Food & outfits go directly to ChuruOne Bag • Salon grooming slots book instantly
               </p>
             </div>
             <div className="text-xs font-mono text-stone-500">

@@ -229,7 +229,14 @@ export const getMarketplaceFeed = (req, res) => {
             const clean = String(id).toLowerCase().trim();
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
             if (clean.length < 3 || /^\d+$/.test(clean)) return false;
-            if (!showAll && clean !== 'skyline') return false; // Hide shawarma & nash from ChuruOne home feed (available on /shawarma and /nash)
+            
+            // Check dynamic store visibility
+            const reg = registeredStores.find(s => (s.id || s.slug) === clean);
+            const cfg = DataLayer.getStoreConfig(clean) || {};
+            // If explicitly set to false, hide from marketplace feed
+            if (!showAll && (reg?.marketplaceVisible === false || cfg?.marketplaceVisible === false)) {
+                return false;
+            }
             return true;
         });
 
@@ -285,7 +292,8 @@ export const getMarketplaceFeed = (req, res) => {
                 upiId: storeInfo.upiId || '7023963189@fam',
                 payeeName: storeInfo.payeeName || storeName,
                 itemCount: menuItems.length,
-                dealsCount: dealsList.length
+                dealsCount: dealsList.length,
+                marketplaceVisible: regStore.marketplaceVisible ?? config.marketplaceVisible ?? true
             };
             marketplaceStores.push(storeSummary);
 
@@ -353,22 +361,31 @@ export const getMarketplaceFeed = (req, res) => {
             return allItems.filter(i => (i.category || '').toLowerCase() === catId).length;
         };
 
-        const categories = showAll ? [
-            { id: 'all', name: 'All City Items', emoji: '🌟', count: allItems.length },
-            { id: 'food', name: 'Food & Shawarma', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length },
-            { id: 'fashion', name: 'Fashion & Outfits', emoji: '👕', count: allItems.filter(i => i.storeVertical === 'fashion').length },
-            { id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length },
-            { id: 'deals', name: 'Combos & Offers', emoji: '🎁', count: topDeals.length }
-        ] : [
-            { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
-            { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
-            { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
-            { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
-            { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
-            { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
-            { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
-            { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
-        ];
+        const hasFood = allItems.some(i => i.storeVertical === 'food');
+        const hasSalon = allItems.some(i => i.storeVertical === 'salon');
+        const hasFashion = allItems.some(i => i.storeVertical === 'fashion');
+
+        let categories = [];
+        if (hasFood || hasSalon) {
+            categories = [
+                { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
+                ...(hasFood ? [{ id: 'food', name: 'Food & Dining', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length }] : []),
+                ...(hasFashion ? [{ id: 'fashion', name: 'Fashion & Outfits', emoji: '👔', count: allItems.filter(i => i.storeVertical === 'fashion').length }] : []),
+                ...(hasSalon ? [{ id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length }] : []),
+                { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
+            ];
+        } else {
+            categories = [
+                { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
+                { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
+                { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
+                { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
+                { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
+                { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
+                { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
+                { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
+            ];
+        }
 
         return res.json({
             success: true,
@@ -387,5 +404,67 @@ export const getMarketplaceFeed = (req, res) => {
         });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
+    }
+};
+
+/**
+ * ─── 1-SECOND STORE MARKETPLACE VISIBILITY TOGGLE ───
+ * Toggles or sets a store's live status on the ChuruOne Marketplace
+ */
+export const toggleStoreMarketplaceVisibility = (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const { visible } = req.body || {};
+        const cleanId = String(storeId).toLowerCase().trim();
+
+        const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+        const stores = storesData.stores || [];
+        const targetStore = stores.find(s => (s.id || s.slug) === cleanId);
+
+        let newStatus;
+        if (targetStore) {
+            newStatus = typeof visible === 'boolean' ? visible : !(targetStore.marketplaceVisible ?? true);
+            targetStore.marketplaceVisible = newStatus;
+        } else {
+            newStatus = typeof visible === 'boolean' ? visible : true;
+            stores.push({
+                id: cleanId,
+                slug: cleanId,
+                name: cleanId,
+                status: 'active',
+                marketplaceVisible: newStatus
+            });
+        }
+
+        const cfg = DataLayer.getStoreConfig(cleanId) || {};
+        cfg.marketplaceVisible = newStatus;
+        DataLayer.setStoreConfig(cleanId, cfg);
+
+        DataLayer.writePlatform('stores', { stores });
+
+        return res.json({
+            success: true,
+            storeId: cleanId,
+            marketplaceVisible: newStatus,
+            message: `Store ${cleanId} is now ${newStatus ? 'visible' : 'hidden'} on ChuruOne marketplace.`
+        });
+    } catch (err) {
+        console.error('Error toggling store marketplace visibility:', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+export const getStoreMarketplaceStatuses = (req, res) => {
+    try {
+        const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+        const stores = (storesData.stores || []).map(s => ({
+            id: s.id || s.slug,
+            name: s.name,
+            vertical: s.vertical || s.type,
+            marketplaceVisible: s.marketplaceVisible ?? true
+        }));
+        return res.json({ success: true, stores });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
     }
 };

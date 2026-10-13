@@ -3,6 +3,8 @@ import * as service from './tenant.service.js';
 
 export const platformRouter = Router();
 platformRouter.get('/marketplace', service.getMarketplaceFeed);
+platformRouter.get('/stores/marketplace-status', service.getStoreMarketplaceStatuses);
+platformRouter.post('/stores/:storeId/toggle-marketplace', service.toggleStoreMarketplaceVisibility);
 platformRouter.post('/stores', service.registerStore);
 platformRouter.get('/stores', service.listStores);
 platformRouter.get('/stores/:storeId', service.getStoreInfo);

@@ -8,6 +8,7 @@
       "vertical": "food",
       "status": "active",
       "subdomain": "shawarma",
+      "marketplaceVisible": true,
       "capabilities": {
         "storeType": "restaurant",
         "catalog": {
@@ -42,6 +43,7 @@
       "vertical": "clothing",
       "status": "active",
       "subdomain": "skyline",
+      "marketplaceVisible": true,
       "capabilities": {
         "storeType": "fashion",
         "catalog": {
@@ -76,6 +78,7 @@
       "vertical": "salon",
       "status": "active",
       "subdomain": "nash",
+      "marketplaceVisible": true,
       "capabilities": {
         "storeType": "salon",
         "catalog": {
