@@ -33,8 +33,7 @@ import {
   RotateCcw,
   Lock,
   Shirt,
-  Footprints,
-  SlidersHorizontal
+  Footprints
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -924,56 +923,22 @@ export default function ChuruOneHomePage() {
   const [deals, setDeals] = useState([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
 
-  // ─── 1-SECOND STORE VISIBILITY STATE & TOGGLE ENGINE ───────────
-  const [storeVisibility, setStoreVisibility] = useState(() => {
-    try {
-      const saved = localStorage.getItem('churuone_store_visibility');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // ignore
-    }
-    return { shawarma: true, skyline: true, 'nash-studio': true };
-  });
-
+  // ─── STORE VISIBILITY ENGINE (Managed via Backend & AI Controller) ─
   const isStoreVisible = (storeId) => {
     const clean = String(storeId || '').toLowerCase().trim();
-    if (storeVisibility[clean] !== undefined) return storeVisibility[clean];
+    const st = stores.find(s => String(s.id || '').toLowerCase().trim() === clean);
+    if (st && st.marketplaceVisible === false) return false;
     return true;
   };
 
-  const toggleStoreVisibility = async (targetStoreId) => {
-    const cleanId = String(targetStoreId).toLowerCase().trim();
-    const currentVal = isStoreVisible(cleanId);
-    const nextVal = !currentVal;
-    const updated = { ...storeVisibility, [cleanId]: nextVal };
-    
-    // 1. Instant 0-second UI Update (reactive local state)
-    setStoreVisibility(updated);
+  // Clean up any legacy local storage override
+  useEffect(() => {
     try {
-      localStorage.setItem('churuone_store_visibility', JSON.stringify(updated));
+      localStorage.removeItem('churuone_store_visibility');
     } catch {
       // ignore
     }
-
-    const storeNames = {
-      shawarma: 'Shawarma Nights',
-      skyline: 'Skyline Premium Outfits',
-      'nash-studio': 'Nash Studio'
-    };
-    const storeLabel = storeNames[cleanId] || cleanId;
-    showToast(nextVal ? `✅ ${storeLabel} ab ChuruOne par LIVE hai!` : `⚪ ${storeLabel} ko ChuruOne se HIDE kar diya gaya.`);
-
-    // 2. Background Sync to Server API
-    try {
-      await fetch(`/api/platform/stores/${cleanId}/toggle-marketplace`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visible: nextVal })
-      });
-    } catch (err) {
-      console.warn('Store visibility background sync:', err);
-    }
-  };
+  }, []);
 
   // Unified ChuruOne SSO User State
   const [currentUser, setCurrentUser] = useState(null);
@@ -1996,71 +1961,6 @@ export default function ChuruOneHomePage() {
           </div>
         </section>
 
-        {/* ─── 1-SECOND STORE VISIBILITY CONTROLLER ─── */}
-        <div className="bg-stone-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg border border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-sm">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-extrabold text-white tracking-wide">1-Tap Dukan Toggle</h3>
-                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">1-Sec Switch</span>
-              </div>
-              <p className="text-[11px] text-stone-400">1 tap mein kisi bhi dukan ko ChuruOne par dikhayein ya hide karein:</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
-            {/* Shawarma Nights Toggle */}
-            <button
-              type="button"
-              onClick={() => toggleStoreVisibility('shawarma')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                isStoreVisible('shawarma')
-                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
-                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
-              }`}
-              title="Toggle Shawarma Nights on ChuruOne"
-            >
-              <span>🌯 Shawarma Nights</span>
-              <span className={`w-2 h-2 rounded-full ${isStoreVisible('shawarma') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
-              <span className="text-[10px] font-mono">{isStoreVisible('shawarma') ? 'LIVE' : 'HIDDEN'}</span>
-            </button>
-
-            {/* Skyline Premium Outfits Toggle */}
-            <button
-              type="button"
-              onClick={() => toggleStoreVisibility('skyline')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                isStoreVisible('skyline')
-                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
-                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
-              }`}
-              title="Toggle Skyline Outfits on ChuruOne"
-            >
-              <span>👔 Skyline Outfits</span>
-              <span className={`w-2 h-2 rounded-full ${isStoreVisible('skyline') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
-              <span className="text-[10px] font-mono">{isStoreVisible('skyline') ? 'LIVE' : 'HIDDEN'}</span>
-            </button>
-
-            {/* Nash Studio Toggle */}
-            <button
-              type="button"
-              onClick={() => toggleStoreVisibility('nash-studio')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                isStoreVisible('nash-studio')
-                  ? 'bg-emerald-600/20 border-emerald-500/60 text-emerald-300 hover:bg-emerald-600/30 shadow-xs'
-                  : 'bg-stone-800 border-stone-700 text-stone-400 hover:bg-stone-700 opacity-60'
-              }`}
-              title="Toggle Nash Studio on ChuruOne"
-            >
-              <span>✂️ Nash Studio</span>
-              <span className={`w-2 h-2 rounded-full ${isStoreVisible('nash-studio') ? 'bg-emerald-400 animate-pulse' : 'bg-stone-500'}`} />
-              <span className="text-[10px] font-mono">{isStoreVisible('nash-studio') ? 'LIVE' : 'HIDDEN'}</span>
-            </button>
-          </div>
-        </div>
 
         {/* ─── VERIFIED CHURU OUTLETS ROW ──────────────────────────── */}
         <section id="stores-grid" className="space-y-4">
