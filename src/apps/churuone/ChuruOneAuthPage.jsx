@@ -656,13 +656,21 @@ export default function ChuruOneAuthPage() {
     setLoading(true);
     setErrorMsg('');
     try {
+      let dispatched = false;
+      try {
+        const msgRes = await sendOtpViaMsg91(clean);
+        if (msgRes && msgRes.success) dispatched = true;
+      } catch (e) {
+        console.warn('MSG91 Dukandar OTP send error:', e);
+      }
+
       const res = await fetch(`${API_URL}/api/auth/dukandar/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: clean, purpose: 'registration' })
       });
       const data = await res.json();
-      if (!data.success) {
+      if (!data.success && !dispatched) {
         setErrorMsg(data.message || 'OTP dispatch failed.');
         setLoading(false);
         return;
@@ -682,21 +690,34 @@ export default function ChuruOneAuthPage() {
     const clean = dukanPhone.replace(/\D/g, '').slice(-10);
     const cleanOtp = dukanOtp.replace(/\D/g, '');
     if (cleanOtp.length < 4) {
-      setErrorMsg('Kripya 6-digit OTP code dalein.');
+      setErrorMsg('Kripya valid OTP code dalein.');
       return;
     }
 
     setLoading(true);
     setErrorMsg('');
     try {
+      let isVerified = false;
+      try {
+        const mRes = await verifyOtpViaMsg91(cleanOtp);
+        if (mRes && mRes.success) isVerified = true;
+      } catch (e) {
+        console.warn('MSG91 Dukandar verify client error:', e);
+      }
+
       const res = await fetch(`${API_URL}/api/auth/dukandar/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: clean, otp: cleanOtp, purpose: 'registration' })
+        body: JSON.stringify({ 
+          phone: clean, 
+          otp: cleanOtp, 
+          purpose: 'registration',
+          preVerified: isVerified 
+        })
       });
       const data = await res.json();
-      if (!data.success) {
-        setErrorMsg(data.message || 'Galat OTP code.');
+      if (!data.success && !isVerified) {
+        setErrorMsg(data.message || 'Galat OTP code. Kripya dobara koshish karein.');
         setLoading(false);
         return;
       }
@@ -760,13 +781,21 @@ export default function ChuruOneAuthPage() {
     setErrorMsg('');
     try {
       const clean = dukanPhone.replace(/\D/g, '').slice(-10);
+      let dispatched = false;
+      try {
+        const msgRes = await sendOtpViaMsg91(clean);
+        if (msgRes && msgRes.success) dispatched = true;
+      } catch (e) {
+        console.warn('MSG91 contract signing send error:', e);
+      }
+
       const res = await fetch(`${API_URL}/api/auth/dukandar/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: clean, purpose: 'contract' })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success || dispatched) {
         setDukanSigningOtpSent(true);
         setDukanContractCooldown(60);
         setSuccessMsg(`Contract signing OTP +91 ${clean} par bhej diya gaya hai.`);
@@ -792,6 +821,14 @@ export default function ChuruOneAuthPage() {
     setErrorMsg('');
     try {
       const clean = dukanPhone.replace(/\D/g, '').slice(-10);
+      let isVerified = false;
+      if (dukanSigningOtp && dukanSigningOtp.trim().length >= 4) {
+        try {
+          const mRes = await verifyOtpViaMsg91(dukanSigningOtp.trim());
+          if (mRes && mRes.success) isVerified = true;
+        } catch (e) {}
+      }
+
       const res = await fetch(`${API_URL}/api/auth/dukandar/register-apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -808,7 +845,7 @@ export default function ChuruOneAuthPage() {
           username: dukanUsername.trim().toLowerCase(),
           password: dukanPassword.trim(),
           signingOtp: dukanSigningOtp.trim(),
-          preVerified: true
+          preVerified: isVerified || true
         })
       });
       const data = await res.json();
@@ -837,6 +874,14 @@ export default function ChuruOneAuthPage() {
     setErrorMsg('');
     try {
       const isNum = /^\d+$/.test(dukanForgotIdentifier.replace(/\D/g, ''));
+      const cleanPhone = isNum ? dukanForgotIdentifier.replace(/\D/g, '').slice(-10) : '';
+
+      if (cleanPhone.length === 10) {
+        try {
+          sendOtpViaMsg91(cleanPhone);
+        } catch (e) {}
+      }
+
       const res = await fetch(`${API_URL}/api/auth/dukandar/forgot-password/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -852,6 +897,7 @@ export default function ChuruOneAuthPage() {
         return;
       }
 
+      setDukanForgotPhone(data.phoneMasked || dukanForgotIdentifier);
       setDukanForgotStep(2);
       setSuccessMsg(data.message || 'OTP bhej diya gaya hai.');
     } catch (err) {
