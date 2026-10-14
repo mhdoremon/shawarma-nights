@@ -72,7 +72,7 @@
     "deliveryNote": "Midnight express delivery available",
     "locationNote": "Central hub kitchen",
     "aboutText": "Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.",
-    "halalBadgeText": "100% Halal Certified Fresh",
+    "halalBadgeText": "",
     "packagingCharge": 0
   },
   "payment": {
@@ -117,7 +117,7 @@
     "priceValue": "₹179",
     "ratingText": "4.9 ★",
     "reviewsText": "15K+ Reviews",
-    "marqueeText": "★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS"
+    "marqueeText": "★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% FRESH & HYGIENIC ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS"
   },
   "updatedAt": "2026-09-30T18:08:41.679Z"
 }

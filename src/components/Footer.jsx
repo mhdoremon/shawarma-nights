@@ -39,7 +39,7 @@ export default function Footer({ onOpenFranchise }) {
     address: storeInfo?.address || RESTAURANT_INFO?.address || 'Shop 14, Food Street Avenue, Central Plaza',
     locationNote: storeInfo?.locationNote || 'Central hub kitchen',
     aboutText: storeInfo?.aboutText || 'Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.',
-    halalBadgeText: storeInfo?.halalBadgeText || '100% Halal Certified Fresh',
+    halalBadgeText: storeInfo?.halalBadgeText || '',
     ownerPhone: storeInfo?.socials?.whatsapp || '7023963189',
     socials: storeInfo?.socials || {
       instagram: 'https://instagram.com/shawarmanights',

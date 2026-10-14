@@ -236,8 +236,8 @@ Because fresh food and perishable items cannot be restocked once cooking begins,
           content: `All prices listed on our menu reflect authentic in-store pricing with zero aggregator surcharges. Payment is accepted securely via RBI-authorized payment gateways (PhonePe, UPI, Cards, NetBanking) and verified Cash on Delivery (COD).`
         },
         {
-          heading: '4. Food Preparation & Allergen Disclosure',
-          content: `All meats are 100% Halal certified and prepared fresh on charcoal spits daily. If you have specific dietary restrictions or allergies, please specify them in order notes.`
+          heading: '4. Food Preparation & Quality Disclosure',
+          content: `All food items are 100% fresh, hygienic, and prepared fresh on charcoal spits daily. If you have specific dietary restrictions or allergies, please specify them in order notes.`
         }
       ]
     },

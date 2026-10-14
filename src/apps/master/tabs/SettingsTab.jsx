@@ -109,7 +109,7 @@ export default function SettingsTab() {
     timing: storeInfo?.timing || (isSalon ? 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed' : 'Open Daily: 12:00 PM – 04:00 AM'),
     address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
-    halalBadgeText: storeInfo?.halalBadgeText || '100% Halal Certified Fresh',
+    halalBadgeText: storeInfo?.halalBadgeText || '',
     aboutText: storeInfo?.aboutText || (isSalon ? 'Bespoke haircuts, luxury skin fades, hot towel razor shaves, and executive beard grooming.' : 'Authentic Charcoal Shawarma grilled live with authentic Arabian Toum garlic sauce.'),
     upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
     payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
@@ -820,17 +820,17 @@ export default function SettingsTab() {
           </div>
         )}
 
-        {/* Halal / Quality Badge Text (Restaurant only - strictly hidden for Salon & Fashion) */}
+        {/* Quality / Freshness Badge Text (Restaurant only - strictly hidden for Salon & Fashion) */}
         {hasFood && (
           <div>
             <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Halal / Food Quality Badge Text
+              Food Quality / Freshness Badge Text
             </label>
             <input
               type="text"
               value={operationalForm.halalBadgeText}
               onChange={(e) => setOperationalForm({ ...operationalForm, halalBadgeText: e.target.value })}
-              placeholder="100% Halal Certified Fresh"
+              placeholder="e.g. 100% Fresh & Authentic"
               className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
             />
           </div>

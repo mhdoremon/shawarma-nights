@@ -73,7 +73,7 @@
     "deliveryNote": "Midnight express delivery available",
     "locationNote": "Central hub kitchen",
     "aboutText": "Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.",
-    "halalBadgeText": "100% Halal Certified Fresh",
+    "halalBadgeText": "",
     "packagingCharge": 0
   },
   "payment": {

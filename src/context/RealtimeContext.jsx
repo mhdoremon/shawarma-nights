@@ -33,7 +33,7 @@ export function RealtimeProvider({ children }) {
     priceValue: '₹179',
     ratingText: '4.9 ★',
     reviewsText: 'Customer Favorite',
-    marqueeText: '★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% HALAL ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS'
+    marqueeText: '★ OPEN TILL 4 AM ● ★ CHARCOAL SPIT LIVE ● ★ 100% FRESH & HYGIENIC ● ★ USE CODE NIGHT50 ● ★ 25 MIN EXPRESS'
   });
   const [storeInfo, setStoreInfo] = useState({
     timing: 'Open Daily: 12:00 PM – 04:00 AM',
@@ -41,7 +41,7 @@ export function RealtimeProvider({ children }) {
     address: 'Shop 14, Food Street Avenue, Central Plaza',
     locationNote: 'Central hub kitchen',
     aboutText: 'Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.',
-    halalBadgeText: '100% Halal Certified Fresh',
+    halalBadgeText: '',
     socials: {
       instagram: 'https://instagram.com/shawarmanights',
       whatsapp: '919876574292',

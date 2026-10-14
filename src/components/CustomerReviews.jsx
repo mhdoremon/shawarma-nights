@@ -148,7 +148,7 @@ export default function CustomerReviews() {
           {/* Real honest metrics — No fake 15,000 numbers */}
           <p className="text-xs sm:text-sm text-zinc-500 max-w-md mx-auto font-medium">
             {liveReviews.length > 0 
-              ? `${liveReviews.length} Verified Customer Reviews • Authentic Charcoal Experience • 100% Halal`
+              ? `${liveReviews.length} Verified Customer Reviews • Authentic Charcoal Experience • 100% Fresh & Authentic`
               : 'Authentic Customer Reviews • Fresh From The Charcoal Spits'}
           </p>
         </div>

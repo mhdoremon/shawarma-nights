@@ -77,14 +77,16 @@ export default function BottomNavBar() {
   // Customer session detection
   const [customer, setCustomer] = useState(null);
 
-  // Active / Most Recently Visited Shop (persisted)
+  // Active / Most Recently Visited Shop (persisted per session)
   const [activeShop, setActiveShop] = useState(() => {
     if (isPhonePeReview) return STORE_CATALOG['skyline'];
     try {
-      const saved = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
-      if (saved) return saved;
+      // Clear legacy localStorage cache that forced Shawarma on fresh visit
+      localStorage.removeItem('churuone_active_shop');
+      const saved = JSON.parse(sessionStorage.getItem('churuone_active_shop') || 'null');
+      if (saved && saved.id) return saved;
     } catch {}
-    return STORE_CATALOG['shawarma']; // Default to Shawarma Nights flagship
+    return null; // Strictly null initially -> Navbar has only 3 tabs on fresh load!
   });
 
   // Dynamically resolve currently open shop based on URL/Route & Master Context
@@ -114,10 +116,11 @@ export default function BottomNavBar() {
       }
     }
 
-    // 4. Fallback to activeShop (last visited):
+    // 4. Fallback to activeShop ONLY if a shop was already visited in this session:
     if (activeShop) return activeShop;
 
-    return STORE_CATALOG['shawarma'];
+    // Fresh open / Feed / Explore before any shop visit: strictly null (3 tabs in navbar)
+    return null;
   }, [path, storeParam, dukandar?.storeId, dukandar?.dukanName, activeShop, isPhonePeReview]);
 
   // Track and save shop visits whenever a shop route is visited
@@ -140,7 +143,7 @@ export default function BottomNavBar() {
     if (detected) {
       setActiveShop(detected);
       try {
-        localStorage.setItem('churuone_active_shop', JSON.stringify(detected));
+        sessionStorage.setItem('churuone_active_shop', JSON.stringify(detected));
       } catch {}
     }
   }, [path, storeParam, dukandar?.storeId]);
@@ -167,8 +170,8 @@ export default function BottomNavBar() {
       }
 
       try {
-        const savedShop = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
-        if (savedShop) setActiveShop(savedShop);
+        const savedShop = JSON.parse(sessionStorage.getItem('churuone_active_shop') || 'null');
+        if (savedShop && savedShop.id) setActiveShop(savedShop);
       } catch {}
     };
 

@@ -62,7 +62,7 @@ let dukandarDb = {
     address: 'Shop 14, Food Street Avenue, Central Plaza',
     locationNote: 'Central hub kitchen',
     aboutText: 'Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.',
-    halalBadgeText: '100% Halal Certified Fresh',
+    halalBadgeText: '',
     payment: {
       upiId: 'shawarmanights@upi',
       payeeName: 'Shawarma Nights',
