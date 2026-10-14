@@ -1363,42 +1363,55 @@ export default function SkylineApp() {
             </div>
 
             <div className="space-y-2">
-              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Care</h5>
+              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Care & Policies</h5>
               <button onClick={() => setIsTrackerOpen(true)} className="block hover:text-black cursor-pointer text-left">
                 Track Order
               </button>
-              <p className="hover:text-black cursor-pointer">Delivery Policy (24h Churu Express)</p>
-              <p className="hover:text-black cursor-pointer">Bespoke Fitting & Size Guide</p>
-              <a href="https://wa.me/917023963189" target="_blank" rel="noreferrer" className="block text-emerald-700 hover:text-emerald-900">
-                WhatsApp Concierge (+91 70239 63189)
+              <a href="/contact-us" className="block hover:text-black transition-colors">
+                Contact Us
+              </a>
+              <a href="/terms-and-conditions" className="block hover:text-black transition-colors">
+                Terms & Conditions
+              </a>
+              <a href="/privacy-policy" className="block hover:text-black transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/refund-policy" className="block hover:text-black transition-colors">
+                Refund & Cancellation Policy
+              </a>
+              <a href="/shipping-policy" className="block hover:text-black transition-colors">
+                Shipping & Delivery Policy
+              </a>
+              <a href="https://wa.me/917023963189" target="_blank" rel="noreferrer" className="block text-emerald-700 hover:text-emerald-900 font-medium pt-1">
+                WhatsApp: +91 70239 63189
               </a>
             </div>
 
             <div className="space-y-3">
-              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">ChuruOne Network</h5>
+              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Account</h5>
               <p className="text-stone-500 text-xs leading-relaxed">
-                Single Sign-On enabled across all Churu flagship outlets.
+                Sign in to track orders, save addresses and manage your profile.
               </p>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigateToChuruOneAuth('login')}
                   className="bg-black hover:bg-stone-800 text-white px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
                 >
-                  Sign In SSO
+                  Sign In
                 </button>
                 <button
                   onClick={() => navigateToChuruOneAuth('signup')}
                   className="border border-stone-300 hover:border-black text-black px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
                 >
-                  Sign Up SSO
+                  Sign Up
                 </button>
               </div>
             </div>
           </div>
 
           <div className="border-t border-stone-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
-            <span>© 2026 Skyline Premium Outfits. Powered by ChuruOne Smart Engine.</span>
-            <span>All rights reserved. Designed with precision.</span>
+            <span>© 2026 Skyline Premium Outfits. Legal Entity: Vasudhaiva Kutumbakam Robotics.</span>
+            <span>Station Road, Churu, Rajasthan - 331001. All rights reserved.</span>
           </div>
         </div>
       </footer>

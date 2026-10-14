@@ -1168,6 +1168,24 @@ export default function ChuruOneAuthPage() {
                   </div>
                 </div>
 
+                {/* Reviewer / Tester Quick-Fill Banner */}
+                <div className="bg-amber-50/90 border border-amber-200/90 rounded-xl p-3 text-xs text-amber-900 flex items-center justify-between shadow-xs">
+                  <div>
+                    <span className="font-bold block text-[11px] uppercase tracking-wider text-amber-800">Reviewer Test Account</span>
+                    <span className="font-mono text-[11px] text-amber-950">ID: 9999999999 | Pass: Skyline@123</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustIdentifier('9999999999');
+                      setCustPassword('Skyline@123');
+                    }}
+                    className="px-2.5 py-1 bg-stone-900 hover:bg-black text-white rounded-lg font-bold text-[11px] shrink-0 transition-transform active:scale-95 cursor-pointer"
+                  >
+                    Auto-Fill
+                  </button>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}

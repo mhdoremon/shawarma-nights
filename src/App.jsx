@@ -11,6 +11,7 @@ import LegalPage from './apps/legal/LegalPage';
 import CashfreeTestPage from './apps/test/CashfreeTestPage';
 import ExplorePage from './apps/churuone/ExplorePage';
 import CustomerProfilePage from './apps/churuone/CustomerProfilePage';
+import { PHONEPE_REVIEW_MODE } from './config/siteMode';
 
 function RootEntry() {
   const location = useLocation();
@@ -18,6 +19,16 @@ function RootEntry() {
   const path = location.pathname.toLowerCase();
   const params = new URLSearchParams(location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
+  const isSocialBypass = params.get('mode') === 'social' || params.get('view') === 'social' || params.get('social') === '1';
+
+  // Dynamic Browser Page Title Sync
+  React.useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (PHONEPE_REVIEW_MODE && !isSocialBypass && (path === '/' || path === '' || path.startsWith('/skyline') || path.startsWith('/outfits'))) {
+        document.title = 'Skyline Premium Outfits | Luxury Menswear & Bespoke Apparel';
+      }
+    }
+  }, [location.pathname, isSocialBypass]);
 
   // URL Cleanup Guard: Immediately clean oversized params if any remain in browser history
   React.useEffect(() => {
@@ -88,6 +99,13 @@ function RootEntry() {
     return <CustomerApp />;
   }
 
+  // 2.5. PhonePe Review Mode: Directs root '/' to Skyline Clothing Store
+  if (PHONEPE_REVIEW_MODE && !isSocialBypass) {
+    if (path === '/' || path === '' || path.startsWith('/skyline') || path.startsWith('/outfits')) {
+      return <SkylineApp />;
+    }
+  }
+
   // 3. Skyline Premium Outfits (Subdomain: skyline.churuone.in or ?storeId=skyline or /skyline or /outfits)
   if (host.startsWith('skyline.') || storeParam === 'skyline' || storeParam === 'skyline-outfits' || path.startsWith('/skyline') || path.startsWith('/outfits')) {
     return <SkylineApp />;
@@ -103,6 +121,9 @@ function RootEntry() {
     params.get('portal') === '1' || 
     params.get('home') === '1'
   ) {
+    if (PHONEPE_REVIEW_MODE && !isSocialBypass) {
+      return <SkylineApp />;
+    }
     return <ChuruOneHomePage />;
   }
 
@@ -111,7 +132,10 @@ function RootEntry() {
     return <CustomerApp />;
   }
 
-  // Otherwise, default to the main city marketplace (ChuruOne)
+  // Otherwise, default to the main city marketplace (or Skyline in PhonePe Review Mode)
+  if (PHONEPE_REVIEW_MODE && !isSocialBypass) {
+    return <SkylineApp />;
+  }
   return <ChuruOneHomePage />;
 }
 

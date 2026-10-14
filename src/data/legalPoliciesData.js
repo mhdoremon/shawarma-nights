@@ -384,5 +384,124 @@ Because fresh food and perishable items cannot be restocked once cooking begins,
         }
       ]
     }
+  },
+
+  // ─── 4. SKYLINE PREMIUM OUTFITS POLICIES (PHONEPE COMPLIANT) ───────────────
+  skyline: {
+    brandName: 'Skyline Premium Outfits',
+    legalEntity: 'Vasudhaiva Kutumbakam Robotics',
+    tradeName: 'Skyline Premium Outfits (A Unit of Vasudhaiva Kutumbakam Robotics)',
+    proprietor: 'Mehtab Hussain',
+    tagline: 'Architectural Menswear, Italian Linen Shirts, Gurkha Trousers & Bespoke Clothing',
+    address: '50, Churu bhaiji chowk, Station Road, Churu, Rajasthan, PIN - 331001',
+    email: 'Mehtabh864@gmail.com',
+    secondaryEmail: 'contact@churuone.in',
+    phone: '+91 7023963189',
+    operatingHours: '10:00 AM - 09:30 PM (Monday to Sunday)',
+    lastUpdated: 'October 2026',
+
+    contact: {
+      title: 'Contact Us',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Official Business & Entity Details',
+          content: `• Store / Brand Name: Skyline Premium Outfits
+• Legal Entity Name: Vasudhaiva Kutumbakam Robotics
+• Trade Name: Skyline Premium Outfits
+• Proprietor: Mehtab Hussain
+• Operating Address: 50, Churu bhaiji chowk, Station Road, Churu, Rajasthan, PIN - 331001
+• Business Operations: Ready-to-Wear Menswear, Tailored Clothing & Apparel Retailing
+• Operating Hours: 10:00 AM - 09:30 PM (All 7 Days)`
+        },
+        {
+          heading: '2. Customer Support Desk',
+          content: `For inquiries regarding clothing orders, size guidance, delivery status, returns or payment confirmation:
+• Email: Mehtabh864@gmail.com
+• Phone / Helpline: +91 7023963189
+• Helpdesk Response Time: We respond to all queries within 2 to 4 business hours.`
+        },
+        {
+          heading: '3. Grievance Redressal Officer',
+          content: `In compliance with Consumer Protection (E-Commerce) Rules, 2020:
+Officer Name: Mehtab Hussain
+Address: 50, Churu bhaiji chowk, Station Road, Churu, Rajasthan, PIN - 331001
+Email: Mehtabh864@gmail.com | Phone: +91 7023963189`
+        }
+      ]
+    },
+
+    terms: {
+      title: 'Terms & Conditions',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Store Agreement',
+          content: `Skyline Premium Outfits (a retail clothing and apparel enterprise operated by Vasudhaiva Kutumbakam Robotics, Proprietor: Mehtab Hussain) provides high-quality men's shirts, trousers, selvedge denim, jackets, and tailored outfits.`
+        },
+        {
+          heading: '2. Pricing & Orders',
+          content: `All prices listed on the website are in Indian Rupees (INR) inclusive of applicable taxes. Order confirmation is subject to stock availability and payment verification.`
+        },
+        {
+          heading: '3. Customer Account & Security',
+          content: `Customers can browse products, place orders, and manage order tracking using authenticated login credentials or one-time passcodes.`
+        }
+      ]
+    },
+
+    privacy: {
+      title: 'Privacy Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Information Collected',
+          content: `We collect customer contact details (name, phone number, delivery address, email) solely for the purpose of shipping apparel orders and providing order status updates.`
+        },
+        {
+          heading: '2. Payment Security & Data Protection',
+          content: `All online transactions are securely encrypted and processed directly through RBI-authorized payment aggregators (PhonePe). We do not store credit card numbers, CVVs, or UPI PINs. We never sell customer information.`
+        }
+      ]
+    },
+
+    refund: {
+      title: 'Refund & Cancellation Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. 7-Day Easy Return & Exchange',
+          content: `We want you to love your fit. If a product does not fit or has manufacturing defects, you may request an exchange or return within 7 calendar days from the date of delivery. Items must be unworn, unwashed, and in their original packaging with tags intact.`
+        },
+        {
+          heading: '2. Order Cancellation',
+          content: `Orders can be cancelled free of charge at any time prior to shipment dispatch. Once dispatched, standard return guidelines apply upon delivery.`
+        },
+        {
+          heading: '3. Mandatory Refund Timeline',
+          content: `Approved refunds will be processed within 5 to 7 business days from receipt and inspection of the returned garment, credited back directly to the original payment source (Bank Account, UPI, or Card).`
+        }
+      ]
+    },
+
+    shipping: {
+      title: 'Shipping & Delivery Policy',
+      effectiveDate: 'October 1, 2026',
+      sections: [
+        {
+          heading: '1. Dispatch & Delivery Timelines',
+          content: `• Local Churu City Orders: Dispatched within 2 to 4 hours, same-day delivery.
+• Rajasthan & All-India Orders: Dispatched within 24 hours via reputed courier partners. Expected delivery within 2 to 4 business days.`
+        },
+        {
+          heading: '2. Shipping Charges',
+          content: `Orders above ₹499 qualify for Free Standard Delivery. For orders below ₹499, a nominal shipping charge of ₹40 is applied transparently at checkout.`
+        },
+        {
+          heading: '3. Order Tracking',
+          content: `Customers receive real-time order tracking updates via SMS and live web tracking on the website.`
+        }
+      ]
+    }
   }
 };

@@ -18,6 +18,17 @@ export const sendOtp = async (req, res) => {
         const normalizedPhone = normalizePhone(phone);
         const key = `${targetStoreId}:${normalizedPhone}`;
 
+        // PhonePe Reviewer Dedicated Test Account (Test OTP: 123456)
+        if (normalizedPhone === '9999999999') {
+            otpStore.set(key, { otp: '123456', expiresAt: Date.now() + 600000, attempts: 0, createdAt: Date.now() });
+            return res.json({ 
+                success: true, 
+                message: 'PhonePe Verification OTP sent (Test OTP: 123456).', 
+                storeId: targetStoreId,
+                debugOtp: '123456'
+            });
+        }
+
         // Security: Prevent SMS Bombing (Rate Limiting)
         const existingOtp = otpStore.get(key);
         if (existingOtp && (Date.now() - existingOtp.createdAt < 60000)) { // 60 seconds limit
@@ -61,6 +72,32 @@ export const verifyOtp = (req, res) => {
         const targetStoreId = (bodyStoreId || req.storeId || 'shawarma').toLowerCase().trim();
         const normalizedPhone = normalizePhone(phone);
         const isPreVerified = Boolean(req.body.preVerified === true || req.body.provider === 'msg91');
+
+        // PhonePe Reviewer Dedicated Test Account (OTP 123456 or 1234)
+        if (normalizedPhone === '9999999999' && (otp === '123456' || otp === '1234')) {
+            const reviewerUser = {
+                id: 'cust-phonepe-reviewer',
+                name: 'PhonePe Verification Reviewer',
+                phone: '9999999999',
+                email: 'reviewer@phonepe.com',
+                username: 'phonepe_reviewer',
+                dob: '1995-05-15',
+                gender: 'male',
+                phoneVerified: true,
+                emailVerified: true,
+                authMethod: 'password',
+                address: '50, Station Road, Churu, Rajasthan - 331001',
+                token: 'token-phonepe-reviewer-authenticated',
+                registeredAt: '2026-10-14T10:00:00.000Z'
+            };
+            return res.json({
+                success: true,
+                token: reviewerUser.token,
+                isNewUser: false,
+                user: reviewerUser,
+                storeId: targetStoreId || 'skyline'
+            });
+        }
 
         if (!isPreVerified) {
             const key = `${targetStoreId}:${normalizedPhone}`;
@@ -1007,6 +1044,34 @@ export const customerLogin = (req, res) => {
         const idClean = String(identifier).trim().toLowerCase();
         const phoneClean = normalizePhone(identifier);
         const pInput = String(password).trim();
+
+        // PhonePe / Payment Gateway Reviewer Instant Test Account
+        if (
+            (idClean === '9999999999' || idClean === 'phonepe_reviewer' || idClean === 'reviewer@phonepe.com' || idClean === 'test@skyline.in') &&
+            (pInput === 'Skyline@123' || pInput === 'PhonePe@123' || pInput === '123456')
+        ) {
+            const reviewerUser = {
+                id: 'cust-phonepe-reviewer',
+                name: 'PhonePe Verification Reviewer',
+                phone: '9999999999',
+                email: 'reviewer@phonepe.com',
+                username: 'phonepe_reviewer',
+                dob: '1995-05-15',
+                gender: 'male',
+                phoneVerified: true,
+                emailVerified: true,
+                authMethod: 'password',
+                address: '50, Station Road, Churu, Rajasthan - 331001',
+                token: 'token-phonepe-reviewer-authenticated',
+                registeredAt: '2026-10-14T10:00:00.000Z'
+            };
+            return res.json({
+                success: true,
+                token: reviewerUser.token,
+                user: reviewerUser,
+                message: 'PhonePe Reviewer login successful'
+            });
+        }
 
         const customers = getAllUnifiedCustomers();
         const customer = customers.find(c => {

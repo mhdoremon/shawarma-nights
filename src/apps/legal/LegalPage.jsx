@@ -15,6 +15,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { LEGAL_POLICIES } from '../../data/legalPoliciesData';
+import { PHONEPE_REVIEW_MODE } from '../../config/siteMode';
 
 export default function LegalPage() {
   const location = useLocation();
@@ -25,9 +26,10 @@ export default function LegalPage() {
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
 
   // Detect entity
+  const isSkyline = host.startsWith('skyline.') || storeParam.includes('skyline') || path.includes('/skyline') || PHONEPE_REVIEW_MODE;
   const isNash = host.startsWith('nash.') || storeParam.includes('nash') || path.includes('/nash');
   const isShawarma = host.startsWith('shawarma.') || storeParam.includes('shawarma') || path.includes('/shawarma');
-  const entity = isNash ? 'nash-studio' : (isShawarma ? 'shawarma' : 'churuone');
+  const entity = isSkyline ? 'skyline' : (isNash ? 'nash-studio' : (isShawarma ? 'shawarma' : 'churuone'));
 
   // Detect active tab from path or query
   const getInitialTab = () => {
