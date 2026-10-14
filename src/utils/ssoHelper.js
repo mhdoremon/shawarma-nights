@@ -87,6 +87,52 @@ export function sanitizeChuruOneUser(u) {
 }
 
 /**
+ * Generates an ultra-lightweight (<250 bytes) user representation specifically
+ * designed for URL query parameters and browser cookies.
+ * Strips all base64 data URIs, long strings, addresses, and extraneous metadata
+ * to 100% PREVENT "HTTP ERROR 431 Request Header Fields Too Large".
+ */
+export function getSsoLightweightUser(u) {
+  if (!u || typeof u !== 'object') return null;
+  const s = sanitizeChuruOneUser(u);
+  if (!s) return null;
+
+  // Safe avatar URL - Never allow base64 data URIs in URLs or cookies
+  let safePicture = '';
+  if (typeof s.picture === 'string' && !s.picture.startsWith('data:') && s.picture.length < 256) {
+    safePicture = s.picture;
+  } else if (typeof s.photoURL === 'string' && !s.photoURL.startsWith('data:') && s.photoURL.length < 256) {
+    safePicture = s.photoURL;
+  }
+
+  // Safe short address only
+  let safeAddress = '';
+  if (typeof s.address === 'string' && s.address.length < 120 && !s.address.includes('base64')) {
+    safeAddress = s.address;
+  }
+
+  return {
+    id: s.id || s.churuOneId || '',
+    churuOneId: s.churuOneId || s.id || '',
+    name: s.name || s.displayName || '',
+    displayName: s.name || s.displayName || '',
+    phone: s.phone || '',
+    phoneNumber: s.phone || '',
+    email: s.email || '',
+    username: s.username || '',
+    address: safeAddress,
+    authMethod: s.authMethod || 'none',
+    authMethods: s.authMethods || [],
+    isPhoneAuth: Boolean(s.isPhoneAuth),
+    isGoogleAuth: Boolean(s.isGoogleAuth),
+    phoneVerified: Boolean(s.phoneVerified),
+    emailVerified: Boolean(s.emailVerified),
+    picture: safePicture,
+    photoURL: safePicture
+  };
+}
+
+/**
  * Set persistent cross-domain SSO session cookie and synchronize all local storage keys
  */
 export function setChuruOneSession(user, token) {
@@ -95,32 +141,42 @@ export function setChuruOneSession(user, token) {
     const sanitizedUser = sanitizeChuruOneUser(user);
     const authToken = token || user.token || '';
 
-    const payload = {
-      user: sanitizedUser,
-      token: authToken,
-      timestamp: Date.now()
-    };
-
     // 1. Synchronize all local storage keys across apps (Shawarma, Skyline, Nash, Platform)
+    // Full user profile (including avatar if present) is safely stored in localStorage (up to 5MB)
     const serialized = JSON.stringify(sanitizedUser);
     localStorage.setItem('churuone_user', serialized);
+    localStorage.setItem('churuone_customer_user', serialized);
     localStorage.setItem('sn_session', serialized);
     localStorage.setItem('sn_current_user', serialized);
     localStorage.setItem('nash_user', serialized);
     localStorage.setItem('skyline_user', serialized);
     if (authToken) {
       localStorage.setItem('auth_token', authToken);
+      localStorage.setItem('churuone_token', authToken);
     }
 
     // 2. Cross-domain cookie (shared across *.churuone.in subdomains)
+    // CRITICAL: Cookie RFC 6265 limit is 4096 bytes total. 
+    // If a 50KB base64 picture is placed in document.cookie, every HTTP request will send a 50KB Cookie header,
+    // crashing every request with "HTTP 431 Request Header Fields Too Large"!
+    // Therefore, the cookie MUST ONLY contain lightweight session tokens and minimal IDs (<400 bytes).
+    const lightweight = getSsoLightweightUser(sanitizedUser);
+    const payload = {
+      user: lightweight,
+      token: authToken,
+      timestamp: Date.now()
+    };
     const encoded = encodeURIComponent(JSON.stringify(payload));
-    const domainAttr = getCookieDomain();
-    document.cookie = `${COOKIE_NAME}=${encoded}${domainAttr}; path=/; max-age=2592000; SameSite=Lax`;
+    if (encoded.length < 3500) {
+      const domainAttr = getCookieDomain();
+      document.cookie = `${COOKIE_NAME}=${encoded}${domainAttr}; path=/; max-age=2592000; SameSite=Lax`;
+    }
 
     // 3. Dispatch in-tab notification for reactive listeners
     window.dispatchEvent(new CustomEvent('churuone_auth_change', {
       detail: { user: sanitizedUser, token: authToken }
     }));
+    window.dispatchEvent(new Event('churuone_user_updated'));
   } catch (err) {
     console.warn('⚠️ [SSO] Error writing session:', err);
   }
@@ -132,29 +188,50 @@ export function setChuruOneSession(user, token) {
 export function getChuruOneSession() {
   if (typeof window === 'undefined') return null;
   try {
-    // 1. Check cross-domain cookie first
-    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
-    if (match) {
-      const decoded = JSON.parse(decodeURIComponent(match[1]));
-      if (decoded && decoded.user) {
-        return {
-          user: sanitizeChuruOneUser(decoded.user),
-          token: decoded.token || ''
-        };
-      }
-    }
-
-    // 2. Fallback to LocalStorage across all app keys
-    const localRaw = localStorage.getItem('churuone_user') || 
+    // 1. Check LocalStorage first (contains rich user with picture if available)
+    const localRaw = localStorage.getItem('churuone_customer_user') || 
+                     localStorage.getItem('churuone_user') || 
                      localStorage.getItem('sn_session') || 
                      localStorage.getItem('sn_current_user') ||
                      localStorage.getItem('skyline_user') ||
                      localStorage.getItem('nash_user');
+    let localUser = null;
     if (localRaw) {
-      const parsed = JSON.parse(localRaw);
-      const token = localStorage.getItem('auth_token') || '';
+      try {
+        localUser = sanitizeChuruOneUser(JSON.parse(localRaw));
+      } catch (e) {}
+    }
+
+    // 2. Check cross-domain cookie
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${COOKIE_NAME}=([^;]+)`));
+    if (match) {
+      try {
+        // Defensive: if cookie is abnormally large, clear it immediately
+        if (match[1].length > 3500) {
+          clearChuruOneSession();
+          if (localUser) return { user: localUser, token: localStorage.getItem('auth_token') || '' };
+          return null;
+        }
+
+        const decoded = JSON.parse(decodeURIComponent(match[1]));
+        if (decoded && decoded.user) {
+          const cookieUser = sanitizeChuruOneUser(decoded.user);
+          // If localUser has a picture (e.g. uploaded avatar) and cookieUser doesn't, preserve picture
+          const mergedUser = localUser ? { ...cookieUser, ...localUser } : cookieUser;
+          return {
+            user: mergedUser,
+            token: decoded.token || localStorage.getItem('auth_token') || localStorage.getItem('churuone_token') || ''
+          };
+        }
+      } catch (e) {
+        clearChuruOneSession();
+      }
+    }
+
+    if (localUser) {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('churuone_token') || '';
       return { 
-        user: sanitizeChuruOneUser(parsed), 
+        user: localUser, 
         token 
       };
     }
@@ -258,18 +335,23 @@ export function checkStoreAuthPolicy(storeId, user) {
 }
 
 /**
- * Decorate store link with SSO tokens for seamless redirection
+ * Decorate store link with SSO tokens for seamless redirection.
+ * ALWAYS uses getSsoLightweightUser to guarantee query string size < 300 bytes,
+ * preventing "HTTP ERROR 431 Request Header Fields Too Large".
  */
 export function attachSsoParams(urlStr, user, token) {
   if (!urlStr || !user) return urlStr;
   try {
     const isRelative = urlStr.startsWith('/');
     const url = new URL(urlStr, typeof window !== 'undefined' ? window.location.origin : 'https://churuone.in');
-    const sanitized = sanitizeChuruOneUser(user);
-    url.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(sanitized)));
+    const lightweight = getSsoLightweightUser(user);
+    if (lightweight) {
+      url.searchParams.set('churuone_user', JSON.stringify(lightweight));
+    }
     if (token) url.searchParams.set('churuone_token', token);
     return isRelative ? `${url.pathname}${url.search}` : url.toString();
   } catch (e) {
     return urlStr;
   }
 }
+

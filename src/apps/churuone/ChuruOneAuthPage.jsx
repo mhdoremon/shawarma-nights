@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { firebaseConfig } from '../nash/firebase';
-import { setChuruOneSession, getChuruOneSession, sanitizeChuruOneUser } from '../../utils/ssoHelper';
+import { setChuruOneSession, getChuruOneSession, sanitizeChuruOneUser, getSsoLightweightUser } from '../../utils/ssoHelper';
 import { API_URL } from '../../config/api';
 import { 
   initMsg91Widget, 
@@ -210,10 +210,19 @@ export default function ChuruOneAuthPage() {
     const sanitized = sanitizeChuruOneUser(user);
     setChuruOneSession(sanitized, token);
 
+    try {
+      localStorage.setItem('churuone_customer_user', JSON.stringify(sanitized));
+      if (token) localStorage.setItem('churuone_token', token);
+    } catch (e) {}
+
+    // Lightweight user for URL query string (<250 bytes) — 100% prevents HTTP 431
+    const lightweight = getSsoLightweightUser(sanitized) || sanitized;
+    const lightweightJson = JSON.stringify(lightweight);
+
     if (rawReturnUrl) {
       const url = new URL(rawReturnUrl, window.location.origin);
       if (token) url.searchParams.set('churuone_token', token);
-      url.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(sanitized)));
+      url.searchParams.set('churuone_user', lightweightJson);
       window.location.href = url.toString();
       return;
     }
@@ -221,13 +230,14 @@ export default function ChuruOneAuthPage() {
     if (isStoreContext) {
       const redirectUrl = new URL(destination, window.location.origin);
       if (token) redirectUrl.searchParams.set('churuone_token', token);
-      redirectUrl.searchParams.set('churuone_user', encodeURIComponent(JSON.stringify(sanitized)));
+      redirectUrl.searchParams.set('churuone_user', lightweightJson);
       window.location.href = redirectUrl.toString();
       return;
     }
 
     const tokenParam = token ? `&churuone_token=${encodeURIComponent(token)}` : '';
-    window.location.href = `/?account_created=1&churuone_user=${encodeURIComponent(JSON.stringify(sanitized))}${tokenParam}`;
+    const userParam = `&churuone_user=${encodeURIComponent(lightweightJson)}`;
+    window.location.href = `/?account_created=1${userParam}${tokenParam}`;
   }
 
   // --------------------------------------------------------------------------

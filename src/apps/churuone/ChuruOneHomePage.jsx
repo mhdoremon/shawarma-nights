@@ -1081,17 +1081,33 @@ export default function ChuruOneHomePage() {
       const urlToken = params.get('churuone_token');
 
       if (urlUserRaw) {
-        const parsed = sanitizeChuruOneUser(JSON.parse(decodeURIComponent(urlUserRaw)));
-        setCurrentUser(parsed);
-        setAuthToken(urlToken || '');
-        setChuruOneSession(parsed, urlToken || '');
-        if (parsed.name) {
-          setBookingCustomerName(parsed.name);
-          setCustomerName(parsed.name);
+        let parsed = null;
+        try {
+          const decoded = decodeURIComponent(urlUserRaw);
+          parsed = JSON.parse(decoded.startsWith('%') ? decodeURIComponent(decoded) : decoded);
+        } catch (e) {
+          try { parsed = JSON.parse(urlUserRaw); } catch (e2) {}
         }
-        if (parsed.phone) {
-          setBookingCustomerPhone(parsed.phone);
-          setCustomerPhone(parsed.phone);
+
+        if (parsed) {
+          const sUser = sanitizeChuruOneUser(parsed);
+          // Preserve full avatar from localStorage if available
+          const existingSession = getChuruOneSession();
+          if (existingSession?.user?.picture && (!sUser.picture || sUser.picture.includes('dicebear'))) {
+            sUser.picture = existingSession.user.picture;
+            sUser.photoURL = existingSession.user.photoURL || existingSession.user.picture;
+          }
+          setCurrentUser(sUser);
+          setAuthToken(urlToken || '');
+          setChuruOneSession(sUser, urlToken || '');
+          if (sUser.name) {
+            setBookingCustomerName(sUser.name);
+            setCustomerName(sUser.name);
+          }
+          if (sUser.phone) {
+            setBookingCustomerPhone(sUser.phone);
+            setCustomerPhone(sUser.phone);
+          }
         }
 
         params.delete('churuone_user');

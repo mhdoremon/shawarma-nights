@@ -19,6 +19,20 @@ function RootEntry() {
   const params = new URLSearchParams(location.search);
   const storeParam = (params.get('storeId') || params.get('store') || '').toLowerCase();
 
+  // URL Cleanup Guard: Immediately clean oversized params if any remain in browser history
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search && window.location.search.includes('churuone_user')) {
+      const p = new URLSearchParams(window.location.search);
+      const u = p.get('churuone_user');
+      if (u && u.length > 500) {
+        p.delete('churuone_user');
+        p.delete('account_created');
+        const clean = window.location.pathname + (p.toString() ? `?${p.toString()}` : '') + window.location.hash;
+        window.history.replaceState({}, document.title, clean);
+      }
+    }
+  }, [location.search]);
+
   // PhonePe Compliant Legal Policies (Contact Us, Terms, Privacy, Refund, Shipping)
   if (
     path.startsWith('/contact-us') ||

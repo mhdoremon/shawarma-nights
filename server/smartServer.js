@@ -43,6 +43,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Core middleware
+// Early Request & Cookie Sanitizer — shields against HTTP 431 header overflow
+app.use((req, res, next) => {
+  // If request URL or query has bloated churuone_user (>500 chars), safely redirect to clean URL
+  if (req.query && req.query.churuone_user && req.query.churuone_user.length > 500) {
+    const cleanUrl = req.path + (req.query.account_created ? '?account_created=1' : '');
+    return res.redirect(cleanUrl);
+  }
+
+  // If cookie header is bloated, clear churuone_session cookie
+  if (req.headers.cookie && (req.headers.cookie.length > 2500 || req.headers.cookie.includes('data%3Aimage') || req.headers.cookie.includes('data:image'))) {
+    res.clearCookie('churuone_session', { domain: '.churuone.in', path: '/' });
+    res.clearCookie('churuone_session', { path: '/' });
+  }
+
+  next();
+});
+
 app.use(cors({ origin: config.CORS_ORIGIN }));
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ limit: '25mb', extended: true }));
@@ -199,7 +216,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ─── HTTP Server + WebSocket ─────────────────────────────────
-const server = createServer(app);
+const server = createServer({ maxHeaderSize: 65536 }, app);
 
 // WebSocket message handler — routes messages to appropriate module services
 function handleWebSocketMessage(data, ws, storeId, source) {

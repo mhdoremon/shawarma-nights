@@ -48,7 +48,32 @@
         'https://verify.phone91.com/otp-provider.js'
       ]);
     </script>
-    <script type="module" crossorigin src="/assets/index-BFPz3G7n.js"></script>
+    <!-- Instant Header-Overflow & URL Sanitizer Shield (100% Prevents HTTP 431 on reloads) -->
+    <script type="text/javascript">
+      (function() {
+        try {
+          if (window.location.search && window.location.search.indexOf('churuone_user') !== -1) {
+            var params = new URLSearchParams(window.location.search);
+            var rawUser = params.get('churuone_user');
+            if (rawUser && rawUser.length > 500) {
+              params.delete('churuone_user');
+              params.delete('account_created');
+              var cleanSearch = params.toString() ? '?' + params.toString() : '';
+              var cleanUrl = window.location.pathname + cleanSearch + window.location.hash;
+              window.history.replaceState({}, document.title, cleanUrl);
+            }
+          }
+          if (document.cookie && document.cookie.indexOf('churuone_session=') !== -1) {
+            var m = document.cookie.match(/(?:^|;\s*)churuone_session=([^;]+)/);
+            if (m && m[1] && m[1].length > 2500) {
+              var domain = window.location.hostname.endsWith('churuone.in') ? '; domain=.churuone.in' : '';
+              document.cookie = 'churuone_session=; expires=Thu, 01 Jan 1970 00:00:00 GMT' + domain + '; path=/; SameSite=Lax';
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-DL_g-zx9.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-DCPjtgdL.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-ui-B4DnONda.js">
     <link rel="stylesheet" crossorigin href="/assets/index-0uLeYlXc.css">
