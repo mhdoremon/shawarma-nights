@@ -1342,7 +1342,7 @@ export default function SkylineApp() {
       {/* ─── 7. MINIMAL FOOTER ─────────────────────────────────────── */}
       <footer className="border-t border-stone-200 bg-[#FAFAFA] text-stone-600 text-xs py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="space-y-3">
               <span className="text-2xl font-black text-black">Skyline Premium</span>
               <p className="text-stone-500 text-xs leading-relaxed">
@@ -1352,14 +1352,6 @@ export default function SkylineApp() {
                 <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
                 <span>Station Road / Subhash Chowk, Churu – 331001</span>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Collections</h5>
-              <p className="hover:text-black cursor-pointer">Normandy Flax Linen Shirts</p>
-              <p className="hover:text-black cursor-pointer">Double-Pleated Gurkha Trousers</p>
-              <p className="hover:text-black cursor-pointer">Japanese Selvedge Denim</p>
-              <p className="hover:text-black cursor-pointer">Chore Jackets & Kurtas</p>
             </div>
 
             <div className="space-y-2">
