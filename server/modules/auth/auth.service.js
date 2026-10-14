@@ -835,7 +835,7 @@ export function saveDukandarRecord(dukandar) {
  */
 export const customerCheckAccount = (req, res) => {
     try {
-        const { phone, email, username } = req.body || req.query || {};
+        const { phone, email, username, googleId } = req.body || req.query || {};
         const cleanPhone = phone ? normalizePhone(phone) : '';
         const cleanEmail = email ? email.toLowerCase().trim() : '';
         const cleanUsername = username ? username.toLowerCase().trim().replace(/^@/, '') : '';
@@ -844,22 +844,31 @@ export const customerCheckAccount = (req, res) => {
 
         // 1. Phone Collision Check
         if (cleanPhone) {
-            const pMatch = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+            const pMatch = customers.find(c => c.phone && normalizePhone(c.phone) === cleanPhone);
             if (pMatch) {
                 if (cleanEmail && pMatch.email && pMatch.email.toLowerCase() !== cleanEmail) {
                     return res.json({
                         success: false,
                         collision: true,
                         collisionType: 'phone_with_different_email',
-                        message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se doosre email (${maskEmail(pMatch.email)}) ke sath registered hai. Kripya usi email se login karein ya doosra number dalein.`
+                        userExists: true,
+                        message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se doosre email (${maskEmail(pMatch.email)}) ke sath registered hai. Kripya usi email se login karein ya doosra number dalein.`,
+                        user: {
+                            name: pMatch.name,
+                            username: pMatch.username,
+                            phoneMasked: maskPhone(pMatch.phone),
+                            emailMasked: maskEmail(pMatch.email)
+                        }
                     });
                 }
                 return res.json({
                     success: true,
                     collision: false,
                     userExists: true,
+                    message: `Yeh mobile number pehle se registered hai. Kripya login karein.`,
                     user: {
                         name: pMatch.name,
+                        username: pMatch.username,
                         phoneMasked: maskPhone(pMatch.phone),
                         emailMasked: maskEmail(pMatch.email),
                         hasPassword: Boolean(pMatch.password)
@@ -868,27 +877,40 @@ export const customerCheckAccount = (req, res) => {
             }
         }
 
-        // 2. Email Collision Check
-        if (cleanEmail) {
-            const eMatch = customers.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+        // 2. Email / Google ID Collision Check
+        if (cleanEmail || googleId) {
+            const eMatch = customers.find(c => 
+                (cleanEmail && c.email && c.email.toLowerCase() === cleanEmail) ||
+                (googleId && c.googleId && c.googleId === googleId)
+            );
             if (eMatch) {
                 if (cleanPhone && eMatch.phone && normalizePhone(eMatch.phone) !== cleanPhone) {
                     return res.json({
                         success: false,
                         collision: true,
                         collisionType: 'email_with_different_phone',
-                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se doosre mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai. Kripya usi mobile number se login karein.`
+                        userExists: true,
+                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se doosre mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai. Kripya usi mobile number se login karein.`,
+                        user: {
+                            name: eMatch.name,
+                            username: eMatch.username,
+                            phoneMasked: maskPhone(eMatch.phone),
+                            emailMasked: maskEmail(eMatch.email)
+                        }
                     });
                 }
                 return res.json({
                     success: true,
                     collision: false,
                     userExists: true,
+                    message: `Is Google account se pehle se account bana hua hai. Kripya login karein.`,
                     user: {
                         name: eMatch.name,
+                        username: eMatch.username,
                         phoneMasked: maskPhone(eMatch.phone),
                         emailMasked: maskEmail(eMatch.email),
-                        hasPassword: Boolean(eMatch.password)
+                        hasPassword: Boolean(eMatch.password),
+                        hasPhone: Boolean(eMatch.phone && normalizePhone(eMatch.phone).length === 10)
                     }
                 });
             }
@@ -902,15 +924,24 @@ export const customerCheckAccount = (req, res) => {
                     success: false,
                     collision: true,
                     collisionType: 'username_taken',
+                    available: false,
                     message: `Yeh username (@${cleanUsername}) pehle se kisi aur ke dwara liya ja chuka hai. Kripya doosra username chunein.`
                 });
             }
+            return res.json({
+                success: true,
+                collision: false,
+                userExists: false,
+                available: true,
+                message: `Username @${cleanUsername} uplabdh hai!`
+            });
         }
 
         return res.json({
             success: true,
             collision: false,
             userExists: false,
+            available: true,
             message: 'All credentials are valid and available.'
         });
     } catch (error) {
@@ -925,50 +956,66 @@ export const customerRegister = (req, res) => {
     try {
         const { name, dob, gender, phone, email, username, password, preVerified, isGoogleVerified } = req.body;
         
-        if (!phone) {
-            return res.status(400).json({ success: false, message: 'Mobile number zaroori hai' });
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const cleanEmail = email ? email.toLowerCase().trim() : '';
+
+        // If phone is provided, validate 10 digits
+        if (cleanPhone) {
+            if (cleanPhone.length !== 10) {
+                return res.status(400).json({ success: false, message: 'Kripya 10-digit ka valid mobile number dalein' });
+            }
+        } else if (!isGoogleVerified) {
+            // If phone is skipped, Google verification is strictly required
+            return res.status(400).json({ success: false, message: 'Mobile number zaroori hai ya Google se authenticate karein' });
         }
+
         if (!password || password.trim().length < 4) {
             return res.status(400).json({ success: false, message: 'Password kam se kam 4 aksharon ka hona chahiye' });
         }
 
-        const cleanPhone = normalizePhone(phone);
-        if (cleanPhone.length !== 10) {
-            return res.status(400).json({ success: false, message: 'Kripya 10-digit ka valid mobile number dalein' });
-        }
-
-        const cleanEmail = email ? email.toLowerCase().trim() : '';
-        const cleanUsername = username ? username.toLowerCase().trim().replace(/^@/, '') : `user_${cleanPhone.slice(-4)}`;
+        const cleanUsername = username 
+            ? username.toLowerCase().trim().replace(/^@/, '') 
+            : (cleanPhone ? `user_${cleanPhone.slice(-4)}` : (cleanEmail.split('@')[0] || `user_${Date.now().toString().slice(-4)}`));
 
         const customers = getAllUnifiedCustomers();
 
         // Check phone collision
-        const pMatch = customers.find(c => normalizePhone(c.phone) === cleanPhone);
-        if (pMatch) {
-            if (cleanEmail && pMatch.email && pMatch.email.toLowerCase() !== cleanEmail) {
-                return res.status(400).json({
-                    success: false,
-                    collision: true,
-                    message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se email (${maskEmail(pMatch.email)}) ke sath registered hai.`
-                });
-            }
-            if (pMatch.password) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Is mobile number se pehle se account bana hua hai. Kripya login karein ya Forgot Password use karein.`
-                });
+        let pMatch = null;
+        if (cleanPhone) {
+            pMatch = customers.find(c => c.phone && normalizePhone(c.phone) === cleanPhone);
+            if (pMatch) {
+                if (cleanEmail && pMatch.email && pMatch.email.toLowerCase() !== cleanEmail) {
+                    return res.status(400).json({
+                        success: false,
+                        collision: true,
+                        message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se doosre email (${maskEmail(pMatch.email)}) ke sath registered hai.`
+                    });
+                }
+                if (pMatch.password) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Is mobile number se pehle se account bana hua hai. Kripya login karein ya Forgot Password use karein.`
+                    });
+                }
             }
         }
 
         // Check email collision
+        let eMatch = null;
         if (cleanEmail) {
-            const eMatch = customers.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+            eMatch = customers.find(c => c.email && c.email.toLowerCase() === cleanEmail);
             if (eMatch) {
                 if (cleanPhone && eMatch.phone && normalizePhone(eMatch.phone) !== cleanPhone) {
                     return res.status(400).json({
                         success: false,
                         collision: true,
-                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai.`
+                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se doosre mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai.`
+                    });
+                }
+                if (eMatch.password) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Is email se pehle se account bana hua hai. Kripya Google login karein ya Forgot Password use karein.`
                     });
                 }
             }
@@ -976,32 +1023,47 @@ export const customerRegister = (req, res) => {
 
         // Check username availability
         if (cleanUsername) {
-            const uMatch = customers.find(c => c.username && c.username.toLowerCase() === cleanUsername && normalizePhone(c.phone) !== cleanPhone);
+            const uMatch = customers.find(c => 
+                c.username && 
+                c.username.toLowerCase() === cleanUsername && 
+                ((cleanPhone && normalizePhone(c.phone) !== cleanPhone) || (cleanEmail && c.email !== cleanEmail))
+            );
             if (uMatch) {
                 return res.status(400).json({
                     success: false,
-                    message: `Yeh username (@${cleanUsername}) pehle se maujood hai. Kripya naya username chunein.`
+                    message: `Yeh username (@${cleanUsername}) pehle se kisi aur ka hai. Kripya naya username chunein.`
                 });
             }
         }
 
+        const baseMatch = pMatch || eMatch;
         const token = generateUUID();
+        const hasPhone = Boolean(cleanPhone && cleanPhone.length === 10);
+        const hasGoogle = Boolean(isGoogleVerified || (cleanEmail && cleanEmail.includes('@')));
+
+        let authMethod = 'password';
+        if (hasPhone && hasGoogle) authMethod = 'both';
+        else if (hasGoogle) authMethod = 'google';
+        else if (hasPhone) authMethod = 'phone';
+
         const customerRecord = {
-            id: pMatch?.id || generateId('cust'),
-            churuOneId: pMatch?.churuOneId || `churu_cust_${Date.now()}`,
-            name: (name || pMatch?.name || `Customer +91${cleanPhone.slice(-4)}`).trim(),
+            id: baseMatch?.id || generateId('cust'),
+            churuOneId: baseMatch?.churuOneId || `churu_cust_${Date.now()}`,
+            name: (name || baseMatch?.name || (cleanPhone ? `Customer +91${cleanPhone.slice(-4)}` : (cleanEmail.split('@')[0] || 'Customer'))).trim(),
             username: cleanUsername,
-            dob: dob || pMatch?.dob || '',
-            gender: gender || pMatch?.gender || '',
+            dob: dob || baseMatch?.dob || '',
+            gender: gender || baseMatch?.gender || '',
             phone: cleanPhone,
-            phoneVerified: true,
-            email: cleanEmail || pMatch?.email || '',
-            emailVerified: Boolean(isGoogleVerified || pMatch?.emailVerified),
+            phoneVerified: Boolean(hasPhone && (preVerified || baseMatch?.phoneVerified)),
+            email: cleanEmail || baseMatch?.email || '',
+            emailVerified: Boolean(isGoogleVerified || baseMatch?.emailVerified),
             password: String(password).trim(),
-            authMethod: isGoogleVerified ? 'google_and_password' : 'password',
-            picture: req.body.picture || pMatch?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || 'C')}`,
+            authMethod,
+            authMethods: hasPhone && hasGoogle ? ['google', 'phone', 'password'] : (hasGoogle ? ['google', 'password'] : ['phone', 'password']),
+            authProvider: authMethod,
+            picture: req.body.picture || baseMatch?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || cleanUsername || 'C')}`,
             token,
-            createdAt: pMatch?.createdAt || now(),
+            createdAt: baseMatch?.createdAt || now(),
             lastLoginAt: now()
         };
 
@@ -1011,7 +1073,10 @@ export const customerRegister = (req, res) => {
         const targetStoreId = (req.body.storeId || req.storeId || 'shawarma').toLowerCase();
         try {
             const storeCustomers = DataLayer.read(targetStoreId, 'customers') || [];
-            const sIdx = storeCustomers.findIndex(c => normalizePhone(c.phone) === cleanPhone);
+            const sIdx = storeCustomers.findIndex(c => 
+                (cleanPhone && c.phone && normalizePhone(c.phone) === cleanPhone) ||
+                (cleanEmail && c.email && c.email.toLowerCase() === cleanEmail)
+            );
             if (sIdx !== -1) {
                 storeCustomers[sIdx] = { ...storeCustomers[sIdx], ...customerRecord };
             } else {
@@ -1076,7 +1141,7 @@ export const customerLogin = (req, res) => {
         const customers = getAllUnifiedCustomers();
         const customer = customers.find(c => {
             const matchUser = c.username && c.username.toLowerCase() === idClean.replace(/^@/, '');
-            const matchPhone = phoneClean.length === 10 && normalizePhone(c.phone) === phoneClean;
+            const matchPhone = phoneClean.length === 10 && c.phone && normalizePhone(c.phone) === phoneClean;
             const matchEmail = c.email && c.email.toLowerCase() === idClean;
             return matchUser || matchPhone || matchEmail;
         });
@@ -1125,32 +1190,49 @@ export const customerLogin = (req, res) => {
  */
 export const customerForgotPasswordSendOtp = async (req, res) => {
     try {
-        const { phone } = req.body;
-        if (!phone) return res.status(400).json({ success: false, message: 'Mobile number zaroori hai' });
+        const { phone, identifier } = req.body;
+        const input = String(identifier || phone || '').trim();
+        if (!input) return res.status(400).json({ success: false, message: 'Username ya Mobile number zaroori hai' });
 
-        const cleanPhone = normalizePhone(phone);
+        const cleanPhone = normalizePhone(input);
         const customers = getAllUnifiedCustomers();
-        const customer = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+        const customer = customers.find(c => 
+            (cleanPhone.length === 10 && c.phone && normalizePhone(c.phone) === cleanPhone) ||
+            (c.username && c.username.toLowerCase() === input.toLowerCase().replace(/^@/, '')) ||
+            (c.email && c.email.toLowerCase() === input.toLowerCase())
+        );
 
         if (!customer) {
             return res.status(404).json({
                 success: false,
-                message: `Is mobile number (${maskPhone(cleanPhone)}) se koi account registered nahi hai.`
+                message: 'Is Username ya Mobile number se koi account nahi mila.'
+            });
+        }
+
+        const targetPhone = customer.phone ? normalizePhone(customer.phone) : '';
+        if (!targetPhone || targetPhone.length !== 10) {
+            return res.status(400).json({
+                success: false,
+                noPhone: true,
+                message: 'Aapke account me koi mobile number link nahi hai. Kripya seedhe apne Google account se login karein.'
             });
         }
 
         const otp = generateOtp(6);
-        const key = `forgot:${cleanPhone}`;
+        const key = `forgot:${targetPhone}`;
         otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
 
         // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
-        const msg91Res = await sendMsg91Otp(cleanPhone);
-        console.log(`🔑 [CUSTOMER FORGOT PWD via MSG91] Dispatched to +91${cleanPhone.slice(-10)}: success=${msg91Res?.success}`);
+        const msg91Res = await sendMsg91Otp(targetPhone);
+        console.log(`🔑 [CUSTOMER FORGOT PWD via MSG91] Dispatched to +91${targetPhone.slice(-10)}: success=${msg91Res?.success}`);
 
         return res.json({
             success: true,
-            message: `OTP aapke registered mobile number (${maskPhone(cleanPhone)}) par MSG91 dwara bhej diya gaya hai.`,
-            phoneMasked: maskPhone(cleanPhone),
+            phone: targetPhone,
+            phoneMasked: maskPhone(targetPhone),
+            emailMasked: customer.email ? maskEmail(customer.email) : null,
+            username: customer.username,
+            message: `OTP aapke registered mobile number (${maskPhone(targetPhone)}) par MSG91 dwara bhej diya gaya hai.`,
             debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
     } catch (error) {
@@ -1186,7 +1268,7 @@ export const customerForgotPasswordVerifyOtp = async (req, res) => {
         }
 
         const customers = getAllUnifiedCustomers();
-        const customer = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+        const customer = customers.find(c => c.phone && normalizePhone(c.phone) === cleanPhone);
 
         if (!customer) {
             return res.status(404).json({ success: false, message: 'Customer account nahi mila' });
@@ -1201,6 +1283,7 @@ export const customerForgotPasswordVerifyOtp = async (req, res) => {
             success: true,
             token,
             user: customer,
+            username: customer.username,
             promptNewPassword: true,
             message: 'OTP verify ho gaya! Aap naya password set kar sakte hain ya skip kar sakte hain.'
         });
