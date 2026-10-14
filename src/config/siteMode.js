@@ -20,4 +20,4 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-export const PHONEPE_REVIEW_MODE = true;
+export const PHONEPE_REVIEW_MODE = false;
