@@ -1,9 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle2, IndianRupee, Store, Plus, Tag, Users, Building2, ShieldCheck, Lock, Phone, MessageSquare, ExternalLink, AlertTriangle } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Clock, CheckCircle2, IndianRupee, Store, Plus, Tag, Users, Building2, ShieldCheck, Lock, Phone, MessageSquare, ExternalLink, AlertTriangle, Copy, Check } from 'lucide-react';
 
 export default function DashboardTab() {
   const { orders, menu, deals, customers, franchiseInquiries, setActiveTab, storeInfo, storeId, capabilities, user } = useMaster();
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyDukanId = (id) => {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(id);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2200);
+    }
+  };
 
   const isPendingReview = storeInfo?.status === 'pending_review' || 
     user?.status === 'pending_review' ||
@@ -14,7 +23,7 @@ export default function DashboardTab() {
       } catch { return false; }
     })();
 
-  // If application is pending review, show ONLY the merchant's application details and onboarding progress
+  // If application is pending review, show DUKAN ID CARD, 24-HR REVIEW NOTICE, DETAILS, AND STORE EXPLORER
   if (isPendingReview) {
     const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${storeId?.toUpperCase()}`;
     const dukanCode = (user?.dukanId || storeId || 'DKN').toUpperCase();
@@ -26,44 +35,87 @@ export default function DashboardTab() {
 
     return (
       <div className="space-y-6 pb-12 max-w-5xl mx-auto">
-        {/* Top Header Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-200/80">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-900 border border-amber-500/30 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2">
-                <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                <span>Application Under Technical Review</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
-                {dukanTitle}
-              </h2>
-              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-                Dukan ID: <span className="font-mono font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded">{dukanCode}</span> • Digital Contract Verified
-              </p>
+        
+        {/* 1. Permanent Dukan ID Card with Copy Button */}
+        <div className="p-6 sm:p-8 bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 text-white rounded-3xl shadow-xl relative overflow-hidden">
+          <div className="absolute right-4 top-4 opacity-10 pointer-events-none">
+            <Lock className="w-36 h-36" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-mono tracking-widest uppercase bg-black/30 px-3 py-1 rounded-full font-bold">
+                PERMANENT & SECURE DUKAN ID
+              </span>
+              <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
+                <Lock className="w-3.5 h-3.5" /> Under Technical Review
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <a
-                href={`https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20ID%20${dukanCode}%20ka%20status%20bataiye`}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer"
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 my-3">
+              <div>
+                <div className="text-3xl sm:text-5xl font-mono font-black tracking-wider text-white drop-shadow-sm">
+                  {dukanCode}
+                </div>
+                <div className="text-xs text-amber-100 font-semibold mt-1">
+                  Store: {dukanTitle} • Category: {bType.toUpperCase()}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyDukanId(dukanCode)}
+                className="px-4 py-2.5 bg-white text-zinc-950 rounded-2xl text-xs font-extrabold flex items-center gap-2 shadow-md hover:bg-zinc-100 transition-all cursor-pointer active:scale-95 shrink-0"
               >
-                <MessageSquare className="w-4 h-4" />
-                <span>WhatsApp Help</span>
-              </a>
-              <a
-                href="tel:7023963189"
-                className="px-4 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer"
-              >
-                <Phone className="w-4 h-4" />
-                <span>Call Helpline</span>
-              </a>
+                {copiedId ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedId ? 'ID Copied!' : 'Copy Dukan ID'}</span>
+              </button>
             </div>
+
+            <p className="text-xs text-amber-100/95 leading-relaxed font-medium mt-3 bg-black/20 p-3.5 rounded-2xl border border-white/10">
+              ⚠️ <strong>Unforgettable ID Warning:</strong> Yeh aapki dukan ki permanent aur secure Master ID hai. Isko sambhal kar rakhein kyunki website linking, staff access aur dashboard login isi ID se hogi. Is ID ko anjaan vyakti ke saath share na karein.
+            </p>
           </div>
         </div>
 
-        {/* Submitted Merchant Profile Grid */}
+        {/* 2. 24-Hour Review Notice Box */}
+        <div className="p-5 sm:p-6 bg-amber-50 border-2 border-amber-300 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Clock className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="inline-block bg-amber-200 text-amber-950 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-1">
+                24-Hour Activation Timeline
+              </div>
+              <h3 className="text-lg font-black text-zinc-950">
+                Aapki Application Review Ho Rahi Hai
+              </h3>
+              <p className="text-xs text-zinc-700 mt-1 max-w-xl leading-relaxed">
+                Hum 24 ghante ke andar aapse contact karenge aur aapki website banakar aapko denge. Kripya wait karein. Website activate hote hi aapka pura portal unlock ho jayega aur aap online orders accept kar sakenge.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+            <a
+              href={`https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20ID%20${dukanCode}%20ka%20status%20bataiye`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 md:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Helpline</span>
+            </a>
+            <a
+              href="tel:7023963189"
+              className="px-4 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+            >
+              <Phone className="w-4 h-4" />
+              <span>Call Team</span>
+            </a>
+          </div>
+        </div>
+
+        {/* 3. Submitted Merchant Profile Grid */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-200">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
             <Store className="w-4 h-4 text-zinc-600" />
@@ -125,7 +177,7 @@ export default function DashboardTab() {
           </div>
         </div>
 
-        {/* 4-Stage Store Launch Roadmap */}
+        {/* 4. 4-Stage Store Launch Roadmap */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-200">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-6 flex items-center gap-2">
             <Clock className="w-4 h-4 text-zinc-600" />
@@ -171,6 +223,95 @@ export default function DashboardTab() {
                 <h4 className="font-bold text-xs text-zinc-700">Stage 4: Master OS Full Control Unlock</h4>
                 <p className="text-[11px] text-zinc-500 mt-0.5">Website complete hote hi aapka catalog edit, orders, coupons, aur payments setting yahin unlock ho jayenge.</p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Live Store Previews & Platform Feed */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+            <div>
+              <h3 className="text-base font-black text-zinc-950 flex items-center gap-2">
+                <span>🌐 ChuruOne Live Partner Stores & Feed</span>
+              </h3>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Aapki website banne ke dauran, aap ChuruOne ke baki live stores aur city feed explore kar sakte hain:
+              </p>
+            </div>
+            <a
+              href="/explore"
+              className="px-3.5 py-1.5 bg-zinc-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <span>Explore All Feed</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            {/* Store 1: Skyline Outfits */}
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 hover:border-zinc-400 transition-all flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase bg-zinc-200 text-zinc-800 px-2 py-0.5 rounded-full font-bold">
+                  Fashion & Footwear
+                </span>
+                <h4 className="font-extrabold text-sm text-zinc-900 mt-2">Skyline Premium Outfits</h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Luxury menswear, bespoke apparel, size selector aur automated checkout.
+                </p>
+              </div>
+              <a
+                href="/skyline"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white border border-zinc-300 text-zinc-900 hover:bg-zinc-100 text-xs font-bold transition-all shadow-2xs"
+              >
+                <span>View Store Website</span>
+                <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+              </a>
+            </div>
+
+            {/* Store 2: Shawarma Nights */}
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 hover:border-zinc-400 transition-all flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase bg-red-100 text-red-800 px-2 py-0.5 rounded-full font-bold">
+                  Food & Dining
+                </span>
+                <h4 className="font-extrabold text-sm text-zinc-900 mt-2">Shawarma Nights Flagship</h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Live menu, addon customize modal, thermal KOT receipt generator aur live GPS tracking.
+                </p>
+              </div>
+              <a
+                href="/shawarma"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white border border-zinc-300 text-zinc-900 hover:bg-zinc-100 text-xs font-bold transition-all shadow-2xs"
+              >
+                <span>View Store Website</span>
+                <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+              </a>
+            </div>
+
+            {/* Store 3: Nash Studio */}
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200 hover:border-zinc-400 transition-all flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                  Salon & Services
+                </span>
+                <h4 className="font-extrabold text-sm text-zinc-900 mt-2">Nash Studio Salon</h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Online appointment scheduling, slot booking, stylist assignment aur advance token payment.
+                </p>
+              </div>
+              <a
+                href="/nash"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white border border-zinc-300 text-zinc-900 hover:bg-zinc-100 text-xs font-bold transition-all shadow-2xs"
+              >
+                <span>View Store Website</span>
+                <ExternalLink className="w-3.5 h-3.5 text-zinc-500" />
+              </a>
             </div>
           </div>
         </div>

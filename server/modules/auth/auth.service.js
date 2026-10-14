@@ -826,7 +826,43 @@ export function saveUnifiedCustomer(customer) {
 
 export function getAllDukandars() {
     const data = readJsonFile(DUKANDARS_FILE, { dukandars: [] });
-    return Array.isArray(data) ? data : (data.dukandars || []);
+    const list = Array.isArray(data) ? [...data] : [...(data.dukandars || [])];
+
+    try {
+        const plat = DataLayer.readPlatform('dukandars');
+        const platList = Array.isArray(plat) ? plat : (plat?.dukandars || []);
+        platList.forEach(p => {
+            if (!list.some(x => String(x.dukanId || '').toLowerCase() === String(p.dukanId || '').toLowerCase())) {
+                list.push(p);
+            }
+        });
+    } catch {}
+
+    try {
+        const stores = DataLayer.getStores() || [];
+        stores.forEach(s => {
+            const sid = String(s.id || s.slug || '').toLowerCase();
+            if (sid && !list.some(x => String(x.dukanId || '').toLowerCase() === sid || String(x.storeSlug || '').toLowerCase() === sid)) {
+                const cfg = DataLayer.getStoreConfig(sid);
+                if (cfg && cfg.owner) {
+                    list.push({
+                        dukanId: sid.toUpperCase(),
+                        storeSlug: sid,
+                        dukanName: cfg.name || cfg.settings?.storeName || sid,
+                        ownerName: cfg.owner.name || '',
+                        fatherName: cfg.owner.fatherName || '',
+                        phone: cfg.owner.phone || cfg.settings?.phone || '',
+                        username: cfg.owner.username || '',
+                        password: cfg.owner.password || '',
+                        status: cfg.status || 'active',
+                        businessType: cfg.type || cfg.vertical || 'retail'
+                    });
+                }
+            }
+        });
+    } catch {}
+
+    return list;
 }
 
 export function saveDukandarRecord(dukandar) {
@@ -1747,7 +1783,11 @@ export const dukandarForgotPasswordSendOtp = async (req, res) => {
         const dukandars = getAllDukandars();
         const d = dukandars.find(item => 
             (cleanPhone && normalizePhone(item.phone) === cleanPhone) ||
-            (cleanDukanId && (String(item.dukanId).toLowerCase() === cleanDukanId || item.storeSlug === cleanDukanId))
+            (cleanDukanId && (
+                String(item.dukanId || '').toLowerCase() === cleanDukanId || 
+                String(item.storeSlug || '').toLowerCase() === cleanDukanId ||
+                String(item.username || '').toLowerCase() === cleanDukanId
+            ))
         );
 
         if (!d) {
@@ -1758,18 +1798,34 @@ export const dukandarForgotPasswordSendOtp = async (req, res) => {
         }
 
         const targetPhone = normalizePhone(d.phone);
+        if (!targetPhone || targetPhone.length !== 10) {
+            return res.status(400).json({
+                success: false,
+                message: 'Is Dukan account me valid 10-digit mobile number link nahi hai.'
+            });
+        }
+
         const otp = generateOtp(6);
         const key = `dukan:forgot:${targetPhone}`;
-        otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 });
 
         // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
         const msg91Res = await sendMsg91Otp(targetPhone);
-        console.log(`🔑 [DUKANDAR FORGOT PWD via MSG91] Dispatched to +91${targetPhone.slice(-10)}: success=${msg91Res?.success}`);
+        const reqId = msg91Res?.reqId || '';
+        otpStore.set(key, { 
+            otp, 
+            reqId, 
+            expiresAt: Date.now() + 5 * 60 * 1000, 
+            attempts: 0,
+            createdAt: Date.now()
+        });
+        console.log(`🔑 [DUKANDAR FORGOT PWD via MSG91] Dispatched to +91${targetPhone}: success=${msg91Res?.success}, reqId=${reqId}`);
 
         return res.json({
             success: true,
             dukanId: d.dukanId,
+            phone: targetPhone,
             phoneMasked: maskPhone(targetPhone),
+            reqId,
             message: `Password reset OTP aapke registered number (${maskPhone(targetPhone)}) par MSG91 se bhej diya gaya hai.`,
             debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
@@ -1783,9 +1839,21 @@ export const dukandarForgotPasswordSendOtp = async (req, res) => {
  */
 export const dukandarForgotPasswordVerifyOtp = async (req, res) => {
     try {
-        const { phone, otp, preVerified } = req.body;
-        const cleanPhone = normalizePhone(phone);
-        const key = `dukan:forgot:${cleanPhone}`;
+        const { phone, dukanId, otp, preVerified } = req.body;
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const cleanDukanId = String(dukanId || '').trim().toLowerCase();
+
+        const dukandars = getAllDukandars();
+        const d = dukandars.find(item => 
+            (cleanPhone && normalizePhone(item.phone) === cleanPhone) ||
+            (cleanDukanId && (
+                String(item.dukanId || '').toLowerCase() === cleanDukanId || 
+                String(item.storeSlug || '').toLowerCase() === cleanDukanId
+            ))
+        );
+
+        const targetPhone = d ? normalizePhone(d.phone) : cleanPhone;
+        const key = `dukan:forgot:${targetPhone}`;
 
         let isVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
         if (!isVerified) {
@@ -1794,17 +1862,17 @@ export const dukandarForgotPasswordVerifyOtp = async (req, res) => {
                 isVerified = true;
                 otpStore.delete(key);
             } else {
-                const mRes = await verifyMsg91Otp(cleanPhone, otp);
-                if (mRes.success && mRes.verified) isVerified = true;
+                const mRes = await verifyMsg91Otp(targetPhone, otp, stored?.reqId);
+                if (mRes.success && mRes.verified) {
+                    isVerified = true;
+                    otpStore.delete(key);
+                }
             }
         }
 
         if (!isVerified) {
             return res.status(400).json({ success: false, message: 'Galat ya expired OTP code dalein' });
         }
-
-        const dukandars = getAllDukandars();
-        const d = dukandars.find(item => normalizePhone(item.phone) === cleanPhone);
 
         if (!d) return res.status(404).json({ success: false, message: 'Dukan nahi mili' });
 

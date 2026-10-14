@@ -914,23 +914,36 @@ export default function ChuruOneAuthPage() {
         return;
       }
 
-      // If store status is in review -> Show Locked Dashboard!
+      // Store is active or in review -> Save session and redirect to Master OS portal
+      const storeSlug = String(data.dukanId || data.storeId || dukanIdInput).toLowerCase();
+      const masterUser = {
+        storeId: storeSlug,
+        dukanId: data.dukanId || dukanIdInput.trim().toUpperCase(),
+        dukanName: data.dukanName || data.name || storeSlug,
+        name: data.dukanName || data.name || storeSlug,
+        ownerName: data.ownerName || '',
+        fatherName: data.fatherName || '',
+        phone: data.phone || data.ownerPhone || '',
+        username: data.username || dukanUserInput.trim().toLowerCase(),
+        businessType: data.businessType || 'retail',
+        status: data.status || 'pending_review',
+        role: 'dukandar',
+        token: data.token || 'master_token',
+        websiteUrl: data.websiteUrl || ''
+      };
+      localStorage.setItem('churuone_master_store_id', storeSlug);
+      localStorage.setItem('churuone_master_token', data.token || 'master_token');
+      localStorage.setItem('churuone_master_role', 'dukandar');
+      localStorage.setItem('churuone_master_user', JSON.stringify(masterUser));
+
       if (data.status === 'pending_review' || data.status === 'review') {
-        setLockedDukanData(data);
-        setDukandarMode('locked_dashboard');
-        setSuccessMsg('Dukandar authenticated. Store review stage mein hai.');
-        return;
+        setSuccessMsg('Dukandar login safal! Aapka dashboard open ho raha hai (Review Mode)...');
+      } else {
+        setSuccessMsg('Dukandar login successful! Opening Dukan Master Portal...');
       }
 
-      // Store is active -> Redirect to Master OS portal
-      setSuccessMsg('Dukandar login successful! Opening Dukan Master Portal...');
       setTimeout(() => {
-        const storeSlug = String(data.dukanId || data.storeId).toLowerCase();
-        localStorage.setItem('churuone_master_store_id', storeSlug);
-        localStorage.setItem('churuone_master_token', data.token || 'master_token');
-        localStorage.setItem('churuone_master_role', 'dukandar');
-        localStorage.setItem('churuone_master_user', JSON.stringify(data));
-        window.location.href = `/master?storeId=${storeSlug}`;
+        window.location.href = `/admin?storeId=${storeSlug}`;
       }, 400);
     } catch (err) {
       setErrorMsg(err.message || 'Server connection error.');
@@ -1149,20 +1162,31 @@ export default function ChuruOneAuthPage() {
         return;
       }
 
-      // Application submitted! Route immediately to LOCKED DASHBOARD!
-      const lockedData = {
-        dukanId: data.dukanId || dukanGeneratedId,
+      // Application submitted! Route directly to Master Dashboard!
+      const finalDukanId = data.dukanId || dukanGeneratedId;
+      const storeSlug = String(finalDukanId).toLowerCase();
+      const masterUser = {
+        storeId: storeSlug,
+        dukanId: finalDukanId,
         dukanName: dukanStoreName.trim(),
+        name: dukanStoreName.trim(),
         ownerName: dukanOwnerName.trim(),
-        businessType: dukanBusinessType,
         phone: clean,
         username: dukanUsername.trim().toLowerCase(),
+        businessType: dukanBusinessType,
         status: 'pending_review',
+        role: 'dukandar',
+        token: data.token || 'master_token',
         appliedAt: new Date().toISOString()
       };
-      setLockedDukanData(lockedData);
-      setDukandarMode('locked_dashboard');
-      setSuccessMsg('Aapka Dukan Account safaltapoorvak create ho chuka hai!');
+      localStorage.setItem('churuone_master_store_id', storeSlug);
+      localStorage.setItem('churuone_master_token', data.token || 'master_token');
+      localStorage.setItem('churuone_master_role', 'dukandar');
+      localStorage.setItem('churuone_master_user', JSON.stringify(masterUser));
+      setSuccessMsg('Badhaai ho! Aapka Dukan Account safaltapoorvak ban gaya hai. Dashboard open ho raha hai...');
+      setTimeout(() => {
+        window.location.href = `/admin?storeId=${storeSlug}`;
+      }, 500);
     } catch (err) {
       setErrorMsg(err.message || 'Submission error.');
     } finally {
@@ -1175,7 +1199,7 @@ export default function ChuruOneAuthPage() {
   // ============================================================================
   async function handleDukanForgotSendOtp() {
     if (!dukanForgotDukanId.trim() && !dukanForgotPhone.trim()) {
-      setErrorMsg('Dukan ID aur Registered Mobile number dalein.');
+      setErrorMsg('Dukan ID ya Registered Mobile number dalein.');
       return;
     }
 
@@ -1198,10 +1222,24 @@ export default function ChuruOneAuthPage() {
         return;
       }
 
-      setDukanForgotPhone(cleanPhone || data.phoneMasked);
+      // Ensure we have the target 10-digit phone for MSG91 SDK and verification
+      const targetPhone = data.phone || cleanPhone;
+      if (targetPhone && targetPhone.length === 10) {
+        setDukanForgotPhone(targetPhone);
+        // Trigger client-side MSG91 Web SDK for instant SMS delivery
+        try {
+          await sendOtpViaMsg91(targetPhone);
+        } catch (msgErr) {
+          console.warn('Frontend MSG91 dukan forgot sendOtp note:', msgErr?.message);
+        }
+      } else {
+        setDukanForgotPhone(data.phoneMasked || '');
+      }
+
+      if (data.dukanId) setDukanForgotDukanId(data.dukanId);
       setDukanForgotStep(2);
       setDukanContractCooldown(60);
-      setSuccessMsg(data.message || 'Password reset OTP registered number par bhej diya gaya hai.');
+      setSuccessMsg(data.message || 'Password reset OTP registered number par MSG91 se bhej diya gaya hai.');
     } catch (err) {
       setErrorMsg(err.message || 'Server error.');
     } finally {
@@ -1225,11 +1263,12 @@ export default function ChuruOneAuthPage() {
         if (mRes && mRes.success) isVerified = true;
       } catch (e) {}
 
-      const cleanPhone = dukanForgotPhone.replace(/\D/g, '').slice(-10);
+      const cleanPhone = (dukanForgotPhone || '').replace(/\D/g, '').slice(-10);
       const res = await fetch(`${API_URL}/api/auth/dukandar/forgot-password/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          dukanId: dukanForgotDukanId.trim(),
           phone: cleanPhone,
           otp: cleanOtp,
           preVerified: isVerified
@@ -1243,6 +1282,7 @@ export default function ChuruOneAuthPage() {
       }
 
       setDukanForgotUsername(data.username || '');
+      if (data.dukanId) setDukanForgotDukanId(data.dukanId);
       setDukanForgotStep(3);
       setSuccessMsg('OTP verified! Naya password banayein.');
     } catch (err) {

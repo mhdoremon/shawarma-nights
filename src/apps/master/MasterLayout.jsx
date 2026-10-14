@@ -71,7 +71,7 @@ export default function MasterLayout() {
       } catch { return false; }
     })();
 
-  const [showReviewModal, setShowReviewModal] = useState(isPendingReview);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
   const hasAppointments = capabilities?.orders?.hasAppointments ?? isSalon;
@@ -85,21 +85,17 @@ export default function MasterLayout() {
 
   const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
 
-  const tabsConfig = isPendingReview
-    ? [
-        { id: 0, label: 'Application Status', icon: LayoutDashboard }
-      ]
-    : [
-        { id: 0, label: 'Dashboard', icon: LayoutDashboard },
-        { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
-        { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0 },
-        ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 }] : []),
-        { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
-        { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
-        { id: 6, label: 'SMS Gateway', icon: Smartphone },
-        ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
-        { id: 8, label: 'Settings', icon: Settings },
-      ];
+  const tabsConfig = [
+    { id: 0, label: isPendingReview ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
+    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: isPendingReview },
+    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: isPendingReview },
+    ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isPendingReview }] : []),
+    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: isPendingReview },
+    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: isPendingReview },
+    { id: 6, label: 'SMS Gateway', icon: Smartphone, isLocked: isPendingReview },
+    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: isPendingReview }] : []),
+    { id: 8, label: 'Settings', icon: Settings, isLocked: isPendingReview },
+  ];
 
   return (
     <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col">
@@ -121,11 +117,26 @@ export default function MasterLayout() {
               <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
               <span className="capitalize">{storeInfo?.name || storeId}</span>
             </div>
+
+            {isPendingReview && (
+              <span className="hidden md:inline-flex items-center gap-1 text-[10px] bg-amber-400 text-amber-950 font-black px-2 py-0.5 rounded-full uppercase">
+                <Clock className="w-2.5 h-2.5 animate-pulse" /> Review Stage (24h)
+              </span>
+            )}
           </div>
 
-          {/* Right: Cloud Connection Indicator + Sound + Refresh + Logout */}
+          {/* Right: Explore Feed + Cloud Connection Indicator + Sound + Refresh + Logout */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             
+            {/* ChuruOne Explore & Stores Shortcut */}
+            <a
+              href="/explore"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all shadow-xs"
+              title="Explore ChuruOne City Feed & Partner Stores"
+            >
+              <span>🌐 Explore Feed</span>
+            </a>
+
             {/* Live Connection Pill */}
             <div className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-black shadow-sm ${
               isConnected 
@@ -191,6 +202,9 @@ export default function MasterLayout() {
               >
                 <Icon className="w-3.5 h-3.5 stroke-[2.2]" />
                 <span>{t.label}</span>
+                {t.isLocked && (
+                  <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                )}
                 {t.badge !== undefined && t.badge > 0 && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                     isActive 
@@ -210,49 +224,6 @@ export default function MasterLayout() {
 
       {/* 3. MAIN TAB CONTENT CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Review Status Banner for New Stores */}
-        {isPendingReview && (
-          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                <Clock className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
-                    Application Under Review
-                  </span>
-                  <span className="text-xs font-mono font-bold text-zinc-600">Dukan ID: {storeId?.toUpperCase()}</span>
-                </div>
-                <h3 className="text-base font-extrabold text-zinc-950 mt-1">
-                  Aapki Dukan Application Review Mein Hai!
-                </h3>
-                <p className="text-xs text-zinc-700 mt-1 max-w-2xl leading-relaxed">
-                  Hamari tech team jald hi aapki dukan ki custom website banakar is dashboard se link kar degi. Website link hote hi aapka pura portal unlock ho jayega aur aap Shawarma Nights & Skyline ki tarah online orders aur catalog operate kar sakenge.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
-              <a
-                href="https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20Dukan%20Application%20review%20me%20hai%20kripya%20update%20dein"
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>WhatsApp Support</span>
-              </a>
-              <a
-                href="tel:7023963189"
-                className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
-              >
-                <Phone className="w-4 h-4" />
-                <span>Call</span>
-              </a>
-            </div>
-          </div>
-        )}
-
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -261,11 +232,12 @@ export default function MasterLayout() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
           >
-            {isPendingReview ? (
+            {activeTab === 0 ? (
               <DashboardTab />
+            ) : isPendingReview ? (
+              <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} />
             ) : (
               <>
-                {activeTab === 0 && <DashboardTab />}
                 {activeTab === 1 && <OrdersTab />}
                 {activeTab === 2 && <MenuTab />}
                 {activeTab === 3 && <OffersTab />}
@@ -377,3 +349,59 @@ export default function MasterLayout() {
     </div>
   );
 }
+
+function LockedTabPreview({ tabId, setActiveTab }) {
+  const tabNames = {
+    1: 'Live Orders & KOT Printing',
+    2: 'Menu & Product Catalog Editor',
+    3: 'Promotional Offers & Deals',
+    4: 'Customers CRM & Database',
+    5: 'Customer Reviews Moderation',
+    6: 'Android SMS Gateway & SIM Sync',
+    7: 'Franchise Inquiries',
+    8: 'Store Operational Settings'
+  };
+  const title = tabNames[tabId] || 'Yeh Feature';
+
+  return (
+    <div className="max-w-2xl mx-auto my-8 p-6 sm:p-8 bg-white rounded-3xl border border-amber-200/90 shadow-xl text-center">
+      <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-4 shadow-sm">
+        <Lock className="w-8 h-8 text-amber-700" />
+      </div>
+      <span className="text-[11px] font-mono uppercase bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-bold">
+        Application Under Review
+      </span>
+      <h3 className="text-xl font-black text-zinc-950 mt-3">
+        {title} Abhi Locked Hai
+      </h3>
+      <p className="text-xs text-zinc-600 mt-2 max-w-md mx-auto leading-relaxed">
+        Aapki dukan ki custom website abhi hamari tech team banakar link kar rahi hai. 24 ghante ke andar website live hote hi aapka yeh section unlock ho jayega aur aap isko poori tarah operate kar sakenge.
+      </p>
+      
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={() => setActiveTab(0)}
+          className="px-5 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
+        >
+          ← Dashboard Par Wapas Jayein
+        </button>
+        <a
+          href="/explore"
+          className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
+        >
+          🌐 ChuruOne Live Feed Dekhein
+        </a>
+        <a
+          href="https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20review%20me%20hai"
+          target="_blank"
+          rel="noreferrer"
+          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>WhatsApp Helpline</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
