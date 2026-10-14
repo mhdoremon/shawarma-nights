@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMaster } from './context/MasterContext';
 import { 
   LayoutDashboard, 
@@ -14,7 +14,13 @@ import {
   VolumeX, 
   RefreshCw, 
   LogOut,
-  Store
+  Store,
+  Clock,
+  AlertCircle,
+  Phone,
+  MessageSquare,
+  X,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -56,6 +62,16 @@ export default function MasterLayout() {
   if (role === 'delivery_boy') {
     return <DeliveryPartnerView />;
   }
+
+  const isPendingReview = storeInfo?.status === 'pending_review' || 
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'pending_review';
+      } catch { return false; }
+    })();
+
+  const [showReviewModal, setShowReviewModal] = useState(isPendingReview);
 
   const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
   const hasAppointments = capabilities?.orders?.hasAppointments ?? isSalon;
@@ -190,6 +206,49 @@ export default function MasterLayout() {
 
       {/* 3. MAIN TAB CONTENT CONTAINER */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Review Status Banner for New Stores */}
+        {isPendingReview && (
+          <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                    Application Under Review
+                  </span>
+                  <span className="text-xs font-mono font-bold text-zinc-600">Dukan ID: {storeId?.toUpperCase()}</span>
+                </div>
+                <h3 className="text-base font-extrabold text-zinc-950 mt-1">
+                  Aapki Dukan Application Review Mein Hai!
+                </h3>
+                <p className="text-xs text-zinc-700 mt-1 max-w-2xl leading-relaxed">
+                  Hamari tech team jald hi aapki dukan ki custom website banakar is dashboard se link kar degi. Website link hote hi aapka pura portal unlock ho jayega aur aap Shawarma Nights & Skyline ki tarah online orders aur catalog operate kar sakenge.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+              <a
+                href="https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20Dukan%20Application%20review%20me%20hai%20kripya%20update%20dein"
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 md:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>WhatsApp Support</span>
+              </a>
+              <a
+                href="tel:7023963189"
+                className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Call</span>
+              </a>
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -210,6 +269,77 @@ export default function MasterLayout() {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Review Modal Popup for Newly Registered Merchants */}
+      <AnimatePresence>
+        {showReviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-zinc-200 relative text-center"
+            >
+              <button
+                onClick={() => setShowReviewModal(false)}
+                className="absolute top-4 right-4 p-1.5 text-zinc-400 hover:text-zinc-700 rounded-full hover:bg-zinc-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-4 shadow-xs">
+                <Clock className="w-7 h-7 animate-pulse" />
+              </div>
+
+              <span className="text-[10px] font-mono uppercase bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-bold">
+                Request In Review
+              </span>
+
+              <h3 className="text-xl font-black text-zinc-950 mt-3">
+                Aapka Dukan Account Ban Gaya Hai!
+              </h3>
+
+              <p className="text-xs text-zinc-600 mt-2 leading-relaxed">
+                Aapki dukan ki application praapt ho gayi hai. Hamari tech team jald hi aapki dukan ki custom website banakar aapke is dashboard se link kar degi.
+              </p>
+
+              {/* Timeline */}
+              <div className="mt-4 p-3.5 bg-zinc-50 rounded-2xl border border-zinc-100 text-left space-y-2 text-xs">
+                <div className="flex items-center gap-2 text-emerald-700 font-bold">
+                  <span className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px]">✓</span>
+                  <span>1. Dukan Application & Digital Contract Signed</span>
+                </div>
+                <div className="flex items-center gap-2 text-amber-700 font-bold">
+                  <Clock className="w-4 h-4 shrink-0 text-amber-600 animate-pulse" />
+                  <span>2. Custom Website Creation (In Progress)</span>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-400 font-medium">
+                  <div className="w-4 h-4 rounded-full border-2 border-zinc-300 shrink-0" />
+                  <span>3. Portal Unlock & Live Launch</span>
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-center gap-2">
+                <a
+                  href="https://wa.me/917023963189?text=Namaste%20ChuruOne%2C%20meri%20dukan%20ki%20request%20in%20review%20hai"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>WhatsApp Contact</span>
+                </a>
+                <button
+                  onClick={() => setShowReviewModal(false)}
+                  className="px-4 py-2.5 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Dashboard Dekhein
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* 4. REALTIME TOAST NOTIFICATION POPUP */}
       <AnimatePresence>

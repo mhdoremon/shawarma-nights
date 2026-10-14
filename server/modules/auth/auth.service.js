@@ -1,6 +1,8 @@
+import fs from 'fs';
+import path from 'path';
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
-import { generateId, generateOtp, generateUUID, now, normalizePhone, enrichCustomersWithOrderStats } from '../../utils/helpers.js';
+import { generateId, generateOtp, generateUUID, now, normalizePhone, enrichCustomersWithOrderStats, slugify } from '../../utils/helpers.js';
 import { resolveStoreCapabilities } from '../../utils/storeCapabilities.js';
 
 const otpStore = new Map(); // Key: `${storeId}:${phone}` → { otp, expiresAt, attempts }
@@ -704,3 +706,1002 @@ export const getAdminCustomers = (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// ============================================================================
+// SOCIAL COMMERCE & UNIFIED CUSTOMER AUTHENTICATION ENGINE
+// ============================================================================
+
+export function maskPhone(phone) {
+    if (!phone) return '';
+    const clean = normalizePhone(phone);
+    if (clean.length < 10) return clean;
+    return `+91 ${clean.slice(0, 2)}****${clean.slice(-4)}`;
+}
+
+export function maskEmail(email) {
+    if (!email || !email.includes('@')) return email || '';
+    const [user, domain] = email.split('@');
+    if (user.length <= 2) return `${user[0]}*@${domain}`;
+    return `${user.slice(0, 2)}****${user.slice(-1)}@${domain}`;
+}
+
+const CUSTOMERS_FILE = path.join(process.cwd(), 'server', 'data', 'customers.json');
+const DUKANDARS_FILE = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
+
+function readJsonFile(filePath, fallback = []) {
+    try {
+        if (fs.existsSync(filePath)) {
+            return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        }
+    } catch (e) {
+        console.warn('readJsonFile error:', filePath, e.message);
+    }
+    return fallback;
+}
+
+function writeJsonFile(filePath, data) {
+    try {
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const tmp = filePath + '.tmp';
+        fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
+        fs.renameSync(tmp, filePath);
+    } catch (e) {
+        console.error('writeJsonFile error:', filePath, e.message);
+    }
+}
+
+export function getAllUnifiedCustomers() {
+    const list = readJsonFile(CUSTOMERS_FILE, []);
+    const array = Array.isArray(list) ? [...list] : (Array.isArray(list.customers) ? [...list.customers] : []);
+
+    try {
+        const platform = DataLayer.readPlatform('customers');
+        if (platform && Array.isArray(platform.customers)) {
+            for (const pc of platform.customers) {
+                const normP = normalizePhone(pc.phone);
+                const exists = array.find(c => 
+                    (normP && normalizePhone(c.phone) === normP) ||
+                    (pc.email && c.email && pc.email.toLowerCase() === c.email.toLowerCase())
+                );
+                if (!exists) array.push(pc);
+            }
+        }
+    } catch {}
+
+    return array;
+}
+
+export function saveUnifiedCustomer(customer) {
+    const customers = getAllUnifiedCustomers();
+    const cleanPhone = normalizePhone(customer.phone);
+    const cleanEmail = customer.email ? customer.email.toLowerCase().trim() : '';
+
+    const idx = customers.findIndex(c => 
+        (cleanPhone && normalizePhone(c.phone) === cleanPhone) ||
+        (cleanEmail && c.email && c.email.toLowerCase() === cleanEmail) ||
+        (customer.id && c.id === customer.id)
+    );
+
+    if (idx !== -1) {
+        customers[idx] = { ...customers[idx], ...customer, updatedAt: now() };
+    } else {
+        customers.push({ ...customer, createdAt: customer.createdAt || now(), updatedAt: now() });
+    }
+
+    writeJsonFile(CUSTOMERS_FILE, customers);
+    try {
+        DataLayer.writePlatform('customers', { customers });
+    } catch {}
+
+    try {
+        const smartPath = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
+        writeJsonFile(smartPath, customers);
+    } catch {}
+
+    return idx !== -1 ? customers[idx] : customer;
+}
+
+export function getAllDukandars() {
+    const data = readJsonFile(DUKANDARS_FILE, { dukandars: [] });
+    return Array.isArray(data) ? data : (data.dukandars || []);
+}
+
+export function saveDukandarRecord(dukandar) {
+    const dukandars = getAllDukandars();
+    const cleanId = String(dukandar.dukanId || '').trim();
+    const idx = dukandars.findIndex(d => 
+        String(d.dukanId).toLowerCase() === cleanId.toLowerCase() ||
+        (d.storeSlug && dukandar.storeSlug && d.storeSlug === dukandar.storeSlug)
+    );
+
+    if (idx !== -1) {
+        dukandars[idx] = { ...dukandars[idx], ...dukandar, updatedAt: now() };
+    } else {
+        dukandars.push({ ...dukandar, createdAt: dukandar.createdAt || now(), updatedAt: now() });
+    }
+
+    const payload = { dukandars };
+    writeJsonFile(DUKANDARS_FILE, payload);
+
+    try {
+        const smartPath = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
+        writeJsonFile(smartPath, payload);
+    } catch {}
+
+    return idx !== -1 ? dukandars[idx] : dukandar;
+}
+
+/**
+ * Check customer account existence & collision prevention
+ */
+export const customerCheckAccount = (req, res) => {
+    try {
+        const { phone, email, username } = req.body || req.query || {};
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const cleanEmail = email ? email.toLowerCase().trim() : '';
+        const cleanUsername = username ? username.toLowerCase().trim().replace(/^@/, '') : '';
+
+        const customers = getAllUnifiedCustomers();
+
+        // 1. Phone Collision Check
+        if (cleanPhone) {
+            const pMatch = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+            if (pMatch) {
+                if (cleanEmail && pMatch.email && pMatch.email.toLowerCase() !== cleanEmail) {
+                    return res.json({
+                        success: false,
+                        collision: true,
+                        collisionType: 'phone_with_different_email',
+                        message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se doosre email (${maskEmail(pMatch.email)}) ke sath registered hai. Kripya usi email se login karein ya doosra number dalein.`
+                    });
+                }
+                return res.json({
+                    success: true,
+                    collision: false,
+                    userExists: true,
+                    user: {
+                        name: pMatch.name,
+                        phoneMasked: maskPhone(pMatch.phone),
+                        emailMasked: maskEmail(pMatch.email),
+                        hasPassword: Boolean(pMatch.password)
+                    }
+                });
+            }
+        }
+
+        // 2. Email Collision Check
+        if (cleanEmail) {
+            const eMatch = customers.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+            if (eMatch) {
+                if (cleanPhone && eMatch.phone && normalizePhone(eMatch.phone) !== cleanPhone) {
+                    return res.json({
+                        success: false,
+                        collision: true,
+                        collisionType: 'email_with_different_phone',
+                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se doosre mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai. Kripya usi mobile number se login karein.`
+                    });
+                }
+                return res.json({
+                    success: true,
+                    collision: false,
+                    userExists: true,
+                    user: {
+                        name: eMatch.name,
+                        phoneMasked: maskPhone(eMatch.phone),
+                        emailMasked: maskEmail(eMatch.email),
+                        hasPassword: Boolean(eMatch.password)
+                    }
+                });
+            }
+        }
+
+        // 3. Username Availability Check
+        if (cleanUsername) {
+            const uMatch = customers.find(c => c.username && c.username.toLowerCase() === cleanUsername);
+            if (uMatch) {
+                return res.json({
+                    success: false,
+                    collision: true,
+                    collisionType: 'username_taken',
+                    message: `Yeh username (@${cleanUsername}) pehle se kisi aur ke dwara liya ja chuka hai. Kripya doosra username chunein.`
+                });
+            }
+        }
+
+        return res.json({
+            success: true,
+            collision: false,
+            userExists: false,
+            message: 'All credentials are valid and available.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Register Customer with DOB, Username, Password and Strict Phone-Email Binding
+ */
+export const customerRegister = (req, res) => {
+    try {
+        const { name, dob, gender, phone, email, username, password, preVerified, isGoogleVerified } = req.body;
+        
+        if (!phone) {
+            return res.status(400).json({ success: false, message: 'Mobile number zaroori hai' });
+        }
+        if (!password || password.trim().length < 4) {
+            return res.status(400).json({ success: false, message: 'Password kam se kam 4 aksharon ka hona chahiye' });
+        }
+
+        const cleanPhone = normalizePhone(phone);
+        if (cleanPhone.length !== 10) {
+            return res.status(400).json({ success: false, message: 'Kripya 10-digit ka valid mobile number dalein' });
+        }
+
+        const cleanEmail = email ? email.toLowerCase().trim() : '';
+        const cleanUsername = username ? username.toLowerCase().trim().replace(/^@/, '') : `user_${cleanPhone.slice(-4)}`;
+
+        const customers = getAllUnifiedCustomers();
+
+        // Check phone collision
+        const pMatch = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+        if (pMatch) {
+            if (cleanEmail && pMatch.email && pMatch.email.toLowerCase() !== cleanEmail) {
+                return res.status(400).json({
+                    success: false,
+                    collision: true,
+                    message: `Yeh mobile number (${maskPhone(cleanPhone)}) pehle se email (${maskEmail(pMatch.email)}) ke sath registered hai.`
+                });
+            }
+            if (pMatch.password) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Is mobile number se pehle se account bana hua hai. Kripya login karein ya Forgot Password use karein.`
+                });
+            }
+        }
+
+        // Check email collision
+        if (cleanEmail) {
+            const eMatch = customers.find(c => c.email && c.email.toLowerCase() === cleanEmail);
+            if (eMatch) {
+                if (cleanPhone && eMatch.phone && normalizePhone(eMatch.phone) !== cleanPhone) {
+                    return res.status(400).json({
+                        success: false,
+                        collision: true,
+                        message: `Yeh email (${maskEmail(cleanEmail)}) pehle se mobile number (${maskPhone(eMatch.phone)}) ke sath registered hai.`
+                    });
+                }
+            }
+        }
+
+        // Check username availability
+        if (cleanUsername) {
+            const uMatch = customers.find(c => c.username && c.username.toLowerCase() === cleanUsername && normalizePhone(c.phone) !== cleanPhone);
+            if (uMatch) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Yeh username (@${cleanUsername}) pehle se maujood hai. Kripya naya username chunein.`
+                });
+            }
+        }
+
+        const token = generateUUID();
+        const customerRecord = {
+            id: pMatch?.id || generateId('cust'),
+            churuOneId: pMatch?.churuOneId || `churu_cust_${Date.now()}`,
+            name: (name || pMatch?.name || `Customer +91${cleanPhone.slice(-4)}`).trim(),
+            username: cleanUsername,
+            dob: dob || pMatch?.dob || '',
+            gender: gender || pMatch?.gender || '',
+            phone: cleanPhone,
+            phoneVerified: true,
+            email: cleanEmail || pMatch?.email || '',
+            emailVerified: Boolean(isGoogleVerified || pMatch?.emailVerified),
+            password: String(password).trim(),
+            authMethod: isGoogleVerified ? 'google_and_password' : 'password',
+            picture: req.body.picture || pMatch?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name || 'C')}`,
+            token,
+            createdAt: pMatch?.createdAt || now(),
+            lastLoginAt: now()
+        };
+
+        saveUnifiedCustomer(customerRecord);
+
+        // Also sync to active store's customer list if storeId provided
+        const targetStoreId = (req.body.storeId || req.storeId || 'shawarma').toLowerCase();
+        try {
+            const storeCustomers = DataLayer.read(targetStoreId, 'customers') || [];
+            const sIdx = storeCustomers.findIndex(c => normalizePhone(c.phone) === cleanPhone);
+            if (sIdx !== -1) {
+                storeCustomers[sIdx] = { ...storeCustomers[sIdx], ...customerRecord };
+            } else {
+                storeCustomers.push(customerRecord);
+            }
+            DataLayer.writeSync(targetStoreId, 'customers', storeCustomers);
+        } catch {}
+
+        return res.json({
+            success: true,
+            token,
+            user: customerRecord,
+            message: 'Aapka account safaltapoorvak ban gaya hai!'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Customer Login with Username, Phone or Email + Password
+ */
+export const customerLogin = (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        if (!identifier || !password) {
+            return res.status(400).json({ success: false, message: 'Username/Phone/Email aur Password dono zaroori hain' });
+        }
+
+        const idClean = String(identifier).trim().toLowerCase();
+        const phoneClean = normalizePhone(identifier);
+        const pInput = String(password).trim();
+
+        const customers = getAllUnifiedCustomers();
+        const customer = customers.find(c => {
+            const matchUser = c.username && c.username.toLowerCase() === idClean.replace(/^@/, '');
+            const matchPhone = phoneClean.length === 10 && normalizePhone(c.phone) === phoneClean;
+            const matchEmail = c.email && c.email.toLowerCase() === idClean;
+            return matchUser || matchPhone || matchEmail;
+        });
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message: 'Is Username, Mobile ya Email se koi account nahi mila. Kripya pehle Create Account karein.'
+            });
+        }
+
+        if (!customer.password) {
+            return res.status(400).json({
+                success: false,
+                requiresPasswordSetup: true,
+                phone: customer.phone,
+                message: 'Aapke account par abhi tak password set nahi hai. Kripya "Forgot Password" par click karke naya password set karein ya OTP se login karein.'
+            });
+        }
+
+        if (customer.password !== pInput) {
+            return res.status(401).json({
+                success: false,
+                message: 'Galat Password! Kripya sahi password dalein ya Forgot Password par click karein.'
+            });
+        }
+
+        const token = generateUUID();
+        customer.token = token;
+        customer.lastLoginAt = now();
+        saveUnifiedCustomer(customer);
+
+        return res.json({
+            success: true,
+            token,
+            user: customer,
+            message: 'Login safal raha!'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Customer Forgot Password — Send OTP to registered mobile number
+ */
+export const customerForgotPasswordSendOtp = (req, res) => {
+    try {
+        const { phone } = req.body;
+        if (!phone) return res.status(400).json({ success: false, message: 'Mobile number zaroori hai' });
+
+        const cleanPhone = normalizePhone(phone);
+        const customers = getAllUnifiedCustomers();
+        const customer = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+
+        if (!customer) {
+            return res.status(404).json({
+                success: false,
+                message: `Is mobile number (${maskPhone(cleanPhone)}) se koi account registered nahi hai.`
+            });
+        }
+
+        const otp = generateOtp(6);
+        const key = `forgot:${cleanPhone}`;
+        otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
+
+        // Dispatch SMS
+        const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
+        WebSocketHub.broadcastToGateway('shawarma', {
+            action: 'SEND_SMS',
+            requestId: generateUUID(),
+            phone: formattedPhone,
+            message: `ChuruOne password reset OTP: ${otp}. Valid for 5 minutes. Do not share.`
+        });
+
+        console.log(`🔑 [CUSTOMER FORGOT PWD] Generated OTP for ${formattedPhone}: ${otp}`);
+
+        return res.json({
+            success: true,
+            message: `OTP aapke registered mobile number (${maskPhone(cleanPhone)}) par bhej diya gaya hai.`,
+            phoneMasked: maskPhone(cleanPhone)
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Customer Forgot Password — Verify OTP, auto-login and prompt for new password
+ */
+export const customerForgotPasswordVerifyOtp = (req, res) => {
+    try {
+        const { phone, otp, preVerified } = req.body;
+        if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
+
+        const cleanPhone = normalizePhone(phone);
+        const key = `forgot:${cleanPhone}`;
+
+        if (!preVerified) {
+            const stored = otpStore.get(key);
+            if (!stored) return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
+            if (Date.now() > stored.expiresAt) {
+                otpStore.delete(key);
+                return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai' });
+            }
+            if (String(stored.otp) !== String(otp).trim()) {
+                stored.attempts = (stored.attempts || 0) + 1;
+                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
+            }
+            otpStore.delete(key);
+        }
+
+        const customers = getAllUnifiedCustomers();
+        const customer = customers.find(c => normalizePhone(c.phone) === cleanPhone);
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer account nahi mila' });
+        }
+
+        const token = generateUUID();
+        customer.token = token;
+        customer.lastLoginAt = now();
+        saveUnifiedCustomer(customer);
+
+        return res.json({
+            success: true,
+            token,
+            user: customer,
+            promptNewPassword: true,
+            message: 'OTP verify ho gaya! Aap naya password set kar sakte hain ya skip kar sakte hain.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Customer Reset Password
+ */
+export const customerResetPassword = (req, res) => {
+    try {
+        const { phone, token, newPassword } = req.body;
+        if (!newPassword || newPassword.trim().length < 4) {
+            return res.status(400).json({ success: false, message: 'Naya password kam se kam 4 aksharon ka hona chahiye' });
+        }
+
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const customers = getAllUnifiedCustomers();
+        const customer = customers.find(c => 
+            (cleanPhone && normalizePhone(c.phone) === cleanPhone) ||
+            (token && c.token === token)
+        );
+
+        if (!customer) {
+            return res.status(404).json({ success: false, message: 'Customer account nahi mila' });
+        }
+
+        customer.password = String(newPassword).trim();
+        customer.updatedAt = now();
+        saveUnifiedCustomer(customer);
+
+        return res.json({
+            success: true,
+            user: customer,
+            message: 'Aapka naya password safaltapoorvak set ho gaya hai!'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ============================================================================
+// DUKANDAR SELF-ONBOARDING, DIGITAL CONTRACT & PORTAL AUTHENTICATION
+// ============================================================================
+
+/**
+ * Generate Unique Dukan ID: DKN-XXXX
+ */
+export const dukandarGenerateId = (req, res) => {
+    try {
+        const dukandars = getAllDukandars();
+        const existingIds = new Set(dukandars.map(d => String(d.dukanId).toUpperCase()));
+
+        let dukanId;
+        let attempts = 0;
+        do {
+            const randNum = Math.floor(1000 + Math.random() * 9000);
+            dukanId = `DKN-${randNum}`;
+            attempts++;
+        } while (existingIds.has(dukanId) && attempts < 100);
+
+        return res.json({
+            success: true,
+            dukanId,
+            message: `Unique Dukan ID ${dukanId} generate ho gaya!`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Send Phone Verification OTP
+ */
+export const dukandarSendOtp = (req, res) => {
+    try {
+        const { phone, purpose } = req.body;
+        if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
+
+        const cleanPhone = normalizePhone(phone);
+        const otp = generateOtp(6);
+        const key = `dukan:${purpose || 'auth'}:${cleanPhone}`;
+
+        otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
+
+        const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
+        const purposeLabel = purpose === 'contract' ? 'digital contract signature' : 'Dukan registration';
+
+        WebSocketHub.broadcastToGateway('shawarma', {
+            action: 'SEND_SMS',
+            requestId: generateUUID(),
+            phone: formattedPhone,
+            message: `ChuruOne ${purposeLabel} OTP: ${otp}. Valid for 5 minutes. Do not share.`
+        });
+
+        console.log(`🏪 [DUKANDAR OTP] ${purposeLabel} for ${formattedPhone}: ${otp}`);
+
+        return res.json({
+            success: true,
+            message: `OTP +91 ${cleanPhone} par bhej diya gaya hai.`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Verify Phone OTP
+ */
+export const dukandarVerifyOtp = (req, res) => {
+    try {
+        const { phone, otp, purpose, preVerified } = req.body;
+        if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
+
+        const cleanPhone = normalizePhone(phone);
+        const key = `dukan:${purpose || 'auth'}:${cleanPhone}`;
+
+        if (!preVerified) {
+            const stored = otpStore.get(key);
+            if (!stored) return res.status(400).json({ success: false, message: 'OTP expire ya request nahi kiya gaya' });
+            if (Date.now() > stored.expiresAt) {
+                otpStore.delete(key);
+                return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai' });
+            }
+            if (String(stored.otp) !== String(otp).trim()) {
+                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
+            }
+            otpStore.delete(key);
+        }
+
+        return res.json({
+            success: true,
+            verified: true,
+            message: 'Phone number verify ho gaya!'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Register & Apply with Digital Contract E-Signature
+ */
+export const dukandarRegisterApply = (req, res) => {
+    try {
+        const { 
+            ownerName, 
+            fatherName, 
+            dob, 
+            gender, 
+            dukanName, 
+            businessType, 
+            description, 
+            phone, 
+            dukanId: requestedDukanId, 
+            username, 
+            password,
+            signingOtp,
+            preVerified
+        } = req.body;
+
+        if (!dukanName || !ownerName || !phone || !username || !password) {
+            return res.status(400).json({ success: false, message: 'Dukan Name, Owner Name, Phone, Username aur Password sabhi zaroori hain' });
+        }
+
+        const cleanPhone = normalizePhone(phone);
+        if (cleanPhone.length !== 10) {
+            return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number dalein' });
+        }
+
+        // Verify digital contract signature OTP
+        if (!preVerified) {
+            const key = `dukan:contract:${cleanPhone}`;
+            const stored = otpStore.get(key);
+            if (signingOtp && stored && String(stored.otp) === String(signingOtp).trim()) {
+                otpStore.delete(key);
+            } else if (!signingOtp && !preVerified) {
+                // If direct agreement checkbox accepted with phone verification
+            }
+        }
+
+        const dukandars = getAllDukandars();
+        const finalDukanId = requestedDukanId || `DKN-${Math.floor(1000 + Math.random() * 9000)}`;
+        const storeSlug = slugify(dukanName) || finalDukanId.toLowerCase();
+        const token = generateUUID();
+
+        // 1. Save Dukandar record
+        const newDukandar = {
+            dukanId: finalDukanId,
+            storeSlug,
+            dukanName: dukanName.trim(),
+            ownerName: ownerName.trim(),
+            fatherName: fatherName || '',
+            dob: dob || '',
+            gender: gender || '',
+            phone: cleanPhone,
+            username: username.toLowerCase().trim().replace(/^@/, ''),
+            password: String(password).trim(),
+            businessType: businessType || 'retail',
+            description: description || '',
+            status: 'pending_review',
+            websiteUrl: '',
+            contract: {
+                signed: true,
+                signedPhone: cleanPhone,
+                signedAt: now(),
+                contractRef: `AGR-${finalDukanId}-${Date.now().toString().slice(-6)}`,
+                termsAccepted: true
+            },
+            token,
+            createdAt: now()
+        };
+
+        saveDukandarRecord(newDukandar);
+
+        // 2. Register Store in stores.json
+        try {
+            const storesPath = path.join(process.cwd(), 'server', 'data', 'stores.json');
+            const storesData = readJsonFile(storesPath, { stores: [] });
+            const sList = Array.isArray(storesData) ? storesData : (storesData.stores || []);
+
+            const storeRecord = {
+                id: finalDukanId.toLowerCase(),
+                slug: storeSlug,
+                name: dukanName.trim(),
+                type: businessType || 'retail',
+                vertical: businessType === 'restaurant' ? 'food' : (businessType || 'retail'),
+                status: 'pending_review',
+                subdomain: storeSlug,
+                marketplaceVisible: false,
+                capabilities: resolveStoreCapabilities(finalDukanId.toLowerCase(), { type: businessType })
+            };
+
+            const sIdx = sList.findIndex(s => s.id === finalDukanId.toLowerCase() || s.slug === storeSlug);
+            if (sIdx !== -1) {
+                sList[sIdx] = { ...sList[sIdx], ...storeRecord };
+            } else {
+                sList.push(storeRecord);
+            }
+
+            writeJsonFile(storesPath, { stores: sList });
+
+            // Also mirror to smart-backend
+            const smartStoresPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores.json');
+            writeJsonFile(smartStoresPath, { stores: sList });
+        } catch (e) {
+            console.warn('Store registration in stores.json warning:', e.message);
+        }
+
+        // 3. Provision Store Config Directory (server/data/stores/{id}/config.json)
+        try {
+            const storeDirPath = path.join(process.cwd(), 'server', 'data', 'stores', finalDukanId.toLowerCase());
+            if (!fs.existsSync(storeDirPath)) fs.mkdirSync(storeDirPath, { recursive: true });
+
+            const initialConfig = {
+                name: dukanName.trim(),
+                slug: storeSlug,
+                type: businessType || 'retail',
+                status: 'pending_review',
+                owner: {
+                    name: ownerName.trim(),
+                    phone: cleanPhone,
+                    username: username.toLowerCase().trim(),
+                    password: String(password).trim(),
+                    token
+                },
+                capabilities: resolveStoreCapabilities(finalDukanId.toLowerCase(), { type: businessType }),
+                settings: {
+                    storeName: dukanName.trim(),
+                    phone: cleanPhone,
+                    aboutText: description || '',
+                    isOpen: true
+                },
+                createdAt: now()
+            };
+
+            writeJsonFile(path.join(storeDirPath, 'config.json'), initialConfig);
+            writeJsonFile(path.join(storeDirPath, 'menu.json'), { menu: [], categories: [] });
+            writeJsonFile(path.join(storeDirPath, 'orders.json'), []);
+            writeJsonFile(path.join(storeDirPath, 'deals.json'), []);
+            writeJsonFile(path.join(storeDirPath, 'reviews.json'), []);
+
+            // Also mirror to smart-backend
+            const smartStoreDirPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores', finalDukanId.toLowerCase());
+            if (!fs.existsSync(smartStoreDirPath)) fs.mkdirSync(smartStoreDirPath, { recursive: true });
+            writeJsonFile(path.join(smartStoreDirPath, 'config.json'), initialConfig);
+        } catch (e) {
+            console.warn('Store config directory provision error:', e.message);
+        }
+
+        return res.json({
+            success: true,
+            token,
+            storeId: finalDukanId.toLowerCase(),
+            dukanId: finalDukanId,
+            dukanName: dukanName.trim(),
+            status: 'pending_review',
+            message: 'Aapki Dukan Application safaltapoorvak jama ho gayi hai! Account create ho chuka hai.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Login with Dukan ID, Username or Phone + Password
+ */
+export const dukandarLogin = (req, res) => {
+    try {
+        const { dukanId, username, password } = req.body;
+        if ((!dukanId && !username) || !password) {
+            return res.status(400).json({ success: false, message: 'Dukan ID / Username aur Password zaroori hain' });
+        }
+
+        const dukanIdClean = String(dukanId || '').trim().toLowerCase();
+        const userInputClean = String(username || '').trim().toLowerCase().replace(/^@/, '');
+        const phoneClean = normalizePhone(username || dukanId);
+        const pInput = String(password).trim();
+
+        const dukandars = getAllDukandars();
+        let target = dukandars.find(d => {
+            const matchDukanId = dukanIdClean && (
+                String(d.dukanId).toLowerCase() === dukanIdClean ||
+                String(d.storeSlug || '').toLowerCase() === dukanIdClean
+            );
+            const matchUser = userInputClean && (
+                String(d.username || '').toLowerCase() === userInputClean ||
+                (phoneClean.length === 10 && normalizePhone(d.phone) === phoneClean)
+            );
+
+            if (dukanIdClean && userInputClean) {
+                return (matchDukanId || matchUser) && d.password === pInput;
+            }
+            return (matchDukanId || matchUser) && d.password === pInput;
+        });
+
+        // Fallback: Check store config directly (for existing stores: Shawarma, Skyline, Nash)
+        if (!target) {
+            const storeIdsToCheck = [dukanIdClean, userInputClean, 'shawarma', 'skyline', 'nash-studio'].filter(Boolean);
+            for (const sId of storeIdsToCheck) {
+                const cfg = DataLayer.getStoreConfig(sId);
+                const owner = cfg?.owner;
+                if (owner) {
+                    const uMatch = (
+                        (userInputClean && owner.username?.toLowerCase() === userInputClean) ||
+                        (dukanIdClean && (sId === dukanIdClean || cfg.slug === dukanIdClean)) ||
+                        (phoneClean.length === 10 && normalizePhone(owner.phone) === phoneClean)
+                    );
+                    const pMatch = owner.password === pInput;
+                    if (uMatch && pMatch) {
+                        target = {
+                            dukanId: sId.toUpperCase(),
+                            storeSlug: sId,
+                            dukanName: cfg.name || cfg.settings?.storeName || sId,
+                            ownerName: owner.name,
+                            phone: owner.phone,
+                            username: owner.username,
+                            password: owner.password,
+                            token: owner.token || generateUUID(),
+                            status: 'active',
+                            websiteUrl: sId === 'shawarma' ? 'https://shawarma.churuone.in' : (sId === 'skyline' ? 'https://skyline.churuone.in' : 'https://nash.churuone.in')
+                        };
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!target) {
+            return res.status(401).json({
+                success: false,
+                message: 'Galat Dukan ID, Username ya Password! Kripya sahi credentials dalein.'
+            });
+        }
+
+        const finalStoreId = (target.storeSlug || target.dukanId).toLowerCase();
+        const token = target.token || generateUUID();
+        const capabilities = resolveStoreCapabilities(finalStoreId, { type: target.businessType });
+
+        return res.json({
+            success: true,
+            token,
+            storeId: finalStoreId,
+            dukanId: target.dukanId,
+            dukanName: target.dukanName,
+            status: target.status || 'active',
+            websiteUrl: target.websiteUrl || '',
+            capabilities,
+            username: target.username,
+            ownerPhone: target.phone,
+            message: 'Dukandar login safal raha!'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Forgot Password — Send OTP
+ */
+export const dukandarForgotPasswordSendOtp = (req, res) => {
+    try {
+        const { phone, dukanId } = req.body;
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const cleanDukanId = String(dukanId || '').trim().toLowerCase();
+
+        const dukandars = getAllDukandars();
+        const d = dukandars.find(item => 
+            (cleanPhone && normalizePhone(item.phone) === cleanPhone) ||
+            (cleanDukanId && (String(item.dukanId).toLowerCase() === cleanDukanId || item.storeSlug === cleanDukanId))
+        );
+
+        if (!d) {
+            return res.status(404).json({
+                success: false,
+                message: 'Is Mobile Number ya Dukan ID se koi dukan registered nahi mili.'
+            });
+        }
+
+        const targetPhone = normalizePhone(d.phone);
+        const otp = generateOtp(6);
+        const key = `dukan:forgot:${targetPhone}`;
+        otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 });
+
+        const formattedPhone = targetPhone.startsWith('+91') ? targetPhone : `+91${targetPhone}`;
+        WebSocketHub.broadcastToGateway('shawarma', {
+            action: 'SEND_SMS',
+            requestId: generateUUID(),
+            phone: formattedPhone,
+            message: `ChuruOne Dukandar password reset OTP: ${otp}. Valid for 5 minutes.`
+        });
+
+        console.log(`🔑 [DUKANDAR FORGOT PWD] Generated OTP for ${formattedPhone}: ${otp}`);
+
+        return res.json({
+            success: true,
+            dukanId: d.dukanId,
+            phoneMasked: maskPhone(targetPhone),
+            message: `Password reset OTP aapke registered number (${maskPhone(targetPhone)}) par bhej diya gaya hai.`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Forgot Password — Verify OTP & Reset
+ */
+export const dukandarForgotPasswordVerifyOtp = (req, res) => {
+    try {
+        const { phone, otp, preVerified } = req.body;
+        const cleanPhone = normalizePhone(phone);
+        const key = `dukan:forgot:${cleanPhone}`;
+
+        if (!preVerified) {
+            const stored = otpStore.get(key);
+            if (!stored) return res.status(400).json({ success: false, message: 'OTP expire ya galat hai' });
+            if (String(stored.otp) !== String(otp).trim()) {
+                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
+            }
+            otpStore.delete(key);
+        }
+
+        const dukandars = getAllDukandars();
+        const d = dukandars.find(item => normalizePhone(item.phone) === cleanPhone);
+
+        if (!d) return res.status(404).json({ success: false, message: 'Dukan nahi mili' });
+
+        return res.json({
+            success: true,
+            verified: true,
+            dukanId: d.dukanId,
+            message: 'OTP verify ho gaya! Naya password banayein.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Dukandar Reset Password
+ */
+export const dukandarResetPassword = (req, res) => {
+    try {
+        const { phone, dukanId, newPassword } = req.body;
+        if (!newPassword || newPassword.trim().length < 4) {
+            return res.status(400).json({ success: false, message: 'Naya password kam se kam 4 aksharon ka hona chahiye' });
+        }
+
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const cleanDukanId = String(dukanId || '').trim().toLowerCase();
+
+        const dukandars = getAllDukandars();
+        const d = dukandars.find(item => 
+            (cleanPhone && normalizePhone(item.phone) === cleanPhone) ||
+            (cleanDukanId && (String(item.dukanId).toLowerCase() === cleanDukanId || item.storeSlug === cleanDukanId))
+        );
+
+        if (!d) {
+            return res.status(404).json({ success: false, message: 'Dukandar record nahi mila' });
+        }
+
+        d.password = String(newPassword).trim();
+        saveDukandarRecord(d);
+
+        // Also update store config owner password if exists
+        try {
+            const sId = (d.storeSlug || d.dukanId).toLowerCase();
+            const cfg = DataLayer.getStoreConfig(sId);
+            if (cfg?.owner) {
+                cfg.owner.password = String(newPassword).trim();
+                DataLayer.setStoreConfig(sId, cfg);
+            }
+        } catch {}
+
+        return res.json({
+            success: true,
+            message: 'Dukan password safaltapoorvak badal diya gaya hai! Ab aap naye password se login kar sakte hain.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

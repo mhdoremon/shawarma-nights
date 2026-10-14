@@ -4,7 +4,7 @@ import { requireAdmin } from '../../middleware/auth.js';
 
 const router = Router();
 
-// Customer Auth
+// Customer Auth (Legacy & Mobile OTP)
 router.post('/send-otp', service.sendOtp);
 router.get('/sim-gateway/status', service.getGatewayStatus);
 router.post('/verify-otp', service.verifyOtp);
@@ -15,6 +15,24 @@ router.get('/me', service.getMe);
 router.get('/check-account', service.checkAccount);
 router.post('/google', service.googleLogin);
 router.post('/direct', service.directLogin);
+
+// Unified Social Commerce Customer Auth (Unique Profile, Username, DOB, Strict Phone-Email Binding, Password & Forgot Password)
+router.post('/customer/check-account', service.customerCheckAccount);
+router.post('/customer/register', service.customerRegister);
+router.post('/customer/login', service.customerLogin);
+router.post('/customer/forgot-password/send-otp', service.customerForgotPasswordSendOtp);
+router.post('/customer/forgot-password/verify-otp', service.customerForgotPasswordVerifyOtp);
+router.post('/customer/reset-password', service.customerResetPassword);
+
+// Dukandar Self-Onboarding & Portal Auth (Unique Dukan ID, Digital Contract E-Sign, Multi-category Setup, Forgot Password)
+router.post('/dukandar/generate-id', service.dukandarGenerateId);
+router.post('/dukandar/send-otp', service.dukandarSendOtp);
+router.post('/dukandar/verify-otp', service.dukandarVerifyOtp);
+router.post('/dukandar/register-apply', service.dukandarRegisterApply);
+router.post('/dukandar/login', service.dukandarLogin);
+router.post('/dukandar/forgot-password/send-otp', service.dukandarForgotPasswordSendOtp);
+router.post('/dukandar/forgot-password/verify-otp', service.dukandarForgotPasswordVerifyOtp);
+router.post('/dukandar/reset-password', service.dukandarResetPassword);
 
 // Admin Auth
 router.get('/admin/status', service.getAdminStatus);

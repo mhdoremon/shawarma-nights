@@ -296,6 +296,15 @@ export default function MasterAuth() {
               <ArrowRight className="w-3.5 h-3.5 stroke-[1.5]" />
             </button>
 
+            <div className="pt-2 text-center">
+              <a
+                href="/auth?role=dukandar&mode=register"
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline"
+              >
+                Nayi dukan kholni hai? Register & Apply karein
+              </a>
+            </div>
+
           </form>
         ) : (
           /* ========================================================= */
