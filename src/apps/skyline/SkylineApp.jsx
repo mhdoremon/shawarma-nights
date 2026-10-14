@@ -959,49 +959,6 @@ export default function SkylineApp() {
               )}
             </button>
 
-            {/* ChuruOne SSO Authentication: Sign In & Sign Up */}
-            {currentUser ? (
-              isUserPhoneVerified ? (
-                <button
-                  onClick={() => window.location.href = '/profile'}
-                  className="flex items-center gap-2 text-xs text-stone-800 hover:text-black py-1 px-2.5 rounded-full border border-stone-200 bg-stone-50 cursor-pointer transition-all"
-                  title="ChuruOne Universal Profile"
-                >
-                  <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
-                    {(currentUser.name || 'U')[0]}
-                  </div>
-                  <span className="hidden sm:inline font-medium max-w-[80px] truncate text-xs">
-                    {currentUser.name?.split(' ')[0] || 'User'}
-                  </span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => navigateToChuruOneAuth('login')}
-                  className="flex items-center gap-1.5 text-xs text-amber-950 bg-amber-50 hover:bg-amber-100 py-1 px-2.5 rounded-full border border-amber-300 cursor-pointer transition-all animate-pulse"
-                  title="Mobile number verification mandatory for Skyline"
-                >
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span className="font-bold text-[11px]">Verify Mobile No.</span>
-                </button>
-              )
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => navigateToChuruOneAuth('login')}
-                  className="text-stone-600 hover:text-black transition-colors text-xs font-medium py-1 px-2.5 cursor-pointer"
-                  title="Sign In with ChuruOne SSO"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => navigateToChuruOneAuth('signup')}
-                  className="bg-black hover:bg-stone-800 text-white transition-all text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer shadow-xs"
-                  title="Sign Up with ChuruOne SSO"
-                >
-                  Sign Up
-                </button>
-              </div>
-            )}
 
             {/* Mobile Menu Icon */}
             <button

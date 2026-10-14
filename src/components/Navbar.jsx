@@ -56,32 +56,8 @@ export default function Navbar({ onOpenFranchise }) {
           </div>
         </div>
 
-        {/* RIGHT: Login / User Profile */}
-        <div className="flex items-center justify-end flex-1 gap-2 sm:gap-3">
-          
-          {isAuthenticated ? (
-            <button
-              onClick={() => window.location.href = '/profile'}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white text-[#DC2626] font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
-              title="ChuruOne Universal Profile"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#DC2626] text-white font-black text-[10px] flex items-center justify-center">
-                {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <span className="truncate max-w-[60px] sm:max-w-[120px]">
-                {currentUser.name ? currentUser.name.split(' ')[0] : 'Profile'}
-              </span>
-            </button>
-          ) : (
-            <button
-              onClick={() => openAuthModal('phone')}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white text-[#DC2626] font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
-            >
-              <User className="w-4 h-4 stroke-[2.2]" />
-              <span>Login</span>
-            </button>
-          )}
-        </div>
+        {/* RIGHT: Balancing spacer (Profile is in bottom nav dock) */}
+        <div className="flex items-center justify-end flex-1" />
 
       </div>
     </header>

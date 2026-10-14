@@ -763,31 +763,8 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
       
       {/* ─── High-Fashion Sticky Navigation Bar ────────────────── */}
       <nav style={S.navStickyHeader}>
-        <div style={S.wrapNav}>
-          {/* User Sign In / Profile */}
-          <div 
-            style={S.navIconBtn} 
-            onClick={user ? () => window.location.href = '/profile' : handleGoogleAuth} 
-            title={user ? (user.displayName || user.name) : "Sign In with ChuruOne ID"}
-          >
-            {user ? (
-              <div style={{display:"flex", alignItems:"center", gap:8}}>
-                <img 
-                  src={user.photoURL || user.picture || "/images/hero_fallback.jpg"} 
-                  alt="" 
-                  style={{width:24, height:24, borderRadius:"50%", border:"1px solid rgba(255,255,255,0.2)"}} 
-                />
-                <span style={{fontSize:11, fontWeight:600, color:"var(--paper)", display:"none", textTransform:"uppercase", letterSpacing:"0.1em"}} className="nash-user-name">
-                  {(user.displayName || user.name || "User").split(" ")[0]}
-                </span>
-              </div>
-            ) : (
-              <div style={{display:"flex", alignItems:"center", gap:6}}>
-                <MinimalUserIcon />
-                <span style={{fontSize:10, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase", color:"var(--paper)"}}>ID</span>
-              </div>
-            )}
-          </div>
+          {/* Left spacer for centered brand */}
+          <div style={{ width: 32 }} />
 
           {/* Centered Brand Mark */}
           <div style={S.navBrandText} onClick={() => window.scrollTo({top:0, behavior:"smooth"})}>
@@ -814,7 +791,6 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               <span>BOOK</span>
             </button>
           </div>
-        </div>
       </nav>
 
       {/* ─── Video Hero Section (Strictly Preserving Video Player) ─── */}

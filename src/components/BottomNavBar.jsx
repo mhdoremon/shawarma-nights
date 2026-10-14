@@ -2,6 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Store, Compass, User, LayoutDashboard, ExternalLink, Sparkles, ShoppingBag } from 'lucide-react';
 
+const STORE_CATALOG = {
+  'shawarma': {
+    id: 'shawarma',
+    shortName: 'Shawarma',
+    name: 'Shawarma Nights',
+    icon: '🍔',
+    url: '/shawarma'
+  },
+  'skyline': {
+    id: 'skyline',
+    shortName: 'Skyline',
+    name: 'Skyline Outfits',
+    icon: '👕',
+    url: '/skyline'
+  },
+  'nash': {
+    id: 'nash-studio',
+    shortName: 'Nash Studio',
+    name: 'Nash Studio',
+    icon: '✂️',
+    url: '/nash'
+  },
+  'nash-studio': {
+    id: 'nash-studio',
+    shortName: 'Nash Studio',
+    name: 'Nash Studio',
+    icon: '✂️',
+    url: '/nash'
+  }
+};
+
 export default function BottomNavBar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -13,6 +44,42 @@ export default function BottomNavBar() {
   const [dukandar, setDukandar] = useState(null);
   // Customer session detection
   const [customer, setCustomer] = useState(null);
+
+  // Active / Most Recently Visited Shop
+  const [activeShop, setActiveShop] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
+      if (saved) return saved;
+    } catch {}
+    return STORE_CATALOG['shawarma']; // Default to Shawarma Nights flagship
+  });
+
+  // Detect and track shop visits dynamically
+  useEffect(() => {
+    let detected = null;
+    if (path.startsWith('/shawarma') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
+      detected = STORE_CATALOG['shawarma'];
+    } else if (path.startsWith('/skyline') || storeParam === 'skyline' || storeParam === 'skyline-outfits') {
+      detected = STORE_CATALOG['skyline'];
+    } else if (path.startsWith('/nash') || path.startsWith('/salon') || storeParam === 'nash' || storeParam === 'nash-studio') {
+      detected = STORE_CATALOG['nash-studio'];
+    } else if (storeParam) {
+      detected = {
+        id: storeParam,
+        shortName: storeParam.charAt(0).toUpperCase() + storeParam.slice(1, 9),
+        name: storeParam,
+        icon: '🏪',
+        url: `/?storeId=${storeParam}`
+      };
+    }
+
+    if (detected) {
+      setActiveShop(detected);
+      try {
+        localStorage.setItem('churuone_active_shop', JSON.stringify(detected));
+      } catch {}
+    }
+  }, [path, storeParam]);
 
   useEffect(() => {
     const readSessions = () => {
@@ -34,11 +101,15 @@ export default function BottomNavBar() {
       } catch {
         setCustomer(null);
       }
+
+      try {
+        const savedShop = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
+        if (savedShop) setActiveShop(savedShop);
+      } catch {}
     };
 
     readSessions();
     window.addEventListener('storage', readSessions);
-    // Custom event to update navbar instantly when user uploads avatar or logs in
     window.addEventListener('churuone_user_updated', readSessions);
     return () => {
       window.removeEventListener('storage', readSessions);
@@ -52,50 +123,31 @@ export default function BottomNavBar() {
   }
 
   // Active state checks
-  const isFeedActive = (path === '/' || path === '' || path === '/churuone' || path === '/shawarma' || path === '/skyline' || path === '/nash' || Boolean(storeParam)) && !path.startsWith('/explore') && !path.startsWith('/profile') && !path.startsWith('/master') && !path.startsWith('/admin') && !path.startsWith('/auth');
+  const isCurrentShopActive = Boolean(
+    activeShop && (
+      (activeShop.id === 'shawarma' && (path.startsWith('/shawarma') || storeParam === 'shawarma')) ||
+      (activeShop.id === 'skyline' && (path.startsWith('/skyline') || storeParam === 'skyline')) ||
+      (activeShop.id === 'nash-studio' && (path.startsWith('/nash') || storeParam === 'nash' || storeParam === 'nash-studio')) ||
+      (storeParam && storeParam === activeShop.id)
+    )
+  );
+
+  const isFeedActive = (path === '/' || path === '' || path === '/churuone') && !isCurrentShopActive && !path.startsWith('/explore') && !path.startsWith('/profile') && !path.startsWith('/master') && !path.startsWith('/admin') && !path.startsWith('/auth');
   const isExploreActive = path.startsWith('/explore');
   const isProfileActive = path.startsWith('/profile') || (path.startsWith('/auth') && !dukandar);
   const isDashboardActive = path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar');
 
   // Customer Avatar source
   const customerAvatar = customer?.picture || customer?.photoURL || customer?.avatar;
-  const customerInitials = (customer?.name || 'U').charAt(0).toUpperCase();
-
-  // Open Dukandar Live Website
-  const handleOpenMyDukan = () => {
-    if (!dukandar) return;
-    const targetSlug = (dukandar.storeSlug || dukandar.storeId || dukandar.dukanId || '').toLowerCase();
-    
-    // If pending review, direct to website preview with note
-    if (dukandar.status === 'pending_review') {
-      if (path.startsWith('/master')) {
-        alert('Aapki dukan abhi technical review me hai. ChuruOne tech team aapki custom website taiyar kar rahi hai.');
-      } else {
-        navigate(`/master?storeId=${targetSlug}`);
-      }
-      return;
-    }
-
-    // If active store
-    if (targetSlug === 'shawarma') {
-      navigate('/shawarma');
-    } else if (targetSlug === 'skyline') {
-      navigate('/skyline');
-    } else if (targetSlug === 'nash' || targetSlug === 'nash-studio') {
-      navigate('/nash');
-    } else {
-      navigate(`/?storeId=${targetSlug}`);
-    }
-  };
 
   return (
     <div className="fixed bottom-3 inset-x-0 z-50 flex justify-center pointer-events-none px-3 sm:px-4">
       <nav 
         aria-label="Bottom Navigation"
-        className="pointer-events-auto w-full max-w-md bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-full px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/5 flex items-center justify-between transition-all"
+        className="pointer-events-auto w-full max-w-md bg-zinc-950/92 backdrop-blur-2xl border border-white/10 rounded-full px-3 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.55)] ring-1 ring-white/5 flex items-center justify-between transition-all"
       >
         {/* ========================================================= */}
-        {/* TAB 1: FEED / SHOPS MARKETPLACE                           */}
+        {/* TAB 1: FEED / ALL SHOPS MARKETPLACE                        */}
         {/* ========================================================= */}
         <button
           onClick={() => navigate('/')}
@@ -131,28 +183,33 @@ export default function BottomNavBar() {
         </button>
 
         {/* ========================================================= */}
-        {/* DUKANDAR SPECIAL: APNI DUKAN (LIVE STORE VIEW BUTTON)     */}
+        {/* TAB 3: ACTIVE DUKAN SWITCHER (NEXT TO PROFILE)            */}
+        {/* Instantly switch between Profile and the currently viewed shop */}
         {/* ========================================================= */}
-        {dukandar && (
+        {activeShop && (
           <button
-            onClick={handleOpenMyDukan}
-            title="Apni live dukan website dekhein"
-            className="flex-1 flex flex-col items-center justify-center py-0.5 px-2 cursor-pointer transition-all active:scale-95 group"
+            onClick={() => navigate(activeShop.url)}
+            title={`${activeShop.name} par jayein`}
+            className={`flex-1 flex flex-col items-center justify-center py-1 transition-all rounded-full cursor-pointer relative ${
+              isCurrentShopActive ? 'text-amber-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
           >
-            <div className="bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white px-3 py-1 rounded-full shadow-lg shadow-orange-500/30 flex items-center gap-1.5 border border-white/20">
-              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span className="text-[10px] font-black tracking-tight uppercase whitespace-nowrap">
-                Apni Dukan
+            <div className="relative">
+              <span className={`text-base leading-none transition-transform block ${isCurrentShopActive ? 'scale-125' : 'scale-100 opacity-90'}`}>
+                {activeShop.icon || '🏪'}
               </span>
+              {isCurrentShopActive && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full shadow-[0_0_8px_#f59e0b]" />
+              )}
             </div>
-            <span className="text-[9px] text-zinc-400 mt-0.5 group-hover:text-zinc-200 transition-colors">
-              Live View
+            <span className="text-[10px] tracking-tight mt-0.5 truncate max-w-[65px]">
+              {activeShop.shortName || activeShop.name}
             </span>
           </button>
         )}
 
         {/* ========================================================= */}
-        {/* TAB 3: DUKANDAR DASHBOARD OR CUSTOMER PROFILE              */}
+        {/* TAB 4: DUKANDAR DASHBOARD OR CUSTOMER PROFILE              */}
         {/* ========================================================= */}
         {dukandar ? (
           <button
