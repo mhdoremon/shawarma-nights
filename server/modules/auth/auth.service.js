@@ -797,6 +797,13 @@ export function saveUnifiedCustomer(customer) {
         writeJsonFile(smartPath, customers);
     } catch {}
 
+    // Direct Cloud MongoDB Atlas Sync
+    try {
+        if (typeof DataLayer.persistDirectCustomer === 'function') {
+            DataLayer.persistDirectCustomer(customer);
+        }
+    } catch {}
+
     return idx !== -1 ? customers[idx] : customer;
 }
 
@@ -823,8 +830,19 @@ export function saveDukandarRecord(dukandar) {
     writeJsonFile(DUKANDARS_FILE, payload);
 
     try {
+        DataLayer.writePlatform('dukandars', payload);
+    } catch {}
+
+    try {
         const smartPath = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
         writeJsonFile(smartPath, payload);
+    } catch {}
+
+    // Direct Cloud MongoDB Atlas Sync
+    try {
+        if (typeof DataLayer.persistDirectDukandar === 'function') {
+            DataLayer.persistDirectDukandar(dukandar);
+        }
     } catch {}
 
     return idx !== -1 ? dukandars[idx] : dukandar;

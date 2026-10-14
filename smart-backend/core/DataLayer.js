@@ -372,7 +372,8 @@ function readPlatform(fileName) {
  */
 function writePlatform(fileName, data) {
   ensureDir(config.PLATFORM_DIR);
-  const filePath = path.join(config.PLATFORM_DIR, fileName.endsWith('.json') ? fileName : `${fileName}.json`);
+  const cleanName = fileName.endsWith('.json') ? fileName.replace('.json', '') : fileName;
+  const filePath = path.join(config.PLATFORM_DIR, `${cleanName}.json`);
   try {
     const tmpPath = filePath + '.tmp';
     fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf-8');
@@ -380,6 +381,8 @@ function writePlatform(fileName, data) {
   } catch (err) {
     console.error(`❌ [DataLayer] Platform write error: ${fileName}:`, err.message);
   }
+  // Persist to MongoDB Atlas platform collection
+  persistToMongo('platform', cleanName, data);
 }
 
 // ─── MongoDB Atlas Cloud Integration ──────────────────────────
@@ -399,6 +402,46 @@ function persistToMongo(storeId, fileName, data) {
 }
 
 /**
+ * Persist unified customer directly to MongoDB cloud collection.
+ */
+async function persistDirectCustomer(customer) {
+  if (!isMongoConnected || !mongoDb) return;
+  try {
+    const filter = customer.phone 
+      ? { phone: customer.phone } 
+      : (customer.email ? { email: customer.email.toLowerCase() } : { id: customer.id });
+    await mongoDb.collection('unified_customers').updateOne(
+      filter,
+      { $set: { ...customer, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    console.log(`☁️ [MongoDB Atlas] Successfully synced customer (${customer.phone || customer.email}) to cloud.`);
+  } catch (err) {
+    console.error('❌ [MongoDB Atlas] Customer save error:', err.message);
+  }
+}
+
+/**
+ * Persist dukandar directly to MongoDB cloud collection.
+ */
+async function persistDirectDukandar(dukandar) {
+  if (!isMongoConnected || !mongoDb) return;
+  try {
+    const filter = dukandar.dukanId 
+      ? { dukanId: dukandar.dukanId } 
+      : { phone: dukandar.phone };
+    await mongoDb.collection('dukandars').updateOne(
+      filter,
+      { $set: { ...dukandar, updatedAt: new Date().toISOString() } },
+      { upsert: true }
+    );
+    console.log(`☁️ [MongoDB Atlas] Successfully synced dukandar (${dukandar.dukanId}) to cloud.`);
+  } catch (err) {
+    console.error('❌ [MongoDB Atlas] Dukandar save error:', err.message);
+  }
+}
+
+/**
  * Sync MongoDB data with local cache & seed if empty.
  */
 async function syncMongoData() {
@@ -412,7 +455,33 @@ async function syncMongoData() {
       for (const doc of docs) {
         const { storeId, collection: colName, data } = doc;
         if (storeId && colName && data !== undefined) {
-          // If local disk file has MORE items (e.g. freshly deployed catalog), prioritize local and update Mongo
+          // Handle platform-level collections (customers, dukandars)
+          if (storeId === 'platform') {
+            if (colName === 'customers' || colName === 'customers.json') {
+              const custArr = Array.isArray(data) ? data : (data?.customers || []);
+              if (custArr.length > 0) {
+                try {
+                  const custFile = path.join(process.cwd(), 'server', 'data', 'customers.json');
+                  fs.writeFileSync(custFile, JSON.stringify(custArr, null, 2), 'utf-8');
+                  const smartCust = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
+                  fs.writeFileSync(smartCust, JSON.stringify(custArr, null, 2), 'utf-8');
+                } catch {}
+              }
+            } else if (colName === 'dukandars' || colName === 'dukandars.json') {
+              const dukanArr = Array.isArray(data) ? data : (data?.dukandars || []);
+              if (dukanArr.length > 0) {
+                try {
+                  const dukanFile = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
+                  fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: dukanArr }, null, 2), 'utf-8');
+                  const smartDukan = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
+                  fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: dukanArr }, null, 2), 'utf-8');
+                } catch {}
+              }
+            }
+            continue;
+          }
+
+          // Store-specific files
           const filePath = getFilePath(storeId, colName);
           let localData = null;
           try {
@@ -424,18 +493,7 @@ async function syncMongoData() {
           const localItems = Array.isArray(localData) ? localData : (Array.isArray(localData?.menu) ? localData.menu : []);
           const mongoItems = Array.isArray(data) ? data : (Array.isArray(data?.menu) ? data.menu : []);
 
-          // Prevent resurrecting deleted customer records from Mongo if local is empty/reset
-          if (colName === 'customers.json' || colName === 'customers') {
-            if (Array.isArray(localData) && localData.length === 0) {
-              if (!cache[storeId]) cache[storeId] = {};
-              cache[storeId][colName] = [];
-              persistToMongo(storeId, colName, []);
-              console.log(`🧹 [MongoDB Atlas] Preserved empty customer reset for store "${storeId}". Mongo synced.`);
-              continue;
-            }
-          }
-
-          if (localItems.length > mongoItems.length) {
+          if (localItems.length > mongoItems.length && colName !== 'customers' && colName !== 'customers.json') {
             if (!cache[storeId]) cache[storeId] = {};
             cache[storeId][colName] = localData;
             persistToMongo(storeId, colName, localData);
@@ -454,7 +512,54 @@ async function syncMongoData() {
         }
       }
       console.log(`📦 [MongoDB Atlas] Loaded ${docs.length} collection document(s) into memory cache.`);
-    } else {
+    }
+
+    // Also sync from dedicated collections: unified_customers and dukandars
+    try {
+      const uCusts = await mongoDb.collection('unified_customers').find({}).toArray();
+      if (uCusts && uCusts.length > 0) {
+        const custFile = path.join(process.cwd(), 'server', 'data', 'customers.json');
+        const smartCust = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
+        let existing = [];
+        try { if (fs.existsSync(custFile)) existing = JSON.parse(fs.readFileSync(custFile, 'utf-8')); } catch {}
+        if (!Array.isArray(existing)) existing = [];
+        for (const uc of uCusts) {
+          const { _id, ...clean } = uc;
+          const match = existing.findIndex(c => (clean.phone && c.phone === clean.phone) || (clean.email && c.email === clean.email));
+          if (match !== -1) existing[match] = { ...existing[match], ...clean };
+          else existing.push(clean);
+        }
+        fs.writeFileSync(custFile, JSON.stringify(existing, null, 2), 'utf-8');
+        try { fs.writeFileSync(smartCust, JSON.stringify(existing, null, 2), 'utf-8'); } catch {}
+        console.log(`📦 [MongoDB Atlas] Restored ${uCusts.length} customer(s) from unified_customers collection.`);
+      }
+    } catch (err) {
+      console.error('Mongo unified_customers sync error:', err.message);
+    }
+
+    try {
+      const uDukans = await mongoDb.collection('dukandars').find({}).toArray();
+      if (uDukans && uDukans.length > 0) {
+        const dukanFile = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
+        const smartDukan = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
+        let existingD = [];
+        try { if (fs.existsSync(dukanFile)) existingD = JSON.parse(fs.readFileSync(dukanFile, 'utf-8'))?.dukandars || []; } catch {}
+        if (!Array.isArray(existingD)) existingD = [];
+        for (const ud of uDukans) {
+          const { _id, ...clean } = ud;
+          const match = existingD.findIndex(d => clean.dukanId && d.dukanId === clean.dukanId);
+          if (match !== -1) existingD[match] = { ...existingD[match], ...clean };
+          else existingD.push(clean);
+        }
+        fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8');
+        try { fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8'); } catch {}
+        console.log(`📦 [MongoDB Atlas] Restored ${uDukans.length} dukandar(s) from dukandars collection.`);
+      }
+    } catch (err) {
+      console.error('Mongo dukandars sync error:', err.message);
+    }
+
+    if (docs.length === 0) {
       // MongoDB is completely fresh — seed all local stores into MongoDB Atlas!
       console.log('🌱 [MongoDB Atlas] Empty database detected. Seeding local files into MongoDB Atlas...');
       const localStoreIds = listStoreIds();
@@ -664,6 +769,8 @@ const DataLayer = {
   invalidateCache,
   readPlatform,
   writePlatform,
+  persistDirectCustomer,
+  persistDirectDukandar,
   purgeAllLoginData,
   startFlushTimer,
   stopFlushTimer,
