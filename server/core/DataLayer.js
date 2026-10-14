@@ -516,45 +516,73 @@ async function syncMongoData() {
 
     // Also sync from dedicated collections: unified_customers and dukandars
     try {
+      const custFile = path.join(process.cwd(), 'server', 'data', 'customers.json');
+      const smartCust = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
+      let existing = [];
+      try { if (fs.existsSync(custFile)) existing = JSON.parse(fs.readFileSync(custFile, 'utf-8')); } catch {}
+      if (!Array.isArray(existing)) existing = [];
+
       const uCusts = await mongoDb.collection('unified_customers').find({}).toArray();
       if (uCusts && uCusts.length > 0) {
-        const custFile = path.join(process.cwd(), 'server', 'data', 'customers.json');
-        const smartCust = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
-        let existing = [];
-        try { if (fs.existsSync(custFile)) existing = JSON.parse(fs.readFileSync(custFile, 'utf-8')); } catch {}
-        if (!Array.isArray(existing)) existing = [];
         for (const uc of uCusts) {
           const { _id, ...clean } = uc;
           const match = existing.findIndex(c => (clean.phone && c.phone === clean.phone) || (clean.email && c.email === clean.email));
           if (match !== -1) existing[match] = { ...existing[match], ...clean };
           else existing.push(clean);
         }
-        fs.writeFileSync(custFile, JSON.stringify(existing, null, 2), 'utf-8');
-        try { fs.writeFileSync(smartCust, JSON.stringify(existing, null, 2), 'utf-8'); } catch {}
-        console.log(`📦 [MongoDB Atlas] Restored ${uCusts.length} customer(s) from unified_customers collection.`);
       }
+
+      // Upsert full merged list into MongoDB Atlas
+      for (const ec of existing) {
+        const filter = ec.phone ? { phone: ec.phone } : (ec.email ? { email: ec.email.toLowerCase() } : { id: ec.id });
+        if (filter) {
+          await mongoDb.collection('unified_customers').updateOne(
+            filter,
+            { $set: { ...ec, updatedAt: new Date().toISOString() } },
+            { upsert: true }
+          );
+        }
+      }
+
+      fs.writeFileSync(custFile, JSON.stringify(existing, null, 2), 'utf-8');
+      try { fs.writeFileSync(smartCust, JSON.stringify(existing, null, 2), 'utf-8'); } catch {}
+      console.log(`📦 [MongoDB Atlas] 2-way synced ${existing.length} customer(s) with unified_customers collection.`);
     } catch (err) {
       console.error('Mongo unified_customers sync error:', err.message);
     }
 
     try {
+      const dukanFile = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
+      const smartDukan = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
+      let existingD = [];
+      try { if (fs.existsSync(dukanFile)) existingD = JSON.parse(fs.readFileSync(dukanFile, 'utf-8'))?.dukandars || []; } catch {}
+      if (!Array.isArray(existingD)) existingD = [];
+
       const uDukans = await mongoDb.collection('dukandars').find({}).toArray();
       if (uDukans && uDukans.length > 0) {
-        const dukanFile = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
-        const smartDukan = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
-        let existingD = [];
-        try { if (fs.existsSync(dukanFile)) existingD = JSON.parse(fs.readFileSync(dukanFile, 'utf-8'))?.dukandars || []; } catch {}
-        if (!Array.isArray(existingD)) existingD = [];
         for (const ud of uDukans) {
           const { _id, ...clean } = ud;
           const match = existingD.findIndex(d => clean.dukanId && d.dukanId === clean.dukanId);
           if (match !== -1) existingD[match] = { ...existingD[match], ...clean };
           else existingD.push(clean);
         }
-        fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8');
-        try { fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8'); } catch {}
-        console.log(`📦 [MongoDB Atlas] Restored ${uDukans.length} dukandar(s) from dukandars collection.`);
       }
+
+      // Upsert full merged list into MongoDB Atlas
+      for (const ed of existingD) {
+        const filter = ed.dukanId ? { dukanId: ed.dukanId } : { phone: ed.phone };
+        if (filter) {
+          await mongoDb.collection('dukandars').updateOne(
+            filter,
+            { $set: { ...ed, updatedAt: new Date().toISOString() } },
+            { upsert: true }
+          );
+        }
+      }
+
+      fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8');
+      try { fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8'); } catch {}
+      console.log(`📦 [MongoDB Atlas] 2-way synced ${existingD.length} dukandar(s) with dukandars collection.`);
     } catch (err) {
       console.error('Mongo dukandars sync error:', err.message);
     }

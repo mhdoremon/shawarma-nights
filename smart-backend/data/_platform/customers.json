@@ -1,0 +1,38 @@
+{
+  "customers": [
+    {
+      "id": "cust_test_01",
+      "name": "Churu Test Grahak",
+      "username": "testuser",
+      "phone": "9876543210",
+      "email": "test@churuone.in",
+      "password": "Customer@123",
+      "dob": "25",
+      "age": "25",
+      "gender": "male",
+      "phoneVerified": true,
+      "authMethod": "password",
+      "address": "Station Road, Churu, Rajasthan - 331001",
+      "token": "cust-token-test-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    },
+    {
+      "id": "cust_test_02",
+      "name": "Admin Tester",
+      "username": "tester74",
+      "phone": "7427050263",
+      "email": "tester74@churuone.in",
+      "password": "Customer@123",
+      "dob": "24",
+      "age": "24",
+      "gender": "male",
+      "phoneVerified": true,
+      "authMethod": "password",
+      "address": "Churu Market, Churu - 331001",
+      "token": "cust-token-tester74-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    }
+  ]
+}

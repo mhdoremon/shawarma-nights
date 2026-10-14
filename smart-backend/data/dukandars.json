@@ -1,3 +1,61 @@
 {
-  "dukandars": []
+  "dukandars": [
+    {
+      "dukanId": "SHAWARMA",
+      "storeSlug": "shawarma",
+      "dukanName": "Shawarma Nights Flagship",
+      "ownerName": "Mohammad Shawarma",
+      "phone": "7023963189",
+      "username": "shawarma",
+      "password": "Shawarma@123",
+      "businessType": "restaurant",
+      "status": "active",
+      "token": "master-token-shawarma-active-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    },
+    {
+      "dukanId": "SKYLINE",
+      "storeSlug": "skyline",
+      "dukanName": "Skyline Premium Outfits",
+      "ownerName": "Skyline Manager",
+      "phone": "7023963189",
+      "username": "skyline",
+      "password": "Skyline@123",
+      "businessType": "fashion",
+      "status": "active",
+      "token": "master-token-skyline-active-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    },
+    {
+      "dukanId": "NASH-STUDIO",
+      "storeSlug": "nash-studio",
+      "dukanName": "Nash Studio Salon",
+      "ownerName": "Nash Barber",
+      "phone": "7023963189",
+      "username": "nash",
+      "password": "Nash@123",
+      "businessType": "salon",
+      "status": "active",
+      "token": "master-token-nash-active-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    },
+    {
+      "dukanId": "DKN-77777",
+      "storeSlug": "dkn-77777",
+      "dukanName": "Churu Royal Kirana",
+      "ownerName": "Rajesh Kumar",
+      "fatherName": "Ramesh Kumar",
+      "phone": "9988776655",
+      "username": "royalkirana",
+      "password": "Dukan@123",
+      "businessType": "grocery",
+      "status": "pending_review",
+      "token": "master-token-kirana-review-2026",
+      "createdAt": "2026-10-14T20:00:00.000Z",
+      "updatedAt": "2026-10-14T20:00:00.000Z"
+    }
+  ]
 }
