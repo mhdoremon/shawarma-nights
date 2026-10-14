@@ -831,14 +831,12 @@ export default function SkylineApp() {
       {
         id: 'rev-1',
         name: 'Arjun Rathore',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
         rating: 5,
         comment: 'The French Normandy Linen Shirt has an unbelievable drape and feel. Skyline has completely upgraded menswear in Churu!'
       },
       {
         id: 'rev-2',
         name: 'Vikram Shekhawat',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
         rating: 5,
         comment: 'The double-pleated Gurkha trousers fit like a dream. Sharp tailored silhouettes and high-grade fabric. Seamless Churu express delivery!'
       }
@@ -1294,26 +1292,19 @@ export default function SkylineApp() {
           </button>
         </div>
 
-        {/* Dynamic Reviews Grid */}
+        {/* Dynamic Reviews Grid (Photos Removed) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {customerReviews.slice(0, 4).map((rev) => (
             <div
               key={rev.id}
-              className="bg-[#F8F8F9] rounded-2xl p-6 sm:p-7 flex items-start gap-4 border border-stone-100 shadow-xs hover:border-stone-200 transition-all"
+              className="bg-[#F8F8F9] rounded-2xl p-6 sm:p-7 flex flex-col justify-between border border-stone-100 shadow-xs hover:border-stone-200 transition-all space-y-3"
             >
-              {/* Customer Avatar */}
-              <img
-                src={rev.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
-                alt={rev.name}
-                className="w-12 h-12 rounded-xl object-cover shrink-0 shadow-sm"
-              />
-
-              {/* Review Content */}
-              <div className="space-y-2 flex-1 min-w-0">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <div className="truncate">
-                    <h4 className="text-xs font-bold text-stone-950 truncate">
-                      {rev.name}
+                    <h4 className="text-sm font-bold text-stone-950 truncate flex items-center gap-1.5">
+                      <span>{rev.name}</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 fill-emerald-100 shrink-0" title="Verified Buyer" />
                     </h4>
                     {rev.date && (
                       <span className="text-[10px] text-stone-400 font-light block">
@@ -1330,9 +1321,16 @@ export default function SkylineApp() {
                 </div>
 
                 <p className="text-xs text-stone-600 leading-relaxed font-light break-words">
-                  {rev.comment}
+                  "{rev.comment}"
                 </p>
               </div>
+
+              {rev.dish && (
+                <div className="pt-2.5 border-t border-stone-200/60 flex items-center gap-1.5 text-[11px] text-stone-500 font-medium">
+                  <Tag className="w-3 h-3 text-stone-400 shrink-0" />
+                  <span className="truncate">Purchased: {rev.dish}</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
