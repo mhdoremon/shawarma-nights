@@ -25,13 +25,13 @@ export default function DashboardTab() {
 
   // If application is pending review, show DUKAN ID CARD, 24-HR REVIEW NOTICE, DETAILS, AND STORE EXPLORER
   if (isPendingReview) {
-    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${storeId?.toUpperCase()}`;
-    const dukanCode = (user?.dukanId || storeId || 'DKN').toUpperCase();
+    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
     const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
     const father = user?.fatherName || storeInfo?.owner?.fatherName || '-';
     const phone = user?.phone || storeInfo?.owner?.phone || '-';
     const username = user?.username || storeInfo?.owner?.username || '-';
-    const bType = user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail';
+    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
 
     return (
       <div className="space-y-6 pb-12 max-w-5xl mx-auto">

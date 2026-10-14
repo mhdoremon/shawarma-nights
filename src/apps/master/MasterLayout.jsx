@@ -20,7 +20,9 @@ import {
   Phone,
   MessageSquare,
   X,
-  Check
+  Check,
+  Lock,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

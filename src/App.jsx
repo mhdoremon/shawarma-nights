@@ -175,6 +175,14 @@ class ErrorBoundary extends React.Component {
               🏠 Clean Home
             </button>
           </div>
+          {this.state.error && (
+            <details style={{ marginTop: '16px', textAlign: 'left', maxWidth: '420px', background: '#f5f5f4', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', color: '#78716c' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>Technical Details</summary>
+              <pre style={{ marginTop: '6px', whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontSize: '10px' }}>
+                {String(this.state.error?.message || this.state.error)}
+              </pre>
+            </details>
+          )}
         </div>
       );
     }
