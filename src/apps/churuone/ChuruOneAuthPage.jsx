@@ -720,7 +720,7 @@ export default function ChuruOneAuthPage() {
           dob: custRegDob,
           gender: custRegGender,
           phone: cleanPhone,
-          email: custRegEmail.trim().toLowerCase(),
+          email: isGoogleVerified && custRegEmail ? custRegEmail.trim().toLowerCase() : '',
           username: custRegUsername.trim().toLowerCase(),
           password: custRegPassword.trim(),
           isGoogleVerified,
@@ -759,16 +759,26 @@ export default function ChuruOneAuthPage() {
     setLoading(true);
     setErrorMsg('');
     try {
+      const cleanIdent = custForgotIdentifier.trim().replace(/^@/, '');
       const res = await fetch(`${API_URL}/api/auth/customer/forgot-password/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: custForgotIdentifier.trim() })
+        body: JSON.stringify({ identifier: cleanIdent })
       });
       const data = await res.json();
       if (!data.success) {
         setErrorMsg(data.message || 'OTP dispatch failed.');
         setLoading(false);
         return;
+      }
+
+      // Also trigger client-side MSG91 widget SDK if available for guaranteed SMS delivery
+      if (data.phone) {
+        try {
+          await sendOtpViaMsg91(data.phone);
+        } catch (msgErr) {
+          console.warn('Frontend MSG91 sendOtp note:', msgErr?.message);
+        }
       }
 
       setCustForgotPhone(data.phone);
@@ -1867,19 +1877,17 @@ export default function ChuruOneAuthPage() {
                           className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          value={custRegEmail}
-                          disabled={isGoogleVerified}
-                          onChange={e => setCustRegEmail(e.target.value)}
-                          placeholder="rahul@gmail.com"
-                          className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium disabled:opacity-70"
-                        />
-                      </div>
+                      {isGoogleVerified && custRegEmail ? (
+                        <div>
+                          <label className="block text-xs font-bold text-emerald-700 mb-1 uppercase tracking-wide flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            Verified Google Email
+                          </label>
+                          <div className="w-full px-3.5 py-2 text-sm bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-medium truncate">
+                            {custRegEmail}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     {/* Unique Username with Availability Indicator & Suggestions */}

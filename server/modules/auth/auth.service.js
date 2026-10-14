@@ -767,6 +767,23 @@ export function getAllUnifiedCustomers() {
         }
     } catch {}
 
+    try {
+        const storeIds = typeof DataLayer.listStoreIds === 'function' ? DataLayer.listStoreIds() : [];
+        for (const sId of storeIds) {
+            const storeCusts = DataLayer.read(sId, 'customers') || [];
+            if (Array.isArray(storeCusts)) {
+                for (const sc of storeCusts) {
+                    const normP = normalizePhone(sc.phone);
+                    const exists = array.find(c => 
+                        (normP && normalizePhone(c.phone) === normP) ||
+                        (sc.email && c.email && sc.email.toLowerCase() === c.email.toLowerCase())
+                    );
+                    if (!exists) array.push(sc);
+                }
+            }
+        }
+    } catch {}
+
     return array;
 }
 
@@ -975,7 +992,8 @@ export const customerRegister = (req, res) => {
         const { name, dob, age, gender, phone, email, username, password, preVerified, isGoogleVerified } = req.body;
         
         const cleanPhone = phone ? normalizePhone(phone) : '';
-        const cleanEmail = email ? email.toLowerCase().trim() : '';
+        // Only accept email if verified via Google! Never accept unverified typed emails.
+        const cleanEmail = isGoogleVerified && email ? email.toLowerCase().trim() : '';
 
         // If phone is provided, validate 10 digits
         if (cleanPhone) {
@@ -1239,11 +1257,18 @@ export const customerForgotPasswordSendOtp = async (req, res) => {
 
         const otp = generateOtp(6);
         const key = `forgot:${targetPhone}`;
-        otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
 
         // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
         const msg91Res = await sendMsg91Otp(targetPhone);
-        console.log(`🔑 [CUSTOMER FORGOT PWD via MSG91] Dispatched to +91${targetPhone.slice(-10)}: success=${msg91Res?.success}`);
+        console.log(`🔑 [CUSTOMER FORGOT PWD via MSG91] Dispatched to +91${targetPhone.slice(-10)}: success=${msg91Res?.success}, reqId=${msg91Res?.reqId}`);
+
+        otpStore.set(key, { 
+            otp, 
+            reqId: msg91Res?.reqId || '',
+            expiresAt: Date.now() + 5 * 60 * 1000, 
+            attempts: 0, 
+            createdAt: Date.now() 
+        });
 
         return res.json({
             success: true,
@@ -1277,7 +1302,8 @@ export const customerForgotPasswordVerifyOtp = async (req, res) => {
                 isVerified = true;
                 otpStore.delete(key);
             } else {
-                const mRes = await verifyMsg91Otp(cleanPhone, otp);
+                const reqId = stored?.reqId || '';
+                const mRes = await verifyMsg91Otp(cleanPhone, otp, reqId);
                 if (mRes.success && mRes.verified) isVerified = true;
             }
         }
