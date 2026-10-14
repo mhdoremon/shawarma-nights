@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Store, Compass, User, LayoutDashboard, ExternalLink, Sparkles, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { PHONEPE_REVIEW_MODE } from '../config/siteMode';
@@ -34,6 +34,35 @@ const STORE_CATALOG = {
   }
 };
 
+function resolveStoreMeta(storeId, extraName) {
+  if (!storeId) return STORE_CATALOG['shawarma'];
+  const s = String(storeId).toLowerCase().trim();
+  if (STORE_CATALOG[s]) return STORE_CATALOG[s];
+
+  let icon = '🏪';
+  const nameLower = (extraName || storeId).toLowerCase();
+
+  if (nameLower.includes('shawarma') || nameLower.includes('food') || nameLower.includes('cafe') || nameLower.includes('restaurant') || nameLower.includes('pizza') || nameLower.includes('burger')) {
+    icon = '🍔';
+  } else if (nameLower.includes('skyline') || nameLower.includes('fashion') || nameLower.includes('cloth') || nameLower.includes('outfit') || nameLower.includes('wear')) {
+    icon = '👕';
+  } else if (nameLower.includes('nash') || nameLower.includes('salon') || nameLower.includes('barber') || nameLower.includes('hair') || nameLower.includes('groom')) {
+    icon = '✂️';
+  } else if (nameLower.includes('kirana') || nameLower.includes('grocery') || nameLower.includes('mart') || nameLower.includes('store') || nameLower.includes('bazaar')) {
+    icon = '🛒';
+  }
+
+  const shortName = extraName ? extraName.split(' ')[0] : (s.charAt(0).toUpperCase() + s.slice(1, 9));
+
+  return {
+    id: s,
+    shortName,
+    name: extraName || storeId,
+    icon,
+    url: `/?storeId=${s}`
+  };
+}
+
 export default function BottomNavBar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,7 +77,7 @@ export default function BottomNavBar() {
   // Customer session detection
   const [customer, setCustomer] = useState(null);
 
-  // Active / Most Recently Visited Shop
+  // Active / Most Recently Visited Shop (persisted)
   const [activeShop, setActiveShop] = useState(() => {
     if (isPhonePeReview) return STORE_CATALOG['skyline'];
     try {
@@ -58,23 +87,54 @@ export default function BottomNavBar() {
     return STORE_CATALOG['shawarma']; // Default to Shawarma Nights flagship
   });
 
-  // Detect and track shop visits dynamically
+  // Dynamically resolve currently open shop based on URL/Route & Master Context
+  const currentShop = useMemo(() => {
+    if (isPhonePeReview) return STORE_CATALOG['skyline'];
+
+    // 1. Direct path check for known flagship stores:
+    if (path.startsWith('/skyline') || path.startsWith('/outfits') || storeParam === 'skyline' || storeParam === 'skyline-outfits') {
+      return STORE_CATALOG['skyline'];
+    }
+    if (path.startsWith('/nash') || path.startsWith('/salon') || storeParam === 'nash' || storeParam === 'nash-studio') {
+      return STORE_CATALOG['nash-studio'];
+    }
+    if (path.startsWith('/shawarma') || path.startsWith('/sn') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
+      return STORE_CATALOG['shawarma'];
+    }
+
+    // 2. Query param for any custom store:
+    if (storeParam) {
+      return resolveStoreMeta(storeParam);
+    }
+
+    // 3. Inside Master Console (/master, /admin, /dukandar):
+    if (path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar')) {
+      if (dukandar?.storeId) {
+        return resolveStoreMeta(dukandar.storeId, dukandar.dukanName);
+      }
+    }
+
+    // 4. Fallback to activeShop (last visited):
+    if (activeShop) return activeShop;
+
+    return STORE_CATALOG['shawarma'];
+  }, [path, storeParam, dukandar?.storeId, dukandar?.dukanName, activeShop, isPhonePeReview]);
+
+  // Track and save shop visits whenever a shop route is visited
   useEffect(() => {
     let detected = null;
-    if (path.startsWith('/shawarma') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
-      detected = STORE_CATALOG['shawarma'];
-    } else if (path.startsWith('/skyline') || storeParam === 'skyline' || storeParam === 'skyline-outfits') {
+    if (path.startsWith('/skyline') || path.startsWith('/outfits') || storeParam === 'skyline' || storeParam === 'skyline-outfits') {
       detected = STORE_CATALOG['skyline'];
     } else if (path.startsWith('/nash') || path.startsWith('/salon') || storeParam === 'nash' || storeParam === 'nash-studio') {
       detected = STORE_CATALOG['nash-studio'];
+    } else if (path.startsWith('/shawarma') || path.startsWith('/sn') || storeParam === 'shawarma' || storeParam === 'shawarma-nights') {
+      detected = STORE_CATALOG['shawarma'];
     } else if (storeParam) {
-      detected = {
-        id: storeParam,
-        shortName: storeParam.charAt(0).toUpperCase() + storeParam.slice(1, 9),
-        name: storeParam,
-        icon: '🏪',
-        url: `/?storeId=${storeParam}`
-      };
+      detected = resolveStoreMeta(storeParam);
+    } else if (path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar')) {
+      if (dukandar?.storeId) {
+        detected = resolveStoreMeta(dukandar.storeId, dukandar.dukanName);
+      }
     }
 
     if (detected) {
@@ -83,7 +143,7 @@ export default function BottomNavBar() {
         localStorage.setItem('churuone_active_shop', JSON.stringify(detected));
       } catch {}
     }
-  }, [path, storeParam]);
+  }, [path, storeParam, dukandar?.storeId]);
 
   useEffect(() => {
     const readSessions = () => {
@@ -92,17 +152,6 @@ export default function BottomNavBar() {
         const dUser = JSON.parse(localStorage.getItem('churuone_master_user') || 'null');
         if (dToken && dUser) {
           setDukandar(dUser);
-          if (dUser.storeId) {
-            const sId = dUser.storeId.toLowerCase();
-            const shopObj = STORE_CATALOG[sId] || {
-              id: sId,
-              shortName: dUser.dukanName ? dUser.dukanName.split(' ')[0] : sId,
-              name: dUser.dukanName || sId,
-              icon: '🏪',
-              url: `/?storeId=${sId}`
-            };
-            setActiveShop(shopObj);
-          }
         } else {
           setDukandar(null);
         }
@@ -119,7 +168,7 @@ export default function BottomNavBar() {
 
       try {
         const savedShop = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
-        if (savedShop && !dUser?.storeId) setActiveShop(savedShop);
+        if (savedShop) setActiveShop(savedShop);
       } catch {}
     };
 
@@ -139,11 +188,11 @@ export default function BottomNavBar() {
 
   // Active state checks
   const isCurrentShopActive = Boolean(
-    activeShop && (
-      (activeShop.id === 'shawarma' && (path.startsWith('/shawarma') || storeParam === 'shawarma')) ||
-      (activeShop.id === 'skyline' && (path.startsWith('/skyline') || storeParam === 'skyline')) ||
-      (activeShop.id === 'nash-studio' && (path.startsWith('/nash') || storeParam === 'nash' || storeParam === 'nash-studio')) ||
-      (storeParam && storeParam === activeShop.id)
+    currentShop && (
+      (currentShop.id === 'shawarma' && (path.startsWith('/shawarma') || path.startsWith('/sn') || storeParam === 'shawarma')) ||
+      (currentShop.id === 'skyline' && (path.startsWith('/skyline') || path.startsWith('/outfits') || storeParam === 'skyline')) ||
+      (currentShop.id === 'nash-studio' && (path.startsWith('/nash') || path.startsWith('/salon') || storeParam === 'nash' || storeParam === 'nash-studio')) ||
+      (storeParam && storeParam === currentShop.id)
     )
   );
 
@@ -274,24 +323,24 @@ export default function BottomNavBar() {
             {/* ========================================================= */}
             {/* TAB 3: ACTIVE DUKAN SWITCHER (NEXT TO PROFILE)            */}
             {/* ========================================================= */}
-            {activeShop && (
+            {currentShop && (
               <button
-                onClick={() => navigate(activeShop.url)}
-                title={`${activeShop.name} par jayein`}
+                onClick={() => navigate(currentShop.url)}
+                title={`${currentShop.name} par jayein`}
                 className={`flex-1 flex flex-col items-center justify-center py-1 transition-all rounded-full cursor-pointer relative ${
                   isCurrentShopActive ? 'text-amber-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 <div className="relative">
                   <span className={`text-base leading-none transition-transform block ${isCurrentShopActive ? 'scale-125' : 'scale-100 opacity-90'}`}>
-                    {activeShop.icon || '🏪'}
+                    {currentShop.icon || '🏪'}
                   </span>
                   {isCurrentShopActive && (
                     <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-amber-400 rounded-full shadow-[0_0_8px_#f59e0b]" />
                   )}
                 </div>
                 <span className="text-[10px] tracking-tight mt-0.5 truncate max-w-[65px]">
-                  {activeShop.shortName || activeShop.name}
+                  {currentShop.shortName || currentShop.name}
                 </span>
               </button>
             )}
