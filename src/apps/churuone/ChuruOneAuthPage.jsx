@@ -716,6 +716,7 @@ export default function ChuruOneAuthPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: custRegName.trim(),
+          age: custRegDob,
           dob: custRegDob,
           gender: custRegGender,
           phone: cleanPhone,
@@ -1115,6 +1116,7 @@ export default function ChuruOneAuthPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerName: dukanOwnerName.trim(),
+          age: dukanDob,
           dob: dukanDob,
           gender: dukanGender,
           email: dukanEmail.trim().toLowerCase(),
@@ -1853,12 +1855,15 @@ export default function ChuruOneAuthPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
-                          Date of Birth (DOB)
+                          Age (Umra)
                         </label>
                         <input
-                          type="date"
+                          type="number"
+                          min="10"
+                          max="100"
                           value={custRegDob}
-                          onChange={e => setCustRegDob(e.target.value)}
+                          onChange={e => setCustRegDob(e.target.value.replace(/\D/g, ''))}
+                          placeholder="e.g. 21"
                           className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                         />
                       </div>
@@ -2466,12 +2471,15 @@ export default function ChuruOneAuthPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
-                          Age / DOB
+                          Owner Age (Umra)
                         </label>
                         <input
-                          type="date"
+                          type="number"
+                          min="18"
+                          max="100"
                           value={dukanDob}
-                          onChange={e => setDukanDob(e.target.value)}
+                          onChange={e => setDukanDob(e.target.value.replace(/\D/g, ''))}
+                          placeholder="e.g. 28"
                           className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
                         />
                       </div>

@@ -954,7 +954,7 @@ export const customerCheckAccount = (req, res) => {
  */
 export const customerRegister = (req, res) => {
     try {
-        const { name, dob, gender, phone, email, username, password, preVerified, isGoogleVerified } = req.body;
+        const { name, dob, age, gender, phone, email, username, password, preVerified, isGoogleVerified } = req.body;
         
         const cleanPhone = phone ? normalizePhone(phone) : '';
         const cleanEmail = email ? email.toLowerCase().trim() : '';
@@ -1051,7 +1051,8 @@ export const customerRegister = (req, res) => {
             churuOneId: baseMatch?.churuOneId || `churu_cust_${Date.now()}`,
             name: (name || baseMatch?.name || (cleanPhone ? `Customer +91${cleanPhone.slice(-4)}` : (cleanEmail.split('@')[0] || 'Customer'))).trim(),
             username: cleanUsername,
-            dob: dob || baseMatch?.dob || '',
+            age: age || dob || baseMatch?.age || '',
+            dob: dob || age || baseMatch?.dob || '',
             gender: gender || baseMatch?.gender || '',
             phone: cleanPhone,
             phoneVerified: Boolean(hasPhone && (preVerified || baseMatch?.phoneVerified)),
@@ -1433,6 +1434,7 @@ export const dukandarRegisterApply = (req, res) => {
             ownerName, 
             fatherName, 
             dob, 
+            age,
             gender, 
             dukanName, 
             businessType, 
@@ -1477,7 +1479,8 @@ export const dukandarRegisterApply = (req, res) => {
             dukanName: dukanName.trim(),
             ownerName: ownerName.trim(),
             fatherName: fatherName || '',
-            dob: dob || '',
+            age: age || dob || '',
+            dob: dob || age || '',
             gender: gender || '',
             phone: cleanPhone,
             username: username.toLowerCase().trim().replace(/^@/, ''),
