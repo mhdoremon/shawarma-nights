@@ -1783,20 +1783,16 @@ export default function ChuruOneHomePage() {
           <div className="relative z-20 w-full p-6 sm:p-10 lg:p-14 space-y-6 max-w-2xl">
             
             <div className="space-y-2">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-stone-900 text-stone-200 text-xs font-mono font-bold tracking-wider uppercase border border-stone-800 shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Station Road, Churu • Flagship Store
-              </span>
               <motion.h1 
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
                 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-950 leading-[1.02]"
               >
-                Skyline<br />Premium
+                Social Commerce<br />Churu
               </motion.h1>
               <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-600 max-w-md">
-                Architectural Menswear, Italian Linen Shirts, Gurkha Trousers, Japanese Selvedge Denim & Bespoke Outfits.
+                Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.
               </p>
             </div>
 
@@ -1806,7 +1802,7 @@ export default function ChuruOneHomePage() {
                 <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
                 <input
                   type="text"
-                  placeholder="Kya chahiye? Shirts, Pants, Jeans, Kurta, Jackets..."
+                  placeholder="Kya dhoondh rahe hain? Food, Fashion, Outfits, Salons, Products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
