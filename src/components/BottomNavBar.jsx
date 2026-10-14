@@ -136,10 +136,11 @@ export default function BottomNavBar() {
     )
   );
 
+  const isDukandarAuth = path.startsWith('/auth') && (params.get('role') === 'dukandar' || params.get('type') === 'dukandar');
   const isFeedActive = (path === '/' || path === '' || path === '/churuone') && !isCurrentShopActive && !path.startsWith('/explore') && !path.startsWith('/profile') && !path.startsWith('/master') && !path.startsWith('/admin') && !path.startsWith('/auth');
   const isExploreActive = path.startsWith('/explore');
-  const isProfileActive = path.startsWith('/profile') || (path.startsWith('/auth') && !dukandar);
-  const isDashboardActive = path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar');
+  const isProfileActive = path.startsWith('/profile') || (path.startsWith('/auth') && !isDukandarAuth && !dukandar);
+  const isDashboardActive = path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar') || isDukandarAuth;
 
   // Customer Avatar source
   const customerAvatar = customer?.picture || customer?.photoURL || customer?.avatar;
@@ -287,7 +288,7 @@ export default function BottomNavBar() {
             {/* ========================================================= */}
             {/* TAB 4: DUKANDAR DASHBOARD OR CUSTOMER PROFILE              */}
             {/* ========================================================= */}
-            {dukandar ? (
+            {(dukandar || isDashboardActive) ? (
               <button
                 onClick={() => navigate('/master')}
                 className={`flex-1 flex flex-col items-center justify-center py-1 transition-all rounded-full cursor-pointer relative ${

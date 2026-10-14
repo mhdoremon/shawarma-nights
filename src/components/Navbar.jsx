@@ -56,8 +56,44 @@ export default function Navbar({ onOpenFranchise }) {
           </div>
         </div>
 
-        {/* RIGHT: Balancing spacer (Profile is in bottom nav dock) */}
-        <div className="flex items-center justify-end flex-1" />
+        {/* RIGHT: Dukan Portal & Customer Account */}
+        <div className="flex items-center justify-end flex-1 gap-1.5 sm:gap-2">
+          
+          {/* Dukandar Portal / Master OS Link */}
+          <a
+            href="/master?storeId=shawarma"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full bg-zinc-950 hover:bg-black text-white font-black text-[10px] sm:text-xs uppercase tracking-wider shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap border border-white/20"
+            title="Dukandar Master Portal"
+          >
+            <Store className="w-3.5 h-3.5 text-amber-400 stroke-[2.2]" />
+            <span className="hidden xs:inline">Dukan OS</span>
+          </a>
+
+          {/* Customer Profile / Login */}
+          {isAuthenticated ? (
+            <a
+              href="/profile"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white text-[#DC2626] font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
+              title="ChuruOne Universal Profile"
+            >
+              <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#DC2626] text-white font-black text-[9px] sm:text-[10px] flex items-center justify-center">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <span className="hidden sm:inline truncate max-w-[80px]">
+                {currentUser?.name ? currentUser.name.split(' ')[0] : 'Profile'}
+              </span>
+            </a>
+          ) : (
+            <a
+              href="/auth?role=customer&mode=login&storeId=shawarma"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-white text-[#DC2626] font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
+            >
+              <User className="w-3.5 h-3.5 stroke-[2.2]" />
+              <span className="hidden xs:inline">Login</span>
+            </a>
+          )}
+
+        </div>
 
       </div>
     </header>

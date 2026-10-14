@@ -39,6 +39,7 @@ import {
   retryOtpViaMsg91, 
   isMsg91Ready 
 } from '../../utils/msg91OtpHelper';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
@@ -1340,27 +1341,89 @@ export default function ChuruOneAuthPage() {
   // RENDER UI
   // ============================================================================
   return (
-    <div className="min-h-screen bg-[#FAF9F5] text-zinc-900 font-sans antialiased flex flex-col justify-between p-4 sm:p-6 selection:bg-zinc-900 selection:text-white">
+    <div className="min-h-screen bg-[#FAF9F5] text-zinc-900 font-sans antialiased flex flex-col justify-between pb-24 selection:bg-zinc-900 selection:text-white">
       
-      {/* Top Header / Back Link */}
-      <div className="max-w-xl w-full mx-auto pt-4 sm:pt-6">
-        <div className="flex items-center justify-between">
-          <a
-            href={isStoreContext ? destination : '/'}
-            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-950 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 stroke-[2]" />
-            <span>{isStoreContext ? `Back to ${storeDisplayName}` : 'Back to ChuruOne Home'}</span>
-          </a>
+      {/* ─── 1. TOP GLOBAL BRAND NAVBAR ─── */}
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-zinc-200 shadow-xs px-4 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          
+          {/* LEFT: Brand Logo + Active Role Badge */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a href="/" className="flex items-center gap-1.5 select-none no-underline">
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-zinc-950">
+                CHURU<span className="text-amber-600">ONE</span>
+              </span>
+            </a>
 
-          {/* Quick Active Store Pill */}
-          {isStoreContext && (
-            <span className="text-[11px] font-mono uppercase bg-amber-100 text-amber-900 px-2.5 py-1 rounded-full font-bold">
-              {storeDisplayName}
+            <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-black uppercase px-2.5 py-0.5 rounded-full bg-zinc-950 text-white font-mono tracking-wider">
+              {selectedRole === 'dukandar' ? (
+                <>
+                  <Store className="w-3 h-3 text-emerald-400 stroke-[2.5]" />
+                  <span>Dukandar Portal</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="w-3 h-3 text-amber-400 stroke-[2.5]" />
+                  <span>Churu SSO</span>
+                </>
+              )}
             </span>
-          )}
+
+            {isStoreContext && (
+              <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono uppercase bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full font-bold">
+                {storeDisplayName}
+              </span>
+            )}
+          </div>
+
+          {/* RIGHT: Quick Navigation Links */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
+            <a
+              href="/"
+              className="text-xs font-bold text-zinc-600 hover:text-zinc-950 transition-colors hidden sm:inline-block px-2 py-1"
+            >
+              City Feed
+            </a>
+            
+            <a
+              href="/explore"
+              className="text-xs font-bold text-zinc-600 hover:text-zinc-950 transition-colors hidden sm:inline-block px-2 py-1"
+            >
+              Explore Stores
+            </a>
+
+            {/* Quick Role Switcher Pill */}
+            {selectedRole === 'customer' ? (
+              <button
+                type="button"
+                onClick={() => { setSelectedRole('dukandar'); setErrorMsg(''); setSuccessMsg(''); }}
+                className="hidden xs:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-950 hover:bg-black text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <Store className="w-3 h-3 text-emerald-400" />
+                <span>Dukan Mode</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setSelectedRole('customer'); setErrorMsg(''); setSuccessMsg(''); }}
+                className="hidden xs:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-bold transition-all shadow-xs cursor-pointer"
+              >
+                <ShoppingBag className="w-3 h-3 text-amber-700" />
+                <span>Customer Mode</span>
+              </button>
+            )}
+
+            <a
+              href={isStoreContext ? destination : '/'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-900 text-xs font-bold transition-all shadow-2xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{isStoreContext ? (storeDisplayName.split(' ')[0]) : 'Home'}</span>
+            </a>
+          </div>
+
         </div>
-      </div>
+      </header>
 
       {/* Main Container */}
       <div className="max-w-xl w-full mx-auto my-6 sm:my-8 bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-zinc-200/80">
@@ -2894,11 +2957,8 @@ export default function ChuruOneAuthPage() {
 
       </div>
 
-      {/* Footer / SSL Notice */}
-      <div className="max-w-md w-full mx-auto text-center pb-4 text-[11px] text-zinc-400 font-mono flex items-center justify-center gap-1.5">
-        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-        <span>ChuruOne Social Commerce Ecosystem • 256-Bit Encrypted Portal</span>
-      </div>
+      {/* Bottom Navigation Dock */}
+      <BottomNavBar />
 
     </div>
   );
