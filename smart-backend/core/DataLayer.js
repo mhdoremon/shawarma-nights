@@ -206,7 +206,51 @@ function storeExists(storeId) {
  * Get store config with resolved capabilities injected.
  */
 function getStoreConfig(storeId) {
-  const cfg = read(storeId, 'config.json');
+  let cfg = read(storeId, 'config.json');
+  if (!cfg && storeId) {
+    try {
+      const dukandarsPath = path.join(config.DATA_DIR, 'dukandars.json');
+      if (fs.existsSync(dukandarsPath)) {
+        const raw = fs.readFileSync(dukandarsPath, 'utf-8');
+        const dData = JSON.parse(raw);
+        const list = Array.isArray(dData) ? dData : (dData.dukandars || []);
+        const sClean = String(storeId).toLowerCase().trim();
+        const d = list.find(item => 
+          String(item.dukanId || '').toLowerCase() === sClean ||
+          String(item.storeSlug || '').toLowerCase() === sClean
+        );
+        if (d) {
+          cfg = {
+            id: String(d.dukanId).toLowerCase(),
+            slug: d.storeSlug || String(d.dukanId).toLowerCase(),
+            name: d.dukanName,
+            status: d.status || 'pending_review',
+            type: d.businessType || 'retail',
+            vertical: d.businessType === 'restaurant' ? 'food' : (d.businessType || 'retail'),
+            owner: {
+              name: d.ownerName,
+              fatherName: d.fatherName,
+              dob: d.dob,
+              gender: d.gender,
+              phone: d.phone,
+              username: d.username,
+              password: d.password,
+              token: d.token
+            },
+            settings: {
+              storeName: d.dukanName,
+              name: d.dukanName,
+              phone: d.phone,
+              isOpen: false,
+              timing: 'Setup in progress',
+              freeDeliveryThreshold: 350
+            }
+          };
+        }
+      }
+    } catch {}
+  }
+
   if (!cfg) return null;
   return {
     ...cfg,

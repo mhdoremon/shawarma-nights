@@ -1446,60 +1446,62 @@ export const dukandarRegisterApply = (req, res) => {
 export const dukandarLogin = (req, res) => {
     try {
         const { dukanId, username, password } = req.body;
-        if ((!dukanId && !username) || !password) {
-            return res.status(400).json({ success: false, message: 'Dukan ID / Username aur Password zaroori hain' });
+        if (!dukanId || !username || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Dukan ID, Username/Mobile aur Password teeno zaroori hain. Kripya teeno fields bharein.' 
+            });
         }
 
-        const dukanIdClean = String(dukanId || '').trim().toLowerCase();
-        const userInputClean = String(username || '').trim().toLowerCase().replace(/^@/, '');
-        const phoneClean = normalizePhone(username || dukanId);
+        const dukanIdClean = String(dukanId).trim().toLowerCase();
+        const userInputClean = String(username).trim().toLowerCase().replace(/^@/, '');
+        const phoneClean = normalizePhone(username);
         const pInput = String(password).trim();
 
         const dukandars = getAllDukandars();
+        
+        // Strict triple check: Dukan ID MUST match AND (Username or Phone) MUST match AND Password MUST match
         let target = dukandars.find(d => {
-            const matchDukanId = dukanIdClean && (
-                String(d.dukanId).toLowerCase() === dukanIdClean ||
+            const matchDukanId = (
+                String(d.dukanId || '').toLowerCase() === dukanIdClean ||
                 String(d.storeSlug || '').toLowerCase() === dukanIdClean
             );
-            const matchUser = userInputClean && (
+            const matchUser = (
                 String(d.username || '').toLowerCase() === userInputClean ||
                 (phoneClean.length === 10 && normalizePhone(d.phone) === phoneClean)
             );
+            const matchPwd = String(d.password || '').trim() === pInput;
 
-            if (dukanIdClean && userInputClean) {
-                return (matchDukanId || matchUser) && d.password === pInput;
-            }
-            return (matchDukanId || matchUser) && d.password === pInput;
+            return matchDukanId && matchUser && matchPwd;
         });
 
-        // Fallback: Check store config directly (for existing stores: Shawarma, Skyline, Nash)
+        // Strict fallback: Check store config ONLY for the specific requested dukanIdClean (NO cross-store checking)
         if (!target) {
-            const storeIdsToCheck = [dukanIdClean, userInputClean, 'shawarma', 'skyline', 'nash-studio'].filter(Boolean);
-            for (const sId of storeIdsToCheck) {
-                const cfg = DataLayer.getStoreConfig(sId);
-                const owner = cfg?.owner;
-                if (owner) {
-                    const uMatch = (
-                        (userInputClean && owner.username?.toLowerCase() === userInputClean) ||
-                        (dukanIdClean && (sId === dukanIdClean || cfg.slug === dukanIdClean)) ||
-                        (phoneClean.length === 10 && normalizePhone(owner.phone) === phoneClean)
-                    );
-                    const pMatch = owner.password === pInput;
-                    if (uMatch && pMatch) {
-                        target = {
-                            dukanId: sId.toUpperCase(),
-                            storeSlug: sId,
-                            dukanName: cfg.name || cfg.settings?.storeName || sId,
-                            ownerName: owner.name,
-                            phone: owner.phone,
-                            username: owner.username,
-                            password: owner.password,
-                            token: owner.token || generateUUID(),
-                            status: 'active',
-                            websiteUrl: sId === 'shawarma' ? 'https://shawarma.churuone.in' : (sId === 'skyline' ? 'https://skyline.churuone.in' : 'https://nash.churuone.in')
-                        };
-                        break;
-                    }
+            const cfg = DataLayer.getStoreConfig(dukanIdClean);
+            if (cfg?.owner) {
+                const owner = cfg.owner;
+                const matchDukanId = (dukanIdClean === String(cfg.slug || '').toLowerCase() || dukanIdClean === String(cfg.id || '').toLowerCase());
+                const matchUser = (
+                    (userInputClean && String(owner.username || '').toLowerCase() === userInputClean) ||
+                    (phoneClean.length === 10 && normalizePhone(owner.phone) === phoneClean)
+                );
+                const matchPwd = String(owner.password || '').trim() === pInput;
+
+                if (matchDukanId && matchUser && matchPwd) {
+                    target = {
+                        dukanId: dukanIdClean.toUpperCase(),
+                        storeSlug: dukanIdClean,
+                        dukanName: cfg.name || cfg.settings?.storeName || dukanIdClean,
+                        ownerName: owner.name || '',
+                        fatherName: owner.fatherName || '',
+                        phone: owner.phone || '',
+                        username: owner.username || '',
+                        password: owner.password || '',
+                        businessType: cfg.type || cfg.vertical || 'retail',
+                        token: owner.token || generateUUID(),
+                        status: cfg.status || 'active',
+                        websiteUrl: cfg.domain?.customDomain || `https://${dukanIdClean}.churuone.in`
+                    };
                 }
             }
         }
@@ -1507,7 +1509,7 @@ export const dukandarLogin = (req, res) => {
         if (!target) {
             return res.status(401).json({
                 success: false,
-                message: 'Galat Dukan ID, Username ya Password! Kripya sahi credentials dalein.'
+                message: 'Dukan ID, Mobile number/Username, ya Password sahi nahi hai. Kripya dhyan se check karein ya "Forgot Dukan Account" ka upyog karein.'
             });
         }
 
@@ -1521,7 +1523,12 @@ export const dukandarLogin = (req, res) => {
             storeId: finalStoreId,
             dukanId: target.dukanId,
             dukanName: target.dukanName,
-            status: target.status || 'active',
+            ownerName: target.ownerName || '',
+            fatherName: target.fatherName || '',
+            dob: target.dob || '',
+            gender: target.gender || '',
+            businessType: target.businessType || 'retail',
+            status: target.status || 'pending_review',
             websiteUrl: target.websiteUrl || '',
             capabilities,
             username: target.username,
@@ -1610,7 +1617,44 @@ export const dukandarForgotPasswordVerifyOtp = async (req, res) => {
             success: true,
             verified: true,
             dukanId: d.dukanId,
+            username: d.username,
+            phone: d.phone,
+            dukanName: d.dukanName,
             message: 'OTP verify ho gaya! Naya password banayein.'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Customer Upload / Update Profile Avatar
+ */
+export const customerUploadAvatar = (req, res) => {
+    try {
+        const { phone, token, avatarUrl, picture } = req.body;
+        const pic = avatarUrl || picture;
+        if (!pic) return res.status(400).json({ success: false, message: 'Avatar image URL ya data zaroori hai' });
+
+        const customers = getAllUnifiedCustomers();
+        const cleanPhone = phone ? normalizePhone(phone) : '';
+        const c = customers.find(item => 
+            (cleanPhone && normalizePhone(item.phone) === cleanPhone) ||
+            (token && item.token === token)
+        );
+
+        if (!c) return res.status(404).json({ success: false, message: 'Customer account nahi mila' });
+
+        c.picture = pic;
+        c.photoURL = pic;
+        c.avatar = pic;
+        c.updatedAt = now();
+        saveUnifiedCustomer(c);
+
+        return res.json({
+            success: true,
+            user: c,
+            message: 'Profile photo safaltapoorvak save ho gayi!'
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

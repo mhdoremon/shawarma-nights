@@ -23,6 +23,7 @@ router.post('/customer/login', service.customerLogin);
 router.post('/customer/forgot-password/send-otp', service.customerForgotPasswordSendOtp);
 router.post('/customer/forgot-password/verify-otp', service.customerForgotPasswordVerifyOtp);
 router.post('/customer/reset-password', service.customerResetPassword);
+router.post('/customer/upload-avatar', service.customerUploadAvatar);
 
 // Dukandar Self-Onboarding & Portal Auth (Unique Dukan ID, Digital Contract E-Sign, Multi-category Setup, Forgot Password)
 router.post('/dukandar/generate-id', service.dukandarGenerateId);

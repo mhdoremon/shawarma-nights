@@ -16,6 +16,7 @@ import {
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
+import BottomNavBar from "../../components/BottomNavBar";
 import { smartFetch } from "./smartServerClient";
 import { 
   getChuruOneSession, 
@@ -2028,6 +2029,9 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         initialTab={legalTab}
         entity="nash-studio"
       />
+
+      {/* Instagram-style Bottom Navigation Bar */}
+      <BottomNavBar />
     </div>
   );
 }

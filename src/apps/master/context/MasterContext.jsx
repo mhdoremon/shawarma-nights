@@ -557,21 +557,42 @@ export const MasterProvider = ({ children }) => {
   // 1. DUKANDAR LOGIN
   const loginDukandar = async (targetStoreId, username, password) => {
     try {
-      const res = await fetch(`${API_BASE}/api/auth/admin/login`, {
+      // Primary: Unified Dukandar Login API (Strict verification of Dukan ID + Username/Mobile + Password)
+      const res = await fetch(`${API_BASE}/api/auth/dukandar/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-store-id': targetStoreId
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ dukanId: targetStoreId, username, password })
       });
       const data = await res.json();
       if (data.success && data.token) {
-        saveAuthSession(targetStoreId, data.token, 'dukandar', { username, storeId: targetStoreId });
-        const storeConf = data.storeInfo || data.storeConfig || {};
+        const storeIdClean = (data.storeId || targetStoreId).toLowerCase();
+        const userData = {
+          username: data.username || username,
+          storeId: storeIdClean,
+          dukanId: data.dukanId || targetStoreId.toUpperCase(),
+          dukanName: data.dukanName || 'My Dukan',
+          ownerName: data.ownerName || '',
+          fatherName: data.fatherName || '',
+          dob: data.dob || '',
+          gender: data.gender || '',
+          phone: data.ownerPhone || '',
+          businessType: data.businessType || 'retail',
+          status: data.status || 'active',
+          websiteUrl: data.websiteUrl || ''
+        };
+        saveAuthSession(storeIdClean, data.token, 'dukandar', userData);
+        const storeConf = data.storeInfo || data.storeConfig || { name: data.dukanName, status: data.status };
         const caps = data.capabilities || storeConf.capabilities;
-        setCapabilities(resolveClientCapabilities(targetStoreId, { ...storeConf, capabilities: caps }));
-        showToast('ChuruOne Dukandar Login Successful!', 'success');
+        setCapabilities(resolveClientCapabilities(storeIdClean, { ...storeConf, capabilities: caps }));
+        if (data.status === 'pending_review') {
+          setActiveTab(0);
+          showToast('Dukandar Login Successful! Application under review.', 'info');
+        } else {
+          showToast('ChuruOne Dukandar Login Successful!', 'success');
+        }
         return { success: true };
       } else {
         return { success: false, message: data.message || 'Invalid credentials' };

@@ -85,17 +85,21 @@ export default function MasterLayout() {
 
   const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
 
-  const tabsConfig = [
-    { id: 0, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
-    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0 },
-    ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 }] : []),
-    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
-    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
-    { id: 6, label: 'SMS Gateway', icon: Smartphone },
-    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
-    { id: 8, label: 'Settings', icon: Settings },
-  ];
+  const tabsConfig = isPendingReview
+    ? [
+        { id: 0, label: 'Application Status', icon: LayoutDashboard }
+      ]
+    : [
+        { id: 0, label: 'Dashboard', icon: LayoutDashboard },
+        { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
+        { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0 },
+        ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0 }] : []),
+        { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0 },
+        { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0 },
+        { id: 6, label: 'SMS Gateway', icon: Smartphone },
+        ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0 }] : []),
+        { id: 8, label: 'Settings', icon: Settings },
+      ];
 
   return (
     <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col">
@@ -257,15 +261,21 @@ export default function MasterLayout() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
           >
-            {activeTab === 0 && <DashboardTab />}
-            {activeTab === 1 && <OrdersTab />}
-            {activeTab === 2 && <MenuTab />}
-            {activeTab === 3 && <OffersTab />}
-            {activeTab === 4 && <CustomersTab />}
-            {activeTab === 5 && <ReviewsTab />}
-            {activeTab === 6 && <SmsGatewayTab />}
-            {activeTab === 7 && <FranchiseTab />}
-            {activeTab === 8 && <SettingsTab />}
+            {isPendingReview ? (
+              <DashboardTab />
+            ) : (
+              <>
+                {activeTab === 0 && <DashboardTab />}
+                {activeTab === 1 && <OrdersTab />}
+                {activeTab === 2 && <MenuTab />}
+                {activeTab === 3 && <OffersTab />}
+                {activeTab === 4 && <CustomersTab />}
+                {activeTab === 5 && <ReviewsTab />}
+                {activeTab === 6 && <SmsGatewayTab />}
+                {activeTab === 7 && <FranchiseTab />}
+                {activeTab === 8 && <SettingsTab />}
+              </>
+            )}
           </motion.div>
         </AnimatePresence>
       </main>

@@ -9,6 +9,8 @@ import NashStudioApp from './apps/nash/NashStudioApp';
 import SkylineApp from './apps/skyline/SkylineApp';
 import LegalPage from './apps/legal/LegalPage';
 import CashfreeTestPage from './apps/test/CashfreeTestPage';
+import ExplorePage from './apps/churuone/ExplorePage';
+import CustomerProfilePage from './apps/churuone/CustomerProfilePage';
 
 function RootEntry() {
   const location = useLocation();
@@ -45,6 +47,16 @@ function RootEntry() {
   // About Portal
   if (path.startsWith('/about')) {
     return <ChuruOneHomePage />;
+  }
+
+  // Social Commerce: Explore & Search Page
+  if (path.startsWith('/explore')) {
+    return <ExplorePage />;
+  }
+
+  // Social Commerce: Customer Profile Page
+  if (path.startsWith('/profile')) {
+    return <CustomerProfilePage />;
   }
 
   // 0. Unified ChuruOne SSO Authentication Portal (/auth or /login)
@@ -162,6 +174,10 @@ export default function App() {
         <Route path="/auth/*" element={<ChuruOneAuthPage />} />
         <Route path="/login/*" element={<ChuruOneAuthPage />} />
         <Route path="/signup/*" element={<ChuruOneAuthPage />} />
+
+        {/* Social Commerce Routes: Explore & Customer Profile */}
+        <Route path="/explore/*" element={<ExplorePage />} />
+        <Route path="/profile/*" element={<CustomerProfilePage />} />
 
         {/* ChuruOne Main City Portal & Marketplace */}
         <Route path="/churuone/*" element={<ChuruOneHomePage />} />

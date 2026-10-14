@@ -54,6 +54,7 @@ import {
   subscribeToChuruOneAuth 
 } from '../../utils/ssoHelper';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const CHURU_POPULAR_LANDMARKS = [
   'Subhash Chowk',
@@ -2668,6 +2669,9 @@ export default function SkylineApp() {
           </div>
         </div>
       )}
+
+      {/* Instagram-style Bottom Navigation Bar */}
+      <BottomNavBar />
 
     </div>
   );

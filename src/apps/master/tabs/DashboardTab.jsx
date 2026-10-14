@@ -1,9 +1,191 @@
 import React, { useMemo } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle2, IndianRupee, Store, Plus, Tag, Users, Building2 } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Clock, CheckCircle2, IndianRupee, Store, Plus, Tag, Users, Building2, ShieldCheck, Lock, Phone, MessageSquare, ExternalLink, AlertTriangle } from 'lucide-react';
 
 export default function DashboardTab() {
-  const { orders, menu, deals, customers, franchiseInquiries, setActiveTab, storeInfo, storeId, capabilities } = useMaster();
+  const { orders, menu, deals, customers, franchiseInquiries, setActiveTab, storeInfo, storeId, capabilities, user } = useMaster();
+
+  const isPendingReview = storeInfo?.status === 'pending_review' || 
+    user?.status === 'pending_review' ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'pending_review';
+      } catch { return false; }
+    })();
+
+  // If application is pending review, show ONLY the merchant's application details and onboarding progress
+  if (isPendingReview) {
+    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${storeId?.toUpperCase()}`;
+    const dukanCode = (user?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const father = user?.fatherName || storeInfo?.owner?.fatherName || '-';
+    const phone = user?.phone || storeInfo?.owner?.phone || '-';
+    const username = user?.username || storeInfo?.owner?.username || '-';
+    const bType = user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail';
+
+    return (
+      <div className="space-y-6 pb-12 max-w-5xl mx-auto">
+        {/* Top Header Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-amber-200/80">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-900 border border-amber-500/30 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-2">
+                <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                <span>Application Under Technical Review</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
+                {dukanTitle}
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-1">
+                Dukan ID: <span className="font-mono font-bold text-zinc-900 bg-zinc-100 px-2 py-0.5 rounded">{dukanCode}</span> • Digital Contract Verified
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <a
+                href={`https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20ID%20${dukanCode}%20ka%20status%20bataiye`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>WhatsApp Help</span>
+              </a>
+              <a
+                href="tel:7023963189"
+                className="px-4 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Call Helpline</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Submitted Merchant Profile Grid */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-200">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-2">
+            <Store className="w-4 h-4 text-zinc-600" />
+            <span>Aapki Registered Dukan Ki Jankari</span>
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Dukan Code</span>
+              <span className="text-sm font-mono font-black text-zinc-900">{dukanCode}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Dukan Ka Naam</span>
+              <span className="text-sm font-bold text-zinc-900">{dukanTitle}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Category / Vertical</span>
+              <span className="text-sm font-bold text-zinc-900 capitalize">{bType}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Dukandar Ka Naam</span>
+              <span className="text-sm font-bold text-zinc-900">{owner}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Pita Ka Naam</span>
+              <span className="text-sm font-bold text-zinc-900">{father}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Registered Mobile</span>
+              <div className="flex items-center gap-1.5 text-sm font-bold text-zinc-900">
+                <span>+91 {phone}</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Merchant Username</span>
+              <span className="text-sm font-mono font-bold text-zinc-900">@{username}</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Digital Contract Status</span>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Signed & E-Verified
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-50 border border-zinc-200">
+              <span className="text-zinc-400 font-semibold uppercase text-[10px] block mb-1">Portal Security</span>
+              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3" /> 100% Isolated Tenant
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4-Stage Store Launch Roadmap */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-zinc-200">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 mb-6 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-zinc-600" />
+            <span>Website Launch Progress</span>
+          </h3>
+
+          <div className="space-y-4">
+            <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950">
+              <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                ✓
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-emerald-950">Stage 1: Registration & Agreement Submission</h4>
+                <p className="text-[11px] text-emerald-800 mt-0.5">Aapne dukan details submit ki aur digital agreement OTP verify kiya.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-950">
+              <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 animate-pulse">
+                2
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-amber-950">Stage 2: Technical Review & Store Architecture (In Progress)</h4>
+                <p className="text-[11px] text-amber-800 mt-0.5">ChuruOne technical team aapki category ({bType}) ke anusar data containers setup kar rahi hai.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-500">
+              <div className="w-7 h-7 rounded-full bg-zinc-300 text-zinc-600 flex items-center justify-center font-bold text-xs shrink-0">
+                <Lock className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-zinc-700">Stage 3: Custom Website Coding & Domain Linking</h4>
+                <p className="text-[11px] text-zinc-500 mt-0.5">Shawarma Nights aur Skyline Outfits ki tarah aapki dukan ki custom frontend website banayi jayegi.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3.5 p-3.5 rounded-2xl bg-zinc-50 border border-zinc-200 text-zinc-500">
+              <div className="w-7 h-7 rounded-full bg-zinc-300 text-zinc-600 flex items-center justify-center font-bold text-xs shrink-0">
+                <Lock className="w-3.5 h-3.5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-zinc-700">Stage 4: Master OS Full Control Unlock</h4>
+                <p className="text-[11px] text-zinc-500 mt-0.5">Website complete hote hi aapka catalog edit, orders, coupons, aur payments setting yahin unlock ho jayenge.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Security & Isolation Notice */}
+        <div className="p-5 rounded-2xl bg-zinc-900 text-white flex items-start gap-3.5 shadow-lg">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed text-zinc-300">
+            <span className="font-bold text-white block mb-1">Strict Multi-Tenant Security Guaranteed:</span>
+            Aapki dukan ka portal 100% isolated hai. Kisi dusre dukandar ka data aapke portal par kabhi nahi aayega, aur na hi koi dusra aapka data dekh sakta hai. Jab tak technical review poora hokar website approve nahi hoti, catalog aur settings edit features locked rahenge.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
   const isFashion = capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));

@@ -39,6 +39,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LegalPoliciesModal from '../../components/LegalPoliciesModal';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
+import BottomNavBar from '../../components/BottomNavBar';
 import { 
   getChuruOneSession, 
   setChuruOneSession, 
@@ -3190,6 +3191,9 @@ export default function ChuruOneHomePage() {
         initialTab={legalTab}
         entity="churuone"
       />
+
+      {/* Instagram-style Bottom Navigation Bar */}
+      <BottomNavBar />
 
     </div>
   );

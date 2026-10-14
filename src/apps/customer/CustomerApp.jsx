@@ -17,6 +17,7 @@ import AuthModal from '../../components/AuthModal';
 import ProfileDrawer from '../../components/ProfileDrawer';
 import CustomizeModal from '../../components/CustomizeModal';
 import FloatingCartBar from '../../components/FloatingCartBar';
+import BottomNavBar from '../../components/BottomNavBar';
 
 export default function CustomerApp() {
   const [customizeItem, setCustomizeItem] = useState(null);
@@ -62,6 +63,7 @@ export default function CustomerApp() {
             <AuthModal />
             <CustomizeModal item={customizeItem} onClose={() => setCustomizeItem(null)} />
             <FranchiseModal isOpen={isFranchiseOpen} onClose={() => setIsFranchiseOpen(false)} />
+            <BottomNavBar />
           </div>
         </CartProvider>
       </RealtimeProvider>
