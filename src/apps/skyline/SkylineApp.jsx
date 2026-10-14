@@ -55,6 +55,7 @@ import {
 } from '../../utils/ssoHelper';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 import BottomNavBar from '../../components/BottomNavBar';
+import { PHONEPE_REVIEW_MODE } from '../../config/siteMode';
 
 const CHURU_POPULAR_LANDMARKS = [
   'Subhash Chowk',
@@ -68,7 +69,95 @@ const CHURU_POPULAR_LANDMARKS = [
   'Naya Bass'
 ];
 
+export const PHONEPE_THREE_PRODUCTS = [
+  {
+    id: "sky-item-02",
+    name: "Striped Riviera Mandarin Linen Shirt",
+    category: "shirts",
+    subCategory: "linen-shirts",
+    price: 1849,
+    originalPrice: 2999,
+    prepTime: "Same Day Dispatch",
+    isVeg: true,
+    badge: "NEW ARRIVAL",
+    description: "Band-collar shirt featuring subtle vertical chalk stripes. Breathable open-weave construction designed to keep you cool under the desert sun.",
+    fabric: "85% Belgian Linen, 15% Mulberry Silk",
+    fit: "Classic Clean Cut",
+    image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800&q=80",
+    secondaryImage: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+    availableSizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Chalk Riviera Stripe", hex: "#EAE7DC" },
+      { name: "Indigo Stripe", hex: "#2E4057" }
+    ],
+    rating: 4.9,
+    reviews: 62,
+    available: true
+  },
+  {
+    id: "sky-item-01",
+    name: "Normandy Flax Camp-Collar Linen Shirt",
+    category: "shirts",
+    subCategory: "linen-shirts",
+    price: 1699,
+    originalPrice: 2799,
+    prepTime: "Same Day Dispatch",
+    isVeg: true,
+    badge: "BESTSELLER",
+    description: "Woven from 100% Normandy long-staple flax linen. Enzyme garment-washed for a naturally breathable, relaxed drape with real mother-of-pearl buttons.",
+    fabric: "100% French Normandy Flax Linen (180 GSM)",
+    fit: "Tailored Relaxed Resort Fit",
+    image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+    secondaryImage: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80",
+    availableSizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Ecru Sand", hex: "#E8E2D5" },
+      { name: "Sage Green", hex: "#768271" },
+      { name: "Obsidian Black", hex: "#1C1C1E" }
+    ],
+    rating: 4.9,
+    reviews: 84,
+    available: true
+  },
+  {
+    id: "sky-shirt-07",
+    name: "Luxury Matte Black Tailored Casual Shirt",
+    category: "shirts",
+    subCategory: "casual-shirts",
+    price: 1799,
+    originalPrice: 2999,
+    prepTime: "Same Day Dispatch",
+    badge: "NIGHT EDIT",
+    description: "Deep pigment jet black poplin cotton with modern spread collar, streamlined French placket, dinner & evening occasion ready.",
+    fabric: "100% Mercerized Combed Cotton Poplin",
+    fit: "Tailored Slim Fit",
+    image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80",
+    availableSizes: ["S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Jet Pitch Black", hex: "#0D0D0D" }
+    ],
+    rating: 4.9,
+    reviews: 73,
+    available: true
+  }
+];
+
 function sanitizeClothesOnly(items) {
+  if (PHONEPE_REVIEW_MODE) {
+    const targetKeys = [
+      'striped riviera mandarin linen shirt',
+      'normandy flax camp-collar linen shirt',
+      'luxury matte black tailored casual shirt'
+    ];
+    if (Array.isArray(items) && items.length > 0) {
+      const matched = items.filter(it => 
+        it && it.name && targetKeys.some(k => it.name.toLowerCase().trim() === k || it.name.toLowerCase().includes(k))
+      );
+      if (matched.length >= 2) return matched;
+    }
+    return PHONEPE_THREE_PRODUCTS;
+  }
+
   if (!Array.isArray(items)) return [];
   return items.filter(it => 
     it &&
@@ -1076,7 +1165,7 @@ export default function SkylineApp() {
           <span className="text-stone-700">✦</span>
           <span>100% ITALIAN LINEN</span>
           <span className="text-stone-700">✦</span>
-          <span className="text-amber-400 font-extrabold">RAW SELVEDGE DENIM</span>
+          <span className="text-amber-400 font-extrabold">{PHONEPE_REVIEW_MODE ? 'TAILORED CASUAL SHIRTS' : 'RAW SELVEDGE DENIM'}</span>
           <span className="text-stone-700">✦</span>
           <span>BESPOKE HANDCRAFTED TAILORING</span>
           <span className="text-stone-700">✦</span>
@@ -1184,7 +1273,9 @@ export default function SkylineApp() {
             Skyline Premium Outfits
           </h2>
           <p className="text-stone-500 text-xs sm:text-sm max-w-lg mx-auto">
-            Pure French linen shirts, pleated Gurkha trousers, authentic Japanese selvedge denim, kurtas & jackets — all garments in one place.
+            {PHONEPE_REVIEW_MODE 
+              ? "Handcrafted French linen & luxury tailored casual shirts — ready for same-day dispatch."
+              : "Pure French linen shirts, pleated Gurkha trousers, authentic Japanese selvedge denim, kurtas & jackets — all garments in one place."}
           </p>
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
