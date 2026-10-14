@@ -92,6 +92,17 @@ export default function BottomNavBar() {
         const dUser = JSON.parse(localStorage.getItem('churuone_master_user') || 'null');
         if (dToken && dUser) {
           setDukandar(dUser);
+          if (dUser.storeId) {
+            const sId = dUser.storeId.toLowerCase();
+            const shopObj = STORE_CATALOG[sId] || {
+              id: sId,
+              shortName: dUser.dukanName ? dUser.dukanName.split(' ')[0] : sId,
+              name: dUser.dukanName || sId,
+              icon: '🏪',
+              url: `/?storeId=${sId}`
+            };
+            setActiveShop(shopObj);
+          }
         } else {
           setDukandar(null);
         }
@@ -108,7 +119,7 @@ export default function BottomNavBar() {
 
       try {
         const savedShop = JSON.parse(localStorage.getItem('churuone_active_shop') || 'null');
-        if (savedShop) setActiveShop(savedShop);
+        if (savedShop && !dUser?.storeId) setActiveShop(savedShop);
       } catch {}
     };
 
@@ -137,7 +148,7 @@ export default function BottomNavBar() {
   );
 
   const isDukandarAuth = path.startsWith('/auth') && (params.get('role') === 'dukandar' || params.get('type') === 'dukandar');
-  const isFeedActive = (path === '/' || path === '' || path === '/churuone') && !isCurrentShopActive && !path.startsWith('/explore') && !path.startsWith('/profile') && !path.startsWith('/master') && !path.startsWith('/admin') && !path.startsWith('/auth');
+  const isFeedActive = (path === '/' || path === '' || path === '/churuone') && !isCurrentShopActive && !path.startsWith('/explore') && !path.startsWith('/profile') && !path.startsWith('/master') && !path.startsWith('/admin') && !path.startsWith('/dukandar') && !path.startsWith('/auth');
   const isExploreActive = path.startsWith('/explore');
   const isProfileActive = path.startsWith('/profile') || (path.startsWith('/auth') && !isDukandarAuth && !dukandar);
   const isDashboardActive = path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar') || isDukandarAuth;

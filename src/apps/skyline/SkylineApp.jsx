@@ -1046,6 +1046,15 @@ export default function SkylineApp() {
               )}
             </button>
 
+            {/* Dukandar Portal */}
+            <a
+              href="/master?storeId=skyline"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-900 hover:bg-black text-white text-[11px] font-bold transition-all shadow-xs"
+              title="Skyline Merchant OS"
+            >
+              <Store className="w-3.5 h-3.5 text-amber-400" />
+              <span>Dukan OS</span>
+            </a>
 
             {/* Mobile Menu Icon */}
             <button
@@ -1065,6 +1074,13 @@ export default function SkylineApp() {
             <a href="#trending" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Shop</a>
             <a href="#bestselling" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Collection</a>
             <a href="#reviews" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Reviews</a>
+            <a 
+              href="/master?storeId=skyline"
+              className="w-full text-left text-sm font-semibold text-stone-900 py-1 flex items-center gap-2"
+            >
+              <Store className="w-4 h-4 text-amber-600" />
+              <span>Dukan OS (Merchant Console)</span>
+            </a>
             <button 
               onClick={() => { setIsMobileMenuOpen(false); setIsTrackerOpen(true); }}
               className="w-full text-left text-sm font-medium text-stone-600 py-1 flex items-center gap-2"

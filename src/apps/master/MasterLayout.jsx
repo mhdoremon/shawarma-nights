@@ -37,6 +37,7 @@ import SmsGatewayTab from './tabs/SmsGatewayTab';
 import FranchiseTab from './tabs/FranchiseTab';
 import SettingsTab from './tabs/SettingsTab';
 import DeliveryPartnerView from './views/DeliveryPartnerView';
+import BottomNavBar from '../../components/BottomNavBar';
 
 export default function MasterLayout() {
   const { 
@@ -100,7 +101,7 @@ export default function MasterLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col">
+    <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col pb-24">
       
       {/* 1. TOP BRAND NAVBAR */}
       <header className={`sticky top-0 z-40 ${isSalon ? 'bg-zinc-950 border-b border-zinc-800' : 'bg-[#DC2626]'} text-white shadow-md px-4 sm:px-6 py-3`}>
@@ -347,6 +348,9 @@ export default function MasterLayout() {
           </motion.div>
         )}
       </AnimatePresence>
+ 
+      {/* 5. BOTTOM NAVIGATION DOCK (Feed, Explore, Store, Dashboard) */}
+      <BottomNavBar />
 
     </div>
   );

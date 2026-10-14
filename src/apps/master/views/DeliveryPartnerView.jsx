@@ -15,6 +15,7 @@ import {
   Lock,
   Compass
 } from 'lucide-react';
+import BottomNavBar from '../../../components/BottomNavBar';
 
 export default function DeliveryPartnerView() {
   const { 
@@ -538,6 +539,9 @@ export default function DeliveryPartnerView() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation Dock */}
+      <BottomNavBar />
 
     </div>
   );

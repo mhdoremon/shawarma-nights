@@ -790,6 +790,26 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               <Scissors size={14} strokeWidth={2} />
               <span>BOOK</span>
             </button>
+
+            <a 
+              href="/master?storeId=nash-studio"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "rgba(255,255,255,0.1)",
+                color: "#d4af37",
+                padding: "6px 12px",
+                borderRadius: 20,
+                fontSize: 11,
+                fontWeight: 800,
+                textDecoration: "none",
+                border: "1px solid rgba(212,175,55,0.3)"
+              }}
+              title="Salon Dukandar Portal"
+            >
+              <span>🏪 DUKAN</span>
+            </a>
           </div>
       </nav>
 
