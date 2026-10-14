@@ -1,6 +1,7 @@
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
 import { generateId, generateOtp, generateUUID, now, normalizePhone } from '../../utils/helpers.js';
+import { sendMsg91Otp } from '../../utils/msg91.js';
 
 export function register(req, res) {
   try {
@@ -101,21 +102,11 @@ export function login(req, res) {
     const otp = generateOtp(6);
     deliveryOtpStore.set(`${req.storeId}:${normPhone}`, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
-    const formattedPhone = normPhone.startsWith('+91') ? normPhone : (normPhone.length === 10 ? `+91${normPhone}` : normPhone);
-    const smsPayload = {
-      action: 'SEND_SMS',
-      requestId: generateUUID(),
-      phone: formattedPhone,
-      message: `Shawarma Nights Delivery Partner Login OTP: ${otp}. Valid for 5 minutes.`
-    };
-    const sent = WebSocketHub.broadcastToGateway(req.storeId, smsPayload);
-    if (!sent) {
-      WebSocketHub.queueGatewaySms(req.storeId, smsPayload);
-    }
-
-    console.log(`[DELIVERY LOGIN] Store: ${req.storeId}, Phone: ${normPhone}, OTP: ${otp}`);
+    // Send directly via MSG91 Cloud SMS (NO phone SIM gateway)
+    sendMsg91Otp(normPhone);
+    console.log(`[DELIVERY LOGIN via MSG91] Store: ${req.storeId}, Phone: ${normPhone}, OTP: ${otp}`);
     
-    return res.json({ success: true, message: 'OTP sent', token: boy.token });
+    return res.json({ success: true, message: 'OTP sent via MSG91', token: boy.token, debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

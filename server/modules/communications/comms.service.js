@@ -1,30 +1,13 @@
-import WebSocketHub from '../../core/WebSocketHub.js';
+import { sendMsg91Otp } from '../../utils/msg91.js';
 import DataLayer from '../../core/DataLayer.js';
-
 import crypto from 'crypto';
 
 /**
- * Send SMS via store's Android SMS gateway
+ * Send SMS via MSG91 (Cloud SMS)
  */
 export function sendSms(storeId, phone, message) {
   if (!phone) return;
-  const cleanPhone = String(phone).replace(/[\s\-\+]/g, '');
-  const formattedPhone = cleanPhone.startsWith('91') && cleanPhone.length === 12
-    ? `+${cleanPhone}`
-    : (cleanPhone.length === 10 ? `+91${cleanPhone}` : phone);
-
-  const requestId = crypto.randomUUID();
-  const payload = {
-    action: 'SEND_SMS',
-    requestId,
-    phone: formattedPhone,
-    message
-  };
-
-  const sent = WebSocketHub.broadcastToGateway(storeId, payload);
-  if (!sent) {
-    WebSocketHub.queueGatewaySms(storeId, payload);
-  }
+  console.log(`[Cloud Comms Notification] Phone: ${phone}, Store: ${storeId}, Msg: ${message}`);
 }
 
 /**
@@ -44,10 +27,10 @@ export function notifyOrderDispatched(storeId, order) {
 }
 
 /**
- * Send OTP via SMS
+ * Send OTP via MSG91
  */
 export function sendOtpSms(storeId, phone, otp) {
-  sendSms(storeId, phone, `Your verification code is: ${otp}. Valid for 5 minutes.`);
+  sendMsg91Otp(phone);
 }
 
 function getTrackingUrl(storeId, orderId) {

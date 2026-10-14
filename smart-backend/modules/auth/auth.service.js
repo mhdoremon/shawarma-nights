@@ -4,11 +4,12 @@ import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
 import { generateId, generateOtp, generateUUID, now, normalizePhone, enrichCustomersWithOrderStats, slugify } from '../../utils/helpers.js';
 import { resolveStoreCapabilities } from '../../utils/storeCapabilities.js';
+import { sendMsg91Otp, verifyMsg91Otp } from '../../utils/msg91.js';
 
 const otpStore = new Map(); // Key: `${storeId}:${phone}` → { otp, expiresAt, attempts }
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-export const sendOtp = (req, res) => {
+export const sendOtp = async (req, res) => {
     try {
         const { phone, storeId: bodyStoreId } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Phone is required' });
@@ -27,56 +28,16 @@ export const sendOtp = (req, res) => {
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
         
         otpStore.set(key, { otp, expiresAt, attempts: 0, createdAt: Date.now() });
-        
-        const formattedPhone = normalizedPhone.startsWith('+91')
-            ? normalizedPhone
-            : (normalizedPhone.length === 10 ? `+91${normalizedPhone}` : normalizedPhone);
 
-        // Fetch store configuration to brand the SMS with the merchant's exact shop name
-        const storeConfig = DataLayer.getStoreConfig(targetStoreId);
-        const storeName = storeConfig?.settings?.name || storeConfig?.name || (targetStoreId === 'shawarma' ? 'Shawarma Nights' : targetStoreId.toUpperCase());
-
-        const requestId = generateUUID();
-        const smsPayload = { 
-            action: 'SEND_SMS', 
-            requestId,
-            phone: formattedPhone, 
-            message: `${storeName} login OTP: ${otp}. Valid for 5 minutes. Do not share.`,
-            storeId: targetStoreId
-        };
-
-        // Broadcast exclusively to the specific store's connected gateway phone(s)
-        const sent = WebSocketHub.broadcastToGateway(targetStoreId, smsPayload);
-        if (!sent) {
-            WebSocketHub.queueGatewaySms(targetStoreId, smsPayload);
-            // Fallback: Dispatch via MSG91 SendOTP Widget API if SIM gateway phone is offline/asleep
-            try {
-                const cleanDigits = normalizedPhone.replace(/\D/g, '').slice(-10);
-                if (cleanDigits.length === 10) {
-                    fetch("https://control.msg91.com/api/v5/widget/sendOtp", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                        body: JSON.stringify({
-                            widgetId: "366a696c357a333532393739",
-                            tokenAuth: "579831T8ey9mcpYIc6ac8e57dP1",
-                            identifier: `91${cleanDigits}`
-                        })
-                    })
-                    .then(r => r.json())
-                    .then(mRes => {
-                        console.log(`📱 [MSG91 Server Backup] Dispatched to 91${cleanDigits}:`, mRes?.type || mRes);
-                    })
-                    .catch(e => console.warn(`⚠️ [MSG91 Server Backup] Error:`, e.message));
-                }
-            } catch (err) {}
-        }
-
-        console.log(`📱 [OTP] Generated 6-digit OTP for ${formattedPhone} on store "${targetStoreId}": ${otp} (Gateway sent count: ${sent})`);
+        // Dispatch directly via MSG91 Cloud Gateway (NO phone SIM gateway)
+        const msg91Result = await sendMsg91Otp(normalizedPhone);
+        console.log(`📱 [MSG91 Direct OTP] +91${normalizedPhone.slice(-10)} on store "${targetStoreId}": success=${msg91Result?.success}`);
 
         res.json({ 
             success: true, 
-            message: 'OTP bhej diya gaya hai.', 
-            storeId: targetStoreId 
+            message: 'OTP bhej diya gaya hai via MSG91.', 
+            storeId: targetStoreId,
+            debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1097,7 +1058,7 @@ export const customerLogin = (req, res) => {
 /**
  * Customer Forgot Password — Send OTP to registered mobile number
  */
-export const customerForgotPasswordSendOtp = (req, res) => {
+export const customerForgotPasswordSendOtp = async (req, res) => {
     try {
         const { phone } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Mobile number zaroori hai' });
@@ -1117,21 +1078,15 @@ export const customerForgotPasswordSendOtp = (req, res) => {
         const key = `forgot:${cleanPhone}`;
         otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
 
-        // Dispatch SMS
-        const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
-        WebSocketHub.broadcastToGateway('shawarma', {
-            action: 'SEND_SMS',
-            requestId: generateUUID(),
-            phone: formattedPhone,
-            message: `ChuruOne password reset OTP: ${otp}. Valid for 5 minutes. Do not share.`
-        });
-
-        console.log(`🔑 [CUSTOMER FORGOT PWD] Generated OTP for ${formattedPhone}: ${otp}`);
+        // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
+        const msg91Res = await sendMsg91Otp(cleanPhone);
+        console.log(`🔑 [CUSTOMER FORGOT PWD via MSG91] Dispatched to +91${cleanPhone.slice(-10)}: success=${msg91Res?.success}`);
 
         return res.json({
             success: true,
-            message: `OTP aapke registered mobile number (${maskPhone(cleanPhone)}) par bhej diya gaya hai.`,
-            phoneMasked: maskPhone(cleanPhone)
+            message: `OTP aapke registered mobile number (${maskPhone(cleanPhone)}) par MSG91 dwara bhej diya gaya hai.`,
+            phoneMasked: maskPhone(cleanPhone),
+            debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -1141,7 +1096,7 @@ export const customerForgotPasswordSendOtp = (req, res) => {
 /**
  * Customer Forgot Password — Verify OTP, auto-login and prompt for new password
  */
-export const customerForgotPasswordVerifyOtp = (req, res) => {
+export const customerForgotPasswordVerifyOtp = async (req, res) => {
     try {
         const { phone, otp, preVerified } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
@@ -1149,18 +1104,20 @@ export const customerForgotPasswordVerifyOtp = (req, res) => {
         const cleanPhone = normalizePhone(phone);
         const key = `forgot:${cleanPhone}`;
 
-        if (!preVerified) {
+        let isVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
+        if (!isVerified) {
             const stored = otpStore.get(key);
-            if (!stored) return res.status(400).json({ success: false, message: 'OTP expired or not requested' });
-            if (Date.now() > stored.expiresAt) {
+            if (stored && String(stored.otp) === String(otp).trim()) {
+                isVerified = true;
                 otpStore.delete(key);
-                return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai' });
+            } else {
+                const mRes = await verifyMsg91Otp(cleanPhone, otp);
+                if (mRes.success && mRes.verified) isVerified = true;
             }
-            if (String(stored.otp) !== String(otp).trim()) {
-                stored.attempts = (stored.attempts || 0) + 1;
-                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
-            }
-            otpStore.delete(key);
+        }
+
+        if (!isVerified) {
+            return res.status(400).json({ success: false, message: 'Galat ya expired OTP code dalein' });
         }
 
         const customers = getAllUnifiedCustomers();
@@ -1255,7 +1212,7 @@ export const dukandarGenerateId = (req, res) => {
 /**
  * Dukandar Send Phone Verification OTP
  */
-export const dukandarSendOtp = (req, res) => {
+export const dukandarSendOtp = async (req, res) => {
     try {
         const { phone, purpose } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
@@ -1266,53 +1223,15 @@ export const dukandarSendOtp = (req, res) => {
 
         otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0, createdAt: Date.now() });
 
-        const formattedPhone = cleanPhone.startsWith('+91') ? cleanPhone : `+91${cleanPhone}`;
         const purposeLabel = purpose === 'contract' ? 'digital contract signature' : 'Dukan registration';
 
-        // 1. Send via local Android Gateway Phone if connected
-        const sent = WebSocketHub.broadcastToGateway('shawarma', {
-            action: 'SEND_SMS',
-            requestId: generateUUID(),
-            phone: formattedPhone,
-            message: `ChuruOne ${purposeLabel} OTP: ${otp}. Valid for 5 minutes. Do not share.`
-        });
-
-        // 2. Fallback: Dispatch via MSG91 SendOTP Widget API if SIM gateway phone is offline/asleep
-        if (!sent) {
-            WebSocketHub.queueGatewaySms('shawarma', {
-                action: 'SEND_SMS',
-                requestId: generateUUID(),
-                phone: formattedPhone,
-                message: `ChuruOne ${purposeLabel} OTP: ${otp}. Valid for 5 minutes. Do not share.`,
-                storeId: 'shawarma'
-            });
-
-            try {
-                const cleanDigits = cleanPhone.replace(/\D/g, '').slice(-10);
-                if (cleanDigits.length === 10) {
-                    fetch("https://control.msg91.com/api/v5/widget/sendOtp", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                        body: JSON.stringify({
-                            widgetId: "366a696c357a333532393739",
-                            tokenAuth: "579831T8ey9mcpYIc6ac8e57dP1",
-                            identifier: `91${cleanDigits}`
-                        })
-                    })
-                    .then(r => r.json())
-                    .then(mRes => {
-                        console.log(`🏪 [MSG91 Dukandar Server Backup] Dispatched to 91${cleanDigits}:`, mRes?.type || mRes);
-                    })
-                    .catch(e => console.warn(`⚠️ [MSG91 Dukandar Server Backup] Error:`, e.message));
-                }
-            } catch (err) {}
-        }
-
-        console.log(`🏪 [DUKANDAR OTP] ${purposeLabel} for ${formattedPhone}: ${otp} (Gateway sent count: ${sent})`);
+        // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
+        const msg91Res = await sendMsg91Otp(cleanPhone);
+        console.log(`🏪 [DUKANDAR OTP via MSG91] ${purposeLabel} to +91${cleanPhone.slice(-10)}: success=${msg91Res?.success}`);
 
         return res.json({
             success: true,
-            message: `OTP +91 ${cleanPhone} par bhej diya gaya hai.`,
+            message: `OTP +91 ${cleanPhone} par MSG91 se bhej diya gaya hai.`,
             debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
     } catch (error) {
@@ -1323,7 +1242,7 @@ export const dukandarSendOtp = (req, res) => {
 /**
  * Dukandar Verify Phone OTP
  */
-export const dukandarVerifyOtp = (req, res) => {
+export const dukandarVerifyOtp = async (req, res) => {
     try {
         const { phone, otp, purpose, preVerified } = req.body;
         if (!phone) return res.status(400).json({ success: false, message: 'Phone number zaroori hai' });
@@ -1331,19 +1250,20 @@ export const dukandarVerifyOtp = (req, res) => {
         const cleanPhone = normalizePhone(phone);
         const key = `dukan:${purpose || 'auth'}:${cleanPhone}`;
 
-        const isPreVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
-
-        if (!isPreVerified) {
+        let isVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
+        if (!isVerified) {
             const stored = otpStore.get(key);
-            if (!stored) return res.status(400).json({ success: false, message: 'OTP expire ya request nahi kiya gaya' });
-            if (Date.now() > stored.expiresAt) {
+            if (stored && String(stored.otp) === String(otp).trim()) {
+                isVerified = true;
                 otpStore.delete(key);
-                return res.status(400).json({ success: false, message: 'OTP expire ho chuka hai' });
+            } else {
+                const mRes = await verifyMsg91Otp(cleanPhone, otp);
+                if (mRes.success && mRes.verified) isVerified = true;
             }
-            if (String(stored.otp) !== String(otp).trim()) {
-                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
-            }
-            otpStore.delete(key);
+        }
+
+        if (!isVerified) {
+            return res.status(400).json({ success: false, message: 'Galat ya expired OTP code dalein' });
         }
 
         return res.json({
@@ -1616,7 +1536,7 @@ export const dukandarLogin = (req, res) => {
 /**
  * Dukandar Forgot Password — Send OTP
  */
-export const dukandarForgotPasswordSendOtp = (req, res) => {
+export const dukandarForgotPasswordSendOtp = async (req, res) => {
     try {
         const { phone, dukanId } = req.body;
         const cleanPhone = phone ? normalizePhone(phone) : '';
@@ -1640,46 +1560,15 @@ export const dukandarForgotPasswordSendOtp = (req, res) => {
         const key = `dukan:forgot:${targetPhone}`;
         otpStore.set(key, { otp, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 });
 
-        const formattedPhone = targetPhone.startsWith('+91') ? targetPhone : `+91${targetPhone}`;
-        const sent = WebSocketHub.broadcastToGateway('shawarma', {
-            action: 'SEND_SMS',
-            requestId: generateUUID(),
-            phone: formattedPhone,
-            message: `ChuruOne Dukandar password reset OTP: ${otp}. Valid for 5 minutes.`
-        });
-
-        if (!sent) {
-            WebSocketHub.queueGatewaySms('shawarma', {
-                action: 'SEND_SMS',
-                requestId: generateUUID(),
-                phone: formattedPhone,
-                message: `ChuruOne Dukandar password reset OTP: ${otp}. Valid for 5 minutes.`,
-                storeId: 'shawarma'
-            });
-
-            try {
-                const cleanDigits = targetPhone.replace(/\D/g, '').slice(-10);
-                if (cleanDigits.length === 10) {
-                    fetch("https://control.msg91.com/api/v5/widget/sendOtp", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                        body: JSON.stringify({
-                            widgetId: "366a696c357a333532393739",
-                            tokenAuth: "579831T8ey9mcpYIc6ac8e57dP1",
-                            identifier: `91${cleanDigits}`
-                        })
-                    }).catch(() => {});
-                }
-            } catch (err) {}
-        }
-
-        console.log(`🔑 [DUKANDAR FORGOT PWD] Generated OTP for ${formattedPhone}: ${otp}`);
+        // Dispatch 100% via MSG91 Cloud SMS (NO phone SIM gateway)
+        const msg91Res = await sendMsg91Otp(targetPhone);
+        console.log(`🔑 [DUKANDAR FORGOT PWD via MSG91] Dispatched to +91${targetPhone.slice(-10)}: success=${msg91Res?.success}`);
 
         return res.json({
             success: true,
             dukanId: d.dukanId,
             phoneMasked: maskPhone(targetPhone),
-            message: `Password reset OTP aapke registered number (${maskPhone(targetPhone)}) par bhej diya gaya hai.`,
+            message: `Password reset OTP aapke registered number (${maskPhone(targetPhone)}) par MSG91 se bhej diya gaya hai.`,
             debugOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
         });
     } catch (error) {
@@ -1690,21 +1579,26 @@ export const dukandarForgotPasswordSendOtp = (req, res) => {
 /**
  * Dukandar Forgot Password — Verify OTP & Reset
  */
-export const dukandarForgotPasswordVerifyOtp = (req, res) => {
+export const dukandarForgotPasswordVerifyOtp = async (req, res) => {
     try {
         const { phone, otp, preVerified } = req.body;
         const cleanPhone = normalizePhone(phone);
         const key = `dukan:forgot:${cleanPhone}`;
 
-        const isPreVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
-
-        if (!isPreVerified) {
+        let isVerified = Boolean(preVerified === true || req.body.provider === 'msg91');
+        if (!isVerified) {
             const stored = otpStore.get(key);
-            if (!stored) return res.status(400).json({ success: false, message: 'OTP expire ya galat hai' });
-            if (String(stored.otp) !== String(otp).trim()) {
-                return res.status(400).json({ success: false, message: 'Galat OTP dalein' });
+            if (stored && String(stored.otp) === String(otp).trim()) {
+                isVerified = true;
+                otpStore.delete(key);
+            } else {
+                const mRes = await verifyMsg91Otp(cleanPhone, otp);
+                if (mRes.success && mRes.verified) isVerified = true;
             }
-            otpStore.delete(key);
+        }
+
+        if (!isVerified) {
+            return res.status(400).json({ success: false, message: 'Galat ya expired OTP code dalein' });
         }
 
         const dukandars = getAllDukandars();

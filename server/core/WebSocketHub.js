@@ -15,47 +15,13 @@ import config from '../config/index.js';
 const customerConnections = {};   // /ws clients
 const gatewayConnections = {};    // /gateway clients (Android apps)
 
-// Queue for SMS when Android Gateway is temporarily reconnecting
-const gatewaySmsQueue = {};       // { "shawarma": [ { action, requestId, phone, message, queuedAt } ] }
-const SMS_QUEUE_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-
-/**
- * Queue an SMS message for a store's gateway when offline.
- */
+// Queue for SMS is disabled - all SMS/OTP is routed directly via MSG91 Cloud Gateway
 function queueGatewaySms(storeId, smsObj) {
-  if (!gatewaySmsQueue[storeId]) gatewaySmsQueue[storeId] = [];
-  if (gatewaySmsQueue[storeId].length >= 50) {
-    gatewaySmsQueue[storeId].shift();
-  }
-  gatewaySmsQueue[storeId].push({
-    ...smsObj,
-    queuedAt: Date.now()
-  });
-  console.log(`📥 [WS Gateway] Queued SMS for store "${storeId}" to ${smsObj.phone} (Queue size: ${gatewaySmsQueue[storeId].length})`);
+  // SIM SMS disabled by policy; direct MSG91 is used exclusively
 }
 
-/**
- * Flush any queued SMS messages to a newly connected gateway.
- */
 function flushGatewaySmsQueue(storeId, ws) {
-  const queue = gatewaySmsQueue[storeId];
-  if (!queue || queue.length === 0) return;
-
-  const nowTime = Date.now();
-  let count = 0;
-  while (queue.length > 0) {
-    const sms = queue.shift();
-    if (nowTime - sms.queuedAt < SMS_QUEUE_TIMEOUT_MS) {
-      if (ws.readyState === WebSocket.OPEN) {
-        console.log(`🚀 [WS Gateway] Dispatching queued SMS to ${sms.phone} on store "${storeId}"`);
-        ws.send(JSON.stringify(sms));
-        count++;
-      }
-    }
-  }
-  if (count > 0) {
-    console.log(`✅ [WS Gateway] Dispatched ${count} queued SMS to newly connected phone for store "${storeId}"`);
-  }
+  // SIM SMS disabled
 }
 
 let customerWss = null;
@@ -141,9 +107,6 @@ function init(httpServer, messageHandler) {
 
     // 1. Respond with connection confirmation immediately
     ws.send(JSON.stringify({ action: 'CONNECTED', serverTime: Date.now(), storeId }));
-
-    // 2. Flush any pending SMS queued while phone was offline
-    flushGatewaySmsQueue(storeId, ws);
 
     ws.on('message', (rawMsg) => {
       try {
