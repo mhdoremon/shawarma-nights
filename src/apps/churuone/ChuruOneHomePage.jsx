@@ -1810,7 +1810,18 @@ export default function ChuruOneHomePage() {
                           )}
                         </div>
                       </div>
-                      <div className="pt-2">
+                      <div className="pt-2 space-y-1">
+                        <Link
+                          to="/profile"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                          className="w-full text-left py-2 px-2 text-xs font-bold text-zinc-900 hover:bg-stone-100 rounded-xl transition-colors flex items-center justify-between cursor-pointer"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-zinc-600" />
+                            <span>My Profile & Orders</span>
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono">→</span>
+                        </Link>
                         <button
                           type="button"
                           onClick={handleLogout}

@@ -963,9 +963,9 @@ export default function SkylineApp() {
             {currentUser ? (
               isUserPhoneVerified ? (
                 <button
-                  onClick={() => setIsAccountModalOpen(true)}
+                  onClick={() => window.location.href = '/profile'}
                   className="flex items-center gap-2 text-xs text-stone-800 hover:text-black py-1 px-2.5 rounded-full border border-stone-200 bg-stone-50 cursor-pointer transition-all"
-                  title="ChuruOne Account"
+                  title="ChuruOne Universal Profile"
                 >
                   <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-bold">
                     {(currentUser.name || 'U')[0]}

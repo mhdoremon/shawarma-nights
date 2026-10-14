@@ -61,9 +61,9 @@ export default function Navbar({ onOpenFranchise }) {
           
           {isAuthenticated ? (
             <button
-              onClick={() => setIsProfileOpen(true)}
+              onClick={() => window.location.href = '/profile'}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-white text-[#DC2626] font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-[1.03] transition-all cursor-pointer whitespace-nowrap"
-              title="View Profile"
+              title="ChuruOne Universal Profile"
             >
               <div className="w-5 h-5 rounded-full bg-[#DC2626] text-white font-black text-[10px] flex items-center justify-center">
                 {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}

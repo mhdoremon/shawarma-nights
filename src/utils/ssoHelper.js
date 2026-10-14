@@ -241,42 +241,82 @@ export function getChuruOneSession() {
   return null;
 }
 
+// Cross-tab broadcast channel for instant logout across all windows/tabs
+let authBroadcastChannel = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    authBroadcastChannel = new BroadcastChannel('churuone_auth_channel');
+  } catch (e) {}
+}
+
 /**
- * Clear SSO session from Cookie and LocalStorage across all domains and apps
+ * Universal Atomic Logout: Clear SSO session from Cookie, LocalStorage,
+ * BroadcastChannel, and in-memory contexts across all domains, tabs, and apps.
  */
 export function clearChuruOneSession() {
   if (typeof window === 'undefined') return;
   try {
-    // 1. Clear LocalStorage across all apps
-    localStorage.removeItem('churuone_user');
-    localStorage.removeItem('sn_session');
-    localStorage.removeItem('sn_current_user');
-    localStorage.removeItem('nash_user');
-    localStorage.removeItem('skyline_user');
-    localStorage.removeItem('auth_token');
+    // 1. Clear LocalStorage across all apps & stores
+    const keys = [
+      'churuone_user',
+      'churuone_customer_user',
+      'churuone_token',
+      'churuone_sso_token',
+      'sn_session',
+      'sn_current_user',
+      'nash_user',
+      'skyline_user',
+      'auth_token',
+      'sn_user_phone',
+      'sn_user_name',
+      'sn_user_address',
+      'skyline_user_phone',
+      'nash_user_phone',
+      'delivery_customer_phone',
+      'cart_user'
+    ];
+    for (const k of keys) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    }
 
-    // 2. Clear Cookie on current host and root domain
-    const domainAttr = getCookieDomain();
-    document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT${domainAttr}; path=/; SameSite=Lax`;
-    document.cookie = `${COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+    // 2. Clear Cookie across current host, root domain (.churuone.in), and variations
+    const expire = '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0; path=/; SameSite=Lax';
+    document.cookie = `${COOKIE_NAME}${expire}`;
+    document.cookie = `${COOKIE_NAME}${expire}; domain=.churuone.in`;
+    document.cookie = `${COOKIE_NAME}${expire}; domain=churuone.in`;
+    if (window.location.hostname && window.location.hostname !== 'churuone.in') {
+      document.cookie = `${COOKIE_NAME}${expire}; domain=${window.location.hostname}`;
+    }
 
-    // 3. Dispatch in-tab notification for reactive listeners
+    // 3. Signal cross-tab & cross-window logout immediately
+    try {
+      localStorage.setItem('churuone_logout_timestamp', Date.now().toString());
+    } catch (e) {}
+
+    if (authBroadcastChannel) {
+      try {
+        authBroadcastChannel.postMessage({ type: 'LOGOUT', timestamp: Date.now() });
+      } catch (e) {}
+    }
+
+    // 4. Dispatch events for reactive listeners in current tab
     window.dispatchEvent(new CustomEvent('churuone_auth_change', {
       detail: { user: null, token: '' }
     }));
+    window.dispatchEvent(new Event('churuone_user_updated'));
   } catch (err) {
     console.warn('⚠️ [SSO] Error clearing session:', err);
   }
 }
 
 /**
- * Subscribe to cross-tab (storage event) and in-window auth changes
+ * Subscribe to cross-tab (storage event, broadcast channel) and in-window auth changes
  */
 export function subscribeToChuruOneAuth(callback) {
   if (typeof window === 'undefined' || typeof callback !== 'function') return () => {};
 
   const handleStorage = (e) => {
-    if (!e.key || ['churuone_user', 'sn_session', 'sn_current_user', 'nash_user', 'skyline_user', 'churuone_session'].includes(e.key)) {
+    if (!e.key || e.key === 'churuone_logout_timestamp' || ['churuone_user', 'churuone_customer_user', 'sn_session', 'sn_current_user', 'nash_user', 'skyline_user', 'churuone_session'].includes(e.key)) {
       const session = getChuruOneSession();
       callback(session ? session.user : null, session ? session.token : '');
     }
@@ -286,12 +326,34 @@ export function subscribeToChuruOneAuth(callback) {
     callback(e.detail?.user || null, e.detail?.token || '');
   };
 
+  const handleUserUpdated = () => {
+    const session = getChuruOneSession();
+    callback(session ? session.user : null, session ? session.token : '');
+  };
+
+  const handleBroadcast = (e) => {
+    if (e.data && e.data.type === 'LOGOUT') {
+      callback(null, '');
+    } else if (e.data && e.data.type === 'LOGIN') {
+      const session = getChuruOneSession();
+      callback(session ? session.user : null, session ? session.token : '');
+    }
+  };
+
   window.addEventListener('storage', handleStorage);
   window.addEventListener('churuone_auth_change', handleCustom);
+  window.addEventListener('churuone_user_updated', handleUserUpdated);
+  if (authBroadcastChannel) {
+    authBroadcastChannel.addEventListener('message', handleBroadcast);
+  }
 
   return () => {
     window.removeEventListener('storage', handleStorage);
     window.removeEventListener('churuone_auth_change', handleCustom);
+    window.removeEventListener('churuone_user_updated', handleUserUpdated);
+    if (authBroadcastChannel) {
+      authBroadcastChannel.removeEventListener('message', handleBroadcast);
+    }
   };
 }
 

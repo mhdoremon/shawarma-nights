@@ -365,3 +365,73 @@ export function handleOrdersWsMessage(data, ws, storeId, source) {
 
     return false;
 }
+
+/**
+ * Universal Multi-Store Customer Order History
+ * Aggregates all orders for a customer across all stores in ChuruOne
+ */
+export const getCustomerOrders = async (req, res) => {
+    try {
+        const rawPhone = req.query.phone || req.headers['x-customer-phone'] || '';
+        const rawEmail = (req.query.email || req.headers['x-customer-email'] || '').toLowerCase().trim();
+        const cleanPhone = String(rawPhone).replace(/\D/g, '').slice(-10);
+
+        if (!cleanPhone && !rawEmail) {
+            return res.json({ success: true, allOrders: [], stores: {} });
+        }
+
+        const storeIds = DataLayer.listStoreIds();
+        const STORE_INFO = {
+            'shawarma': { name: 'Shawarma Nights', category: 'Food & Dining', icon: '🍔' },
+            'skyline': { name: 'Skyline Premium Outfits', category: 'Fashion & Wardrobe', icon: '👕' },
+            'nash-studio': { name: 'Nash Studio', category: 'Salon & Grooming', icon: '✂️' }
+        };
+
+        const storeMap = {};
+        const allOrders = [];
+
+        for (const sId of storeIds) {
+            const storeOrders = DataLayer.read(sId, 'orders') || [];
+            const config = DataLayer.getStoreConfig(sId) || {};
+            const storeName = config.name || STORE_INFO[sId]?.name || sId;
+            const category = config.category || STORE_INFO[sId]?.category || 'Shopping';
+            const icon = STORE_INFO[sId]?.icon || '🛍️';
+
+            const userOrders = storeOrders.filter(o => {
+                const oPhone = String(o.customer?.phone || o.phone || o.customerPhone || '').replace(/\D/g, '').slice(-10);
+                const oEmail = String(o.customer?.email || o.email || o.userEmail || '').toLowerCase().trim();
+                return (cleanPhone && oPhone === cleanPhone) || (rawEmail && oEmail === rawEmail);
+            }).map(o => ({
+                ...o,
+                storeId: sId,
+                storeName,
+                storeCategory: category,
+                storeIcon: icon
+            }));
+
+            if (userOrders.length > 0) {
+                storeMap[sId] = {
+                    storeId: sId,
+                    storeName,
+                    category,
+                    icon,
+                    orders: userOrders
+                };
+                allOrders.push(...userOrders);
+            }
+        }
+
+        // Sort orders descending (most recent first)
+        allOrders.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0));
+
+        res.json({
+            success: true,
+            totalOrders: allOrders.length,
+            stores: storeMap,
+            allOrders
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+

@@ -767,7 +767,7 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
           {/* User Sign In / Profile */}
           <div 
             style={S.navIconBtn} 
-            onClick={user ? undefined : handleGoogleAuth} 
+            onClick={user ? () => window.location.href = '/profile' : handleGoogleAuth} 
             title={user ? (user.displayName || user.name) : "Sign In with ChuruOne ID"}
           >
             {user ? (

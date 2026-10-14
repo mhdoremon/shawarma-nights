@@ -40,7 +40,6 @@ export default function CustomerApp() {
       <RealtimeProvider>
         <CartProvider>
           <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 flex flex-col justify-between selection:bg-[#DC2626] selection:text-white">
-            <ProfileDrawer />
             <Navbar onOpenFranchise={() => setIsFranchiseOpen(true)} />
             <main className="flex-1">
               <HeroBanner 

@@ -5,6 +5,7 @@ import { requireAdmin, requireCustomer, optionalAuth } from '../../middleware/au
 const router = Router();
 
 router.get('/', service.getOrders);
+router.get('/customer', service.getCustomerOrders);
 router.post('/', service.placeOrder);
 router.post('/place', service.placeOrder);
 router.post('/update-status', service.updateOrderStatus);
