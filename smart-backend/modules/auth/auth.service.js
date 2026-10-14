@@ -842,10 +842,11 @@ export function getAllDukandars() {
         const stores = DataLayer.getStores() || [];
         stores.forEach(s => {
             const sid = String(s.id || s.slug || '').toLowerCase();
-            if (sid && !list.some(x => String(x.dukanId || '').toLowerCase() === sid || String(x.storeSlug || '').toLowerCase() === sid)) {
+            if (sid) {
                 const cfg = DataLayer.getStoreConfig(sid);
                 if (cfg && cfg.owner) {
-                    list.push({
+                    const existingIdx = list.findIndex(x => String(x.dukanId || '').toLowerCase() === sid || String(x.storeSlug || '').toLowerCase() === sid);
+                    const item = {
                         dukanId: sid.toUpperCase(),
                         storeSlug: sid,
                         dukanName: cfg.name || cfg.settings?.storeName || sid,
@@ -856,7 +857,12 @@ export function getAllDukandars() {
                         password: cfg.owner.password || '',
                         status: cfg.status || 'active',
                         businessType: cfg.type || cfg.vertical || 'retail'
-                    });
+                    };
+                    if (existingIdx !== -1) {
+                        list[existingIdx] = { ...item, ...list[existingIdx], password: list[existingIdx].password || item.password };
+                    } else {
+                        list.push(item);
+                    }
                 }
             }
         });
@@ -1693,9 +1699,15 @@ export const dukandarLogin = (req, res) => {
         
         // Strict triple check: Dukan ID MUST match AND (Username or Phone) MUST match AND Password MUST match
         let target = dukandars.find(d => {
+            const dId = String(d.dukanId || '').toLowerCase();
+            const sSlug = String(d.storeSlug || '').toLowerCase();
             const matchDukanId = (
-                String(d.dukanId || '').toLowerCase() === dukanIdClean ||
-                String(d.storeSlug || '').toLowerCase() === dukanIdClean
+                dId === dukanIdClean ||
+                sSlug === dukanIdClean ||
+                (dukanIdClean === 'shawarma' && (dId === 'shawarma' || sSlug.includes('shawarma'))) ||
+                (dukanIdClean === 'skyline' && (dId === 'skyline' || sSlug.includes('skyline'))) ||
+                (dukanIdClean === 'nash' && (dId === 'nash' || dId === 'nash-studio' || sSlug.includes('nash'))) ||
+                (dukanIdClean === 'nash-studio' && (dId === 'nash' || dId === 'nash-studio' || sSlug.includes('nash')))
             );
             const matchUser = (
                 String(d.username || '').toLowerCase() === userInputClean ||
@@ -1706,23 +1718,23 @@ export const dukandarLogin = (req, res) => {
             return matchDukanId && matchUser && matchPwd;
         });
 
-        // Strict fallback: Check store config ONLY for the specific requested dukanIdClean (NO cross-store checking)
+        // Strict fallback: Check store config
         if (!target) {
-            const cfg = DataLayer.getStoreConfig(dukanIdClean);
+            const canonicalId = (dukanIdClean === 'nash' || dukanIdClean === 'beared') ? 'nash-studio' : dukanIdClean;
+            const cfg = DataLayer.getStoreConfig(canonicalId);
             if (cfg?.owner) {
                 const owner = cfg.owner;
-                const matchDukanId = (dukanIdClean === String(cfg.slug || '').toLowerCase() || dukanIdClean === String(cfg.id || '').toLowerCase());
                 const matchUser = (
                     (userInputClean && String(owner.username || '').toLowerCase() === userInputClean) ||
                     (phoneClean.length === 10 && normalizePhone(owner.phone) === phoneClean)
                 );
                 const matchPwd = String(owner.password || '').trim() === pInput;
 
-                if (matchDukanId && matchUser && matchPwd) {
+                if (matchUser && matchPwd) {
                     target = {
-                        dukanId: dukanIdClean.toUpperCase(),
-                        storeSlug: dukanIdClean,
-                        dukanName: cfg.name || cfg.settings?.storeName || dukanIdClean,
+                        dukanId: canonicalId.toUpperCase(),
+                        storeSlug: canonicalId,
+                        dukanName: cfg.name || cfg.settings?.storeName || canonicalId,
                         ownerName: owner.name || '',
                         fatherName: owner.fatherName || '',
                         phone: owner.phone || '',
@@ -1731,7 +1743,7 @@ export const dukandarLogin = (req, res) => {
                         businessType: cfg.type || cfg.vertical || 'retail',
                         token: owner.token || generateUUID(),
                         status: cfg.status || 'active',
-                        websiteUrl: cfg.domain?.customDomain || `https://${dukanIdClean}.churuone.in`
+                        websiteUrl: cfg.domain?.customDomain || `https://${canonicalId}.churuone.in`
                     };
                 }
             }

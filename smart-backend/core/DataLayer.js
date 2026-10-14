@@ -455,29 +455,8 @@ async function syncMongoData() {
       for (const doc of docs) {
         const { storeId, collection: colName, data } = doc;
         if (storeId && colName && data !== undefined) {
-          // Handle platform-level collections (customers, dukandars)
+          // Platform-level collections are handled by dedicated 2-way sync below
           if (storeId === 'platform') {
-            if (colName === 'customers' || colName === 'customers.json') {
-              const custArr = Array.isArray(data) ? data : (data?.customers || []);
-              if (custArr.length > 0) {
-                try {
-                  const custFile = path.join(process.cwd(), 'server', 'data', 'customers.json');
-                  fs.writeFileSync(custFile, JSON.stringify(custArr, null, 2), 'utf-8');
-                  const smartCust = path.join(process.cwd(), 'smart-backend', 'data', 'customers.json');
-                  fs.writeFileSync(smartCust, JSON.stringify(custArr, null, 2), 'utf-8');
-                } catch {}
-              }
-            } else if (colName === 'dukandars' || colName === 'dukandars.json') {
-              const dukanArr = Array.isArray(data) ? data : (data?.dukandars || []);
-              if (dukanArr.length > 0) {
-                try {
-                  const dukanFile = path.join(process.cwd(), 'server', 'data', 'dukandars.json');
-                  fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: dukanArr }, null, 2), 'utf-8');
-                  const smartDukan = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
-                  fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: dukanArr }, null, 2), 'utf-8');
-                } catch {}
-              }
-            }
             continue;
           }
 
@@ -527,7 +506,7 @@ async function syncMongoData() {
         for (const uc of uCusts) {
           const { _id, ...clean } = uc;
           const match = existing.findIndex(c => (clean.phone && c.phone === clean.phone) || (clean.email && c.email === clean.email));
-          if (match !== -1) existing[match] = { ...existing[match], ...clean };
+          if (match !== -1) existing[match] = { ...clean, ...existing[match], password: existing[match].password || clean.password };
           else existing.push(clean);
         }
       }
@@ -543,6 +522,15 @@ async function syncMongoData() {
           );
         }
       }
+
+      // Also sync to store_data platform document
+      try {
+        await mongoDb.collection('store_data').updateOne(
+          { _id: 'platform_customers.json' },
+          { $set: { storeId: 'platform', collection: 'customers.json', data: { customers: existing }, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+      } catch {}
 
       fs.writeFileSync(custFile, JSON.stringify(existing, null, 2), 'utf-8');
       try { fs.writeFileSync(smartCust, JSON.stringify(existing, null, 2), 'utf-8'); } catch {}
@@ -562,9 +550,12 @@ async function syncMongoData() {
       if (uDukans && uDukans.length > 0) {
         for (const ud of uDukans) {
           const { _id, ...clean } = ud;
-          const match = existingD.findIndex(d => clean.dukanId && d.dukanId === clean.dukanId);
-          if (match !== -1) existingD[match] = { ...existingD[match], ...clean };
-          else existingD.push(clean);
+          const match = existingD.findIndex(d => clean.dukanId && String(d.dukanId).toUpperCase() === String(clean.dukanId).toUpperCase());
+          if (match !== -1) {
+            existingD[match] = { ...clean, ...existingD[match], password: existingD[match].password || clean.password };
+          } else {
+            existingD.push(clean);
+          }
         }
       }
 
@@ -579,6 +570,15 @@ async function syncMongoData() {
           );
         }
       }
+
+      // Also sync to store_data platform document
+      try {
+        await mongoDb.collection('store_data').updateOne(
+          { _id: 'platform_dukandars.json' },
+          { $set: { storeId: 'platform', collection: 'dukandars.json', data: { dukandars: existingD }, updatedAt: new Date().toISOString() } },
+          { upsert: true }
+        );
+      } catch {}
 
       fs.writeFileSync(dukanFile, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8');
       try { fs.writeFileSync(smartDukan, JSON.stringify({ dukandars: existingD }, null, 2), 'utf-8'); } catch {}
