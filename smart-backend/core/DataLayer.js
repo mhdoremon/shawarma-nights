@@ -424,6 +424,17 @@ async function syncMongoData() {
           const localItems = Array.isArray(localData) ? localData : (Array.isArray(localData?.menu) ? localData.menu : []);
           const mongoItems = Array.isArray(data) ? data : (Array.isArray(data?.menu) ? data.menu : []);
 
+          // Prevent resurrecting deleted customer records from Mongo if local is empty/reset
+          if (colName === 'customers.json' || colName === 'customers') {
+            if (Array.isArray(localData) && localData.length === 0) {
+              if (!cache[storeId]) cache[storeId] = {};
+              cache[storeId][colName] = [];
+              persistToMongo(storeId, colName, []);
+              console.log(`🧹 [MongoDB Atlas] Preserved empty customer reset for store "${storeId}". Mongo synced.`);
+              continue;
+            }
+          }
+
           if (localItems.length > mongoItems.length) {
             if (!cache[storeId]) cache[storeId] = {};
             cache[storeId][colName] = localData;
@@ -518,6 +529,96 @@ async function initMongo() {
   }
 }
 
+/**
+ * Purge all customer and dukandar login data from MongoDB Atlas, Cache, and Disk.
+ */
+async function purgeAllLoginData() {
+  console.log('🧹 [DataLayer] Executing complete purge of all login databases...');
+
+  // 1. Wipe in-memory cache for all stores
+  for (const sId of Object.keys(cache)) {
+    if (cache[sId]) {
+      cache[sId]['customers.json'] = [];
+      cache[sId]['customers'] = [];
+    }
+  }
+
+  // 2. Wipe MongoDB Atlas documents if connected
+  if (isMongoConnected && mongoDb) {
+    try {
+      const col = mongoDb.collection('store_data');
+      const res1 = await col.deleteMany({
+        $or: [
+          { collection: 'customers.json' },
+          { collection: 'customers' },
+          { _id: { $regex: /customer/i } }
+        ]
+      });
+      console.log(`🗑️ [MongoDB Atlas] Deleted ${res1.deletedCount} customer documents from store_data`);
+    } catch (e) {
+      console.error('Mongo delete error in store_data:', e.message);
+    }
+
+    try {
+      await mongoDb.collection('customers').deleteMany({});
+      console.log('🗑️ [MongoDB Atlas] Emptied "customers" collection');
+    } catch (e) {}
+
+    try {
+      await mongoDb.collection('unified_customers').deleteMany({});
+    } catch (e) {}
+
+    try {
+      const col = mongoDb.collection('store_data');
+      await col.deleteMany({
+        $or: [
+          { collection: 'dukandars.json' },
+          { collection: 'dukandar' },
+          { _id: { $regex: /dukan/i } }
+        ]
+      });
+    } catch (e) {}
+
+    try {
+      await mongoDb.collection('dukandars').deleteMany({});
+    } catch (e) {}
+  }
+
+  // 3. Wipe disk files
+  try {
+    const custFile = path.join(config.DATA_DIR, 'customers.json');
+    fs.writeFileSync(custFile, JSON.stringify([], null, 2), 'utf-8');
+  } catch {}
+
+  try {
+    const usersFile = path.join(config.DATA_DIR, 'users.json');
+    fs.writeFileSync(usersFile, JSON.stringify([], null, 2), 'utf-8');
+  } catch {}
+
+  try {
+    const dFile = path.join(config.DATA_DIR, 'dukandars.json');
+    fs.writeFileSync(dFile, JSON.stringify({ dukandars: [] }, null, 2), 'utf-8');
+  } catch {}
+
+  try {
+    const platformCust = path.join(config.PLATFORM_DIR, 'customers.json');
+    if (fs.existsSync(platformCust)) {
+      fs.writeFileSync(platformCust, JSON.stringify({ customers: [] }, null, 2), 'utf-8');
+    }
+  } catch {}
+
+  const stores = listStoreIds();
+  for (const sId of stores) {
+    try {
+      const sFile = getFilePath(sId, 'customers.json');
+      fs.writeFileSync(sFile, JSON.stringify([], null, 2), 'utf-8');
+      if (cache[sId]) cache[sId]['customers.json'] = [];
+    } catch {}
+  }
+
+  return { success: true, message: 'All login data cleanly purged from MongoDB Atlas, Cache, and Disk!' };
+}
+
 // ─── Start Flush Timer ────────────────────────────────────────
 let flushTimer = null;
 
@@ -563,6 +664,7 @@ const DataLayer = {
   invalidateCache,
   readPlatform,
   writePlatform,
+  purgeAllLoginData,
   startFlushTimer,
   stopFlushTimer,
   initMongo,

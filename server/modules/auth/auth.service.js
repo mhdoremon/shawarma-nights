@@ -1854,3 +1854,15 @@ export const dukandarResetPassword = (req, res) => {
     }
 };
 
+/**
+ * Purge all login databases (MongoDB Atlas + Memory Cache + Local Disk)
+ */
+export const purgeAllLoginDataHandler = async (req, res) => {
+    try {
+        const result = await DataLayer.purgeAllLoginData();
+        return res.json(result);
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+

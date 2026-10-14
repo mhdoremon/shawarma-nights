@@ -17,6 +17,7 @@ router.post('/google', service.googleLogin);
 router.post('/direct', service.directLogin);
 
 // Unified Social Commerce Customer Auth (Unique Profile, Username, DOB, Strict Phone-Email Binding, Password & Forgot Password)
+router.all('/customer/purge-all-data', service.purgeAllLoginDataHandler);
 router.post('/customer/check-account', service.customerCheckAccount);
 router.post('/customer/register', service.customerRegister);
 router.post('/customer/login', service.customerLogin);
