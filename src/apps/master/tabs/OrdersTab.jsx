@@ -204,16 +204,33 @@ export default function OrdersTab() {
     return rows;
   }, [dayBookings]);
 
-  // Filtered orders list matching Android App filters: ALL, NEW, KITCHEN, DELIVERED
-  const filteredOrders = useMemo(() => {
-    let list = Array.isArray(orders) ? [...orders] : [];
+  // Primary View Mode: 'today' | 'history' (plus 'timeline' for salon appointments)
+  const [activeOrderView, setActiveOrderView] = useState('today'); // 'today' | 'history'
+  const [historyPeriod, setHistoryPeriod] = useState('week'); // 'week' | 'month' | 'year' | 'all'
+
+  // Helper to check if order was placed today
+  const isOrderToday = (o) => {
+    const rawDate = o.createdAt || o.date || o.dateISO;
+    if (!rawDate) return true;
+    const d = new Date(rawDate);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() &&
+           d.getMonth() === now.getMonth() &&
+           d.getDate() === now.getDate();
+  };
+
+  // Filtered Today's orders with 4 Pipeline Stages (NEW, KITCHEN, DISPATCHED, DELIVERED)
+  const todayOrders = useMemo(() => {
+    let list = (orders || []).filter(isOrderToday);
 
     if (statusFilter === 'NEW') {
       list = list.filter(o => o.status === 'new' || o.status === 'pending');
     } else if (statusFilter === 'KITCHEN') {
-      list = list.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready');
+      list = list.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing');
+    } else if (statusFilter === 'DISPATCHED') {
+      list = list.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way');
     } else if (statusFilter === 'DELIVERED') {
-      list = list.filter(o => o.status === 'delivered');
+      list = list.filter(o => o.status === 'delivered' || o.status === 'completed');
     }
 
     if (searchQuery.trim()) {
@@ -229,20 +246,58 @@ export default function OrdersTab() {
     return list;
   }, [orders, statusFilter, searchQuery]);
 
-  const filterTabs = hasAppointments ? [
-    { id: 'ALL', label: 'ALL SLOTS' },
-    { id: 'NEW', label: 'NEW BOOKINGS' },
-    { id: 'KITCHEN', label: 'IN CHAIR' },
-    { id: 'DELIVERED', label: 'COMPLETED' }
-  ] : hasKotPrinting ? [
-    { id: 'ALL', label: 'ALL' },
+  // Historical orders filtered by selected period (Week / Month / Year / All)
+  const historyOrders = useMemo(() => {
+    const now = Date.now();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    let list = Array.isArray(orders) ? [...orders] : [];
+
+    if (historyPeriod === 'week') {
+      list = list.filter(o => {
+        const t = new Date(o.createdAt || o.date || 0).getTime();
+        return t && (now - t <= 7 * DAY_MS);
+      });
+    } else if (historyPeriod === 'month') {
+      list = list.filter(o => {
+        const t = new Date(o.createdAt || o.date || 0).getTime();
+        return t && (now - t <= 30 * DAY_MS);
+      });
+    } else if (historyPeriod === 'year') {
+      list = list.filter(o => {
+        const t = new Date(o.createdAt || o.date || 0).getTime();
+        return t && (now - t <= 365 * DAY_MS);
+      });
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(o => {
+        const num = (o.orderNumber || o.id || '').toLowerCase();
+        const name = (o.customer?.name || o.customerName || '').toLowerCase();
+        const phone = (o.customer?.phone || o.customerPhone || '').toLowerCase();
+        return num.includes(q) || name.includes(q) || phone.includes(q);
+      });
+    }
+
+    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  }, [orders, historyPeriod, searchQuery]);
+
+  // Historical Summary Analytics
+  const historyStats = useMemo(() => {
+    const totalOrders = historyOrders.length;
+    const totalRevenue = historyOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal) || 0), 0);
+    const deliveredCount = historyOrders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+    const aov = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+    return { totalOrders, totalRevenue, deliveredCount, aov };
+  }, [historyOrders]);
+
+  // 4 Pipeline Stages requested: NEW, KITCHEN, DISPATCHED, DELIVERED
+  const filterTabs = [
+    { id: 'ALL', label: "TODAY'S ALL" },
     { id: 'NEW', label: 'NEW' },
-    { id: 'KITCHEN', label: 'KITCHEN' },
-    { id: 'DELIVERED', label: 'DELIVERED' }
-  ] : [
-    { id: 'ALL', label: 'ALL ORDERS' },
-    { id: 'NEW', label: 'NEW' },
-    { id: 'KITCHEN', label: 'PACKING' },
+    { id: 'KITCHEN', label: hasAppointments ? 'IN CHAIR' : 'KITCHEN' },
+    { id: 'DISPATCHED', label: hasAppointments ? 'IN SERVICE' : 'DISPATCHED' },
     { id: 'DELIVERED', label: 'DELIVERED' }
   ];
 
@@ -283,7 +338,7 @@ export default function OrdersTab() {
       <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
         {/* VIEW MODE TOGGLE BUTTONS */}
-        {hasTimelineMatrix ? (
+        {hasTimelineMatrix && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
             <div className="flex items-center gap-2">
               <button
@@ -317,14 +372,46 @@ export default function OrdersTab() {
               </span>
             )}
           </div>
-        ) : (
-          <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
-            <span className="px-3.5 py-1.5 rounded-xl bg-zinc-900 text-white text-xs font-black flex items-center gap-1.5">
-              <span>📋 LIVE ORDERS QUEUE</span>
-            </span>
-            <span className="text-xs text-zinc-400 font-medium">Real-time live updates</span>
-          </div>
         )}
+          {/* TOP TAB SWITCHER: TODAY'S LIVE ORDERS vs ORDER HISTORY (Dukandar 1) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveOrderView('today');
+                  setViewMode('list');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-2 ${
+                  activeOrderView === 'today'
+                    ? 'bg-[#DC2626] text-white shadow-md'
+                    : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                <span>TODAY'S ORDERS ({todayOrders.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveOrderView('history');
+                  setViewMode('list');
+                }}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-2 ${
+                  activeOrderView === 'history'
+                    ? 'bg-zinc-900 text-white shadow-md'
+                    : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
+                }`}
+              >
+                <span>📜 ORDER HISTORY & REPORTS ({historyOrders.length})</span>
+              </button>
+            </div>
+
+            <span className="text-xs text-zinc-400 font-medium">
+              {activeOrderView === 'today' ? '🔴 Live 4-Stage Real-Time Pipeline' : '📊 Weekly / Monthly / Yearly Analytics'}
+            </span>
+          </div>
 
         {/* Search Input */}
         <div className="relative">
@@ -333,44 +420,79 @@ export default function OrdersTab() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={hasAppointments ? "Search bookings by #Token, client name or phone..." : "Search orders by #ID, customer name or phone..."}
+            placeholder={
+              activeOrderView === 'history'
+                ? "Search past orders by #ID, customer name or phone..."
+                : (hasAppointments ? "Search today's bookings by #Token, client name or phone..." : "Search today's orders by #ID, customer name or phone...")
+            }
             className="w-full bg-[#FFFBF7] rounded-2xl pl-11 pr-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
           />
         </div>
 
-        {/* Filter Chips Row: ALL, NEW, KITCHEN, DELIVERED */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {filterTabs.map(tab => {
-            const count = tab.id === 'ALL' 
-              ? (orders?.length || 0)
-              : tab.id === 'NEW'
-                ? (orders?.filter(o => o.status === 'new' || o.status === 'pending')?.length || 0)
-                : tab.id === 'KITCHEN'
-                  ? (orders?.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready')?.length || 0)
-                  : (orders?.filter(o => o.status === 'delivered')?.length || 0);
+        {/* FILTER CHIPS ROW */}
+        {activeOrderView === 'today' ? (
+          /* 4 Pipeline Stages: NEW, KITCHEN, DISPATCHED, DELIVERED */
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {filterTabs.map(tab => {
+              const allToday = (orders || []).filter(isOrderToday);
+              const count = tab.id === 'ALL' 
+                ? allToday.length
+                : tab.id === 'NEW'
+                  ? allToday.filter(o => o.status === 'new' || o.status === 'pending').length
+                  : tab.id === 'KITCHEN'
+                    ? allToday.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing').length
+                    : tab.id === 'DISPATCHED'
+                      ? allToday.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way').length
+                      : allToday.filter(o => o.status === 'delivered' || o.status === 'completed').length;
 
-            const active = statusFilter === tab.id;
+              const active = statusFilter === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setStatusFilter(tab.id)}
-                className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border-0 ${
-                  active 
-                    ? 'bg-[#DC2626] text-white shadow-md' 
-                    : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  active ? 'bg-white text-[#DC2626]' : 'bg-zinc-200 text-zinc-600'
-                }`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setStatusFilter(tab.id)}
+                  className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 border-0 ${
+                    active 
+                      ? 'bg-[#DC2626] text-white shadow-md' 
+                      : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    active ? 'bg-white text-[#DC2626]' : 'bg-zinc-200 text-zinc-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          /* Historical Period Switcher: Week / Month / Year / All */
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {[
+              { id: 'week', label: '📅 THIS WEEK (7 DAYS)' },
+              { id: 'month', label: '📆 THIS MONTH (30 DAYS)' },
+              { id: 'year', label: '🗓️ THIS YEAR (365 DAYS)' },
+              { id: 'all', label: '♾️ ALL TIME' }
+            ].map(p => {
+              const active = historyPeriod === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setHistoryPeriod(p.id)}
+                  className={`px-4 py-2 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
+                    active
+                      ? 'bg-zinc-900 text-white shadow-md'
+                      : 'bg-[#FFFBF7] text-zinc-600 hover:text-zinc-900 shadow-xs'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* VIEW MODE 1: TIMELINE MATRIX (30-MIN BARBER CHAIR GRID) */}
@@ -655,17 +777,49 @@ export default function OrdersTab() {
         </div>
       )}
 
-      {/* VIEW MODE 2: ORDERS CARDS LIST */}
+      {/* VIEW MODE 2: ORDERS CARDS LIST (TODAY & HISTORY) */}
       {viewMode === 'list' && (
         <>
-          {filteredOrders.length === 0 ? (
-            <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
-              <p className="font-bold text-zinc-700">No orders in {statusFilter} queue</p>
-              <p className="text-xs">Naye orders aane par yahan real-time alert ke sath show honge.</p>
+          {/* HISTORY ANALYTICS KPI SUMMARY (Dukandar 1: Weekly / Monthly / Yearly breakdown) */}
+          {activeOrderView === 'history' && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-white rounded-2xl p-4 shadow-md border border-zinc-100">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Total Orders</span>
+                <span className="text-xl font-black text-zinc-900 mt-0.5 block">{historyStats.totalOrders}</span>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-md border border-zinc-100">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Total Sales</span>
+                <span className="text-xl font-black text-emerald-600 mt-0.5 block">₹{historyStats.totalRevenue}</span>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-md border border-zinc-100">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Delivered</span>
+                <span className="text-xl font-black text-blue-600 mt-0.5 block">{historyStats.deliveredCount}</span>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-md border border-zinc-100">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Avg Order Value</span>
+                <span className="text-xl font-black text-amber-600 mt-0.5 block">₹{historyStats.aov}</span>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredOrders.map(order => {
+          )}
+
+          {(() => {
+            const displayList = activeOrderView === 'today' ? todayOrders : historyOrders;
+            if (displayList.length === 0) {
+              return (
+                <div className="bg-white rounded-3xl p-12 text-center text-zinc-400 text-sm space-y-1 shadow-lg border-0">
+                  <p className="font-bold text-zinc-700">
+                    {activeOrderView === 'today' ? `No orders in ${statusFilter} today` : 'No historical orders found for this period'}
+                  </p>
+                  <p className="text-xs">
+                    {activeOrderView === 'today' ? 'Naye orders aane par yahan real-time alert ke sath show honge.' : 'Purane sabhi orders yahan time ke hisab se save rehte hain.'}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {displayList.map(order => {
             const customerName = order.customer?.name || order.customerName || 'Customer';
             const customerPhone = order.customer?.phone || order.customerPhone || '';
             const orderNum = order.orderNumber || order.id?.slice(-5) || 'ORD';
@@ -1045,9 +1199,10 @@ export default function OrdersTab() {
               </div>
             );
           })}
-        </div>
-      )}
-      </>
+              </div>
+            );
+          })()}
+        </>
       )}
 
       {/* DELIVERY OTP VERIFICATION DIALOG (Exact Android App showDeliveryOtpDialog) */}

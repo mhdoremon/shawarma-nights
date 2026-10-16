@@ -737,21 +737,50 @@ export const MasterProvider = ({ children }) => {
   // 5. DEALS / OFFERS ACTIONS
   const addDeal = async (dealData) => {
     playClickSound();
-    const deal = { ...dealData, id: dealData.id || `deal-${Date.now()}`, isActive: true };
-    setDeals(prev => [...prev, deal]);
+    const isEdit = Boolean(dealData.id);
+    const dealId = dealData.id || `deal-${Date.now()}`;
+    const deal = { 
+      ...dealData, 
+      id: dealId, 
+      isActive: dealData.isActive !== false && dealData.active !== false,
+      active: dealData.isActive !== false && dealData.active !== false
+    };
 
-    sendWs({ action: 'ADD_DEAL', deal });
+    setDeals(prev => {
+      const idx = prev.findIndex(d => String(d.id) === String(dealId));
+      if (idx !== -1) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], ...deal };
+        return copy;
+      }
+      return [...prev, deal];
+    });
+
+    sendWs({ action: isEdit ? 'UPDATE_DEAL' : 'ADD_DEAL', deal });
 
     await apiFetch('/api/deals/item', {
       method: 'POST',
       body: JSON.stringify(deal)
-    }).catch(err => console.warn('Add deal error:', err));
-    showToast(`Promo Code ${deal.code} created!`, 'success');
+    }).catch(err => console.warn('Save deal error:', err));
+    
+    showToast(isEdit ? `Promo Code ${deal.code} updated!` : `Promo Code ${deal.code} created!`, 'success');
+  };
+
+  const updateDeal = async (dealId, updates) => {
+    playClickSound();
+    setDeals(prev => prev.map(d => String(d.id) === String(dealId) ? { ...d, ...updates } : d));
+
+    sendWs({ action: 'UPDATE_DEAL', deal: { id: dealId, ...updates } });
+
+    await apiFetch('/api/deals/item', {
+      method: 'POST',
+      body: JSON.stringify({ id: dealId, ...updates })
+    }).catch(err => console.warn('Update deal error:', err));
   };
 
   const toggleDealActive = (dealId, isActive) => {
     playClickSound();
-    setDeals(prev => prev.map(d => d.id === dealId ? { ...d, isActive, active: isActive } : d));
+    setDeals(prev => prev.map(d => String(d.id) === String(dealId) ? { ...d, isActive, active: isActive } : d));
 
     sendWs({ action: 'UPDATE_DEAL', deal: { id: dealId, isActive, active: isActive } });
 
@@ -759,11 +788,13 @@ export const MasterProvider = ({ children }) => {
       method: 'POST',
       body: JSON.stringify({ id: dealId, isActive, active: isActive })
     }).catch(err => console.warn('Toggle deal error:', err));
+
+    showToast(`Offer card ${isActive ? 'ACTIVATED (Live on Website)' : 'PAUSED (Hidden from Website)'}`, 'info');
   };
 
   const deleteDeal = async (dealId) => {
     playClickSound();
-    setDeals(prev => prev.filter(d => d.id !== dealId));
+    setDeals(prev => prev.filter(d => String(d.id) !== String(dealId)));
 
     sendWs({ action: 'DELETE_DEAL', dealId });
 
@@ -937,6 +968,7 @@ export const MasterProvider = ({ children }) => {
       updateMenuItem,
       deleteMenuItem,
       addDeal,
+      updateDeal,
       toggleDealActive,
       deleteDeal,
       updateFranchiseConfig,

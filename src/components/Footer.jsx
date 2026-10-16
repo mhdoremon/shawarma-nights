@@ -34,16 +34,21 @@ export default function Footer({ onOpenFranchise }) {
 
   // Dynamic Dukandar Data with robust fallbacks
   const info = {
+    name: storeInfo?.name || 'SHAWARMA NIGHTS',
     timing: storeInfo?.timing || RESTAURANT_INFO?.timing || 'Open Daily: 12:00 PM – 04:00 AM',
+    openTillText: storeInfo?.openTillText || storeInfo?.timing || 'OPEN TILL 4:00 AM',
     deliveryNote: storeInfo?.deliveryNote || 'Midnight express delivery available',
     address: storeInfo?.address || RESTAURANT_INFO?.address || 'Shop 14, Food Street Avenue, Central Plaza',
     locationNote: storeInfo?.locationNote || 'Central hub kitchen',
     aboutText: storeInfo?.aboutText || 'Artisanal charcoal spit kitchen serving hand-carved rolls, loaded fries, and signature platters since midnight.',
-    halalBadgeText: storeInfo?.halalBadgeText || '',
+    ownerName: storeInfo?.ownerName || 'Furkan & Team',
+    ownerRole: storeInfo?.ownerRole || 'Founder & Head Chef',
+    ownerBio: storeInfo?.ownerBio || 'Dedicated to authentic slow-roasted charcoal shawarma, hand-carved rolls, and fresh garlic toum made daily in Churu.',
+    foundedYear: storeInfo?.foundedYear || '2024',
     ownerPhone: storeInfo?.socials?.whatsapp || '7023963189',
     socials: storeInfo?.socials || {
       instagram: 'https://instagram.com/shawarmanights',
-      whatsapp: '919876574292',
+      whatsapp: '7023963189',
       twitter: '',
       facebook: '',
       youtube: ''
@@ -65,7 +70,7 @@ export default function Footer({ onOpenFranchise }) {
   return (
     <footer className="relative bg-[#FFFBF7] text-zinc-900 overflow-hidden">
 
-      {/* ====== SECTION 1: STILL HUNGRY? (Exact match to Image 2 - NEVER TOUCH) ====== */}
+      {/* ====== SECTION 1: STILL HUNGRY? (Dynamic Timing - Bug 5) ====== */}
       <section className="bg-[#DC2626] text-white py-16 sm:py-24 text-center px-4 sm:px-6 relative overflow-hidden">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
@@ -73,17 +78,17 @@ export default function Footer({ onOpenFranchise }) {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto"
         >
-          {/* Top Pill Badge (Exact match to Image 2) */}
+          {/* Top Pill Badge (Dynamic: connected to Dukandar Portal timing) */}
           <div className="inline-block bg-white text-[#DC2626] px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm mb-6">
-            OPEN TILL 4:00 AM
+            {info.openTillText ? info.openTillText.toUpperCase() : `OPEN • ${info.timing}`.toUpperCase()}
           </div>
 
-          {/* Large Headline (Exact match to Image 2) */}
+          {/* Large Headline */}
           <h2 className="text-5xl sm:text-7xl font-black text-white tracking-tight leading-none mb-4">
             STILL<br />HUNGRY?
           </h2>
 
-          {/* Subtitle (Exact match to Image 2) */}
+          {/* Subtitle */}
           <p className="text-white/95 text-sm sm:text-base max-w-md mx-auto font-normal leading-relaxed mb-8">
             Fresh charcoal shawarmas rolling out till dawn. Your midnight cravings deserve the real deal.
           </p>
@@ -101,30 +106,24 @@ export default function Footer({ onOpenFranchise }) {
         </motion.div>
       </section>
 
-      {/* ====== SECTION 2: STORE ARCHITECTURE (MINIMAL LUXURY 3-CARD LAYOUT) ====== */}
+      {/* ====== SECTION 2: STORE ARCHITECTURE & FOUNDER SHOWCASE (Bug 6) ====== */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
         
-        {/* Main Hub Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Main Hub Grid: 4 Dynamic Aesthetic Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           
-          {/* Card 1: Brand Anchor & Direct Kitchen (Col 1) */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-7 shadow-xs flex flex-col justify-between space-y-6">
+          {/* Card 1: Brand Story & Kitchen Action */}
+          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
             <div className="space-y-3">
-              <div className="text-xl sm:text-2xl font-black tracking-tight text-zinc-950">
+              <div className="text-xl font-black tracking-tight text-zinc-950">
                 SHAWARMA <span className="text-[#DC2626]">NIGHTS</span>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed">
                 {info.aboutText || "Authentic charcoal-grilled slow-roasted shawarma, prepared fresh daily in Churu, Rajasthan."}
               </p>
-              {info.halalBadgeText && (
-                <div className="inline-flex items-center gap-1.5 text-emerald-700 font-medium text-xs bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{info.halalBadgeText}</span>
-                </div>
-              )}
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 space-y-3">
+            <div className="pt-4 border-t border-zinc-100 space-y-2.5">
               {socials?.whatsapp && (
                 <a
                   href={getWhatsAppUrl(socials.whatsapp)}
@@ -150,39 +149,61 @@ export default function Footer({ onOpenFranchise }) {
             </div>
           </div>
 
-          {/* Card 2: Kitchen Hours (Col 2) */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-7 shadow-xs flex flex-col justify-between space-y-6">
+          {/* Card 2: Founder & Master Craftsman Showcase (Bug 6) */}
+          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>The Story & Founder</span>
+              </div>
+              <div>
+                <h4 className="text-base font-black text-zinc-950">{info.ownerName}</h4>
+                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">{info.ownerRole}</p>
+              </div>
+              <p className="text-xs text-zinc-600 leading-relaxed">
+                {info.ownerBio}
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
+              <span className="font-semibold text-zinc-700">Hand-crafted in Churu</span>
+              <span className="font-mono text-[11px] bg-zinc-100 px-2 py-0.5 rounded-md font-bold">Est. {info.foundedYear}</span>
+            </div>
+          </div>
+
+          {/* Card 3: Kitchen Operating Hours */}
+          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
             <div className="space-y-3">
               <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 <span>Operating Hours</span>
               </div>
-              <div className="text-2xl font-black text-zinc-950 font-mono tracking-tight">
-                {info.timing || "6:00 PM – 4:00 AM"}
+              <div className="text-xl font-black text-zinc-950 font-mono tracking-tight">
+                {info.timing}
               </div>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                {info.deliveryNote || "Open all 7 days for direct delivery & takeout."}
+                {info.deliveryNote}
               </p>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-500">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Midnight Delivery Active</span>
+            <div className="pt-4 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-bold">Midnight Express Active</span>
             </div>
           </div>
 
-          {/* Card 3: Location (Col 3) */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-7 shadow-xs flex flex-col justify-between space-y-6">
+          {/* Card 4: Kitchen Location & Navigation */}
+          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
             <div className="space-y-3">
               <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
                 <span>Kitchen Location</span>
               </div>
-              <div className="text-sm font-semibold text-zinc-900 leading-snug">
-                {info.address || "Station Road, Churu, Rajasthan 331001"}
+              <div className="text-xs font-semibold text-zinc-900 leading-snug">
+                {info.address}
               </div>
               <p className="text-xs text-zinc-500 leading-relaxed">
-                {info.locationNote || "Central Churu kitchen with 30-45 min local delivery."}
+                {info.locationNote}
               </p>
             </div>
 
@@ -191,15 +212,45 @@ export default function Footer({ onOpenFranchise }) {
                 href={mapsQueryUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-black text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-black text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <Navigation className="w-3.5 h-3.5 text-red-400" />
-                <span>Open in Google Maps</span>
+                <span>Open in Maps</span>
                 <ExternalLink className="w-3 h-3 text-zinc-400" />
               </a>
             </div>
           </div>
 
+        </div>
+
+        {/* ====== SECTION 3: POWERED BY CHURUONE (Bug 8) ====== */}
+        <div className="mt-12 p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-black text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-5 border border-zinc-800">
+          <div className="flex items-center gap-4 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center font-black text-lg text-white border border-white/20 shrink-0">
+              C1
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black tracking-wider uppercase text-white">ChuruOne Hyperlocal Commerce</span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#DC2626] text-white">
+                  Official Store
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed max-w-xl">
+                Churu's official direct-to-consumer digital commerce engine. Connecting verified local food joints, designers, and creators with lightning-fast 30-minute delivery.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+            <a
+              href="/explore"
+              className="flex-1 md:flex-none px-5 py-2.5 rounded-full bg-white text-zinc-900 hover:bg-zinc-100 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md"
+            >
+              <span>Explore Churu Stores</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
 
         {/* Clean Legal Policies Strip */}

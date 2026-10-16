@@ -10,7 +10,7 @@ export default function DealBanners() {
   const [copiedCode, setCopiedCode] = useState('');
   const scrollRef = useRef(null);
 
-  const liveDeals = deals || [];
+  const liveDeals = (deals || []).filter(d => d.isActive !== false && d.active !== false);
   if (liveDeals.length === 0) return null;
 
   const count = liveDeals.length;

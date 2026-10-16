@@ -66,17 +66,26 @@ export function handleGatewayMessage(data, ws, storeId, source) {
     }
     case 'ADD_DEAL': {
       const deals = DataLayer.read(storeId, 'deals') || [];
-      const newDeal = { id: generateId(), ...data.deal };
-      deals.push(newDeal);
+      const dealObj = data.deal || data.payload || {};
+      const targetId = dealObj.id;
+      const idx = targetId ? deals.findIndex(d => String(d.id) === String(targetId)) : -1;
+      if (idx !== -1) {
+        deals[idx] = { ...deals[idx], ...dealObj };
+      } else {
+        const newDeal = { id: targetId || generateId('deal'), ...dealObj };
+        deals.push(newDeal);
+      }
       DataLayer.writeSync(storeId, 'deals', deals);
       WebSocketHub.broadcastToAll(storeId, { action: 'DEALS_UPDATED', payload: deals });
       return true;
     }
     case 'UPDATE_DEAL': {
       const deals = DataLayer.read(storeId, 'deals') || [];
-      const idx = deals.findIndex(d => d.id === data.deal.id);
+      const dealObj = data.deal || data.payload || {};
+      const targetId = dealObj.id;
+      const idx = deals.findIndex(d => String(d.id) === String(targetId));
       if (idx !== -1) {
-        deals[idx] = { ...deals[idx], ...data.deal };
+        deals[idx] = { ...deals[idx], ...dealObj };
         DataLayer.writeSync(storeId, 'deals', deals);
         WebSocketHub.broadcastToAll(storeId, { action: 'DEALS_UPDATED', payload: deals });
       }

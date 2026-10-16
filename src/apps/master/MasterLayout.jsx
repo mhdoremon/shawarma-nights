@@ -33,7 +33,6 @@ import MenuTab from './tabs/MenuTab';
 import OffersTab from './tabs/OffersTab';
 import CustomersTab from './tabs/CustomersTab';
 import ReviewsTab from './tabs/ReviewsTab';
-import SmsGatewayTab from './tabs/SmsGatewayTab';
 import FranchiseTab from './tabs/FranchiseTab';
 import SettingsTab from './tabs/SettingsTab';
 import DeliveryPartnerView from './views/DeliveryPartnerView';
@@ -95,7 +94,6 @@ export default function MasterLayout() {
     ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isPendingReview }] : []),
     { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: isPendingReview },
     { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: isPendingReview },
-    { id: 6, label: 'SMS Gateway', icon: Smartphone, isLocked: isPendingReview },
     ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: isPendingReview }] : []),
     { id: 8, label: 'Settings', icon: Settings, isLocked: isPendingReview },
   ];
@@ -171,16 +169,6 @@ export default function MasterLayout() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-
-            {/* Logout Button */}
-            <button
-              onClick={logout}
-              className="p-2 rounded-full bg-zinc-900 hover:bg-black text-white shadow-sm transition-all cursor-pointer"
-              title="Logout from Master OS"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-
           </div>
 
         </div>
@@ -246,7 +234,6 @@ export default function MasterLayout() {
                 {activeTab === 3 && <OffersTab />}
                 {activeTab === 4 && <CustomersTab />}
                 {activeTab === 5 && <ReviewsTab />}
-                {activeTab === 6 && <SmsGatewayTab />}
                 {activeTab === 7 && <FranchiseTab />}
                 {activeTab === 8 && <SettingsTab />}
               </>

@@ -78,8 +78,31 @@ export default function MenuTab() {
       const name = typeof c === 'string' ? c : c.name || c.id;
       if (name) set.add(name.trim());
     });
+    (customCategories || []).forEach(c => {
+      if (c && typeof c === 'string') set.add(c.trim());
+    });
     return Array.from(set);
-  }, [menu, categories]);
+  }, [menu, categories, customCategories]);
+
+  // Combined Category Suggestions for Add/Edit Modal (Retains all previously entered categories)
+  const categorySuggestions = useMemo(() => {
+    const set = new Set();
+    const defaults = hasServiceDuration 
+      ? ['haircut', 'beard', 'combo', 'packages', 'styling', 'facial', 'spa', 'massage'] 
+      : (hasSizes && hasColors)
+        ? ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories']
+        : ['shawarmas', 'platters', 'fries', 'drinks', 'starters', 'rolls'];
+    defaults.forEach(c => set.add(c.toLowerCase()));
+    (menu || []).forEach(d => {
+      const c = (d.category || d.categoryId || '').trim().toLowerCase();
+      if (c) set.add(c);
+    });
+    (customCategories || []).forEach(c => {
+      const trimmed = (c || '').trim().toLowerCase();
+      if (trimmed) set.add(trimmed);
+    });
+    return Array.from(set);
+  }, [hasServiceDuration, hasSizes, hasColors, menu, customCategories]);
 
   // Filtered dishes
   const filteredDishes = useMemo(() => {
@@ -105,16 +128,59 @@ export default function MenuTab() {
     return list;
   }, [menu, activeCategory, searchQuery]);
 
+  // Persistent Custom Categories (Bug 3: Category Retention)
+  const [customCategories, setCustomCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`churuone_custom_categories_${storeId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Client-side HTML5 Canvas Image Compressor (Dukandar 2: Fast mobile gallery upload)
+  const compressImage = (file, maxWidth = 1200, quality = 0.82) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxWidth) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(event.target.result);
+        img.src = event.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle Image File Upload (Device / Gallery)
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    const reader = new FileReader();
+    try {
+      const compressedBase64 = await compressImage(file);
+      if (!compressedBase64) throw new Error('Compression failed');
 
-    reader.onload = async () => {
-      const base64Data = reader.result;
       try {
         const res = await fetch(`https://churuone-backend.onrender.com/api/upload`, {
           method: 'POST',
@@ -123,7 +189,7 @@ export default function MenuTab() {
             'x-store-id': storeId
           },
           body: JSON.stringify({
-            image: base64Data,
+            image: compressedBase64,
             filename: file.name
           })
         });
@@ -132,19 +198,18 @@ export default function MenuTab() {
           setModalItem(prev => ({ ...prev, image: data.url }));
           showToast('Image uploaded successfully!', 'success');
         } else {
-          // Fallback to data URI directly
-          setModalItem(prev => ({ ...prev, image: base64Data }));
+          setModalItem(prev => ({ ...prev, image: compressedBase64 }));
           showToast('Image loaded from device', 'info');
         }
       } catch (err) {
-        setModalItem(prev => ({ ...prev, image: base64Data }));
-        showToast('Image selected from device', 'info');
-      } finally {
-        setIsUploading(false);
+        setModalItem(prev => ({ ...prev, image: compressedBase64 }));
+        showToast('Image loaded from device', 'info');
       }
-    };
-
-    reader.readAsDataURL(file);
+    } catch (err) {
+      showToast('Error processing image', 'error');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Handle Save dish form (Create or Update)
@@ -215,6 +280,19 @@ export default function MenuTab() {
     } else {
       await addMenuItem(payload);
     }
+
+    // Persist custom category so it is retained for future dishes (Bug 3)
+    const cleanCat = (payload.category || '').trim().toLowerCase();
+    if (cleanCat && !customCategories.includes(cleanCat)) {
+      const updatedCats = [...customCategories, cleanCat];
+      setCustomCategories(updatedCats);
+      try {
+        localStorage.setItem(`churuone_custom_categories_${storeId}`, JSON.stringify(updatedCats));
+      } catch (err) {
+        console.warn('Could not save category to localStorage:', err);
+      }
+    }
+
     setModalItem(null);
   };
 
@@ -357,7 +435,7 @@ export default function MenuTab() {
                     src={getImageUrl(dish.image)}
                     alt={dish.name}
                     onError={handleImageError}
-                    className="w-18 h-18 rounded-2xl object-cover bg-zinc-100 shrink-0 shadow-xs border-0"
+                    className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl object-cover bg-zinc-100 shrink-0 shadow-sm border border-zinc-100"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -495,13 +573,15 @@ export default function MenuTab() {
 
       {/* MODAL 1: ADD / EDIT DISH DIALOG (Full Feature Set matching Android App) */}
       {modalItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white text-zinc-900 rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0 my-8">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-zinc-900 rounded-t-[32px] sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border-0 overflow-hidden">
+            {/* Sticky Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white shrink-0">
               <h3 className="text-base font-black text-zinc-900">
                 {modalItem.id ? `Edit ${itemNoun}` : `Add New ${itemNoun}`}
               </h3>
               <button
+                type="button"
                 onClick={() => setModalItem(null)}
                 className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 cursor-pointer"
               >
@@ -509,7 +589,9 @@ export default function MenuTab() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveDish} className="space-y-4">
+            <form onSubmit={handleSaveDish} className="flex-1 flex flex-col min-h-0">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-4 space-y-4">
               
               {/* 1. PHOTO PICKER SECTION (Device Upload + Presets + URL) */}
               <div className="bg-[#FFFBF7] p-4 rounded-2xl space-y-3 border-0">
@@ -620,22 +702,24 @@ export default function MenuTab() {
                   className={`w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 ${hasServiceDuration ? 'focus:ring-[#d4af37]' : (hasSizes && hasColors) ? 'focus:ring-zinc-900' : 'focus:ring-[#DC2626]'} focus:outline-none transition-all shadow-xs border-0`}
                 />
                 <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
-                  {(hasServiceDuration 
-                    ? ['haircut', 'beard', 'combo', 'packages', 'styling', 'facial', 'spa', 'massage'] 
-                    : (hasSizes && hasColors)
-                      ? ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories']
-                      : ['shawarmas', 'platters', 'fries', 'drinks', 'starters']
-                  ).map(c => (
+                  {categorySuggestions.map(c => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setModalItem({ ...modalItem, category: c })}
-                      className="px-3 py-1 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold uppercase border-0 cursor-pointer"
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase border-0 cursor-pointer transition-all ${
+                        (modalItem.category || '').toLowerCase() === c.toLowerCase()
+                          ? 'bg-[#DC2626] text-white shadow-xs'
+                          : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                      }`}
                     >
                       {c}
                     </button>
                   ))}
                 </div>
+                <span className="text-[10px] text-zinc-400 mt-1 block">
+                  💡 Nayi category likhne par wo automatically niche options me hamesha ke liye save ho jayegi.
+                </span>
               </div>
 
               {/* 4. FOOD TYPE (Veg / Non-Veg) - ONLY IF hasVegNonVeg */}
@@ -987,10 +1071,13 @@ export default function MenuTab() {
                 </div>
               )}
 
-              <div className="pt-2 flex items-center gap-2">
+              </div>
+
+              {/* Sticky Footer (Buttons always visible on both Mobile and PC) */}
+              <div className="p-4 px-6 border-t border-zinc-100 bg-white/95 backdrop-blur-xs shrink-0 flex items-center gap-2">
                 <button
                   type="submit"
-                  className={`flex-1 py-3.5 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0`}
+                  className={`flex-1 py-3.5 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0 active:scale-98 transition-all`}
                 >
                   {modalItem.id ? `UPDATE ${itemNoun.toUpperCase()}` : `ADD ${itemNoun.toUpperCase()} TO ${hasServiceDuration ? 'SERVICES' : 'MENU'}`}
                 </button>

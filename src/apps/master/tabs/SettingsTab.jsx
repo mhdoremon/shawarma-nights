@@ -107,13 +107,20 @@ export default function SettingsTab() {
     tagline: storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
     heroVideoUrl: storeInfo?.heroVideoUrl || '/video/hero.mp4',
     timing: storeInfo?.timing || (isSalon ? 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed' : 'Open Daily: 12:00 PM – 04:00 AM'),
+    openTillText: storeInfo?.openTillText || 'OPEN TILL 4:00 AM',
     address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
+    locationNote: storeInfo?.locationNote || 'Central hub kitchen with 30-45 min local delivery',
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
     halalBadgeText: storeInfo?.halalBadgeText || '',
     aboutText: storeInfo?.aboutText || (isSalon ? 'Bespoke haircuts, luxury skin fades, hot towel razor shaves, and executive beard grooming.' : 'Authentic Charcoal Shawarma grilled live with authentic Arabian Toum garlic sauce.'),
+    ownerName: storeInfo?.ownerName || (isSalon ? 'Nash & Team' : 'Furkan & Team'),
+    ownerRole: storeInfo?.ownerRole || (isSalon ? 'Master Stylist & Founder' : 'Founder & Head Chef'),
+    ownerBio: storeInfo?.ownerBio || (isSalon ? '15+ years of craft grooming experience with precision fades and classic razor styling.' : 'Dedicated to authentic slow-roasted charcoal shawarma, hand-carved rolls, and fresh garlic toum made daily in Churu.'),
+    foundedYear: storeInfo?.foundedYear || '2024',
     upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
     payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
     codEnabled: paymentObj.codEnabled !== false,
+    onlineEnabled: paymentObj.onlineEnabled !== false,
     whatsapp: socialsObj.whatsapp || (isSalon ? '923001234567' : '7023963189'),
     instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio' : 'https://instagram.com/shawarmanights_churu'),
     isOpen: storeInfo?.isOpen !== false,
@@ -179,13 +186,20 @@ export default function SettingsTab() {
         tagline: storeInfo.tagline || prev.tagline,
         heroVideoUrl: storeInfo.heroVideoUrl || prev.heroVideoUrl,
         timing: storeInfo.timing || prev.timing,
+        openTillText: storeInfo.openTillText || prev.openTillText,
         address: storeInfo.address || prev.address,
+        locationNote: storeInfo.locationNote || prev.locationNote,
         deliveryNote: storeInfo.deliveryNote || prev.deliveryNote,
         halalBadgeText: storeInfo.halalBadgeText || prev.halalBadgeText,
         aboutText: storeInfo.aboutText || prev.aboutText,
+        ownerName: storeInfo.ownerName || prev.ownerName,
+        ownerRole: storeInfo.ownerRole || prev.ownerRole,
+        ownerBio: storeInfo.ownerBio || prev.ownerBio,
+        foundedYear: storeInfo.foundedYear || prev.foundedYear,
         upiId: pay.upiId || storeInfo.upiId || prev.upiId,
         payeeName: pay.payeeName || prev.payeeName,
         codEnabled: pay.codEnabled !== false,
+        onlineEnabled: pay.onlineEnabled !== false,
         whatsapp: soc.whatsapp || prev.whatsapp,
         instagram: soc.instagram || prev.instagram,
         isOpen: storeInfo.isOpen !== false,
@@ -282,6 +296,12 @@ export default function SettingsTab() {
   const handleSaveOperational = async (e) => {
     e.preventDefault();
 
+    // Dukandar 9 Rule: Enforce at least one payment method is enabled
+    if (!isSalon && !operationalForm.codEnabled && !operationalForm.onlineEnabled) {
+      showToast('Kam se kam ek payment method (COD ya Online UPI) active hona anivarya hai!', 'error');
+      return;
+    }
+
     // Auto-generate timing string for backwards compatibility
     const openDays = DAYS_OF_WEEK.filter(d => weeklySchedule[d.key]?.isOpen);
     const closedDays = DAYS_OF_WEEK.filter(d => !weeklySchedule[d.key]?.isOpen);
@@ -300,15 +320,22 @@ export default function SettingsTab() {
       heroVideoUrl: operationalForm.heroVideoUrl,
       weeklySchedule: weeklySchedule,
       timing: operationalForm.timing || autoTiming,
+      openTillText: operationalForm.openTillText,
       address: operationalForm.address,
+      locationNote: operationalForm.locationNote,
       aboutText: operationalForm.aboutText,
+      ownerName: operationalForm.ownerName,
+      ownerRole: operationalForm.ownerRole,
+      ownerBio: operationalForm.ownerBio,
+      foundedYear: operationalForm.foundedYear,
       isOpen: operationalForm.isOpen,
       marketplaceVisible: operationalForm.marketplaceVisible,
       payment: {
         upiId: operationalForm.upiId.trim(),
         payeeName: operationalForm.payeeName.trim(),
         autoSmsVerification: true,
-        codEnabled: isSalon ? false : operationalForm.codEnabled
+        codEnabled: isSalon ? false : operationalForm.codEnabled,
+        onlineEnabled: operationalForm.onlineEnabled
       },
       socials: {
         whatsapp: operationalForm.whatsapp.trim(),
@@ -325,7 +352,7 @@ export default function SettingsTab() {
     }
 
     await updateStoreSettings(payload);
-    showToast(isSalon ? 'Salon Settings & Weekly Schedule Saved Live!' : 'Store Operational Details & UPI Saved!', 'success');
+    showToast(isSalon ? 'Salon Settings & Weekly Schedule Saved Live!' : 'Store Operational Details & Settings Saved Live!', 'success');
   };
 
   // 4. SAVE HERO & MARQUEE COPY
@@ -377,68 +404,7 @@ export default function SettingsTab() {
         </button>
       </div>
 
-      {/* CARD 3: FREE DELIVERY THRESHOLD */}
-      {hasFreeDeliveryThreshold && (
-        <form onSubmit={handleSaveFreeDelivery} className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-4 border-0">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-2">
-              <Truck className="w-4 h-4 text-[#DC2626]" />
-              <span>FREE DELIVERY THRESHOLD (फ्री डिलीवरी लिमिट)</span>
-            </h3>
-            <p className="text-xs text-zinc-500 mt-1">
-              Current Limit: <strong className="text-zinc-900 font-black">₹{freeDeliveryInput}</strong> (Customer ke bag me is amount se upar delivery FREE hogi)
-            </p>
-          </div>
 
-          {/* Quick Amount Suggestion Chips */}
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-2">
-              Quick Threshold Chips:
-            </label>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {fdThresholdPresets.map(preset => {
-                const active = String(preset) === String(freeDeliveryInput);
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => setFreeDeliveryInput(String(preset))}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-black whitespace-nowrap transition-all cursor-pointer border-0 ${
-                      active
-                        ? 'bg-[#DC2626] text-white shadow-sm'
-                        : 'bg-[#FFFBF7] text-zinc-700 hover:bg-zinc-100 shadow-xs'
-                    }`}
-                  >
-                    ₹{preset}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Custom Input */}
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Custom Threshold Amount (₹)
-            </label>
-            <input
-              type="number"
-              value={freeDeliveryInput}
-              onChange={(e) => setFreeDeliveryInput(e.target.value)}
-              placeholder="e.g. 350"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all border-0"
-          >
-            <Check className="w-4 h-4 stroke-[2.5]" />
-            <span>SAVE THRESHOLD (वेबसाइट पर सेव करें)</span>
-          </button>
-        </form>
-      )}
 
       {/* CARD 4: TAXES & CHARGES (GST & PACKAGING CONTROLS) */}
       {hasTaxesAndPackaging && (
@@ -878,19 +844,171 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Accept Cash on Delivery Switch (Delivery stores only - strictly hidden for Salon) */}
-        {!isSalon && (
-          <div className="flex items-center justify-between p-4 rounded-2xl bg-[#FFFBF7] shadow-xs">
-            <div>
-              <span className="text-xs font-black text-zinc-900 block">Accept Cash on Delivery (COD)</span>
-              <span className="text-[11px] text-zinc-500">Enable or disable cash payment option at checkout</span>
-            </div>
+        {/* Delivery Note & Kitchen Location Note */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              "Still Hungry" Banner Open Till Text
+            </label>
             <input
-              type="checkbox"
-              checked={operationalForm.codEnabled}
-              onChange={(e) => setOperationalForm({ ...operationalForm, codEnabled: e.target.checked })}
-              className="w-4 h-4 rounded text-[#DC2626] focus:ring-[#DC2626]"
+              type="text"
+              value={operationalForm.openTillText}
+              onChange={(e) => setOperationalForm({ ...operationalForm, openTillText: e.target.value })}
+              placeholder="e.g. OPEN TILL 4:00 AM or OPEN TILL 2:00 AM"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-bold"
             />
+            <span className="text-[10px] text-zinc-400 mt-1 block">
+              Website ke Still Hungry section ke upar jo pill badge dikhta hai, wo yahan se dynamically update hoga.
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Kitchen Location Subtext / Delivery Note
+            </label>
+            <input
+              type="text"
+              value={operationalForm.locationNote}
+              onChange={(e) => setOperationalForm({ ...operationalForm, locationNote: e.target.value })}
+              placeholder="e.g. Central hub kitchen with 30-45 min local delivery"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+        </div>
+
+        {/* OWNER & FOUNDER PROFILE (Bug 6 & Dukandar 8) */}
+        <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3.5 border-0">
+          <h4 className="text-xs font-black uppercase tracking-wider text-[#DC2626] flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Dukan Malik / Founder Profile (वेबसाइट पर प्रदर्शित करने हेतु)</span>
+          </h4>
+          <p className="text-[11px] text-zinc-500">
+            Aapki dukan ke About section me malik/founder ki jankari aur craftsmanship story yahan se display hogi.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                Owner / Founder Name
+              </label>
+              <input
+                type="text"
+                value={operationalForm.ownerName}
+                onChange={(e) => setOperationalForm({ ...operationalForm, ownerName: e.target.value })}
+                placeholder="e.g. Furkan & Team"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 font-bold focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                Role / Title
+              </label>
+              <input
+                type="text"
+                value={operationalForm.ownerRole}
+                onChange={(e) => setOperationalForm({ ...operationalForm, ownerRole: e.target.value })}
+                placeholder="e.g. Founder & Head Chef"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                Founded Year (स्थापना वर्ष)
+              </label>
+              <input
+                type="text"
+                value={operationalForm.foundedYear}
+                onChange={(e) => setOperationalForm({ ...operationalForm, foundedYear: e.target.value })}
+                placeholder="e.g. 2024"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 font-bold focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+              Founder Story & Craftsmanship Bio (संक्षिप्त परिचय)
+            </label>
+            <textarea
+              rows={2}
+              value={operationalForm.ownerBio}
+              onChange={(e) => setOperationalForm({ ...operationalForm, ownerBio: e.target.value })}
+              placeholder="Dukan ke safar aur authentic recipe ke baare me 1-2 line..."
+              className="w-full bg-white rounded-xl p-3 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs resize-none"
+            />
+          </div>
+        </div>
+
+        {/* PAYMENT MODES TOGGLES (Dukandar 9: COD + Online Payment Switches) */}
+        {!isSalon && (
+          <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3.5 border-0">
+            <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2.5">
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                  <CreditCard className="w-4 h-4 text-[#DC2626]" />
+                  <span>Checkout Payment Methods (भुगतान विकल्प)</span>
+                </h4>
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  Customer ko checkout par kaunse payment options dikhane hain yahan se set karein. Kam se kam ek method active rehna anivarya hai.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* 1. Cash on Delivery (COD) Switch */}
+              <div className={`p-3.5 rounded-xl transition-all flex items-center justify-between ${
+                operationalForm.codEnabled ? 'bg-white shadow-2xs border border-emerald-100' : 'bg-zinc-100/70 opacity-75'
+              }`}>
+                <div>
+                  <span className="text-xs font-black text-zinc-900 block">Cash on Delivery (COD)</span>
+                  <span className="text-[10px] text-zinc-500">Rider ko ghar par cash bhugtan</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={operationalForm.codEnabled}
+                    onChange={(e) => {
+                      const nextVal = e.target.checked;
+                      if (!nextVal && !operationalForm.onlineEnabled) {
+                        showToast('Dono options band nahi kar sakte! Kam se kam Online UPI chalu rehna chahiye.', 'error');
+                        return;
+                      }
+                      setOperationalForm(prev => ({ ...prev, codEnabled: nextVal }));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                </label>
+              </div>
+
+              {/* 2. Online Payment (UPI / QR) Switch */}
+              <div className={`p-3.5 rounded-xl transition-all flex items-center justify-between ${
+                operationalForm.onlineEnabled ? 'bg-white shadow-2xs border border-emerald-100' : 'bg-zinc-100/70 opacity-75'
+              }`}>
+                <div>
+                  <span className="text-xs font-black text-zinc-900 block">Online Payment (UPI / QR)</span>
+                  <span className="text-[10px] text-zinc-500">Instant QR & Netbanking auto-verify</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={operationalForm.onlineEnabled}
+                    onChange={(e) => {
+                      const nextVal = e.target.checked;
+                      if (!nextVal && !operationalForm.codEnabled) {
+                        showToast('Dono options band nahi kar sakte! Kam se kam COD chalu rehna chahiye.', 'error');
+                        return;
+                      }
+                      setOperationalForm(prev => ({ ...prev, onlineEnabled: nextVal }));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                </label>
+              </div>
+            </div>
           </div>
         )}
 

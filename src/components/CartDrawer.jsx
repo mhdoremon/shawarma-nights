@@ -67,8 +67,37 @@ export default function CartDrawer({ onOpenTracker }) {
   const [couponInput, setCouponInput] = useState('');
   const [couponFeedback, setCouponFeedback] = useState(null);
 
-  // Direct UPI vs Cash On Delivery (COD)
-  const [paymentMethod, setPaymentMethod] = useState(ENABLE_UPI ? 'upi' : 'cod'); // 'upi' or 'cod'
+  // Direct UPI vs Cash On Delivery (COD) - Reactive to Dukandar Portal Toggles (Dukandar 9)
+  const codEnabled = storeInfo?.payment?.codEnabled !== false;
+  const onlineEnabled = storeInfo?.payment?.onlineEnabled !== false;
+
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    if (onlineEnabled && ENABLE_UPI) return 'upi';
+    if (codEnabled) return 'cod';
+    return 'upi';
+  });
+
+  useEffect(() => {
+    if (!codEnabled && paymentMethod === 'cod') {
+      setPaymentMethod('upi');
+    } else if (!onlineEnabled && paymentMethod === 'upi') {
+      setPaymentMethod('cod');
+    }
+  }, [codEnabled, onlineEnabled, paymentMethod]);
+
+  // Operational Hours & Weekly Schedule Check (Dukandar 8)
+  const isStoreScheduleOpen = () => {
+    if (storeInfo?.isOpen === false) return false;
+    if (storeInfo?.weeklySchedule && typeof storeInfo.weeklySchedule === 'object') {
+      const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const todayKey = days[new Date().getDay()];
+      const todaySched = storeInfo.weeklySchedule[todayKey];
+      if (todaySched && todaySched.isOpen === false) return false;
+    }
+    return true;
+  };
+  const isStoreCurrentlyOpen = isStoreScheduleOpen();
+
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState(null);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
@@ -154,6 +183,11 @@ export default function CartDrawer({ onOpenTracker }) {
   };
 
   const handleProceedCheckout = async (overrideAddress = null, gpsOverride = null) => {
+    if (!isStoreCurrentlyOpen) {
+      alert("⚠️ Store filhal band hai (Store is Closed). Kripya store open hone ke waqt order karein.");
+      return;
+    }
+
     if (!isAuthenticated) {
       openAuthModal('phone');
       return;
@@ -565,11 +599,11 @@ export default function CartDrawer({ onOpenTracker }) {
                       </p>
                     )}
 
-                    {!appliedCoupon && (deals || []).length > 0 && (
+                    {!appliedCoupon && (deals || []).filter(d => d.isActive !== false && d.active !== false).length > 0 && (
                       <div className="space-y-2 pt-2">
                         <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Available Offers:</span>
                         <div className="flex flex-col gap-2">
-                          {(deals || []).map((deal) => {
+                          {(deals || []).filter(d => d.isActive !== false && d.active !== false).map((deal) => {
                             const isLocked = subtotal < (deal.minOrder || 0);
                             const progress = isLocked ? Math.min(100, Math.round((subtotal / (deal.minOrder || 1)) * 100)) : 100;
                             return (
@@ -753,45 +787,49 @@ export default function CartDrawer({ onOpenTracker }) {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('upi')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        paymentMethod === 'upi'
-                          ? 'border-[#DC2626] bg-red-50/50 shadow-xs ring-1 ring-red-500/20'
-                          : 'border-zinc-200 bg-white hover:border-zinc-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <QrCode className={`w-4 h-4 ${paymentMethod === 'upi' ? 'text-[#DC2626]' : 'text-zinc-400'}`} />
-                        <span className="font-black text-xs text-zinc-900">UPI / QR</span>
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 ml-auto">
-                          Auto-Pay
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-zinc-500 leading-tight">
-                        Cashfree Gateway (GPay, PhonePe, Paytm, QR)
-                      </div>
-                    </button>
+                  <div className={`grid gap-2 ${onlineEnabled && codEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {onlineEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('upi')}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          paymentMethod === 'upi'
+                            ? 'border-[#DC2626] bg-red-50/50 shadow-xs ring-1 ring-red-500/20'
+                            : 'border-zinc-200 bg-white hover:border-zinc-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <QrCode className={`w-4 h-4 ${paymentMethod === 'upi' ? 'text-[#DC2626]' : 'text-zinc-400'}`} />
+                          <span className="font-black text-xs text-zinc-900">UPI / QR</span>
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 ml-auto">
+                            Auto-Pay
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500 leading-tight">
+                          Cashfree Gateway (GPay, PhonePe, Paytm, QR)
+                        </div>
+                      </button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('cod')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        paymentMethod === 'cod'
-                          ? 'border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-500/20'
-                          : 'border-zinc-200 bg-white hover:border-zinc-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Banknote className={`w-4 h-4 ${paymentMethod === 'cod' ? 'text-emerald-600' : 'text-zinc-400'}`} />
-                        <span className="font-black text-xs text-zinc-900">Cash (COD)</span>
-                      </div>
-                      <div className="text-[10px] text-zinc-500 leading-tight">
-                        Pay cash to rider at doorstep
-                      </div>
-                    </button>
+                    {codEnabled && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('cod')}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          paymentMethod === 'cod'
+                            ? 'border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-500/20'
+                            : 'border-zinc-200 bg-white hover:border-zinc-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Banknote className={`w-4 h-4 ${paymentMethod === 'cod' ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                          <span className="font-black text-xs text-zinc-900">Cash (COD)</span>
+                        </div>
+                        <div className="text-[10px] text-zinc-500 leading-tight">
+                          Pay cash to rider at doorstep
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </div>
               </>
@@ -867,29 +905,41 @@ export default function CartDrawer({ onOpenTracker }) {
           {/* Checkout Footer Button */}
           {cart.length > 0 && activeTab === 'cart' && (
             <div className="p-4 bg-white border-t border-zinc-200">
-              <button
-                disabled={isInitiatingPayment}
-                onClick={handleProceedCheckout}
-                className="w-full py-3.5 px-6 rounded-2xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black text-sm tracking-wide shadow-lg shadow-red-200 flex items-center justify-between transition-all disabled:opacity-75"
-              >
-                <div className="text-left">
-                  <div className="text-[10px] uppercase font-bold text-red-200">Total Payable</div>
-                  <div className="text-base font-extrabold font-mono">₹{grandTotal}</div>
+              {!isStoreCurrentlyOpen ? (
+                <div className="w-full py-3.5 px-4 rounded-2xl bg-zinc-100 border border-zinc-300 text-zinc-600 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-2 font-black text-sm text-zinc-800">
+                    <Clock className="w-4 h-4 text-red-500" />
+                    <span>Dukan Abhi Band Hai (Store Closed)</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 font-medium">
+                    {storeInfo?.weeklySchedule ? "Aaj ke din dukan orders accept nahi kar rahi hai ya operational hours ke bahar hai." : "Filhal naye orders accept nahi kiye ja rahe hain."}
+                  </p>
                 </div>
+              ) : (
+                <button
+                  disabled={isInitiatingPayment}
+                  onClick={handleProceedCheckout}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-[#DC2626] hover:bg-[#B91C1C] text-white font-black text-sm tracking-wide shadow-lg shadow-red-200 flex items-center justify-between transition-all disabled:opacity-75 cursor-pointer"
+                >
+                  <div className="text-left">
+                    <div className="text-[10px] uppercase font-bold text-red-200">Total Payable</div>
+                    <div className="text-base font-extrabold font-mono">₹{grandTotal}</div>
+                  </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span>
-                    {isInitiatingPayment
-                      ? (paymentMethod === 'upi' ? 'Opening Cashfree Gateway...' : 'Placing Order...')
-                      : !isAuthenticated
-                      ? (paymentMethod === 'upi' ? 'Login & Pay with UPI' : 'Login & Place COD Order')
-                      : !isPhoneOtpVerified
-                      ? 'Verify Phone to Order'
-                      : (paymentMethod === 'upi' ? 'Pay via UPI / QR (Cashfree)' : 'Place Order (Cash on Delivery)')}
-                  </span>
-                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                </div>
-              </button>
+                  <div className="flex items-center gap-1.5">
+                    <span>
+                      {isInitiatingPayment
+                        ? (paymentMethod === 'upi' ? 'Opening Cashfree Gateway...' : 'Placing Order...')
+                        : !isAuthenticated
+                        ? (paymentMethod === 'upi' ? 'Login & Pay with UPI' : 'Login & Place COD Order')
+                        : !isPhoneOtpVerified
+                        ? 'Verify Phone to Order'
+                        : (paymentMethod === 'upi' ? 'Pay via UPI / QR (Cashfree)' : 'Place Order (Cash on Delivery)')}
+                    </span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                </button>
+              )}
             </div>
           )}
 
