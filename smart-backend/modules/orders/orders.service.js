@@ -313,8 +313,9 @@ export const updateOrderStatus = async (req, res) => {
             order.deliveryBoyId = deliveryBoyId;
         }
 
-        if (status === 'delivered') {
+        if (status === 'delivered' || status === 'completed') {
             order.paymentStatus = 'paid';
+            order.deliveredAt = order.deliveredAt || now();
         }
 
         orders[orderIndex] = order;
@@ -436,6 +437,35 @@ export const getCustomerOrders = async (req, res) => {
             allOrders
         });
     } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/**
+ * Flush all test orders, coupon usage, and customer spend history.
+ */
+export const flushOrders = async (req, res) => {
+    try {
+        const storeId = (req.body?.storeId || req.query?.storeId || req.storeId || 'shawarma').toLowerCase().trim();
+        const result = await DataLayer.flushOrdersAndHistory(storeId);
+
+        // Broadcast to all clients (Dukandar portal, customer web, etc.)
+        WebSocketHub.broadcastToAll(storeId, {
+            action: 'INIT_STATE',
+            payload: { orders: [] }
+        });
+        WebSocketHub.broadcastToAll(storeId, {
+            action: 'ORDERS_FLUSHED',
+            payload: { storeId, orders: [] }
+        });
+
+        res.json({
+            success: true,
+            message: `Orders and purchase history cleanly flushed for store: ${storeId}`,
+            orders: []
+        });
+    } catch (error) {
+        console.error('Flush orders error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

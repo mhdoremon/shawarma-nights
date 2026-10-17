@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar, Clock, ChevronDown, ChevronUp, Sparkles, User, ExternalLink, Truck } from 'lucide-react';
+import { Phone, MessageCircle, Check, X, ChefHat, Bike, CheckCheck, Printer, Search, MapPin, CreditCard, Banknote, Navigation, KeyRound, Scissors, Calendar, Clock, ChevronDown, ChevronUp, Sparkles, User, ExternalLink, Truck, Trash2 } from 'lucide-react';
 
 const WORK_START = 11 * 60; // 11:00 AM (660 mins)
 const WORK_END = 23 * 60; // 11:00 PM (1380 mins)
@@ -74,12 +74,29 @@ export default function OrdersTab() {
     orders, 
     updateOrderStatus, 
     verifyDeliveryOtp, 
+    flushAllOrders,
     showToast, 
     storeInfo, 
     storeId, 
     capabilities, 
     deliveryBoys 
   } = useMaster();
+
+  const [isFlushing, setIsFlushing] = useState(false);
+
+  const handleFlushAllOrders = async () => {
+    const ok = window.confirm(
+      "⚠️ DHYAN DIJIYE: Kya aap sach me dukaan ke sare test orders aur purchase history ko FLUSH karke AIKDM CLEAN fresh start karna chahte hain?\n\nYeh sabhi purane test orders ko database se permanently hata dega."
+    );
+    if (!ok) return;
+
+    setIsFlushing(true);
+    try {
+      await flushAllOrders();
+    } finally {
+      setIsFlushing(false);
+    }
+  };
 
   // Capability-driven feature flags
   const hasAppointments = Boolean(capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
@@ -243,7 +260,12 @@ export default function OrdersTab() {
       });
     }
 
-    return list;
+    // CRITICAL FIX: Sort descending by timestamp so newest order is ALWAYS at the top (index 0)
+    return list.sort((a, b) => {
+      const tA = new Date(a.createdAt || a.date || a.dateISO || a.placedAt || 0).getTime();
+      const tB = new Date(b.createdAt || b.date || b.dateISO || b.placedAt || 0).getTime();
+      return tB - tA;
+    });
   }, [orders, statusFilter, searchQuery]);
 
   // Historical orders filtered by selected period (Week / Month / Year / All)
@@ -280,7 +302,11 @@ export default function OrdersTab() {
       });
     }
 
-    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    return list.sort((a, b) => {
+      const tA = new Date(a.createdAt || a.date || a.dateISO || a.placedAt || 0).getTime();
+      const tB = new Date(b.createdAt || b.date || b.dateISO || b.placedAt || 0).getTime();
+      return tB - tA;
+    });
   }, [orders, historyPeriod, searchQuery]);
 
   // Historical Summary Analytics
@@ -408,9 +434,21 @@ export default function OrdersTab() {
               </button>
             </div>
 
-            <span className="text-xs text-zinc-400 font-medium">
-              {activeOrderView === 'today' ? '🔴 Live 4-Stage Real-Time Pipeline' : '📊 Weekly / Monthly / Yearly Analytics'}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-zinc-400 font-medium hidden sm:inline">
+                {activeOrderView === 'today' ? '🔴 Live 4-Stage Real-Time Pipeline' : '📊 Weekly / Monthly / Yearly Analytics'}
+              </span>
+              <button
+                type="button"
+                onClick={handleFlushAllOrders}
+                disabled={isFlushing}
+                className="px-3 py-1.5 rounded-xl text-xs font-black bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                title="Wipe test orders and customer stats for a clean fresh start"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>{isFlushing ? 'Cleaning Database...' : '🧹 Flush Orders (Fresh Start)'}</span>
+              </button>
+            </div>
           </div>
 
         {/* Search Input */}

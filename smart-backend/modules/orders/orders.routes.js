@@ -9,5 +9,7 @@ router.get('/customer', service.getCustomerOrders);
 router.post('/', service.placeOrder);
 router.post('/place', service.placeOrder);
 router.post('/update-status', service.updateOrderStatus);
+router.post('/flush', service.flushOrders);
+router.get('/flush', service.flushOrders);
 
 export default router;

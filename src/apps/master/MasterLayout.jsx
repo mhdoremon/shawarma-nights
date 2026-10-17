@@ -82,7 +82,7 @@ export default function MasterLayout() {
 
   // Active / pending orders count
   const activeOrdersCount = (orders || []).filter(o => 
-    ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)
+    ['new', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'dispatched'].includes(o.status)
   ).length;
 
   const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);

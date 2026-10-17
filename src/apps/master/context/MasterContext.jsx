@@ -915,6 +915,24 @@ export const MasterProvider = ({ children }) => {
     }
   };
 
+  const flushAllOrders = async () => {
+    playClickSound();
+    try {
+      const res = await apiFetch('/api/orders/flush', {
+        method: 'POST',
+        body: JSON.stringify({ storeId })
+      });
+      if (res?.success) {
+        setOrders([]);
+        showToast('Purane orders cleanly flush ho gaye! Fresh start ready.', 'success');
+        return { success: true };
+      }
+      return { success: false, message: res?.message || 'Flush failed' };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
   const switchStoreId = (newId) => {
     const cleanId = (newId || 'shawarma').trim().toLowerCase();
     setStoreId(cleanId);
@@ -948,6 +966,7 @@ export const MasterProvider = ({ children }) => {
       menu,
       categories,
       orders,
+      setOrders,
       deals,
       customers,
       reviews,
@@ -958,6 +977,7 @@ export const MasterProvider = ({ children }) => {
       smsLogs,
       assignedOrders,
       // Actions
+      apiFetch,
       loginDukandar,
       loginDelivery,
       registerDelivery,
@@ -979,6 +999,7 @@ export const MasterProvider = ({ children }) => {
       simulatePaymentSms,
       sendTestSms,
       verifyDeliveryOtp,
+      flushAllOrders,
       refreshData: fetchInitialDataViaRest
     }}>
       {children}

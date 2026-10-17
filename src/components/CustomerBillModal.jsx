@@ -31,7 +31,14 @@ export default function CustomerBillModal({ order, isOpen, onClose }) {
   const customerPhone = order.customerPhone || order.phone || '';
   const deliveryAddress = order.address || order.deliveryAddress || 'Churu, Rajasthan';
   const paymentMethod = (order.paymentMethod || 'UPI').toUpperCase();
-  const paymentStatus = (order.paymentStatus || (paymentMethod === 'COD' ? 'Pending Cash' : 'Paid')).toUpperCase();
+  const isDelivered = order.status === 'delivered' || order.status === 'completed' || Boolean(order.deliveredAt);
+  const isOnline = paymentMethod !== 'COD';
+  const isCodPaid = paymentMethod === 'COD' && (isDelivered || order.paymentStatus === 'paid');
+  const isPaid = isOnline || isCodPaid;
+
+  const paymentStatusLabel = isOnline 
+    ? 'PAID ONLINE (Verified)' 
+    : (isCodPaid ? 'PAID IN CASH (Collected)' : 'CASH ON DELIVERY (Pending)');
   const items = order.items || [];
   
   // Calculate pricing values
@@ -196,13 +203,13 @@ export default function CustomerBillModal({ order, isOpen, onClose }) {
                   <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                     Payment Status
                   </span>
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
-                    paymentStatus.includes('PAID') 
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full uppercase ${
+                    isPaid 
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
                       : 'bg-amber-100 text-amber-900 border border-amber-300'
                   }`}>
                     <CheckCircle2 className="w-3 h-3" />
-                    {paymentMethod} • {paymentStatus}
+                    {paymentStatusLabel}
                   </span>
                 </div>
               </div>
@@ -336,6 +343,54 @@ export default function CustomerBillModal({ order, isOpen, onClose }) {
                 </span>
               </div>
             </div>
+
+            {/* Payment Status Verification Banner */}
+            {isPaid ? (
+              <div className="p-3.5 bg-emerald-50/90 rounded-2xl border border-emerald-200 flex items-center justify-between text-xs text-emerald-950">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shrink-0">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-black text-emerald-900 text-xs flex items-center gap-1.5">
+                      <span>{isOnline ? 'PAYMENT RECEIVED (PAID ONLINE)' : 'PAYMENT RECEIVED (CASH COLLECTED)'}</span>
+                      <span className="text-[9px] bg-emerald-600 text-white px-1.5 py-0.2 rounded font-mono font-bold">VERIFIED</span>
+                    </div>
+                    <div className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                      {isOnline 
+                        ? 'Amount received and verified automatically via UPI / Gateway.' 
+                        : 'Cash collected by delivery partner upon OTP delivery confirmation.'}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-mono font-black text-sm text-emerald-900 bg-white px-2.5 py-1 rounded-xl border border-emerald-300 block">
+                    PAID ₹{grandTotal}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200 flex items-center justify-between text-xs text-amber-950">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black shrink-0">
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="font-black text-amber-900 text-xs">
+                      CASH ON DELIVERY (DUE AT DOORSTEP)
+                    </div>
+                    <div className="text-[11px] text-amber-700 font-medium mt-0.5">
+                      Please keep ₹{grandTotal} cash ready for the delivery partner upon arrival.
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-mono font-black text-sm text-amber-900 bg-white px-2.5 py-1 rounded-xl border border-amber-300 block">
+                    DUE ₹{grandTotal}
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Delivery Confirmation OTP Notice if applicable */}
             {order.deliveryOtp && (

@@ -754,6 +754,139 @@ async function purgeAllLoginData() {
   return { success: true, message: 'All login data cleanly purged from MongoDB Atlas, Cache, and Disk!' };
 }
 
+/**
+ * Flush all orders, purchase history, and coupon usage for a store or all stores.
+ */
+async function flushOrdersAndHistory(targetStoreId = 'shawarma') {
+  console.log(`🧹 [DataLayer] Flushing orders and customer purchase history for: ${targetStoreId}...`);
+
+  const storeIdsToFlush = targetStoreId === 'all' 
+    ? listStoreIds() 
+    : [targetStoreId];
+
+  for (const sId of storeIdsToFlush) {
+    // 1. In-memory cache reset
+    if (!cache[sId]) cache[sId] = {};
+    cache[sId]['orders.json'] = [];
+    cache[sId]['orders'] = [];
+    cache[sId]['coupon_usage.json'] = {};
+    cache[sId]['coupon_usage'] = {};
+    cache[sId]['used_utrs.json'] = [];
+
+    // Reset customer purchase stats in cache
+    const custs = cache[sId]['customers.json'] || cache[sId]['customers'] || [];
+    if (Array.isArray(custs)) {
+      custs.forEach(c => {
+        c.totalOrders = 0;
+        c.totalSpend = 0;
+        c.lifetimeSpend = 0;
+        c.lastOrderAt = null;
+        c.ordersCount = 0;
+      });
+    }
+
+    // 2. Local disk reset
+    try {
+      const ordersPath = getFilePath(sId, 'orders.json');
+      fs.writeFileSync(ordersPath, JSON.stringify([], null, 2), 'utf-8');
+      
+      const usagePath = getFilePath(sId, 'coupon_usage.json');
+      if (fs.existsSync(usagePath)) {
+        fs.writeFileSync(usagePath, JSON.stringify({}, null, 2), 'utf-8');
+      }
+
+      const utrsPath = getFilePath(sId, 'used_utrs.json');
+      if (fs.existsSync(utrsPath)) {
+        fs.writeFileSync(utrsPath, JSON.stringify([], null, 2), 'utf-8');
+      }
+
+      // Reset customer files on disk
+      const custPath = getFilePath(sId, 'customers.json');
+      if (fs.existsSync(custPath)) {
+        try {
+          const raw = fs.readFileSync(custPath, 'utf-8');
+          const fileCusts = JSON.parse(raw);
+          if (Array.isArray(fileCusts)) {
+            fileCusts.forEach(c => {
+              c.totalOrders = 0;
+              c.totalSpend = 0;
+              c.lifetimeSpend = 0;
+              c.lastOrderAt = null;
+              c.ordersCount = 0;
+            });
+            fs.writeFileSync(custPath, JSON.stringify(fileCusts, null, 2), 'utf-8');
+          }
+        } catch {}
+      }
+    } catch (e) {
+      console.warn(`Disk flush warning for ${sId}:`, e.message);
+    }
+
+    // 3. MongoDB Atlas reset (live database)
+    if (isMongoConnected && mongoDb) {
+      try {
+        const col = mongoDb.collection('store_data');
+        
+        // Update/delete orders doc
+        await col.deleteMany({
+          $or: [
+            { _id: `${sId}_orders.json` },
+            { _id: `${sId}_orders` },
+            { storeId: sId, collection: 'orders.json' },
+            { storeId: sId, collection: 'orders' }
+          ]
+        });
+        await col.insertOne({
+          _id: `${sId}_orders.json`,
+          storeId: sId,
+          collection: 'orders.json',
+          data: [],
+          updatedAt: new Date().toISOString()
+        });
+
+        // Reset coupon usage in Mongo
+        await col.updateOne(
+          { storeId: sId, $or: [{ collection: 'coupon_usage.json' }, { collection: 'coupon_usage' }] },
+          { $set: { data: {}, updatedAt: new Date().toISOString() } }
+        );
+
+        // Reset customer purchase stats in Mongo store_data
+        const custDoc = await col.findOne({
+          storeId: sId,
+          $or: [{ collection: 'customers.json' }, { collection: 'customers' }]
+        });
+        if (custDoc && Array.isArray(custDoc.data)) {
+          custDoc.data.forEach(c => {
+            c.totalOrders = 0;
+            c.totalSpend = 0;
+            c.lifetimeSpend = 0;
+            c.lastOrderAt = null;
+            c.ordersCount = 0;
+          });
+          await col.updateOne(
+            { _id: custDoc._id },
+            { $set: { data: custDoc.data, updatedAt: new Date().toISOString() } }
+          );
+        }
+
+        // Also update dedicated unified_customers collection if present
+        try {
+          await mongoDb.collection('unified_customers').updateMany(
+            {},
+            { $set: { totalOrders: 0, totalSpend: 0, lifetimeSpend: 0, lastOrderAt: null, ordersCount: 0 } }
+          );
+        } catch {}
+
+        console.log(`☁️ [MongoDB Atlas] Flushed orders & customer stats for store "${sId}"`);
+      } catch (mErr) {
+        console.error(`MongoDB flush error for ${sId}:`, mErr.message);
+      }
+    }
+  }
+
+  return { success: true, message: `Orders and purchase history cleanly flushed for ${targetStoreId}` };
+}
+
 // ─── Start Flush Timer ────────────────────────────────────────
 let flushTimer = null;
 
@@ -802,6 +935,7 @@ const DataLayer = {
   persistDirectCustomer,
   persistDirectDukandar,
   purgeAllLoginData,
+  flushOrdersAndHistory,
   startFlushTimer,
   stopFlushTimer,
   initMongo,

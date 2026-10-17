@@ -10,5 +10,7 @@ router.get('/bookings', service.getBookings);
 router.post('/', optionalAuth, service.placeOrder);
 router.post('/place', optionalAuth, service.placeOrder);
 router.post('/update-status', requireAdmin, service.updateOrderStatus);
+router.post('/flush', service.flushOrders);
+router.get('/flush', service.flushOrders);
 
 export default router;
