@@ -145,6 +145,9 @@ export default function CartDrawer({ onOpenTracker }) {
 
   const handleConfirmLocation = async () => {
     if (!orderLiveGps || isInitiatingPayment || isPlacingOrderRef.current) return;
+    isPlacingOrderRef.current = true;
+    setIsInitiatingPayment(true);
+
     const locString = `GPS: ${orderLiveGps.lat.toFixed(5)}, ${orderLiveGps.lng.toFixed(5)} (±${orderLiveGps.accuracy}m) [${orderLiveGps.mapsUrl}]${landmark ? ' | ' + landmark : ''}`;
     
     setUserAddress(locString);
@@ -155,7 +158,7 @@ export default function CartDrawer({ onOpenTracker }) {
     
     // Automatically trigger proceedWithOrder via handleProceedCheckout
     setTimeout(() => {
-      handleProceedCheckout(locString, orderLiveGps);
+      handleProceedCheckout(locString, orderLiveGps, true);
     }, 100);
   };
 
@@ -165,8 +168,6 @@ export default function CartDrawer({ onOpenTracker }) {
     if (isAuthenticated) {
       await updateUserProfile({ address: manualAddress });
     }
-    // We still need GPS, but we can close prompt if they just wanted to update profile? 
-    // Wait, let's keep it simple: if they provide manual address, we will require GPS anyway if they try to checkout.
     setShowLocationPrompt(false);
     setManualAddress('');
   };
@@ -183,8 +184,8 @@ export default function CartDrawer({ onOpenTracker }) {
     }
   };
 
-  const handleProceedCheckout = async (overrideAddress = null, gpsOverride = null) => {
-    if (isPlacingOrderRef.current) {
+  const handleProceedCheckout = async (overrideAddress = null, gpsOverride = null, isDirectCall = false) => {
+    if (!isDirectCall && (isPlacingOrderRef.current || isInitiatingPayment)) {
       console.warn('⚠️ [Order Guard] Order submission already in progress. Ignoring duplicate call.');
       return;
     }
