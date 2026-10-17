@@ -1,10 +1,13 @@
-import React from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useRealtimeDB } from '../context/RealtimeContext';
+import { getStoreLiveStatus } from '../utils/storeTimingHelper';
 import { ShoppingBag, User, Store } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Navbar({ onOpenFranchise }) {
+  const { storeInfo } = useRealtimeDB();
+  const storeLive = getStoreLiveStatus(storeInfo);
   const { 
     itemsCount, 
     grandTotal, 
@@ -45,7 +48,7 @@ export default function Navbar({ onOpenFranchise }) {
 
         {/* CENTER: Brand Logo (SHAWARMA NIGHTS) */}
         <div 
-          className="cursor-pointer select-none text-center shrink-0 px-2" 
+          className="cursor-pointer select-none text-center shrink-0 px-2 flex flex-col items-center" 
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >
           <div className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none">
@@ -53,6 +56,10 @@ export default function Navbar({ onOpenFranchise }) {
           </div>
           <div className="text-[10px] tracking-[0.35em] font-bold text-white/80 uppercase leading-none mt-1">
             NIGHTS
+          </div>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-black/25 text-white/95">
+            <span className={`w-1.5 h-1.5 rounded-full ${storeLive.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-amber-300'}`} />
+            <span>{storeLive.isOpen ? (storeInfo?.openTillText || 'OPEN TILL 4 AM') : 'CLOSED NOW'}</span>
           </div>
         </div>
 

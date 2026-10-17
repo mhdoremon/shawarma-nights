@@ -23,9 +23,72 @@ import {
   Video,
   Play,
   Upload,
-  X
+  X,
+  Facebook,
+  Twitter,
+  Youtube,
+  Share2
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
+
+function parseTimeComponents(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') {
+    return { hour: '11', minute: '00', period: 'AM' };
+  }
+  const clean = timeStr.trim().toUpperCase();
+  const m = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+  if (m) {
+    let h = m[1];
+    if (h.length === 1) h = `0${h}`;
+    return { hour: h, minute: m[2], period: m[3] };
+  }
+  return { hour: '11', minute: '00', period: 'AM' };
+}
+
+function TimeSelectPicker({ value, onChange }) {
+  const parts = parseTimeComponents(value);
+
+  const handleChange = (field, newVal) => {
+    const next = { ...parts, [field]: newVal };
+    onChange(`${next.hour}:${next.minute} ${next.period}`);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-1 bg-white border border-zinc-200 rounded-xl px-2 py-1 shadow-2xs">
+      <select
+        value={parts.hour}
+        onChange={(e) => handleChange('hour', e.target.value)}
+        className="text-xs font-black text-zinc-900 bg-transparent border-0 focus:outline-none cursor-pointer py-0.5"
+      >
+        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((h) => (
+          <option key={h} value={h}>
+            {h}
+          </option>
+        ))}
+      </select>
+      <span className="text-zinc-400 font-black text-xs">:</span>
+      <select
+        value={parts.minute}
+        onChange={(e) => handleChange('minute', e.target.value)}
+        className="text-xs font-bold text-zinc-800 bg-transparent border-0 focus:outline-none cursor-pointer py-0.5"
+      >
+        {['00', '15', '30', '45'].map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+      <select
+        value={parts.period}
+        onChange={(e) => handleChange('period', e.target.value)}
+        className="text-xs font-black text-[#DC2626] bg-transparent border-0 focus:outline-none cursor-pointer py-0.5"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
 
 export default function SettingsTab() {
   const { 
@@ -83,6 +146,9 @@ export default function SettingsTab() {
     return DEFAULT_SCHEDULE;
   });
 
+  const [defaultOpenTime, setDefaultOpenTime] = useState('12:00 PM');
+  const [defaultCloseTime, setDefaultCloseTime] = useState('04:00 AM');
+
   // Free Delivery Threshold State
   const [freeDeliveryInput, setFreeDeliveryInput] = useState(
     storeInfo?.freeDeliveryThreshold !== undefined ? String(storeInfo.freeDeliveryThreshold) : '350'
@@ -123,6 +189,9 @@ export default function SettingsTab() {
     onlineEnabled: paymentObj.onlineEnabled !== false,
     whatsapp: socialsObj.whatsapp || (isSalon ? '923001234567' : '7023963189'),
     instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio' : 'https://instagram.com/shawarmanights_churu'),
+    facebook: socialsObj.facebook || '',
+    twitter: socialsObj.twitter || '',
+    youtube: socialsObj.youtube || '',
     isOpen: storeInfo?.isOpen !== false,
     marketplaceVisible: storeInfo?.marketplaceVisible !== false,
     deliveryFee: storeInfo?.deliveryFee ?? 30
@@ -176,6 +245,11 @@ export default function SettingsTab() {
 
       if (storeInfo.weeklySchedule && typeof storeInfo.weeklySchedule === 'object') {
         setWeeklySchedule(prev => ({ ...prev, ...storeInfo.weeklySchedule }));
+        const firstOpenDay = Object.values(storeInfo.weeklySchedule).find(s => s && s.isOpen && s.open && s.close);
+        if (firstOpenDay) {
+          setDefaultOpenTime(firstOpenDay.open);
+          setDefaultCloseTime(firstOpenDay.close);
+        }
       }
 
       const pay = storeInfo.payment || {};
@@ -202,6 +276,9 @@ export default function SettingsTab() {
         onlineEnabled: pay.onlineEnabled !== false,
         whatsapp: soc.whatsapp || prev.whatsapp,
         instagram: soc.instagram || prev.instagram,
+        facebook: soc.facebook || prev.facebook,
+        twitter: soc.twitter || prev.twitter,
+        youtube: soc.youtube || prev.youtube,
         isOpen: storeInfo.isOpen !== false,
         marketplaceVisible: storeInfo.marketplaceVisible !== false,
         deliveryFee: storeInfo.deliveryFee ?? prev.deliveryFee
@@ -338,8 +415,11 @@ export default function SettingsTab() {
         onlineEnabled: operationalForm.onlineEnabled
       },
       socials: {
-        whatsapp: operationalForm.whatsapp.trim(),
-        instagram: operationalForm.instagram.trim()
+        whatsapp: (operationalForm.whatsapp || '').trim(),
+        instagram: (operationalForm.instagram || '').trim(),
+        facebook: (operationalForm.facebook || '').trim(),
+        twitter: (operationalForm.twitter || '').trim(),
+        youtube: (operationalForm.youtube || '').trim()
       }
     };
 
@@ -637,55 +717,104 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* 7-DAY WEEKLY SCHEDULE & HOLIDAY MANAGER */}
-        <div className="space-y-3 bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl border-0">
+        {/* 7-DAY WEEKLY SCHEDULE & TIMING MANAGER (With Dropdown Pickers & Auto-Sync) */}
+        <div className="space-y-4 bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl border border-zinc-200/70 shadow-2xs">
+          
+          {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-200/60 pb-3">
             <div>
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#DC2626]" />
-                <span>Weekly Working Days & Holiday Schedule (साप्ताहिक कार्य दिवस एवं अवकाश)</span>
+                <span>Weekly Working Days & Timing Manager (साप्ताहिक कार्य समय एवं अवकाश)</span>
               </h4>
               <p className="text-[11px] text-zinc-500 mt-0.5">
-                Har din ka open/close timing aur weekly off tay karein. Jis din OFF hoga, us din customer appointment/booking band rahegi.
+                Dropdown se hour, minute aur AM/PM select karein. Website ka "Open Till" text aur timings apne aap update honge.
               </p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase">Quick Timings:</span>
-              {[
-                { label: '11 AM - 11 PM', o: '11:00 AM', c: '11:00 PM' },
-                { label: '10 AM - 10 PM', o: '10:00 AM', c: '10:00 PM' },
-                { label: '9 AM - 9 PM', o: '09:00 AM', c: '09:00 PM' }
-              ].map(preset => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => {
-                    setWeeklySchedule(prev => {
-                      const updated = { ...prev };
-                      DAYS_OF_WEEK.forEach(d => {
-                        if (updated[d.key]?.isOpen) {
-                          updated[d.key] = { ...updated[d.key], open: preset.o, close: preset.c };
-                        }
-                      });
-                      return updated;
-                    });
-                  }}
-                  className="px-2 py-0.5 rounded-md bg-white hover:bg-zinc-100 text-zinc-700 text-[10px] font-bold shadow-2xs border-0 cursor-pointer"
-                >
-                  {preset.label}
-                </button>
-              ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2.5 pt-1">
+          {/* Master Store Default Timing & Auto-Sync Section */}
+          <div className="p-3.5 bg-white rounded-xl border border-zinc-200/80 shadow-2xs space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-black text-zinc-900 uppercase flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#DC2626]" />
+                  <span>Master Store Timings (दुकान खुलने व बंद होने का मुख्य समय)</span>
+                </span>
+                <p className="text-[10px] text-zinc-500 mt-0.5">
+                  Opening aur closing time select karein — "Apply" dabate hi sabhi din aur "Open Till" banner auto-update ho jayenge.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setWeeklySchedule(prev => {
+                    const updated = { ...prev };
+                    DAYS_OF_WEEK.forEach(d => {
+                      if (updated[d.key]?.isOpen) {
+                        updated[d.key] = { ...updated[d.key], open: defaultOpenTime, close: defaultCloseTime };
+                      }
+                    });
+                    return updated;
+                  });
+                  setOperationalForm(prev => ({
+                    ...prev,
+                    timing: `Open Daily: ${defaultOpenTime} – ${defaultCloseTime}`,
+                    openTillText: `OPEN TILL ${defaultCloseTime}`
+                  }));
+                  showToast(`Sabhi working days aur "Open Till ${defaultCloseTime}" auto-sync ho gaya!`, 'success');
+                }}
+                className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-black text-white text-[11px] font-black uppercase tracking-wider cursor-pointer shadow-xs transition-transform active:scale-95 border-0 whitespace-nowrap"
+              >
+                Apply to All Days & Sync
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-zinc-100">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-zinc-600 uppercase">Khulne ka samay (Open):</span>
+                <TimeSelectPicker 
+                  value={defaultOpenTime} 
+                  onChange={(val) => {
+                    setDefaultOpenTime(val);
+                    setOperationalForm(prev => ({
+                      ...prev,
+                      timing: `Open Daily: ${val} – ${defaultCloseTime}`
+                    }));
+                  }} 
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-zinc-600 uppercase">Band hone ka samay (Close):</span>
+                <TimeSelectPicker 
+                  value={defaultCloseTime} 
+                  onChange={(val) => {
+                    setDefaultCloseTime(val);
+                    setOperationalForm(prev => ({
+                      ...prev,
+                      timing: `Open Daily: ${defaultOpenTime} – ${val}`,
+                      openTillText: `OPEN TILL ${val}`
+                    }));
+                  }} 
+                />
+              </div>
+
+              <div className="text-[11px] text-zinc-500 font-mono bg-zinc-100 px-2.5 py-1 rounded-lg">
+                Auto Open Till: <strong className="text-[#DC2626]">OPEN TILL {defaultCloseTime}</strong>
+              </div>
+            </div>
+          </div>
+
+          {/* 7 Days Row List */}
+          <div className="grid grid-cols-1 gap-2 pt-1">
             {DAYS_OF_WEEK.map(day => {
               const sched = weeklySchedule[day.key] || { isOpen: true, open: '11:00 AM', close: '11:00 PM' };
               return (
                 <div
                   key={day.key}
                   className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl transition-all ${
-                    sched.isOpen ? 'bg-white shadow-2xs' : 'bg-red-50/50 border border-red-100'
+                    sched.isOpen ? 'bg-white shadow-2xs border border-zinc-200/60' : 'bg-red-50/50 border border-red-100'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-[170px]">
@@ -711,43 +840,35 @@ export default function SettingsTab() {
                   </div>
 
                   {sched.isOpen ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">From:</span>
-                        <input
-                          type="text"
+                        <TimeSelectPicker
                           value={sched.open || '11:00 AM'}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          onChange={(val) => {
                             setWeeklySchedule(prev => ({
                               ...prev,
                               [day.key]: { ...sched, open: val }
                             }));
                           }}
-                          placeholder="11:00 AM"
-                          className="w-24 bg-[#FFFBF7] rounded-lg px-2.5 py-1 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-1 focus:ring-[#DC2626] border-0"
                         />
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">To:</span>
-                        <input
-                          type="text"
+                        <TimeSelectPicker
                           value={sched.close || '11:00 PM'}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          onChange={(val) => {
                             setWeeklySchedule(prev => ({
                               ...prev,
                               [day.key]: { ...sched, close: val }
                             }));
                           }}
-                          placeholder="11:00 PM"
-                          className="w-24 bg-[#FFFBF7] rounded-lg px-2.5 py-1 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-1 focus:ring-[#DC2626] border-0"
                         />
                       </div>
                     </div>
                   ) : (
                     <div className="text-[11px] font-bold text-red-600 flex items-center gap-1">
-                      <span>Weekly Off (इस दिन सैलून/दुकान बंद रहेगी)</span>
+                      <span>Weekly Off (इस दिन दुकान बंद रहेगी)</span>
                     </div>
                   )}
                 </div>
@@ -815,32 +936,93 @@ export default function SettingsTab() {
           />
         </div>
 
-        {/* WhatsApp & Instagram Contact */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              WhatsApp Contact Number
-            </label>
-            <input
-              type="text"
-              value={operationalForm.whatsapp}
-              onChange={(e) => setOperationalForm({ ...operationalForm, whatsapp: e.target.value })}
-              placeholder={isSalon ? "e.g. 923001234567" : "e.g. 7023963189"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
+        {/* Social Media & Customer Connection Links */}
+        <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3.5 border border-zinc-200/70 shadow-2xs">
+          <div className="border-b border-zinc-200/60 pb-2">
+            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+              <Share2 className="w-4 h-4 text-[#DC2626]" />
+              <span>Social Media & Connectivity Links (सोशल मीडिया हैंडल्स)</span>
+            </h4>
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              Aapki dukan ke sabhi social media links yahan dalein — ye sabhi official icons ke sath website footer me live dikhenge.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Instagram Profile Link
-            </label>
-            <input
-              type="text"
-              value={operationalForm.instagram}
-              onChange={(e) => setOperationalForm({ ...operationalForm, instagram: e.target.value })}
-              placeholder={isSalon ? "e.g. https://instagram.com/nashstudio" : "e.g. https://instagram.com/shawarmanights_churu"}
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+            {/* WhatsApp */}
+            <div>
+              <label className="block text-[10px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                <span>WhatsApp Number</span>
+              </label>
+              <input
+                type="text"
+                value={operationalForm.whatsapp}
+                onChange={(e) => setOperationalForm({ ...operationalForm, whatsapp: e.target.value })}
+                placeholder={isSalon ? "e.g. 923001234567" : "e.g. 7023963189"}
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs font-mono"
+              />
+            </div>
+
+            {/* Instagram */}
+            <div>
+              <label className="block text-[10px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Instagram className="w-3.5 h-3.5 text-pink-600" />
+                <span>Instagram Profile Link</span>
+              </label>
+              <input
+                type="text"
+                value={operationalForm.instagram}
+                onChange={(e) => setOperationalForm({ ...operationalForm, instagram: e.target.value })}
+                placeholder="e.g. https://instagram.com/shawarmanights_churu"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            {/* Facebook */}
+            <div>
+              <label className="block text-[10px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                <span>Facebook Page Link</span>
+              </label>
+              <input
+                type="text"
+                value={operationalForm.facebook}
+                onChange={(e) => setOperationalForm({ ...operationalForm, facebook: e.target.value })}
+                placeholder="e.g. https://facebook.com/shawarmanights"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            {/* Twitter / X */}
+            <div>
+              <label className="block text-[10px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Twitter className="w-3.5 h-3.5 text-zinc-900" />
+                <span>Twitter / X Profile Link</span>
+              </label>
+              <input
+                type="text"
+                value={operationalForm.twitter}
+                onChange={(e) => setOperationalForm({ ...operationalForm, twitter: e.target.value })}
+                placeholder="e.g. https://x.com/shawarmanights"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            {/* YouTube */}
+            <div>
+              <label className="block text-[10px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Youtube className="w-3.5 h-3.5 text-red-600" />
+                <span>YouTube Channel Link</span>
+              </label>
+              <input
+                type="text"
+                value={operationalForm.youtube}
+                onChange={(e) => setOperationalForm({ ...operationalForm, youtube: e.target.value })}
+                placeholder="e.g. https://youtube.com/@shawarmanights"
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
           </div>
         </div>
 
@@ -944,15 +1126,61 @@ export default function SettingsTab() {
         {/* PAYMENT MODES TOGGLES (Dukandar 9: COD + Online Payment Switches) */}
         {!isSalon && (
           <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3.5 border-0">
-            <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-200/60 pb-3 gap-2">
               <div>
                 <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
                   <CreditCard className="w-4 h-4 text-[#DC2626]" />
                   <span>Checkout Payment Methods (भुगतान विकल्प)</span>
                 </h4>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Customer ko checkout par kaunse payment options dikhane hain yahan se set karein. Kam se kam ek method active rehna anivarya hai.
+                  Customer ko checkout par kaunse payment options dikhane hain yahan se set karein.
                 </p>
+              </div>
+
+              {/* Quick 3-Mode Pills */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOperationalForm(prev => ({ ...prev, codEnabled: true, onlineEnabled: true }));
+                    showToast('Both Payment Methods (COD + Online UPI) Enabled!', 'success');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                    operationalForm.codEnabled && operationalForm.onlineEnabled
+                      ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-600'
+                      : 'bg-white hover:bg-zinc-100 text-zinc-700 shadow-2xs'
+                  }`}
+                >
+                  🟢 Dono (Both)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOperationalForm(prev => ({ ...prev, codEnabled: false, onlineEnabled: true }));
+                    showToast('Sirf Online UPI/QR Payment Enabled!', 'success');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                    !operationalForm.codEnabled && operationalForm.onlineEnabled
+                      ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-600'
+                      : 'bg-white hover:bg-zinc-100 text-zinc-700 shadow-2xs'
+                  }`}
+                >
+                  ⚡ Sirf Online
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOperationalForm(prev => ({ ...prev, codEnabled: true, onlineEnabled: false }));
+                    showToast('Sirf Cash on Delivery (COD) Enabled!', 'success');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
+                    operationalForm.codEnabled && !operationalForm.onlineEnabled
+                      ? 'bg-amber-600 text-white shadow-xs ring-2 ring-amber-600'
+                      : 'bg-white hover:bg-zinc-100 text-zinc-700 shadow-2xs'
+                  }`}
+                >
+                  💵 Sirf Cash (COD)
+                </button>
               </div>
             </div>
 

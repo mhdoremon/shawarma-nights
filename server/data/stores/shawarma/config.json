@@ -77,10 +77,11 @@
     "packagingCharge": 0
   },
   "payment": {
-    "upiId": "test-1790146885269@upi",
+    "upiId": "7023963189@paytm",
     "payeeName": "Shawarma Nights",
     "razorpayKeyId": null,
     "codEnabled": true,
+    "onlineEnabled": true,
     "autoSmsVerification": true
   },
   "tax": {

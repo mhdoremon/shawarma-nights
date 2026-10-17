@@ -20,6 +20,7 @@ import {
 import { motion } from 'framer-motion';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
+import { getStoreLiveStatus } from '../utils/storeTimingHelper';
 import LegalPoliciesModal from './LegalPoliciesModal';
 
 export default function Footer({ onOpenFranchise }) {
@@ -67,6 +68,8 @@ export default function Footer({ onOpenFranchise }) {
 
   const mapsQueryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(info?.address || '')}`;
 
+  const storeLive = getStoreLiveStatus(storeInfo);
+
   return (
     <footer className="relative bg-[#FFFBF7] text-zinc-900 overflow-hidden">
 
@@ -79,8 +82,9 @@ export default function Footer({ onOpenFranchise }) {
           className="max-w-2xl mx-auto"
         >
           {/* Top Pill Badge (Dynamic: connected to Dukandar Portal timing) */}
-          <div className="inline-block bg-white text-[#DC2626] px-5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm mb-6">
-            {info.openTillText ? info.openTillText.toUpperCase() : `OPEN • ${info.timing}`.toUpperCase()}
+          <div className="inline-flex items-center gap-2 bg-white text-[#DC2626] px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider shadow-sm mb-6">
+            <span className={`w-2.5 h-2.5 rounded-full ${storeLive.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+            <span>{storeLive.openTillText || info.openTillText}</span>
           </div>
 
           {/* Large Headline */}
@@ -100,131 +104,207 @@ export default function Footer({ onOpenFranchise }) {
               className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               <Flame className="w-4 h-4 text-[#DC2626]" />
-              <span>ORDER NOW</span>
+              <span>{storeLive.isOpen ? 'ORDER NOW' : 'EXPLORE MENU'}</span>
             </button>
           </div>
         </motion.div>
       </section>
 
-      {/* ====== SECTION 2: STORE ARCHITECTURE & FOUNDER SHOWCASE (Bug 6) ====== */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
-        
-        {/* Main Hub Grid: 4 Dynamic Aesthetic Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* ====== SECTION 2: THE ARTISANAL CHARCOAL KITCHEN & FOUNDER SHOWCASE ====== */}
+      <section className="bg-[#09090B] text-white py-16 sm:py-20 relative overflow-hidden border-t border-zinc-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           
-          {/* Card 1: Brand Story & Kitchen Action */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
-            <div className="space-y-3">
-              <div className="text-xl font-black tracking-tight text-zinc-950">
-                SHAWARMA <span className="text-[#DC2626]">NIGHTS</span>
+          {/* Section Editorial Header */}
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-950/40 border border-red-500/30 text-red-400 text-xs font-black uppercase tracking-widest shadow-inner">
+              <Flame className="w-3.5 h-3.5 text-[#DC2626]" />
+              <span>THE REAL CHARCOAL CRAFT • CHURU ORIGINAL</span>
+            </div>
+            <h3 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase">
+              BORN IN MIDNIGHT. <span className="text-[#DC2626]">CARVED OVER COALS.</span>
+            </h3>
+            <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed font-normal">
+              {info.aboutText || "Authentic charcoal-grilled slow-roasted shawarma, prepared fresh daily in Churu, Rajasthan."}
+            </p>
+          </div>
+
+          {/* Three Craftsmanship Pillars Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Pillar 1 */}
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-red-900/50 transition-all space-y-3 shadow-lg group">
+              <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-600/30 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                <Flame className="w-5 h-5" />
               </div>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                {info.aboutText || "Authentic charcoal-grilled slow-roasted shawarma, prepared fresh daily in Churu, Rajasthan."}
+              <h4 className="text-base font-black text-white uppercase tracking-tight">100% Glowing Charcoal Spit</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Slow-turned for hours over burning natural hardwood charcoal. Deep smoky caramelization with juicy tenderness in every single layer.
               </p>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 space-y-2.5">
-              {socials?.whatsapp && (
-                <a
-                  href={getWhatsAppUrl(socials.whatsapp)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
-                >
-                  <Phone className="w-3.5 h-3.5 fill-white" />
-                  <span>WhatsApp Kitchen</span>
-                </a>
-              )}
+            {/* Pillar 2 */}
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-red-900/50 transition-all space-y-3 shadow-lg group">
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <h4 className="text-base font-black text-white uppercase tracking-tight">Daily-Whipped Garlic Toum</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Whipped fresh every morning from fresh garlic cloves, cold-pressed oil, and sea salt. Zero mayonnaise, zero commercial shortcuts.
+              </p>
+            </div>
 
-              <button
-                onClick={onOpenFranchise}
-                className="w-full py-2.5 px-4 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-800 font-semibold text-xs transition-colors flex items-center justify-between border border-zinc-200/80 cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Store className="w-3.5 h-3.5 text-[#DC2626]" />
-                  <span>Franchise Inquiries</span>
+            {/* Pillar 3 */}
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-red-900/50 transition-all space-y-3 shadow-lg group">
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+              </div>
+              <h4 className="text-base font-black text-white uppercase tracking-tight">Flame-Blistered Saj Dome</h4>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Stretched paper-thin and flash-toasted over our inverted iron dome, wrapping the juicy cuts into golden, crackling perfection.
+              </p>
+            </div>
+          </div>
+
+          {/* Lower Showcase: Founder Spotlight + Live Operations Hub */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Founder & Craftsman Spotlight */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-zinc-900/80 border border-zinc-800 space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#DC2626] bg-red-950/40 px-3 py-1 rounded-full border border-red-500/20">
+                    Master Pitmaster & Founder
+                  </span>
+                  <span className="text-xs font-mono text-zinc-500 bg-zinc-800/80 px-2.5 py-1 rounded-lg">
+                    Est. {info.foundedYear}
+                  </span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
-              </button>
-            </div>
-          </div>
+                <div>
+                  <h4 className="text-xl font-black text-white tracking-tight">{info.ownerName}</h4>
+                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">{info.ownerRole}</p>
+                </div>
+                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed italic border-l-2 border-[#DC2626] pl-3 py-0.5">
+                  "{info.ownerBio}"
+                </p>
+              </div>
 
-          {/* Card 2: Founder & Master Craftsman Showcase (Bug 6) */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>The Story & Founder</span>
+              <div className="pt-4 border-t border-zinc-800 flex items-center justify-between">
+                <span className="text-xs text-zinc-400 font-semibold">Churu, Rajasthan</span>
+                <button
+                  onClick={onOpenFranchise}
+                  className="inline-flex items-center gap-1.5 text-xs font-black text-white bg-red-600 hover:bg-red-700 px-3.5 py-2 rounded-xl transition-all cursor-pointer shadow-md"
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Franchise Inquiries</span>
+                </button>
               </div>
-              <div>
-                <h4 className="text-base font-black text-zinc-950">{info.ownerName}</h4>
-                <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">{info.ownerRole}</p>
-              </div>
-              <p className="text-xs text-zinc-600 leading-relaxed">
-                {info.ownerBio}
-              </p>
-            </div>
-
-            <div className="pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
-              <span className="font-semibold text-zinc-700">Hand-crafted in Churu</span>
-              <span className="font-mono text-[11px] bg-zinc-100 px-2 py-0.5 rounded-md font-bold">Est. {info.foundedYear}</span>
-            </div>
-          </div>
-
-          {/* Card 3: Kitchen Operating Hours */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                <span>Operating Hours</span>
-              </div>
-              <div className="text-xl font-black text-zinc-950 font-mono tracking-tight">
-                {info.timing}
-              </div>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                {info.deliveryNote}
-              </p>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100 flex items-center gap-2 text-xs text-zinc-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-bold">Midnight Express Active</span>
-            </div>
-          </div>
+            {/* Live Operational Hours & Navigation Hub */}
+            <div className="p-6 sm:p-7 rounded-3xl bg-zinc-900/80 border border-zinc-800 space-y-5 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${storeLive.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                    <span className="text-xs font-black uppercase tracking-wider text-white">
+                      {storeLive.statusBadge}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-zinc-400">{info.timing}</span>
+                </div>
 
-          {/* Card 4: Kitchen Location & Navigation */}
-          <div className="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-xs flex flex-col justify-between space-y-5">
-            <div className="space-y-3">
-              <div className="text-xs font-bold text-[#DC2626] uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" />
-                <span>Kitchen Location</span>
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500 block">Hub Kitchen Address</span>
+                  <p className="text-sm font-bold text-white leading-snug">{info.address}</p>
+                  <p className="text-xs text-zinc-400">{info.locationNote}</p>
+                </div>
               </div>
-              <div className="text-xs font-semibold text-zinc-900 leading-snug">
-                {info.address}
+
+              {/* Social Channels Row */}
+              <div className="pt-4 border-t border-zinc-800 space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Official Social Connectivity</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {socials?.whatsapp && (
+                    <a
+                      href={getWhatsAppUrl(socials.whatsapp)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  )}
+
+                  {socials?.instagram && (
+                    <a
+                      href={socials.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-pink-950/40 hover:bg-pink-900/50 border border-pink-500/30 text-pink-300 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Instagram className="w-3.5 h-3.5" />
+                      <span>Instagram</span>
+                    </a>
+                  )}
+
+                  {socials?.facebook && (
+                    <a
+                      href={socials.facebook}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-blue-950/40 hover:bg-blue-900/50 border border-blue-500/30 text-blue-300 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Facebook className="w-3.5 h-3.5" />
+                      <span>Facebook</span>
+                    </a>
+                  )}
+
+                  {socials?.twitter && (
+                    <a
+                      href={socials.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Twitter className="w-3.5 h-3.5" />
+                      <span>Twitter / X</span>
+                    </a>
+                  )}
+
+                  {socials?.youtube && (
+                    <a
+                      href={socials.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 text-red-300 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <Youtube className="w-3.5 h-3.5" />
+                      <span>YouTube</span>
+                    </a>
+                  )}
+
+                  <a
+                    href={mapsQueryUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-2xs ml-auto"
+                  >
+                    <Navigation className="w-3.5 h-3.5 text-[#DC2626]" />
+                    <span>Open Maps</span>
+                    <ExternalLink className="w-3 h-3 text-zinc-400" />
+                  </a>
+                </div>
               </div>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                {info.locationNote}
-              </p>
             </div>
 
-            <div className="pt-4 border-t border-zinc-100">
-              <a
-                href={mapsQueryUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-black text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-              >
-                <Navigation className="w-3.5 h-3.5 text-red-400" />
-                <span>Open in Maps</span>
-                <ExternalLink className="w-3 h-3 text-zinc-400" />
-              </a>
-            </div>
           </div>
 
         </div>
+      </section>
 
-        {/* ====== SECTION 3: POWERED BY CHURUONE (Bug 8) ====== */}
-        <div className="mt-12 p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-black text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-5 border border-zinc-800">
+      {/* ====== SECTION 3: POWERED BY CHURUONE (Bug 8) & LEGAL POLICIES ====== */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-zinc-950 via-zinc-900 to-black text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-5 border border-zinc-800">
           <div className="flex items-center gap-4 text-left">
             <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center font-black text-lg text-white border border-white/20 shrink-0">
               C1

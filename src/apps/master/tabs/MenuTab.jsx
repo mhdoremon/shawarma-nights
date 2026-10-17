@@ -67,6 +67,16 @@ export default function MenuTab() {
     { name: 'Rumali Combo', url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80' }
   ];
 
+  // Persistent Custom Categories (Bug 3: Category Retention)
+  const [customCategories, setCustomCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`churuone_custom_categories_${storeId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Dynamic Category List
   const allCategories = useMemo(() => {
     const set = new Set(['ALL']);
@@ -127,16 +137,6 @@ export default function MenuTab() {
 
     return list;
   }, [menu, activeCategory, searchQuery]);
-
-  // Persistent Custom Categories (Bug 3: Category Retention)
-  const [customCategories, setCustomCategories] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`churuone_custom_categories_${storeId}`);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
 
   // Client-side HTML5 Canvas Image Compressor (Dukandar 2: Fast mobile gallery upload)
   const compressImage = (file, maxWidth = 1200, quality = 0.82) => {

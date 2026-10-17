@@ -25,6 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtimeDB } from '../context/RealtimeContext';
 import { RESTAURANT_INFO } from '../data/menuData';
 import { getImageUrl, handleImageError } from '../utils/imageHelper';
+import { getStoreLiveStatus } from '../utils/storeTimingHelper';
 
 // =========================================================================
 // PAYMENT MODE TOGGLE:
@@ -85,18 +86,9 @@ export default function CartDrawer({ onOpenTracker }) {
     }
   }, [codEnabled, onlineEnabled, paymentMethod]);
 
-  // Operational Hours & Weekly Schedule Check (Dukandar 8)
-  const isStoreScheduleOpen = () => {
-    if (storeInfo?.isOpen === false) return false;
-    if (storeInfo?.weeklySchedule && typeof storeInfo.weeklySchedule === 'object') {
-      const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      const todayKey = days[new Date().getDay()];
-      const todaySched = storeInfo.weeklySchedule[todayKey];
-      if (todaySched && todaySched.isOpen === false) return false;
-    }
-    return true;
-  };
-  const isStoreCurrentlyOpen = isStoreScheduleOpen();
+  // Live Store Schedule & Real-time Operational Clock Check
+  const storeLive = getStoreLiveStatus(storeInfo);
+  const isStoreCurrentlyOpen = storeLive.isOpen;
 
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState(null);
@@ -909,10 +901,10 @@ export default function CartDrawer({ onOpenTracker }) {
                 <div className="w-full py-3.5 px-4 rounded-2xl bg-zinc-100 border border-zinc-300 text-zinc-600 text-center space-y-1">
                   <div className="flex items-center justify-center gap-2 font-black text-sm text-zinc-800">
                     <Clock className="w-4 h-4 text-red-500" />
-                    <span>Dukan Abhi Band Hai (Store Closed)</span>
+                    <span>Dukan Abhi Band Hai ({storeLive.statusBadge})</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 font-medium">
-                    {storeInfo?.weeklySchedule ? "Aaj ke din dukan orders accept nahi kar rahi hai ya operational hours ke bahar hai." : "Filhal naye orders accept nahi kiye ja rahe hain."}
+                  <p className="text-[11px] text-zinc-600 font-medium">
+                    {storeLive.reason}
                   </p>
                 </div>
               ) : (

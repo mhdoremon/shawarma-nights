@@ -18,6 +18,31 @@ import ProfileDrawer from '../../components/ProfileDrawer';
 import CustomizeModal from '../../components/CustomizeModal';
 import FloatingCartBar from '../../components/FloatingCartBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import { useRealtimeDB } from '../../context/RealtimeContext';
+import { getStoreLiveStatus } from '../../utils/storeTimingHelper';
+
+function StoreClosedTopBanner() {
+  const { storeInfo } = useRealtimeDB();
+  const status = getStoreLiveStatus(storeInfo);
+
+  if (status.isOpen) return null;
+
+  return (
+    <div className="bg-zinc-950 text-white px-4 py-2.5 border-b border-zinc-800 shadow-md">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
+          <span className="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-wide">
+            ⚠️ {status.statusBadge}: {status.reason}
+          </span>
+        </div>
+        <div className="text-[11px] font-semibold text-zinc-300">
+          Abhi order pause hain. Aap pura menu dekh sakte hain — orders dukan khulne par shuru honge!
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CustomerApp() {
   const [customizeItem, setCustomizeItem] = useState(null);
@@ -41,6 +66,7 @@ export default function CustomerApp() {
         <CartProvider>
           <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 flex flex-col justify-between selection:bg-[#DC2626] selection:text-white">
             <Navbar onOpenFranchise={() => setIsFranchiseOpen(true)} />
+            <StoreClosedTopBanner />
             <main className="flex-1">
               <HeroBanner 
                 onExploreMenu={scrollToMenu} 
