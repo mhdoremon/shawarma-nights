@@ -19,12 +19,14 @@ export default function OffersTab() {
   const [heroOffer, setHeroOffer] = useState({
     featuredItemId: heroBanner?.featuredItemId || (menu?.[0]?.id || ''),
     priceText: heroBanner?.priceText || 'Starts from',
-    priceValue: heroBanner?.priceValue || '179',
-    badgeText: heroBanner?.badgeText || '50% OFF — NIGHT50',
-    titleLine1: heroBanner?.titleLine1 || 'REAL',
-    titleLine2: heroBanner?.titleLine2 || 'CHARCOAL',
-    titleHighlight: heroBanner?.titleHighlight || 'SHAWARMA',
-    subtitle: heroBanner?.subtitle || 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'
+    priceValue: heroBanner?.priceValue || (isSalon ? '500' : '179'),
+    badgeText: heroBanner?.badgeText || (isSalon ? 'VIP GROOMING LOUNGE' : '50% OFF — NIGHT50'),
+    titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : 'REAL'),
+    titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : 'CHARCOAL'),
+    titleHighlight: heroBanner?.titleHighlight || (isSalon ? 'NASH STUDIO' : 'SHAWARMA'),
+    subtitle: heroBanner?.subtitle || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
+    heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || '/video/hero.mp4',
+    heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || 'EXPLORE STYLES & BOOK'
   });
 
   // Handle Save Free Delivery Limit
@@ -72,7 +74,7 @@ export default function OffersTab() {
     e.preventDefault();
     const chosenDish = (menu || []).find(d => d.id === heroOffer.featuredItemId);
 
-    await updateHeroBanner({
+    const bannerPayload = {
       featuredItemId: heroOffer.featuredItemId,
       circleImage: chosenDish ? chosenDish.image : heroBanner?.circleImage,
       dishName: chosenDish ? chosenDish.name : heroBanner?.dishName,
@@ -82,8 +84,20 @@ export default function OffersTab() {
       titleLine1: heroOffer.titleLine1,
       titleLine2: heroOffer.titleLine2,
       titleHighlight: heroOffer.titleHighlight,
-      subtitle: heroOffer.subtitle
-    });
+      subtitle: heroOffer.subtitle,
+      heroVideoUrl: heroOffer.heroVideoUrl,
+      heroButtonText: heroOffer.heroButtonText
+    };
+
+    await updateHeroBanner(bannerPayload);
+    if (isSalon) {
+      await updateStoreSettings({
+        heroTagline: heroOffer.subtitle,
+        heroButtonText: heroOffer.heroButtonText,
+        heroVideoUrl: heroOffer.heroVideoUrl,
+        studioName: heroOffer.titleHighlight || storeInfo?.name || 'Nash Studio'
+      });
+    }
     showToast('Homepage Hero Offer & Banner Updated!', 'success');
   };
 
@@ -490,11 +504,51 @@ export default function OffersTab() {
           />
         </div>
 
+        {/* Salon Video Hero Fields */}
+        {isSalon && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                HERO BACKGROUND VIDEO URL / PATH
+              </label>
+              <input
+                type="text"
+                value={heroOffer.heroVideoUrl || ''}
+                onChange={(e) => setHeroOffer({ ...heroOffer, heroVideoUrl: e.target.value })}
+                placeholder="/video/hero.mp4"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono"
+              />
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => setHeroOffer({ ...heroOffer, heroVideoUrl: '/video/hero.mp4' })}
+                  className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold border-0 cursor-pointer"
+                >
+                  Reset Default Video (/video/hero.mp4)
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                CTA BUTTON TEXT
+              </label>
+              <input
+                type="text"
+                value={heroOffer.heroButtonText || ''}
+                onChange={(e) => setHeroOffer({ ...heroOffer, heroButtonText: e.target.value })}
+                placeholder="EXPLORE STYLES & BOOK"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+          </div>
+        )}
+
         <button
           type="submit"
           className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl cursor-pointer border-0 active:scale-98 transition-all"
         >
-          SAVE & PUBLISH HOMEPAGE HERO OFFER
+          {isSalon ? 'SAVE & PUBLISH VIDEO HERO & SLOGAN' : 'SAVE & PUBLISH HOMEPAGE HERO OFFER'}
         </button>
       </form>
 

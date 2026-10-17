@@ -45,17 +45,27 @@ export const placeOrder = async (req, res) => {
             const todayISO = istNow.toISOString().split('T')[0];
             const currentMinutesToday = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
 
+            // Store Closed guard: If shop is toggled off, only TODAY is blocked! Future dates remain 100% open
+            if (storeConfig?.settings?.isOpen === false && payload.dateISO === todayISO) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'STUDIO_CLOSED_TODAY', 
+                    error: 'Aaj salon me walk-in aur bookings band hain. Kripya kal ya aage ke dino ke liye appointment book karein.' 
+                });
+            }
+
             if (payload.dateISO < todayISO) {
                 return res.status(400).json({ success: false, message: 'CANNOT_BOOK_PAST_DATE', error: 'Beete hue din ka appointment book nahi kiya ja sakta.' });
             }
-            if (payload.dateISO === todayISO && startMin <= currentMinutesToday) {
+            // 20-minute grace buffer: allows completing payment without race condition if slot just started
+            if (payload.dateISO === todayISO && (startMin + 20) < currentMinutesToday) {
                 return res.status(400).json({ success: false, message: 'CANNOT_BOOK_PAST_TIME_SLOT', error: 'Beete hue samay ka slot book nahi kiya ja sakta. Kripya aane wala slot chunein.' });
             }
 
             const existingBookings = orders.filter(o => o.dateISO === payload.dateISO && o.status !== 'cancelled' && o.startMin !== undefined);
             for (const b of existingBookings) {
                 const bStart = Number(b.startMin);
-                const bEnd = bStart + Number(b.totalMinutes || 30);
+                const bEnd = bStart + Number(b.totalMinutes || 30) + 5; // 5-min sanitization & buffer interval
                 if (Math.max(bStart, startMin) < Math.min(bEnd, reqEnd)) {
                     return res.status(409).json({ success: false, message: 'SLOT_ALREADY_TAKEN' });
                 }
@@ -174,10 +184,11 @@ export const placeOrder = async (req, res) => {
         
         const isOnlinePayment = String(payload.paymentMethod || '').trim().toLowerCase() === 'upi' || 
                                 String(payload.paymentMethod || '').trim().toLowerCase() === 'online';
-        const status = payload.status || (isOnlinePayment ? 'payment_pending' : 'new');
+        const isSalonAppointment = Boolean(payload.dateISO && payload.startMin !== undefined);
+        const status = isSalonAppointment ? 'confirmed' : (payload.status || (isOnlinePayment ? 'payment_pending' : 'new'));
         
-        // CRITICAL FIX: Ensure deliveryOtp is NEVER null for home delivery
-        const isPickupOrDineIn = payload.deliveryType === 'pickup' || payload.deliveryType === 'dine_in';
+        // CRITICAL FIX: Ensure deliveryOtp is NEVER null for home delivery, but null for salon & pickup
+        const isPickupOrDineIn = payload.deliveryType === 'pickup' || payload.deliveryType === 'dine_in' || isSalonAppointment;
         const deliveryOtp = isPickupOrDineIn ? null : (payload.deliveryOtp || generateOtp());
 
         // Extract customer

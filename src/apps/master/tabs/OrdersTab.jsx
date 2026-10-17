@@ -397,8 +397,8 @@ export default function OrdersTab() {
       {/* Search & Filter Bar */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl space-y-4 border-0">
         
-        {/* VIEW MODE TOGGLE BUTTONS */}
-        {hasTimelineMatrix && (
+        {/* VIEW MODE TOGGLE BUTTONS - Only shown if restaurant/retail has a timeline AND list view */}
+        {hasTimelineMatrix && !hasAppointments && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
             <div className="flex items-center gap-2">
               <button
@@ -425,12 +425,6 @@ export default function OrdersTab() {
                 <span>📅 30-MIN TIMELINE MATRIX (SCHEDULE)</span>
               </button>
             </div>
-            {hasAppointments && (
-              <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 flex items-center gap-1.5">
-                <Scissors className="w-3.5 h-3.5" />
-                <span>Salon Chair Schedule Matrix</span>
-              </span>
-            )}
           </div>
         )}
           {/* TOP TAB SWITCHER: TODAY'S LIVE ORDERS vs ORDER HISTORY (Dukandar 1) */}
@@ -440,16 +434,16 @@ export default function OrdersTab() {
                 type="button"
                 onClick={() => {
                   setActiveOrderView('today');
-                  setViewMode('list');
+                  setViewMode(hasAppointments ? 'timeline' : 'list');
                 }}
                 className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-0 flex items-center gap-2 ${
                   activeOrderView === 'today'
-                    ? 'bg-[#DC2626] text-white shadow-md'
+                    ? (hasAppointments ? 'bg-[#d4af37] text-black shadow-md' : 'bg-[#DC2626] text-white shadow-md')
                     : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
                 }`}
               >
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>TODAY'S ORDERS ({uniqueTodayOrders.length})</span>
+                <span className={`w-2 h-2 rounded-full ${hasAppointments ? 'bg-black' : 'bg-white'} animate-pulse`} />
+                <span>{hasAppointments ? `📅 TODAY'S APPOINTMENT SCHEDULE (${dayBookings.length})` : `TODAY'S ORDERS (${uniqueTodayOrders.length})`}</span>
               </button>
 
               <button
@@ -464,7 +458,7 @@ export default function OrdersTab() {
                     : 'bg-zinc-100 text-zinc-600 hover:text-zinc-900'
                 }`}
               >
-                <span>📜 ORDER HISTORY & REPORTS ({historyOrders.length})</span>
+                <span>📜 {hasAppointments ? 'BOOKING HISTORY & REPORTS' : 'ORDER HISTORY & REPORTS'} ({historyOrders.length})</span>
               </button>
             </div>
 
@@ -587,7 +581,8 @@ export default function OrdersTab() {
                 const d = new Date(iso + 'T00:00:00');
                 const dayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
                 const dayConfig = storeInfo?.weeklySchedule?.[dayKey];
-                const isDayClosed = dayConfig ? !dayConfig.isOpen : (d.getDay() === 0);
+                const isStoreClosedToday = storeInfo?.isOpen === false && iso === dateTabs[0];
+                const isDayClosed = (dayConfig ? !dayConfig.isOpen : (d.getDay() === 0)) || isStoreClosedToday;
                 const isSel = iso === selectedDate;
                 const cnt = dayBookings.length > 0 && iso === selectedDate
                   ? dayBookings.length
@@ -1083,47 +1078,31 @@ export default function OrdersTab() {
                   {/* SALON / APPOINTMENT SPECIFIC WORKFLOW */}
                   {hasAppointments ? (
                     <>
-                      {/* STEP 1: NEW / PENDING -> CONFIRM APPOINTMENT */}
-                      {(status === 'new' || status === 'pending') && (
-                        <>
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'confirmed')}
-                            className="flex-1 py-3 px-4 rounded-full bg-[#d4af37] hover:bg-[#b8972e] text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                          >
-                            <Calendar className="w-4 h-4 stroke-[2.2]" />
-                            <span>CONFIRM APPOINTMENT</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Cancel Appointment #${orderNum}?`)) {
-                                updateOrderStatus(order.id, 'cancelled');
-                              }
-                            }}
-                            className="py-3 px-4 rounded-full bg-zinc-100 hover:bg-red-50 text-red-600 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer border-0"
-                            title="Cancel Appointment"
-                          >
-                            <X className="w-4 h-4" />
-                            <span>CANCEL</span>
-                          </button>
-                        </>
-                      )}
+                      {/* Salon bookings are auto-confirmed upon online advance token payment. No Accept/Reject! */}
+                      <button
+                        type="button"
+                        onClick={() => printStandaloneTicket(order, storeInfo)}
+                        className="py-2.5 px-3 rounded-full bg-zinc-800 hover:bg-zinc-900 text-white font-black text-xs flex items-center justify-center gap-1.5 cursor-pointer border-0 shadow-xs"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print Ticket</span>
+                      </button>
 
-                      {/* STEP 2: CONFIRMED / PREPARING -> CLIENT IN CHAIR OR FINISH */}
-                      {(status === 'preparing' || status === 'confirmed') && (
+                      {(status !== 'delivered' && status !== 'completed' && status !== 'cancelled') ? (
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'delivered')}
-                          className="flex-1 py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          onClick={() => {
+                            updateOrderStatus(order.id, 'delivered');
+                            showToast(`Appointment #${orderNum} marked as completed!`, 'success');
+                          }}
+                          className="flex-1 py-2.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
                         >
                           <CheckCheck className="w-4 h-4 stroke-[2.5]" />
-                          <span>SERVICE COMPLETED (MARK DONE)</span>
+                          <span>MARK COMPLETED</span>
                         </button>
-                      )}
-
-                      {/* STEP 3: COMPLETED */}
-                      {(status === 'delivered' || status === 'completed') && (
-                        <div className="flex-1 py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
+                      ) : (
+                        <div className="flex-1 py-2 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
                           <Check className="w-4 h-4 stroke-[2.5]" />
-                          <span>APPOINTMENT COMPLETED</span>
+                          <span>COMPLETED</span>
                         </div>
                       )}
                     </>

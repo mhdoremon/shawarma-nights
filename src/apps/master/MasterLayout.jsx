@@ -85,13 +85,13 @@ export default function MasterLayout() {
     ['new', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'dispatched'].includes(o.status)
   ).length;
 
-  const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
+  const showOffers = true; // Always enabled so Dukandar can manage vouchers and packages
 
   const tabsConfig = [
     { id: 0, label: isPendingReview ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
     { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: isPendingReview },
     { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: isPendingReview },
-    ...(showOffers ? [{ id: 3, label: 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isPendingReview }] : []),
+    { id: 3, label: hasAppointments ? 'Packages & Offers' : 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isPendingReview },
     { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: isPendingReview },
     { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: isPendingReview },
     ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: isPendingReview }] : []),

@@ -384,20 +384,15 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
   const [cashfreePaid, setCashfreePaid] = useState(false);
   const [cashfreeTxnId, setCashfreeTxnId] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem("nash_theme") || "dark";
-  });
+  const [theme] = useState("dark");
+  const [expandedStories, setExpandedStories] = useState(false);
   const bookRef = useRef(null);
 
   useEffect(() => {
     document.title = "Nash Studio | Men's Grooming Lounge";
-    document.body.setAttribute("data-theme", theme);
-    localStorage.setItem("nash_theme", theme);
-  }, [theme]);
-
-  function toggleTheme() {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
-  }
+    document.body.setAttribute("data-theme", "dark");
+    localStorage.setItem("nash_theme", "dark");
+  }, []);
 
   // Review states
   const [reviews, setReviews] = useState([]);
@@ -477,10 +472,17 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
     setShowUserMenu(false);
   }
 
+  const fmtDateISO = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const dates = Array.from({ length: 10 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() + i); return d;
   });
-  const selectedDateISO = dates[dateIndex] ? dates[dateIndex].toISOString().slice(0, 10) : "";
+  const selectedDateISO = dates[dateIndex] ? fmtDateISO(dates[dateIndex]) : "";
 
   useEffect(() => {
     if (!selectedDateISO) return;
@@ -680,7 +682,7 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
       paymentMethod: activePaymentMethod,
       paymentStatus: activePaymentStatus,
       txnId: activeTxnId,
-      dateISO: d.toISOString().slice(0, 10),
+      dateISO: fmtDateISO(d),
       dateLabel: fmtDate(d, { weekday: "long", day: "numeric", month: "long" }),
       timeLabel: slot.label,
       startMin: slot.startMin,
@@ -763,31 +765,19 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
       
       {/* ─── High-Fashion Sticky Navigation Bar ────────────────── */}
       <nav style={S.navStickyHeader}>
-          {/* Left spacer for centered brand */}
-          <div style={{ width: 32 }} />
-
           {/* Centered Brand Mark */}
           <div style={S.navBrandText} onClick={() => window.scrollTo({top:0, behavior:"smooth"})}>
             <span>{settings.studioName || "NASH STUDIO"}</span>
           </div>
 
-          {/* Right Actions: Theme Toggle & Book Button */}
-          <div style={{display:"flex", alignItems:"center", gap:12}}>
-            <button 
-              onClick={toggleTheme} 
-              style={S.themeToggleBtn}
-              title={theme === "dark" ? "Switch to Day Mode" : "Switch to Night Mode"}
-              aria-label="Toggle Theme"
-            >
-              {theme === "dark" ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
-            </button>
-
+          {/* Right Actions: Clean Book Button & Dukan Button */}
+          <div style={{display:"flex", alignItems:"center", gap:10}}>
             <button 
               onClick={scrollToBook} 
               style={S.navBookBtn}
               title="Reserve Appointment"
             >
-              <Scissors size={14} strokeWidth={2} />
+              <Scissors size={14} strokeWidth={2.2} />
               <span>BOOK</span>
             </button>
 
@@ -796,15 +786,16 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 5,
-                background: "rgba(255,255,255,0.1)",
+                gap: 6,
+                background: "rgba(255,255,255,0.08)",
                 color: "#d4af37",
-                padding: "6px 12px",
+                padding: "8px 14px",
                 borderRadius: 20,
                 fontSize: 11,
                 fontWeight: 800,
                 textDecoration: "none",
-                border: "1px solid rgba(212,175,55,0.3)"
+                border: "1px solid rgba(212,175,55,0.35)",
+                transition: "all 0.2s"
               }}
               title="Salon Dukandar Portal"
             >
@@ -817,6 +808,7 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
       <section style={S.heroContainer}>
         {/* MANDATORY VIDEO ELEMENT - PRESERVED EXACTLY */}
         <video 
+          key={settings.heroVideoUrl || "/video/hero.mp4"}
           src={settings.heroVideoUrl || "/video/hero.mp4"} 
           style={S.heroVideo} 
           autoPlay 
@@ -832,16 +824,11 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
           }} 
         />
         
-        {/* Cinematic Vignette & Ambient Radial Overlays */}
+        {/* Cinematic Vignette & Ambient Radial Overlays (Lightened for vibrant video) */}
         <div style={S.heroOverlay} />
 
         {/* Hero Content Stack */}
         <div style={S.heroContent}>
-          <div style={S.heroPill}>
-            <span style={S.heroPing}></span>
-            <span style={S.heroPillText}>VIP GROOMING LOUNGE • CHURU</span>
-          </div>
-
           <h1 style={S.heroStudioTitle}>
             {settings.studioName || "Nash Studio"}
           </h1>
@@ -850,28 +837,11 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
             {settings.heroTagline || "PRECISION GROOMING. ZERO WAIT TIME."}
           </p>
 
-          <div style={S.heroActionRow}>
+          <div style={{ ...S.heroActionRow, marginTop: 52 }}>
             <button onClick={scrollToBook} style={S.heroPrimaryBtn}>
               <span>EXPLORE STYLES & BOOK</span>
               <ArrowUpRight size={15} strokeWidth={2} />
             </button>
-          </div>
-
-          <div style={S.heroMetaStrip}>
-            <span style={S.heroMetaItem}>
-              <Clock size={12} strokeWidth={1.5} />
-              <span>{settings.monSatHours || "11:00 AM - 11:00 PM"}</span>
-            </span>
-            <span style={S.heroMetaDivider}>•</span>
-            <span style={S.heroMetaItem}>
-              <ShieldCheck size={12} strokeWidth={1.5} />
-              <span>₹50 Token Slot Lock</span>
-            </span>
-            <span style={S.heroMetaDivider}>•</span>
-            <span style={S.heroMetaItem}>
-              <MapPin size={12} strokeWidth={1.5} />
-              <span>Main Market, Churu</span>
-            </span>
           </div>
         </div>
       </section>
@@ -1256,51 +1226,109 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                   <>
                     <div style={S.hsGrid}>
                       {itemsToDisplay.map(h => {
-                        const isPrem = h.type === "premium";
+                        const isPrem = h.type === "premium" || (h.category && h.category.toLowerCase().includes("premium"));
                         return (
                           <div 
                             key={h.id}
                             className="nash-hs-hover"
                             onClick={() => { setSelectedStyle(h); goStep(2); }}
-                            style={S.hsCard}
+                            style={{
+                              ...S.hsCard,
+                              ...(isPrem ? {
+                                background: "linear-gradient(180deg, #18140c 0%, #0d0e12 100%)",
+                                border: "1.5px solid rgba(212,175,55,0.65)",
+                                boxShadow: "0 12px 35px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.25)"
+                              } : {
+                                background: "var(--surface)",
+                                border: "1px solid var(--line)"
+                              })
+                            }}
                           >
                             <div style={S.hsImgViewport}>
                               <img src={h.img} alt={h.name} style={S.hsImg} />
                               
                               {/* Tier Badge */}
                               <div style={S.hsBadgeOverlay}>
-                                <span style={{
-                                  background: isPrem ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.9)",
-                                  color: isPrem ? "#d4af37" : "#0A0F1A",
-                                  fontSize: 9,
-                                  fontWeight: 800,
-                                  padding: "4px 10px",
-                                  borderRadius: 4,
-                                  letterSpacing: "0.15em",
-                                  textTransform: "uppercase",
-                                  backdropFilter: "blur(8px)",
-                                  border: isPrem ? "1px solid rgba(212,175,55,0.3)" : "1px solid rgba(0,0,0,0.1)"
-                                }}>
-                                  {isPrem ? "PREMIUM • 60M" : "STANDARD • 30M"}
-                                </span>
+                                {isPrem ? (
+                                  <span style={{
+                                    background: "linear-gradient(135deg, #d4af37 0%, #aa8214 100%)",
+                                    color: "#000000",
+                                    fontSize: 9,
+                                    fontWeight: 900,
+                                    padding: "5px 11px",
+                                    borderRadius: 4,
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
+                                    boxShadow: "0 4px 14px rgba(212,175,55,0.4)",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 4
+                                  }}>
+                                    <span>👑 LUXURY VIP • 60M</span>
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    background: "rgba(255,255,255,0.9)",
+                                    color: "#0A0F1A",
+                                    fontSize: 9,
+                                    fontWeight: 800,
+                                    padding: "4px 10px",
+                                    borderRadius: 4,
+                                    letterSpacing: "0.15em",
+                                    textTransform: "uppercase",
+                                    backdropFilter: "blur(8px)",
+                                    border: "1px solid rgba(0,0,0,0.1)"
+                                  }}>
+                                    <span>STANDARD • 30M</span>
+                                  </span>
+                                )}
                               </div>
                             </div>
 
                             {/* Card Body */}
                             <div style={S.hsCardBody}>
                               <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8}}>
-                                <h3 style={S.hsCardTitle}>{h.name}</h3>
-                                <div style={S.hsCardPrice}>Rs {Number(h.price||0).toLocaleString()}</div>
+                                <h3 style={{
+                                  ...S.hsCardTitle,
+                                  color: isPrem ? "#ffffff" : "var(--paper)"
+                                }}>
+                                  {isPrem && <span style={{color:"#d4af37", marginRight:4}}>✦</span>}
+                                  {h.name}
+                                </h3>
+                                <div style={{
+                                  ...S.hsCardPrice,
+                                  color: isPrem ? "#f59e0b" : "#d4af37",
+                                  fontSize: isPrem ? 17 : 15
+                                }}>
+                                  Rs {Number(h.price||0).toLocaleString()}
+                                </div>
                               </div>
                               <p style={S.hsCardDesc}>{h.desc}</p>
                             </div>
 
                             {/* Action Strip */}
-                            <div style={S.hsCardStrip}>
-                              <span style={S.hsCardSessionLabel}>
-                                {h.time} min bespoke session
+                            <div style={{
+                              ...S.hsCardStrip,
+                              background: isPrem ? "rgba(212,175,55,0.12)" : "rgba(0,0,0,0.2)",
+                              borderTop: isPrem ? "1px solid rgba(212,175,55,0.35)" : "1px solid var(--line)"
+                            }}>
+                              <span style={{
+                                ...S.hsCardSessionLabel,
+                                color: isPrem ? "#d4af37" : "var(--muted)",
+                                fontWeight: isPrem ? 700 : 500
+                              }}>
+                                {h.time} min {isPrem ? "bespoke VIP styling" : "clean haircut session"}
                               </span>
-                              <div style={S.hsCardCtaPill}>
+                              <div style={{
+                                ...S.hsCardCtaPill,
+                                ...(isPrem ? {
+                                  background: "linear-gradient(135deg, #d4af37 0%, #aa8214 100%)",
+                                  color: "#000000",
+                                  padding: "5px 12px",
+                                  borderRadius: 12,
+                                  fontWeight: 900
+                                } : {})
+                              }}>
                                 <span>SELECT</span>
                                 <ChevronRight size={13} strokeWidth={2.5} />
                               </div>
@@ -1755,6 +1783,59 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         </div>
       </section>
 
+      {/* ─── SECTION: MEET THE FOUNDER & MASTER STYLIST ──────────── */}
+      <section style={{...S.section, borderBottom:"1px solid var(--line)", background:"var(--surface)"}}>
+        <div style={S.wrap}>
+          <Reveal>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:40, alignItems:"center"}}>
+              {/* Left Column: Stylist Portrait / Badge Card */}
+              <div style={{position:"relative", borderRadius:20, overflow:"hidden", border:"1.5px solid rgba(212,175,55,0.45)", boxShadow:"0 16px 40px rgba(0,0,0,0.6)", background:"#0a0d14", minHeight:340, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:28}}>
+                <div style={{position:"absolute", inset:0, background:"radial-gradient(circle at 50% 30%, rgba(212,175,55,0.18) 0%, rgba(0,0,0,0.92) 80%)"}} />
+                <div style={{position:"relative", zIndex:2}}>
+                  <div style={{width:48, height:48, borderRadius:24, background:"rgba(212,175,55,0.15)", border:"1px solid rgba(212,175,55,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16}}>
+                    <Scissors size={22} color="#d4af37" />
+                  </div>
+                  <span style={{fontSize:11, fontWeight:800, letterSpacing:"0.2em", textTransform:"uppercase", color:"#d4af37"}}>
+                    ESTABLISHED {settings.foundedYear || "2018"}
+                  </span>
+                  <h3 style={{fontFamily:"var(--display)", fontSize:28, fontWeight:900, color:"#ffffff", margin:"6px 0 2px", textTransform:"uppercase"}}>
+                    {settings.ownerName || "Naushad Ali"}
+                  </h3>
+                  <div style={{fontSize:13, color:"rgba(255,255,255,0.75)", fontWeight:600}}>
+                    {settings.ownerRole || "Master Stylist & Founder"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Founder Story & Craftsmanship Philosophy */}
+              <div style={{display:"flex", flexDirection:"column", gap:16}}>
+                <span style={S.eyebrow}>THE MASTER CRAFTSMAN</span>
+                <h2 style={{fontFamily:"var(--display)", fontSize:"clamp(28px, 4vw, 42px)", fontWeight:900, color:"var(--paper)", margin:0, textTransform:"uppercase", lineHeight:1.15}}>
+                  Artistry in Every Cut, Precision in Every Fade.
+                </h2>
+                <p style={{fontSize:15, color:"var(--muted)", lineHeight:1.8, margin:0, fontWeight:300}}>
+                  {settings.ownerBio || "Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form."}
+                </p>
+                <div style={{display:"flex", alignItems:"center", gap:20, marginTop:8, flexWrap:"wrap"}}>
+                  <button onClick={scrollToBook} style={S.heroPrimaryBtn}>
+                    <span>BOOK WITH MASTER STYLIST</span>
+                    <ArrowUpRight size={14} strokeWidth={2} />
+                  </button>
+                  <a
+                    href={`https://wa.me/${(settings.shopWhatsapp || "917023963189").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hi! I would like to consult about styling options at Nash Studio.")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{display:"inline-flex", alignItems:"center", gap:8, color:"#d4af37", fontSize:12, fontWeight:800, letterSpacing:"0.1em", textDecoration:"none", textTransform:"uppercase"}}
+                  >
+                    <span>💬 Styling Consultation</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ─── STORIES & CLIENT REVIEWS SECTION ─────────────────────── */}
       <section style={{...S.section, borderBottom:"1px solid var(--line)"}}>
         <div style={S.wrap}>
@@ -1768,8 +1849,8 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
           {/* Existing Stories */}
           {reviews.length > 0 ? (
             <Reveal delay={100}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20,marginBottom:36}}>
-                {reviews.slice(0, 6).map((r, idx) => (
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20,marginBottom:24}}>
+                {(expandedStories ? reviews : reviews.slice(0, 6)).map((r, idx) => (
                   <div key={r.id || idx} style={S.reviewCard}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
                       <div style={{fontFamily:"var(--display)",fontSize:15,fontWeight:700,color:"var(--paper)",letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.name}</div>
@@ -1791,83 +1872,99 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                   </div>
                 ))}
               </div>
+
+              {/* Explore More Stories Toggle */}
+              {reviews.length > 6 && (
+                <div style={{textAlign:"center", marginBottom:28}}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedStories(!expandedStories)}
+                    style={S.btnGhostBtn}
+                    className="nash-btn-confirm"
+                  >
+                    {expandedStories ? "SHOW FEWER STORIES" : `EXPLORE ALL ${reviews.length} CLIENT STORIES`}
+                  </button>
+                </div>
+              )}
             </Reveal>
           ) : null}
 
-          {/* Submit Review CTA */}
-          <Reveal delay={200}>
-            <div>
-              {!showReviewForm ? (
-                <button
-                  onClick={() => {
-                    if (user && user.displayName) setReviewName(user.displayName);
-                    setShowReviewForm(true);
-                  }}
-                  style={S.btnGhostBtn}
-                  className="nash-btn-confirm"
-                >
-                  SHARE YOUR STORY
-                </button>
-              ) : (
-                <div style={S.reviewFormBox} className="nash-expand-anim">
-                  {/* Star Rating Inputs */}
-                  <div style={{marginBottom:20}}>
-                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                      {[1,2,3,4,5].map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setReviewRating(s)}
-                          onMouseEnter={() => setReviewHover(s)}
-                          onMouseLeave={() => setReviewHover(0)}
-                          style={{background:"transparent",border:"none",padding:0,cursor:"pointer",lineHeight:0}}
-                        >
-                          <Star 
-                            size={24} 
-                            fill={s <= (reviewHover || reviewRating) ? "#E5A93B" : "none"} 
-                            color={s <= (reviewHover || reviewRating) ? "#E5A93B" : "var(--star-empty, #CBD5E1)"}
-                            strokeWidth={1.5}
-                          />
-                        </button>
-                      ))}
+          {/* Submit Review CTA - Configurable by Dukandar from Portal */}
+          {settings.allowPublicReviews && (
+            <Reveal delay={200}>
+              <div>
+                {!showReviewForm ? (
+                  <button
+                    onClick={() => {
+                      if (user && user.displayName) setReviewName(user.displayName);
+                      setShowReviewForm(true);
+                    }}
+                    style={S.btnGhostBtn}
+                    className="nash-btn-confirm"
+                  >
+                    SHARE YOUR STORY
+                  </button>
+                ) : (
+                  <div style={S.reviewFormBox} className="nash-expand-anim">
+                    {/* Star Rating Inputs */}
+                    <div style={{marginBottom:20}}>
+                      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                        {[1,2,3,4,5].map(s => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => setReviewRating(s)}
+                            onMouseEnter={() => setReviewHover(s)}
+                            onMouseLeave={() => setReviewHover(0)}
+                            style={{background:"transparent",border:"none",padding:0,cursor:"pointer",lineHeight:0}}
+                          >
+                            <Star 
+                              size={24} 
+                              fill={s <= (reviewHover || reviewRating) ? "#E5A93B" : "none"} 
+                              color={s <= (reviewHover || reviewRating) ? "#E5A93B" : "var(--star-empty, #CBD5E1)"}
+                              strokeWidth={1.5}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Your Name *"
+                      value={reviewName}
+                      onChange={e => setReviewName(e.target.value)}
+                      style={S.input}
+                    />
+
+                    <textarea
+                      placeholder="Your styling experience with Nash Studio..."
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      rows={3}
+                      style={{...S.input, resize:"none", marginBottom:20}}
+                    />
+
+                    <div style={{display:"flex", gap:10}}>
+                      <button
+                        onClick={handleSubmitReview}
+                        disabled={reviewSaving}
+                        style={{...S.btnConfirm, flex:1}}
+                      >
+                        {reviewSaving ? "SAVING..." : "SUBMIT STORY"}
+                      </button>
+                      <button
+                        onClick={() => { setShowReviewForm(false); setReviewRating(0); setReviewComment(""); setReviewName(""); }}
+                        style={{...S.btnGhostBtn, padding:"14px 20px"}}
+                      >
+                        CANCEL
+                      </button>
                     </div>
                   </div>
-
-                  <input
-                    type="text"
-                    placeholder="Your Name *"
-                    value={reviewName}
-                    onChange={e => setReviewName(e.target.value)}
-                    style={S.input}
-                  />
-
-                  <textarea
-                    placeholder="Your styling experience with Nash Studio..."
-                    value={reviewComment}
-                    onChange={e => setReviewComment(e.target.value)}
-                    rows={3}
-                    style={{...S.input, resize:"none", marginBottom:20}}
-                  />
-
-                  <div style={{display:"flex", gap:10}}>
-                    <button
-                      onClick={handleSubmitReview}
-                      disabled={reviewSaving}
-                      style={{...S.btnConfirm, flex:1}}
-                    >
-                      {reviewSaving ? "SAVING..." : "SUBMIT STORY"}
-                    </button>
-                    <button
-                      onClick={() => { setShowReviewForm(false); setReviewRating(0); setReviewComment(""); setReviewName(""); }}
-                      style={{...S.btnGhostBtn, padding:"14px 20px"}}
-                    >
-                      CANCEL
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Reveal>
+                )}
+              </div>
+            </Reveal>
+          )}
 
         </div>
       </section>
@@ -1890,10 +1987,76 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || "+91 70239 63189"}</div>
             </div>
 
+            {/* Social Media & Direction Links */}
+            <div style={{display:"flex", alignItems:"center", gap:10, flexWrap:"wrap", marginTop:4}}>
+              <a
+                href={settings.instagramUrl || "https://instagram.com/nashstudio_churu"}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:"inline-flex",
+                  alignItems:"center",
+                  gap:6,
+                  background:"rgba(255,255,255,0.06)",
+                  border:"1px solid var(--line)",
+                  padding:"7px 14px",
+                  borderRadius:20,
+                  fontSize:11,
+                  color:"var(--paper)",
+                  textDecoration:"none",
+                  fontWeight:700
+                }}
+              >
+                <span>📸 Instagram</span>
+              </a>
+
+              <a
+                href={`https://wa.me/${(settings.shopWhatsapp || "917023963189").replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Namaste Nash Studio!")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:"inline-flex",
+                  alignItems:"center",
+                  gap:6,
+                  background:"rgba(16,185,129,0.12)",
+                  border:"1px solid rgba(16,185,129,0.35)",
+                  padding:"7px 14px",
+                  borderRadius:20,
+                  fontSize:11,
+                  color:"#10b981",
+                  textDecoration:"none",
+                  fontWeight:700
+                }}
+              >
+                <span>💬 WhatsApp</span>
+              </a>
+
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Nash+Studio+Main+Market+Churu"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display:"inline-flex",
+                  alignItems:"center",
+                  gap:6,
+                  background:"rgba(255,255,255,0.06)",
+                  border:"1px solid var(--line)",
+                  padding:"7px 14px",
+                  borderRadius:20,
+                  fontSize:11,
+                  color:"var(--paper)",
+                  textDecoration:"none",
+                  fontWeight:700
+                }}
+              >
+                <span>📍 Google Maps</span>
+              </a>
+            </div>
+
             <div style={S.footerBottomRow}>
               <div style={{display:"flex", alignItems:"center", gap:16}}>
                 <a
-                  href="https://churuone.in/admin?storeId=nash-studio"
+                  href="/master?storeId=nash-studio"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{...S.footOwnerBtn, textDecoration:"none", display:"inline-flex", alignItems:"center", gap:6}}
@@ -1901,25 +2064,6 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                   <span>Dukandar OS Login</span>
                   <ArrowUpRight size={13} strokeWidth={2} />
                 </a>
-
-                {/* Day / Night Theme Button */}
-                <button
-                  onClick={toggleTheme}
-                  style={S.footThemeBtn}
-                  className="nash-btn-confirm"
-                >
-                  {theme === "dark" ? (
-                    <>
-                      <Sun size={13} strokeWidth={2} />
-                      <span>Day Mode</span>
-                    </>
-                  ) : (
-                    <>
-                      <Moon size={13} strokeWidth={2} />
-                      <span>Night Mode</span>
-                    </>
-                  )}
-                </button>
               </div>
 
               {user && (
@@ -2052,21 +2196,38 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     open: "11:00 AM", 
     close: "11:00 PM" 
   };
-  const isCurrentDayClosed = currentDayConfig.isOpen === false;
+
+  // Store Closed Today logic:
+  // When Dukandar toggles store OFF (settings.isOpen === false), ONLY today (dateIndex === 0) is closed.
+  // All future dates remain 100% open and bookable!
+  const isStoreGloballyClosedToday = settings?.isOpen === false;
+  const isSelectedDateClosedToday = dateIndex === 0 && isStoreGloballyClosedToday;
+  const isCurrentDayClosed = currentDayConfig.isOpen === false || isSelectedDateClosedToday;
 
   const dayWorkStart = parseTimeToMinutes(currentDayConfig.open, WORK_START);
   const dayWorkEnd = parseTimeToMinutes(currentDayConfig.close, WORK_END);
 
   const slots = [];
+  // IST (Indian Standard Time UTC+5:30) current minutes calculation
   const now = new Date();
-  const currentMinutesToday = now.getHours() * 60 + now.getMinutes();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const currentMinutesToday = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
 
   if (!isCurrentDayClosed) {
-    for (let t = dayWorkStart; t + totalMinutes <= dayWorkEnd; t += 15) {
+    // Generate slots every 30 minutes as requested
+    for (let t = dayWorkStart; t + totalMinutes <= dayWorkEnd; t += 30) {
       let blocked = dateIndex === 0 && t <= currentMinutesToday;
       if (!blocked) {
         for (const b of realtimeBookings) {
-          if (Math.max(b.startMin, t) < Math.min(b.startMin + b.totalMinutes, t + totalMinutes)) { blocked = true; break; }
+          const bStart = Number(b.startMin);
+          const bDuration = Number(b.totalMinutes || 30);
+          // 5-minute sanitization & buffer interval between salon appointments
+          const bEndWithBuffer = bStart + bDuration + 5;
+          if (Math.max(bStart, t) < Math.min(bEndWithBuffer, t + totalMinutes)) { 
+            blocked = true; 
+            break; 
+          }
         }
       }
       slots.push({ t, label: formatTime(Math.floor(t/60), t%60), blocked });
@@ -2081,7 +2242,9 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
           {dates.map((d, i) => {
             const dKey = dayKeys[d.getDay()];
             const dConfig = schedule?.[dKey] || { isOpen: d.getDay() !== 0 };
-            const isDayClosed = dConfig.isOpen === false;
+            const isDayWeeklyClosed = dConfig.isOpen === false;
+            const isTodayClosed = (i === 0 && isStoreGloballyClosedToday);
+            const isDayClosed = isDayWeeklyClosed || isTodayClosed;
             const sel = i === dateIndex;
 
             return (
@@ -2095,15 +2258,15 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
                 disabled={isDayClosed} 
                 onClick={() => { setDateIndex(i); setSlot(null); }} 
                 className="nash-date-chip"
-                title={isDayClosed ? `${DOW[d.getDay()]} is Closed (Weekly Off)` : "Available"}
+                title={isTodayClosed ? "Nash Studio is closed today (Future dates open)" : isDayWeeklyClosed ? `${DOW[d.getDay()]} is Closed (Weekly Off)` : "Available"}
               >
-                <span style={S.dow}>{DOW[d.getDay()]}</span>
+                <span style={S.dow}>{i === 0 ? "TODAY" : DOW[d.getDay()]}</span>
                 <span style={sel ? { ...S.dnum, color: "var(--ink)" } : { ...S.dnum, color: isDayClosed ? "var(--muted)" : "var(--paper)" }}>
                   {d.getDate()}
                 </span>
                 {isDayClosed && (
                   <span style={{ fontSize: 8, fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', marginTop: 2 }}>
-                    OFF
+                    {isTodayClosed ? "CLOSED" : "OFF"}
                   </span>
                 )}
               </button>
@@ -2136,18 +2299,21 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
             <Calendar size={22} strokeWidth={2.5} />
           </div>
           <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--paper)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            SALON IS CLOSED ON THIS DAY ({DOW[selectedDate.getDay()]} WEEKLY OFF)
+            {isSelectedDateClosedToday 
+              ? "STUDIO IS CLOSED TODAY BY MANAGEMENT"
+              : `SALON IS CLOSED ON THIS DAY (${DOW[selectedDate.getDay()]} WEEKLY OFF)`}
           </div>
           <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6, maxWidth: 420, margin: '8px auto 0' }}>
-            Nash Studio is observing its scheduled weekly off on {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}. 
-            Kripya upar date calendar se koi doosra open din chunein apna slot reserve karne ke liye.
+            {isSelectedDateClosedToday
+              ? "Nash Studio management ne aaj ke liye bookings temporarily pause ki hui hain. Lekin kal aur aage ke sabhi dino ke liye appointment bookings bilkul open hain! Kripya upar calendar se koi agla din chunein."
+              : `Nash Studio is observing its scheduled weekly off on ${selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}. Kripya upar date calendar se koi doosra open din chunein apna slot reserve karne ke liye.`}
           </p>
         </div>
       ) : (
         <>
           <div style={S.fieldGroup}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={S.fieldLabel}>Select Slot (Every 15 Mins)</span>
+              <span style={S.fieldLabel}>Select Slot (Every 30 Mins)</span>
               <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
                 Operating Hours: {currentDayConfig.open} – {currentDayConfig.close}
               </span>
@@ -2298,7 +2464,7 @@ const S = {
 
   heroContainer:{position:"relative",width:"100%",minHeight:"85vh",background:"#000000",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"80px 20px"},
   heroVideo:{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:1},
-  heroOverlay:{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.08) 40%, rgba(8,12,20,0.65) 100%)",zIndex:5,pointerEvents:"none"},
+  heroOverlay:{position:"absolute",inset:0,background:"linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.02) 40%, rgba(8,12,20,0.45) 100%)",zIndex:5,pointerEvents:"none"},
   heroContent:{position:"relative",zIndex:10,textAlign:"center",maxWidth:860,display:"flex",flexDirection:"column",alignItems:"center"},
   heroPill:{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(0,0,0,0.6)",backdropFilter:"blur(12px)",border:"1px solid rgba(212,175,55,0.4)",padding:"6px 16px",borderRadius:20,marginBottom:20},
   heroPing:{width:6,height:6,borderRadius:"50%",background:"#d4af37",boxShadow:"0 0 10px #d4af37"},

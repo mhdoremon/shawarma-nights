@@ -278,6 +278,7 @@ export default function MenuTab() {
 
     const payload = {
       ...modalItem,
+      type: hasServiceDuration ? (modalItem.type || 'standard') : modalItem.type,
       name: modalItem.name.trim(),
       price: Number(modalItem.price) || 0,
       originalPrice: modalItem.originalPrice ? Number(modalItem.originalPrice) : 0,
@@ -464,7 +465,8 @@ export default function MenuTab() {
                   { id: 'meat', name: 'Double Charcoal Grilled Meat', price: 59 },
                   { id: 'fries_inside', name: 'Crispy Fries Wrapped Inside', price: 25 }
                 ] : [],
-                bookingFee: hasServiceDuration ? '50' : undefined
+                bookingFee: hasServiceDuration ? '50' : undefined,
+                type: hasServiceDuration ? 'standard' : undefined
               })}
               className={`px-5 py-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
             >
@@ -582,6 +584,17 @@ export default function MenuTab() {
                           <span>COMBO</span>
                         </span>
                       )}
+                      {hasServiceDuration && (
+                        (dish.type === 'premium' || dish.tier === 'premium') ? (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-xs flex items-center gap-1 font-mono">
+                            👑 PREMIUM VIP
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
+                            ✂️ STANDARD
+                          </span>
+                        )
+                      )}
                     </div>
 
                     <h4 className="text-sm font-black text-zinc-900 truncate mt-1">
@@ -676,6 +689,7 @@ export default function MenuTab() {
                         } else {
                           setModalItem({ 
                             ...dish, 
+                            type: dish.type || dish.tier || 'standard',
                             breadList: dish.options?.bread || [],
                             spicinessList: dish.options?.spiciness || ['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire'],
                             addonsList: dish.options?.addons || (Array.isArray(dish.addons) ? dish.addons : []),
@@ -1113,6 +1127,38 @@ export default function MenuTab() {
                         placeholder="https://images.unsplash.com/..."
                         className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                       />
+                    </div>
+                  )}
+
+                  {/* SERVICE TIER SELECTOR: PREMIUM VIP vs STANDARD (Salon / Appointments) */}
+                  {hasServiceDuration && (
+                    <div>
+                      <label className="block text-[11px] font-black text-[#d4af37] uppercase tracking-wider mb-1.5">
+                        SERVICE TIER (PREMIUM VIP vs STANDARD) *
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setModalItem({ ...modalItem, type: 'standard' })}
+                          className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5 ${
+                            (modalItem.type || 'standard') === 'standard' ? 'bg-zinc-800 text-white shadow-md' : 'bg-zinc-100 text-zinc-600'
+                          }`}
+                        >
+                          <span>✂️ Standard Cut</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModalItem({ ...modalItem, type: 'premium' })}
+                          className={`py-2 px-3 rounded-full text-xs font-black uppercase transition-all cursor-pointer border-0 flex items-center justify-center gap-1.5 ${
+                            modalItem.type === 'premium' ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-md shadow-amber-400/20' : 'bg-zinc-100 text-zinc-600'
+                          }`}
+                        >
+                          <span>👑 Premium VIP</span>
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 mt-1 block">
+                        Premium services ko website par VIP Golden Glow, Crown badge aur luxury styling ke sath dikhaya jata hai.
+                      </span>
                     </div>
                   )}
 

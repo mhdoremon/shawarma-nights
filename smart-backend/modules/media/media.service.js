@@ -126,38 +126,71 @@ export const uploadMedia = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No image data provided' });
     }
 
+    const isVideo = image.startsWith('data:video') || (filename && /\.(mp4|webm|ogg|mov)$/i.test(filename));
+
     // 1. Try Primary High-Speed Provider: Cloudinary (Fastest global CDN)
     try {
-      const cloudinaryUrl = await uploadToCloudinary(image, storeId, filename);
-      if (cloudinaryUrl) {
-        console.log(`⚡ [Media Engine] Uploaded to Cloudinary CDN (${storeId}): ${cloudinaryUrl}`);
-        return res.json({ 
-          success: true, 
-          url: cloudinaryUrl, 
-          provider: 'cloudinary',
-          speed: 'ultra_fast_cdn',
-          storeId
+      const config = getCloudinaryConfig(storeId);
+      if (config) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const folder = `churuone/${storeId || 'default'}`;
+        const cleanPublicId = filename 
+          ? filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_') 
+          : `${isVideo ? 'video' : 'media'}_${Date.now()}`;
+
+        const paramsToSign = `folder=${folder}&public_id=${cleanPublicId}&timestamp=${timestamp}${config.apiSecret}`;
+        const signature = crypto.createHash('sha1').update(paramsToSign).digest('hex');
+
+        const formData = new URLSearchParams();
+        formData.append('file', image);
+        formData.append('api_key', config.apiKey);
+        formData.append('timestamp', String(timestamp));
+        formData.append('signature', signature);
+        formData.append('folder', folder);
+        formData.append('public_id', cleanPublicId);
+
+        const resourceType = isVideo ? 'video' : 'image';
+        const cRes = await fetch(`https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/upload`, {
+          method: 'POST',
+          body: formData,
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
+
+        const cData = await cRes.json();
+        if (cData && cData.secure_url) {
+          const optimized = isVideo ? cData.secure_url : cData.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+          console.log(`⚡ [Media Engine] Uploaded ${isVideo ? 'video' : 'image'} to Cloudinary CDN (${storeId}): ${optimized}`);
+          return res.json({ 
+            success: true, 
+            url: optimized, 
+            provider: 'cloudinary',
+            speed: 'ultra_fast_cdn',
+            isVideo,
+            storeId
+          });
+        }
       }
     } catch (cErr) {
       console.warn(`⚠️ [Cloudinary Fallback] Store ${storeId}:`, cErr.message);
     }
 
-    // 2. Try Secondary Cloud Provider: ImgBB
-    try {
-      const imgbbUrl = await uploadToImgbb(image, filename);
-      if (imgbbUrl) {
-        console.log(`⚡ [Media Engine] Uploaded to ImgBB (${storeId}): ${imgbbUrl}`);
-        return res.json({ 
-          success: true, 
-          url: imgbbUrl, 
-          provider: 'imgbb',
-          speed: 'cloud_free',
-          storeId
-        });
+    // 2. Try Secondary Cloud Provider: ImgBB (Only for images, ImgBB does not support video)
+    if (!isVideo) {
+      try {
+        const imgbbUrl = await uploadToImgbb(image, filename);
+        if (imgbbUrl) {
+          console.log(`⚡ [Media Engine] Uploaded to ImgBB (${storeId}): ${imgbbUrl}`);
+          return res.json({ 
+            success: true, 
+            url: imgbbUrl, 
+            provider: 'imgbb',
+            speed: 'cloud_free',
+            storeId
+          });
+        }
+      } catch (iErr) {
+        console.warn(`⚠️ [ImgBB Fallback] Store ${storeId}:`, iErr.message);
       }
-    } catch (iErr) {
-      console.warn(`⚠️ [ImgBB Fallback] Store ${storeId}:`, iErr.message);
     }
 
     // 3. Fallback: Local Disk Storage (Always succeeds, zero downtime)
@@ -167,30 +200,38 @@ export const uploadMedia = async (req, res) => {
     }
 
     let fileData;
-    let ext = '.jpg';
-    if (image.startsWith('data:image')) {
-      const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let ext = isVideo ? '.mp4' : '.jpg';
+    if (image.startsWith('data:')) {
+      const matches = image.match(/^data:([^;]+);base64,(.+)$/);
       if (matches && matches.length === 3) {
         fileData = Buffer.from(matches[2], 'base64');
-        const mime = matches[1];
-        if (mime === 'image/png') ext = '.png';
-        else if (mime === 'image/jpeg') ext = '.jpg';
+        const mime = matches[1].toLowerCase();
+        if (mime === 'video/mp4') ext = '.mp4';
+        else if (mime === 'video/webm') ext = '.webm';
+        else if (mime === 'video/ogg') ext = '.ogg';
+        else if (mime === 'video/quicktime') ext = '.mov';
+        else if (mime === 'image/png') ext = '.png';
+        else if (mime === 'image/jpeg' || mime === 'image/jpg') ext = '.jpg';
         else if (mime === 'image/webp') ext = '.webp';
+        else if (mime === 'image/gif') ext = '.gif';
+      } else {
+        fileData = Buffer.from(image.replace(/^data:[^;]+;base64,/, ''), 'base64');
       }
     } else {
       fileData = Buffer.from(image, 'base64');
     }
 
-    const uniqueFilename = `${Date.now()}-${generateUUID().split('-')[0]}${filename ? '-' + filename : ext}`;
+    const uniqueFilename = `${Date.now()}-${generateUUID().split('-')[0]}${filename ? '-' + filename.replace(/[^a-zA-Z0-9._-]/g, '') : ext}`;
     const filePath = path.join(uploadsDir, uniqueFilename);
     fs.writeFileSync(filePath, fileData);
 
     const localUrl = `/uploads/${storeId}/uploads/${uniqueFilename}`;
-    console.log(`💾 [Media Engine] Saved to Local Storage (${storeId}): ${localUrl}`);
+    console.log(`💾 [Media Engine] Saved ${isVideo ? 'video' : 'image'} to Local Storage (${storeId}): ${localUrl}`);
     return res.json({ 
       success: true, 
       url: localUrl, 
       provider: 'local',
+      isVideo,
       storeId
     });
   } catch (error) {

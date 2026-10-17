@@ -176,7 +176,7 @@ export async function createBookingWithTransaction(bookingData) {
 
     for (const b of existingBookings) {
       const bStart = b.startMin;
-      const bEnd = b.startMin + b.totalMinutes;
+      const bEnd = b.startMin + (b.totalMinutes || 30) + 5; // 5-minute buffer
       if (Math.max(bStart, startMin) < Math.min(bEnd, requestedEnd)) {
         throw new Error("SLOT_ALREADY_TAKEN");
       }
@@ -204,11 +204,14 @@ export function subscribeToHairstyles(callback, defaultList = []) {
         const mapped = data.menu.map(item => ({
           id: item.id,
           name: item.name,
-          type: item.type || (item.category?.includes('Premium') ? 'premium' : 'standard'),
+          type: item.type || item.tier || (item.category?.toLowerCase().includes('premium') ? 'premium' : 'standard'),
           img: item.img || item.image || '/images/Soft-fade-edit.webp',
           time: Number(item.durationMinutes || item.time || item.prepTime || 30),
           durationMinutes: Number(item.durationMinutes || item.time || item.prepTime || 30),
           price: Number(item.price) || 500,
+          originalPrice: Number(item.originalPrice) || 0,
+          bookingFee: item.bookingFee !== undefined ? Number(item.bookingFee) : undefined,
+          available: item.available !== false,
           desc: item.desc || item.description || ''
         }));
         localStorage.setItem("nash_hairstyles_catalog", JSON.stringify(mapped));
@@ -308,17 +311,34 @@ export function subscribeToSiteSettings(callback, defaultSettings) {
     try {
       const data = await getStoreData();
       if (data && data.storeInfo) {
+        const info = data.storeInfo;
+        const setts = data.settings || {};
         const s = {
           ...defaultSettings,
-          ...data.storeInfo,
-          studioName: data.storeInfo.name || data.storeInfo.studioName || defaultSettings.studioName,
-          address: data.storeInfo.address || defaultSettings.address,
-          phoneDisplay: data.storeInfo.phoneDisplay || defaultSettings.phoneDisplay,
-          shopWhatsapp: data.storeInfo.whatsapp || data.storeInfo.shopWhatsapp || defaultSettings.shopWhatsapp,
-          bookingFee: data.storeInfo.bookingFee !== undefined 
-            ? Number(data.storeInfo.bookingFee) 
-            : (data.settings?.bookingFee !== undefined ? Number(data.settings.bookingFee) : defaultSettings.bookingFee),
-          upiId: data.storeInfo.upiId || defaultSettings.upiId
+          ...info,
+          ...setts,
+          studioName: info.name || info.studioName || defaultSettings.studioName,
+          heroTagline: info.tagline || setts.heroTagline || info.heroTagline || defaultSettings.heroTagline,
+          heroButtonText: info.heroButtonText || setts.heroButtonText || defaultSettings.heroButtonText,
+          heroVideoUrl: info.heroVideoUrl || setts.heroVideoUrl || defaultSettings.heroVideoUrl,
+          aboutText: info.aboutText || setts.aboutText || defaultSettings.aboutText,
+          ownerName: info.ownerName || setts.ownerName || "Naushad Ali",
+          ownerRole: info.ownerRole || setts.ownerRole || "Master Stylist & Founder",
+          ownerBio: info.ownerBio || setts.ownerBio || "Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form.",
+          foundedYear: info.foundedYear || setts.foundedYear || "2018",
+          address: info.address || defaultSettings.address,
+          phoneDisplay: info.phoneDisplay || defaultSettings.phoneDisplay,
+          shopWhatsapp: (info.socials && info.socials.whatsapp) || info.whatsapp || info.shopWhatsapp || defaultSettings.shopWhatsapp,
+          instagramUrl: (info.socials && info.socials.instagram) || info.instagram || defaultSettings.instagramUrl || "https://instagram.com/nashstudio_churu",
+          isOpen: info.isOpen !== undefined ? info.isOpen : (setts.isOpen !== undefined ? setts.isOpen : true),
+          weeklySchedule: info.weeklySchedule || setts.weeklySchedule || defaultSettings.weeklySchedule,
+          showHeroBanner: setts.showHeroBanner !== undefined ? setts.showHeroBanner : false,
+          showOfferCards: setts.showOfferCards !== undefined ? setts.showOfferCards : true,
+          dealsEnabled: setts.dealsEnabled !== undefined ? setts.dealsEnabled : true,
+          bookingFee: info.bookingFee !== undefined 
+            ? Number(info.bookingFee) 
+            : (setts.bookingFee !== undefined ? Number(setts.bookingFee) : defaultSettings.bookingFee),
+          upiId: (info.payment && info.payment.upiId) || info.upiId || defaultSettings.upiId
         };
         localStorage.setItem("nash_studio_settings", JSON.stringify(s));
         callback(s);
@@ -337,7 +357,7 @@ export function subscribeToSiteSettings(callback, defaultSettings) {
   loadSettings();
 
   const onWsEvent = (action) => {
-    if (action === 'STORE_INFO_UPDATED') {
+    if (action === 'STORE_INFO_UPDATED' || action === 'HERO_UPDATED' || action === 'SETTINGS_UPDATED' || action === 'DEALS_UPDATED') {
       loadSettings();
     }
   };
