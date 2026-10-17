@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AuthProvider } from '../../context/AuthContext';
+import { AuthProvider, useAuth } from '../../context/AuthContext';
 import { RealtimeProvider } from '../../context/RealtimeContext';
-import { CartProvider } from '../../context/CartContext';
+import { CartProvider, useCart } from '../../context/CartContext';
 import Navbar from '../../components/Navbar';
 import HeroBanner from '../../components/HeroBanner';
 import DealBanners from '../../components/DealBanners';
@@ -45,9 +45,11 @@ function StoreClosedTopBanner() {
   );
 }
 
-export default function CustomerApp() {
+function CustomerAppContent() {
   const [customizeItem, setCustomizeItem] = useState(null);
   const [isFranchiseOpen, setIsFranchiseOpen] = useState(false);
+  const { isCartOpen, isTrackerOpen } = useCart();
+  const { isAuthModalOpen, isProfileOpen } = useAuth();
 
   useEffect(() => {
     document.title = "Shawarma Nights | Authentic Charcoal Shawarma";
@@ -61,39 +63,48 @@ export default function CustomerApp() {
     document.getElementById('menu')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Hide BottomNavBar when CartDrawer, CustomizeModal, Tracker, Auth, or FranchiseModal is active
+  const isAnyModalActive = Boolean(isCartOpen || isTrackerOpen || isAuthModalOpen || isProfileOpen || customizeItem || isFranchiseOpen);
+
+  return (
+    <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 flex flex-col justify-between selection:bg-[#DC2626] selection:text-white pb-20 sm:pb-0">
+      <Navbar onOpenFranchise={() => setIsFranchiseOpen(true)} />
+      <StoreClosedTopBanner />
+      <main className="flex-1">
+        <HeroBanner 
+          onExploreMenu={scrollToMenu} 
+          onSelectFeaturedDish={setCustomizeItem} 
+          onOpenFranchise={() => setIsFranchiseOpen(true)}
+        />
+        <DealBanners />
+        <CombosShowcase onSelectForCustomize={setCustomizeItem} />
+        <div id="menu">
+          <CarouselShowcase onSelectForCustomize={setCustomizeItem} />
+        </div>
+        <CustomerReviews />
+        <FranchiseTeaser onOpenFranchise={() => setIsFranchiseOpen(true)} />
+      </main>
+      <Footer onOpenFranchise={() => setIsFranchiseOpen(true)} />
+      <FranchiseFloatingButton onOpenFranchise={() => setIsFranchiseOpen(true)} />
+      <FloatingCartBar />
+      <CartDrawer />
+      <OrderTrackerModal />
+      <AuthModal />
+      {customizeItem && (
+        <CustomizeModal item={customizeItem} onClose={() => setCustomizeItem(null)} />
+      )}
+      <FranchiseModal isOpen={isFranchiseOpen} onClose={() => setIsFranchiseOpen(false)} />
+      <BottomNavBar hidden={isAnyModalActive} />
+    </div>
+  );
+}
+
+export default function CustomerApp() {
   return (
     <AuthProvider>
       <RealtimeProvider>
         <CartProvider>
-          <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 flex flex-col justify-between selection:bg-[#DC2626] selection:text-white">
-            <Navbar onOpenFranchise={() => setIsFranchiseOpen(true)} />
-            <StoreClosedTopBanner />
-            <main className="flex-1">
-              <HeroBanner 
-                onExploreMenu={scrollToMenu} 
-                onSelectFeaturedDish={setCustomizeItem} 
-                onOpenFranchise={() => setIsFranchiseOpen(true)}
-              />
-              <DealBanners />
-              <CombosShowcase onSelectForCustomize={setCustomizeItem} />
-              <div id="menu">
-                <CarouselShowcase onSelectForCustomize={setCustomizeItem} />
-              </div>
-              <CustomerReviews />
-              <FranchiseTeaser onOpenFranchise={() => setIsFranchiseOpen(true)} />
-            </main>
-            <Footer onOpenFranchise={() => setIsFranchiseOpen(true)} />
-            <FranchiseFloatingButton onOpenFranchise={() => setIsFranchiseOpen(true)} />
-            <FloatingCartBar />
-            <CartDrawer />
-            <OrderTrackerModal />
-            <AuthModal />
-            {customizeItem && (
-              <CustomizeModal item={customizeItem} onClose={() => setCustomizeItem(null)} />
-            )}
-            <FranchiseModal isOpen={isFranchiseOpen} onClose={() => setIsFranchiseOpen(false)} />
-            <BottomNavBar />
-          </div>
+          <CustomerAppContent />
         </CartProvider>
       </RealtimeProvider>
     </AuthProvider>

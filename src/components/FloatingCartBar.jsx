@@ -22,7 +22,7 @@ export default function FloatingCartBar() {
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 80, opacity: 0, scale: 0.95 }}
         transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-        className="fixed bottom-4 sm:bottom-6 left-0 right-0 z-40 px-4 pointer-events-none flex justify-center"
+        className="fixed bottom-20 sm:bottom-24 left-0 right-0 z-40 px-4 pointer-events-none flex justify-center"
       >
         <div 
           onClick={handleOpenBag}

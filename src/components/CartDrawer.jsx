@@ -323,7 +323,7 @@ export default function CartDrawer({ onOpenTracker }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-[9999] overflow-hidden">
       {/* Dark backdrop */}
       <div
         onClick={() => setIsCartOpen(false)}
@@ -908,7 +908,7 @@ export default function CartDrawer({ onOpenTracker }) {
 
           {/* Checkout Footer Button */}
           {cart.length > 0 && activeTab === 'cart' && (
-            <div className="p-4 bg-white border-t border-zinc-200">
+            <div className="p-4 pb-6 sm:pb-4 bg-white border-t border-zinc-200">
               {!isStoreCurrentlyOpen ? (
                 <div className="w-full py-3.5 px-4 rounded-2xl bg-zinc-100 border border-zinc-300 text-zinc-600 text-center space-y-1">
                   <div className="flex items-center justify-center gap-2 font-black text-sm text-zinc-800">

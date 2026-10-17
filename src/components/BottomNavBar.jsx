@@ -63,7 +63,9 @@ function resolveStoreMeta(storeId, extraName) {
   };
 }
 
-export default function BottomNavBar() {
+export default function BottomNavBar({ hidden = false }) {
+  if (hidden) return null;
+
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname.toLowerCase();

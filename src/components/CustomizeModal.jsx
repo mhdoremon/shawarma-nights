@@ -101,7 +101,7 @@ export default function CustomizeModal({ item, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60">
+      <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-xs">
         
         {/* Modal Container */}
         <motion.div
@@ -295,7 +295,7 @@ export default function CustomizeModal({ item, onClose }) {
           </div>
 
           {/* Sticky Bottom Actions */}
-          <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex items-center justify-between gap-4">
+          <div className="p-4 pb-6 sm:pb-4 bg-zinc-50 border-t border-zinc-200 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 bg-white border border-zinc-200 rounded-full px-3 py-1.5">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}

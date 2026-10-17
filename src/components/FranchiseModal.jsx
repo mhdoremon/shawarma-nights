@@ -95,7 +95,7 @@ export default function FranchiseModal({ isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-start justify-center p-2 sm:p-4 md:p-6">
+      <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/75 backdrop-blur-xs flex items-start justify-center p-2 sm:p-4 md:p-6">
         
         {/* Main Clean Modal Container (Solid Crisp Elevated 3D Card, Zero Blur) */}
         <motion.div
