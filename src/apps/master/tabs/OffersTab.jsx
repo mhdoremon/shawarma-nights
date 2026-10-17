@@ -57,6 +57,8 @@ export default function OffersTab() {
       expiry: dealModalData.expiry || null,
       autoApply: Boolean(dealModalData.autoApply),
       isCombo: Boolean(dealModalData.isCombo),
+      applicableTo: dealModalData.applicableTo || 'all',
+      applicableDishIds: Array.isArray(dealModalData.applicableDishIds) ? dealModalData.applicableDishIds : [],
       isActive: dealModalData.isActive !== false,
       active: dealModalData.active !== false
     };
@@ -166,6 +168,8 @@ export default function OffersTab() {
               firstOrderOnly: false,
               autoApply: isSalon,
               isCombo: isSalon,
+              applicableTo: 'all',
+              applicableDishIds: [],
               isActive: true,
               active: true
             })}
@@ -241,6 +245,23 @@ export default function OffersTab() {
                           ⚡ Auto-applies at checkout
                         </div>
                       )}
+                      <div className="flex justify-between items-center text-[11px] pt-1.5 border-t border-zinc-100">
+                        <span className="text-zinc-500 font-medium">Applies on:</span>
+                        <span className="font-bold text-zinc-800 text-[11px] truncate max-w-[170px]" title={
+                          (!deal.applicableTo || deal.applicableTo === 'all' || !deal.applicableDishIds?.length)
+                            ? 'All Dishes & Combos'
+                            : deal.applicableTo === 'single'
+                              ? (menu?.find(d => d.id === deal.applicableDishIds[0])?.name || '1 Specific Dish')
+                              : `${deal.applicableDishIds.length} Selected Dishes`
+                        }>
+                          {(!deal.applicableTo || deal.applicableTo === 'all' || !deal.applicableDishIds?.length)
+                            ? 'All Menu Dishes'
+                            : deal.applicableTo === 'single'
+                              ? (menu?.find(d => d.id === deal.applicableDishIds[0])?.name || '1 Specific Dish')
+                              : `${deal.applicableDishIds.length} Dishes Selected`
+                          }
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -261,7 +282,11 @@ export default function OffersTab() {
 
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setDealModalData({ ...deal })}
+                        onClick={() => setDealModalData({ 
+                          ...deal,
+                          applicableTo: deal.applicableTo || (deal.applicableDishIds?.length ? (deal.applicableDishIds.length === 1 ? 'single' : 'multiple') : 'all'),
+                          applicableDishIds: Array.isArray(deal.applicableDishIds) ? deal.applicableDishIds : []
+                        })}
                         className="p-2 rounded-full bg-white hover:bg-zinc-100 text-zinc-700 transition-colors shadow-2xs border-0 cursor-pointer"
                         title="Edit Deal"
                       >
@@ -646,6 +671,156 @@ export default function OffersTab() {
                     className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
                   />
                 </div>
+              </div>
+
+              {/* OFFER APPLICABILITY SELECTOR (All vs Single vs Multiple Dishes/Combos) */}
+              <div className="space-y-2.5 bg-[#FFFBF7] p-4 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-black text-zinc-800 uppercase tracking-wider">
+                    OFFER APPLICABILITY (Kis Dish / Combo par lagu hoga?)
+                  </label>
+                  <span className="text-[10px] font-bold text-zinc-500">
+                    {(dealModalData.applicableTo || 'all') === 'all' 
+                      ? 'Storewide Offer' 
+                      : dealModalData.applicableTo === 'single' 
+                        ? '1 Specific Dish' 
+                        : `${dealModalData.applicableDishIds?.length || 0} Dishes Selected`}
+                  </span>
+                </div>
+
+                {/* 3-way radio pills */}
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDealModalData({ ...dealModalData, applicableTo: 'all', applicableDishIds: [] })}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      (dealModalData.applicableTo || 'all') === 'all'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    All Dishes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstId = menu?.[0]?.id || '';
+                      setDealModalData({ 
+                        ...dealModalData, 
+                        applicableTo: 'single', 
+                        applicableDishIds: dealModalData.applicableDishIds?.[0] ? [dealModalData.applicableDishIds[0]] : (firstId ? [firstId] : []) 
+                      });
+                    }}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      dealModalData.applicableTo === 'single'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    Single Dish
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDealModalData({ 
+                      ...dealModalData, 
+                      applicableTo: 'multiple', 
+                      applicableDishIds: dealModalData.applicableDishIds || [] 
+                    })}
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer ${
+                      dealModalData.applicableTo === 'multiple'
+                        ? 'bg-zinc-900 text-white border-zinc-900 shadow-xs'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    Multiple Dishes
+                  </button>
+                </div>
+
+                {/* Single Dish Selector */}
+                {dealModalData.applicableTo === 'single' && (
+                  <div className="pt-1.5 space-y-1">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      Select Applicable Dish or Combo:
+                    </label>
+                    <select
+                      value={dealModalData.applicableDishIds?.[0] || ''}
+                      onChange={(e) => setDealModalData({ ...dealModalData, applicableDishIds: [e.target.value] })}
+                      className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs font-bold text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#DC2626] cursor-pointer"
+                    >
+                      {(menu || []).map(dish => (
+                        <option key={dish.id} value={dish.id}>
+                          {dish.isCombo ? '🍱 [COMBO] ' : ''}{dish.name} (₹{dish.price})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Multiple Dishes Checklist */}
+                {dealModalData.applicableTo === 'multiple' && (
+                  <div className="pt-1.5 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                      <span>Check Dishes / Combos for this Offer:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allIds = (menu || []).map(d => d.id);
+                          const isAllSelected = dealModalData.applicableDishIds?.length === allIds.length;
+                          setDealModalData({ ...dealModalData, applicableDishIds: isAllSelected ? [] : allIds });
+                        }}
+                        className="text-[#DC2626] hover:underline cursor-pointer"
+                      >
+                        {dealModalData.applicableDishIds?.length === (menu || []).length ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto space-y-1 p-2 bg-white rounded-xl border border-zinc-200">
+                      {(!menu || menu.length === 0) ? (
+                        <div className="text-zinc-400 text-xs text-center py-2">No menu dishes found.</div>
+                      ) : (
+                        menu.map(dish => {
+                          const isSelected = (dealModalData.applicableDishIds || []).includes(dish.id);
+                          return (
+                            <label 
+                              key={dish.id} 
+                              className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                                isSelected ? 'bg-red-50/70 border border-red-200/60' : 'hover:bg-zinc-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const current = dealModalData.applicableDishIds || [];
+                                  const next = e.target.checked 
+                                    ? [...current, dish.id]
+                                    : current.filter(id => id !== dish.id);
+                                  setDealModalData({ ...dealModalData, applicableDishIds: next });
+                                }}
+                                className="rounded text-[#DC2626] focus:ring-[#DC2626] w-4 h-4 cursor-pointer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="font-bold text-zinc-900 block truncate">
+                                  {dish.name}
+                                </span>
+                              </div>
+                              {dish.isCombo && (
+                                <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded uppercase">
+                                  Combo
+                                </span>
+                              )}
+                              <span className="text-zinc-500 font-mono font-bold text-xs shrink-0">
+                                ₹{dish.price}
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">

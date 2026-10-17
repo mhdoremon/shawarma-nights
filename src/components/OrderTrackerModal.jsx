@@ -11,11 +11,13 @@ import {
   Clock, 
   X, 
   RotateCcw,
-  ShieldCheck
+  ShieldCheck,
+  Receipt
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useCart } from '../context/CartContext';
 import { sounds } from '../utils/soundEffects';
+import CustomerBillModal from './CustomerBillModal';
 
 const TRACKER_STEPS = [
   {
@@ -53,6 +55,7 @@ const TRACKER_STEPS = [
 export default function OrderTrackerModal() {
   const { activeTracking, isTrackerOpen, setIsTrackerOpen } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isBillOpen, setIsBillOpen] = useState(false);
 
   useEffect(() => {
     if (activeTracking) {
@@ -245,6 +248,15 @@ export default function OrderTrackerModal() {
             </div>
           )}
 
+          {/* Customer Bill / Invoice Button */}
+          <button
+            onClick={() => setIsBillOpen(true)}
+            className="w-full py-2.5 px-4 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-900 font-black text-xs flex items-center justify-center gap-2 border border-stone-200/90 transition-all cursor-pointer shadow-xs active:scale-[0.99]"
+          >
+            <Receipt className="w-4 h-4 text-[#DC2626]" />
+            <span>View Digital Invoice / Bill (रसीद)</span>
+          </button>
+
           {/* Controls */}
           <div className="pt-3 border-t border-zinc-100 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
@@ -267,6 +279,13 @@ export default function OrderTrackerModal() {
 
         </div>
       </motion.div>
+
+      {/* Official Tax Invoice & Bill Modal */}
+      <CustomerBillModal 
+        order={activeTracking} 
+        isOpen={isBillOpen} 
+        onClose={() => setIsBillOpen(false)} 
+      />
     </div>
   );
 }

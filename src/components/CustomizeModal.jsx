@@ -110,7 +110,7 @@ export default function CustomizeModal({ item, onClose }) {
           <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs">
 
             {/* Bread Selection */}
-            {item.options?.bread && (
+            {item.options?.bread && item.options.bread.length > 0 && (
               <div>
                 <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2.5">
                   1. Choose Wrap / Bread
@@ -148,7 +148,7 @@ export default function CustomizeModal({ item, onClose }) {
             )}
 
             {/* Spice Preference */}
-            {item.options?.spiciness && (
+            {item.options?.spiciness && item.options.spiciness.length > 0 && (
               <div>
                 <h4 className="text-xs font-bold text-zinc-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 stroke-[2] text-red-600" />

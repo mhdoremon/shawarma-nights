@@ -103,6 +103,12 @@ const _validateSingleCoupon = (deal, subtotal, phone, itemCategories, storeId) =
             return { valid: false, reason: 'Coupon not applicable to items in cart' };
         }
     }
+
+    if (deal.applicableDishIds && Array.isArray(deal.applicableDishIds) && deal.applicableDishIds.length > 0) {
+        if (!itemIds || !Array.isArray(itemIds) || !itemIds.some(id => deal.applicableDishIds.includes(id))) {
+            return { valid: false, reason: 'Yeh coupon aapke bag me maujood specific items par lagu hota hai' };
+        }
+    }
     
     if (deal.firstOrderOnly && phone) {
         const orders = DataLayer.read(storeId, 'orders') || [];
@@ -117,7 +123,7 @@ const _validateSingleCoupon = (deal, subtotal, phone, itemCategories, storeId) =
 
 export const validateCoupon = (req, res) => {
     try {
-        const { code, subtotal, phone, itemCategories } = req.body;
+        const { code, subtotal, phone, itemCategories, itemIds } = req.body;
         const deals = DataLayer.read(req.storeId, 'deals') || [];
         
         const deal = deals.find(d => (d.code || '').toLowerCase() === (code || '').toLowerCase());
@@ -125,7 +131,7 @@ export const validateCoupon = (req, res) => {
             return res.json({ success: false, valid: false, reason: 'Invalid coupon code', message: 'Invalid promo code. Kripya valid offer code dalein!' });
         }
         
-        const result = _validateSingleCoupon(deal, subtotal, phone, itemCategories, req.storeId);
+        const result = _validateSingleCoupon(deal, subtotal, phone, itemCategories, req.storeId, itemIds);
         const isValid = Boolean(result.valid);
         res.json({
             success: isValid,

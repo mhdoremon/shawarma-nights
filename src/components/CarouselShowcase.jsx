@@ -36,7 +36,8 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
         .split('-')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
-      allCategoryList.push({ id: catId, name: formattedName, iconKey: 'Utensils' });
+      const iconKey = catId.toLowerCase() === 'combos' ? 'Package' : catId.toLowerCase() === 'shawarmas' ? 'Flame' : catId.toLowerCase() === 'fries' ? 'Layers' : catId.toLowerCase() === 'beverages' ? 'Coffee' : 'Utensils';
+      allCategoryList.push({ id: catId, name: formattedName, iconKey });
     }
   });
 
@@ -84,7 +85,12 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
 
   const handleAdd = (item) => {
     if (item.available === false) return;
-    const hasOpt = item.options && (item.options.bread || item.options.addons);
+    const hasOpt = !item.isCombo && item.options && (
+      (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
+      (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
+      (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
+      (Array.isArray(item.addons) && item.addons.length > 0)
+    );
     if (hasOpt && onSelectForCustomize) {
       onSelectForCustomize(item);
     } else {
@@ -234,8 +240,12 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                 if (!item) return null;
                 const dp = discountPercent(item) || 20; // Default discount badge like image if originalPrice not provided
                 const inCart = cartQty(item.id);
-                const isOutOfStock = item.available === false;
-                const hasOpt = item.options && (item.options.bread || item.options.addons);
+                const hasOpt = !item.isCombo && item.options && (
+                  (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
+                  (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
+                  (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
+                  (Array.isArray(item.addons) && item.addons.length > 0)
+                );
 
                 return (
                   <motion.div
@@ -324,12 +334,24 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                         {item.description}
                       </p>
 
-                      {/* Spicy pill badge (Image 1) */}
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200/60 px-2.5 py-0.5 rounded-full">
-                          <Flame className="w-3 h-3 text-orange-500" />
-                          <span>{item.spiceLevel || 'Spicy'}</span>
-                        </span>
+                      {/* Spicy pill badge or Combo Items list */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {item.isCombo ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full">
+                            <Package className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Combo Feast</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200/60 px-2.5 py-0.5 rounded-full">
+                            <Flame className="w-3 h-3 text-orange-500" />
+                            <span>{item.spiceLevel || 'Spicy'}</span>
+                          </span>
+                        )}
+                        {item.isCombo && item.comboItems?.length > 0 && (
+                          <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full">
+                            {item.comboItems.length} dishes bundled
+                          </span>
+                        )}
                       </div>
 
                       {/* Price & Action Button (Image 1) */}
@@ -360,7 +382,7 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                             className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
                           >
                             <Plus className="w-4 h-4 stroke-[3]" />
-                            <span>{hasOpt ? 'Customize' : 'Add'}</span>
+                            <span>{item.isCombo ? 'Add Combo' : (hasOpt ? 'Customize' : 'Add')}</span>
                           </motion.button>
                         )}
                       </div>

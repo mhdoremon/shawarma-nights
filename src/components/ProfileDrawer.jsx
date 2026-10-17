@@ -21,8 +21,10 @@ import {
   AlertCircle,
   User,
   MessageCircle,
-  HelpCircle
+  HelpCircle,
+  Receipt
 } from 'lucide-react';
+import CustomerBillModal from './CustomerBillModal';
 
 export default function ProfileDrawer() {
   const { 
@@ -47,6 +49,7 @@ export default function ProfileDrawer() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedBillOrder, setSelectedBillOrder] = useState(null);
 
   if (!currentUser) return null;
 
@@ -519,7 +522,7 @@ export default function ProfileDrawer() {
                               </div>
                             )}
 
-                            {/* Footer with Total */}
+                            {/* Footer with Total and View Bill */}
                             <div className="flex items-center justify-between pt-2.5 border-t border-stone-100 text-xs">
                               <div>
                                 <span className="text-[10px] font-bold text-stone-400 block uppercase tracking-wider">
@@ -529,6 +532,15 @@ export default function ProfileDrawer() {
                                   ₹{orderTotal}
                                 </span>
                               </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedBillOrder(order)}
+                                className="px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold flex items-center gap-1.5 border border-stone-200 transition-all cursor-pointer shadow-2xs hover:border-stone-300 active:scale-95"
+                              >
+                                <Receipt className="w-3.5 h-3.5 text-[#DC2626]" />
+                                <span>View Bill</span>
+                              </button>
                             </div>
                           </div>
                         );
@@ -671,6 +683,13 @@ export default function ProfileDrawer() {
           </motion.div>
         </div>
       )}
+
+      {/* Customer Digital Tax Invoice / Bill Modal */}
+      <CustomerBillModal 
+        order={selectedBillOrder} 
+        isOpen={Boolean(selectedBillOrder)} 
+        onClose={() => setSelectedBillOrder(null)} 
+      />
     </AnimatePresence>
   );
 }

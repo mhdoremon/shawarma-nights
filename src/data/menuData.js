@@ -368,10 +368,15 @@ export const MENU_ITEMS = [
     reviews: 2100,
     prepTime: '15-20 min',
     isVeg: false,
+    isCombo: true,
     badge: 'VALUE DUO',
     spiceLevel: 'Spicy',
     description: '2x Midnight Sultan Shawarmas + 1x Peri-Peri Loaded Fries + 2x Chilled Mint Mojitos or Cokes. Complete late-night feast.',
     image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80',
+    comboItems: [
+      { id: 'sh-1', name: 'Midnight Sultan Shawarma (x2)', price: 398 },
+      { id: 'fr-2', name: 'Peri-Peri Loaded Fries', price: 161 }
+    ],
     options: {
       spiciness: ['Mild', 'Spicy Garlic'],
       addons: [
@@ -390,10 +395,15 @@ export const MENU_ITEMS = [
     reviews: 1350,
     prepTime: '12-15 min',
     isVeg: false,
+    isCombo: true,
     badge: 'SOLO BOX',
     spiceLevel: 'Spicy',
     description: '1x Cheesy Lava Shawarma + 1x Regular Salted Fries + 1x Refreshing Chilled Soft Drink.',
     image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80',
+    comboItems: [
+      { id: 'sh-2', name: 'Cheesy Lava Shawarma', price: 229 },
+      { id: 'fr-1', name: 'Salted Golden Fries', price: 130 }
+    ],
     options: {
       spiciness: ['Spicy Garlic', 'Mild Herb'],
       addons: [

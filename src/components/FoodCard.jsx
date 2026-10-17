@@ -12,7 +12,12 @@ export default function FoodCard({ item, onSelectForCustomize }) {
     .filter((ci) => ci.itemId === item.id)
     .reduce((sum, ci) => sum + ci.quantity, 0);
 
-  const hasOptions = item.options && (item.options.bread || item.options.addons);
+  const hasOptions = !item.isCombo && item.options && (
+    (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
+    (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
+    (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
+    (Array.isArray(item.addons) && item.addons.length > 0)
+  );
 
   const handleAction = () => {
     if (hasOptions) {
@@ -139,7 +144,7 @@ export default function FoodCard({ item, onSelectForCustomize }) {
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>{hasOptions ? 'Customize' : 'Add'}</span>
+            <span>{item.isCombo ? 'Add Combo' : (hasOptions ? 'Customize' : 'Add')}</span>
           </motion.button>
         </div>
 

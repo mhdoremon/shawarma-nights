@@ -176,23 +176,32 @@ export function CartProvider({ children }) {
   let discount = 0;
   let freeItemName = null;
   if (appliedCoupon && subtotal >= (appliedCoupon.minOrder || 0)) {
-    const type = appliedCoupon.discountType || appliedCoupon.type;
-    if (type === 'percentage' || appliedCoupon.discountPercent) {
-      const percent = appliedCoupon.discountValue || appliedCoupon.value || appliedCoupon.discountPercent;
-      const calculated = (subtotal * percent) / 100;
-      discount = Math.min(calculated, appliedCoupon.maxCap || appliedCoupon.maxDiscount || Infinity);
-    } else if (type === 'flat' || appliedCoupon.flatDiscount) {
-      discount = appliedCoupon.discountValue || appliedCoupon.value || appliedCoupon.flatDiscount;
-    } else if (type === 'bogo') {
-      if (itemsCount >= 2) {
-        let cheapest = cart[0]?.unitPrice || 0;
-        for (let item of cart) {
-          if (item.unitPrice < cheapest) cheapest = item.unitPrice;
+    // If coupon is restricted to specific items, compute qualifying subtotal
+    const isItemSpecific = appliedCoupon.applicableDishIds && Array.isArray(appliedCoupon.applicableDishIds) && appliedCoupon.applicableDishIds.length > 0;
+    const qualifyingSubtotal = isItemSpecific
+      ? cart.filter(c => appliedCoupon.applicableDishIds.includes(c.itemId || c.id)).reduce((sum, c) => sum + (c.unitPrice * c.quantity), 0)
+      : subtotal;
+
+    if (qualifyingSubtotal > 0) {
+      const type = appliedCoupon.discountType || appliedCoupon.type;
+      if (type === 'percentage' || appliedCoupon.discountPercent) {
+        const percent = appliedCoupon.discountValue || appliedCoupon.value || appliedCoupon.discountPercent;
+        const calculated = (qualifyingSubtotal * percent) / 100;
+        discount = Math.min(calculated, appliedCoupon.maxCap || appliedCoupon.maxDiscount || Infinity);
+      } else if (type === 'flat' || appliedCoupon.flatDiscount) {
+        const flatVal = appliedCoupon.discountValue || appliedCoupon.value || appliedCoupon.flatDiscount;
+        discount = Math.min(flatVal, qualifyingSubtotal);
+      } else if (type === 'bogo') {
+        if (itemsCount >= 2) {
+          let cheapest = cart[0]?.unitPrice || 0;
+          for (let item of cart) {
+            if (item.unitPrice < cheapest) cheapest = item.unitPrice;
+          }
+          discount = cheapest;
         }
-        discount = cheapest;
+      } else if (type === 'freeItem') {
+        freeItemName = appliedCoupon.freeItemName || 'Surprise Free Item';
       }
-    } else if (type === 'freeItem') {
-      freeItemName = appliedCoupon.freeItemName || 'Surprise Free Item';
     }
   }
 
@@ -243,13 +252,14 @@ export function CartProvider({ children }) {
     try {
       const activeStoreId = getStoreId();
       const itemCategories = [...new Set(cart.map(c => c.category || 'all'))];
+      const itemIds = cart.map(c => c.itemId || c.id);
       const res = await fetch(`${API_URL}/api/coupon/validate`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-store-id': activeStoreId
         },
-        body: JSON.stringify({ code, subtotal, phone: '', itemCategories, storeId: activeStoreId })
+        body: JSON.stringify({ code, subtotal, phone: '', itemCategories, itemIds, storeId: activeStoreId })
       });
       const data = await res.json();
       const isValid = Boolean(data.success || data.valid);
@@ -268,6 +278,13 @@ export function CartProvider({ children }) {
 
       if (!coupon) {
         return { success: false, message: 'Invalid promo code. Kripya valid offer code dalein!' };
+      }
+
+      if (coupon.applicableDishIds && Array.isArray(coupon.applicableDishIds) && coupon.applicableDishIds.length > 0) {
+        const hasQualifying = cart.some(c => coupon.applicableDishIds.includes(c.itemId || c.id));
+        if (!hasQualifying) {
+          return { success: false, message: 'Yeh coupon aapke bag me maujood specific dish par lagu hota hai.' };
+        }
       }
 
       const minOrder = coupon.minOrder || 0;

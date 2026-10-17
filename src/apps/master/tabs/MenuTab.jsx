@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check, Package } from 'lucide-react';
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 
 export default function MenuTab() {
@@ -25,6 +25,7 @@ export default function MenuTab() {
   
   // Modals state
   const [modalItem, setModalItem] = useState(null); // Item Add/Edit Modal
+  const [comboModalItem, setComboModalItem] = useState(null); // Combo Meal Add/Edit Modal
   const [heroModalDish, setHeroModalDish] = useState(null); // Set Hero Offer Modal
 
   // Hero Offer Modal form state
@@ -101,7 +102,7 @@ export default function MenuTab() {
       ? ['haircut', 'beard', 'combo', 'packages', 'styling', 'facial', 'spa', 'massage'] 
       : (hasSizes && hasColors)
         ? ['shoes', 'sneakers', 'shirts', 'jackets', 'trousers', 'accessories']
-        : ['shawarmas', 'platters', 'fries', 'drinks', 'starters', 'rolls'];
+        : ['shawarmas', 'platters', 'fries', 'combos', 'drinks', 'starters', 'rolls'];
     defaults.forEach(c => set.add(c.toLowerCase()));
     (menu || []).forEach(d => {
       const c = (d.category || d.categoryId || '').trim().toLowerCase();
@@ -238,9 +239,19 @@ export default function MenuTab() {
     // Process durationMinutes for salons & appointment services
     const durMins = modalItem.durationMinutes ? Number(modalItem.durationMinutes) : (hasServiceDuration ? 30 : null);
 
+    // Process bread options for customization
+    let breadList = Array.isArray(modalItem.breadList)
+      ? modalItem.breadList.filter(b => b.name?.trim()).map(b => ({ name: b.name.trim(), price: Number(b.price) || 0 }))
+      : (modalItem.options?.bread || []);
+
+    // Process spiciness options for customization
+    let spicinessList = Array.isArray(modalItem.spicinessList)
+      ? modalItem.spicinessList.filter(s => typeof s === 'string' && s.trim())
+      : (modalItem.options?.spiciness || []);
+
     // Process addons
     let addons = modalItem.addons;
-    if (typeof addons === 'string') {
+    if (typeof addons === 'string' && addons.trim()) {
       addons = addons.split(',').map(a => {
         const parts = a.split(':');
         const n = (parts[0] || '').trim();
@@ -249,9 +260,21 @@ export default function MenuTab() {
       }).filter(Boolean);
     }
 
-    const finalAddons = Array.isArray(addons) && addons.length > 0 ? addons : (modalItem.addons || []);
+    let addonsList = Array.isArray(modalItem.addonsList) && modalItem.addonsList.length > 0
+      ? modalItem.addonsList.filter(a => a.name?.trim()).map(a => ({
+          id: a.id || `addon-${a.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          name: a.name.trim(),
+          price: Number(a.price) || 0
+        }))
+      : (Array.isArray(addons) && addons.length > 0 ? addons : (modalItem.options?.addons || []));
+
     const existingOptions = modalItem.options || {};
-    const updatedOptions = (hasFoodAddons && finalAddons.length > 0) ? { ...existingOptions, addons: finalAddons } : existingOptions;
+    const updatedOptions = hasFoodAddons ? {
+      ...existingOptions,
+      bread: breadList,
+      spiciness: spicinessList,
+      addons: addonsList
+    } : existingOptions;
 
     const payload = {
       ...modalItem,
@@ -270,7 +293,7 @@ export default function MenuTab() {
       availableSizes: hasSizes ? (Array.isArray(availableSizes) && availableSizes.length > 0 ? availableSizes : (modalItem.availableSizes || [])) : [],
       colors: hasColors ? (Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || [])) : [],
       secondaryImage: hasLookbook ? (modalItem.secondaryImage || '') : '',
-      addons: hasFoodAddons ? finalAddons : [],
+      addons: hasFoodAddons ? addonsList : [],
       options: updatedOptions,
       bookingFee: hasServiceDuration ? (modalItem.bookingFee !== undefined ? Number(modalItem.bookingFee) : 50) : undefined
     };
@@ -294,6 +317,44 @@ export default function MenuTab() {
     }
 
     setModalItem(null);
+  };
+
+  // Handle Save Combo Meal
+  const handleSaveCombo = async (e) => {
+    e.preventDefault();
+    if (!comboModalItem.name?.trim() || !comboModalItem.price) {
+      showToast('Combo title and price are required', 'error');
+      return;
+    }
+
+    const selectedDishes = (menu || []).filter(d => (comboModalItem.selectedDishIds || []).includes(d.id));
+    const origPrice = comboModalItem.originalPrice > 0 
+      ? Number(comboModalItem.originalPrice)
+      : selectedDishes.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+
+    const comboPayload = {
+      ...comboModalItem,
+      name: comboModalItem.name.trim(),
+      price: Number(comboModalItem.price),
+      originalPrice: Number(origPrice),
+      category: 'combos',
+      isCombo: true,
+      available: comboModalItem.available !== false,
+      comboItems: selectedDishes.map(d => ({ id: d.id, name: d.name, price: d.price, image: d.image })),
+      image: comboModalItem.image || (selectedDishes[0]?.image || 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80'),
+      description: comboModalItem.description || selectedDishes.map(d => d.name).join(' + '),
+      badge: comboModalItem.badge || (origPrice > Number(comboModalItem.price) ? `SAVE ₹${origPrice - Number(comboModalItem.price)}` : 'COMBO FEAST')
+    };
+
+    if (comboModalItem.id && (menu || []).some(d => d.id === comboModalItem.id)) {
+      await updateMenuItem(comboModalItem.id, comboPayload);
+      showToast(`Combo "${comboPayload.name}" updated!`, 'success');
+    } else {
+      await addMenuItem(comboPayload);
+      showToast(`Combo "${comboPayload.name}" added to menu!`, 'success');
+    }
+
+    setComboModalItem(null);
   };
 
   // Open Hero Offer Setup Dialog
@@ -350,33 +411,70 @@ export default function MenuTab() {
           </div>
 
           {/* Add New Item Button */}
-          <button
-            onClick={() => setModalItem({ 
-              name: '', 
-              price: hasServiceDuration ? '499' : (hasSizes && hasColors ? '1499' : '179'), 
-              originalPrice: '0',
-              category: hasServiceDuration ? 'haircut' : (hasSizes && hasColors ? 'shoes' : 'shawarmas'), 
-              isVeg: false,
-              badge: '',
-              prepTime: hasServiceDuration ? '30 min' : '15-20 min',
-              available: true, 
-              image: hasServiceDuration 
-                ? 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80'
-                : (hasSizes && hasColors
-                  ? 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85'
-                  : 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'),
-              description: '',
-              availableSizes: '',
-              colors: '',
-              secondaryImage: '',
-              addons: '',
-              bookingFee: hasServiceDuration ? '50' : undefined
-            })}
-            className={`px-5 py-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{addBtnText}</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
+              onClick={() => setModalItem({ 
+                name: '', 
+                price: hasServiceDuration ? '499' : (hasSizes && hasColors ? '1499' : '179'), 
+                originalPrice: '0',
+                category: hasServiceDuration ? 'haircut' : (hasSizes && hasColors ? 'shoes' : 'shawarmas'), 
+                isVeg: false,
+                badge: '',
+                prepTime: hasServiceDuration ? '30 min' : '15-20 min',
+                available: true, 
+                image: hasServiceDuration 
+                  ? 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80'
+                  : (hasSizes && hasColors
+                    ? 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85'
+                    : 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'),
+                description: '',
+                availableSizes: '',
+                colors: '',
+                secondaryImage: '',
+                addons: '',
+                breadList: hasFoodAddons ? [
+                  { name: 'Toasted Rumali Roti', price: 0 },
+                  { name: 'Fluffy Lebanese Pita', price: 20 },
+                  { name: 'Crispy Arabian Saj Bread', price: 30 }
+                ] : [],
+                spicinessList: hasFoodAddons ? ['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire'] : [],
+                addonsList: hasFoodAddons ? [
+                  { id: 'toum', name: 'Extra Garlic Toum (Famous Dip)', price: 25 },
+                  { id: 'cheese', name: 'Smoked Melted Mozzarella', price: 39 },
+                  { id: 'meat', name: 'Double Charcoal Grilled Meat', price: 59 },
+                  { id: 'fries_inside', name: 'Crispy Fries Wrapped Inside', price: 25 }
+                ] : [],
+                bookingFee: hasServiceDuration ? '50' : undefined
+              })}
+              className={`px-5 py-3 rounded-full ${hasServiceDuration ? 'bg-[#d4af37] hover:bg-[#b8972e]' : (hasSizes && hasColors) ? 'bg-zinc-900 hover:bg-black' : 'bg-[#DC2626] hover:bg-red-700'} text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all`}
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>{addBtnText}</span>
+            </button>
+
+            {/* Create Combo Meal Button (For Food Stores) */}
+            {hasFoodAddons && (
+              <button
+                type="button"
+                onClick={() => setComboModalItem({
+                  name: '',
+                  price: '',
+                  originalPrice: 0,
+                  badge: 'SAVE ₹100',
+                  description: '',
+                  image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80',
+                  selectedDishIds: [],
+                  category: 'combos',
+                  isCombo: true,
+                  available: true
+                })}
+                className="px-5 py-3 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all"
+              >
+                <Package className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+                <span>+ CREATE COMBO MEAL</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Category Filter Chips */}
@@ -456,6 +554,12 @@ export default function MenuTab() {
                       {dish.badge && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-800">
                           {dish.badge}
+                        </span>
+                      )}
+                      {dish.isCombo && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                          <Package className="w-3 h-3 text-amber-700" />
+                          <span>COMBO</span>
                         </span>
                       )}
                     </div>
@@ -541,10 +645,24 @@ export default function MenuTab() {
                   {/* Actions */}
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setModalItem({ 
-                        ...dish, 
-                        bookingFee: dish.bookingFee !== undefined ? String(dish.bookingFee) : (hasServiceDuration ? '50' : undefined) 
-                      })}
+                      onClick={() => {
+                        if (dish.isCombo) {
+                          setComboModalItem({
+                            ...dish,
+                            selectedDishIds: Array.isArray(dish.comboItems) 
+                              ? dish.comboItems.map(c => c.id) 
+                              : (dish.selectedDishIds || [])
+                          });
+                        } else {
+                          setModalItem({ 
+                            ...dish, 
+                            breadList: dish.options?.bread || [],
+                            spicinessList: dish.options?.spiciness || ['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire'],
+                            addonsList: dish.options?.addons || (Array.isArray(dish.addons) ? dish.addons : []),
+                            bookingFee: dish.bookingFee !== undefined ? String(dish.bookingFee) : (hasServiceDuration ? '50' : undefined) 
+                          });
+                        }
+                      }}
                       className="p-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 transition-colors cursor-pointer border-0"
                       title="Edit Item"
                     >
@@ -1037,35 +1155,253 @@ export default function MenuTab() {
                     </div>
                   )}
 
-                  {/* FOOD ADDONS & EXTRAS (Food Stores) */}
+                  {/* FOOD DISH CUSTOMIZATION STUDIO (Wrap/Bread, Spiciness, Addons) */}
                   {hasFoodAddons && (
-                    <div>
-                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                        ADDONS & EXTRAS (Format: Name:Price)
-                      </label>
-                      <input
-                        type="text"
-                        value={Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '')}
-                        onChange={(e) => setModalItem({ ...modalItem, addons: e.target.value })}
-                        placeholder="Extra Cheese:30, Extra Toum:20, Fries Inside:40"
-                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                      />
-                      <div className="flex items-center gap-1 pt-1 flex-wrap">
-                        {['Extra Cheese:30', 'Extra Toum:20', 'French Fries Inside:40', 'Toasted Saj Bread:20'].map(ad => (
+                    <div className="space-y-4 pt-2 border-t border-zinc-100">
+                      
+                      {/* Section 1: Wrap / Bread Options */}
+                      <div className="bg-[#FFFBF7] p-3.5 rounded-2xl border border-zinc-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                              1. Wrap / Bread Options ({modalItem.breadList?.length || 0})
+                            </label>
+                            <p className="text-[10px] text-zinc-500">Customer ko wrap choose karne ka option milega</p>
+                          </div>
                           <button
-                            key={ad}
                             type="button"
                             onClick={() => {
-                              const curr = Array.isArray(modalItem.addons) ? modalItem.addons.map(a => `${a.name}:${a.price}`).join(', ') : (modalItem.addons || '');
-                              const next = curr ? `${curr}, ${ad}` : ad;
-                              setModalItem({ ...modalItem, addons: next });
+                              const curr = Array.isArray(modalItem.breadList) ? [...modalItem.breadList] : [];
+                              setModalItem({
+                                ...modalItem,
+                                breadList: [...curr, { name: '', price: 0 }]
+                              });
                             }}
-                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-zinc-900 text-white text-[10px] font-bold cursor-pointer"
                           >
-                            + {ad}
+                            + Add Wrap
                           </button>
-                        ))}
+                        </div>
+
+                        {/* Bread Items List */}
+                        <div className="space-y-1.5">
+                          {(modalItem.breadList || []).map((bread, bIdx) => (
+                            <div key={bIdx} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-zinc-200">
+                              <input
+                                type="text"
+                                value={bread.name || ''}
+                                onChange={(e) => {
+                                  const updated = [...modalItem.breadList];
+                                  updated[bIdx] = { ...updated[bIdx], name: e.target.value };
+                                  setModalItem({ ...modalItem, breadList: updated });
+                                }}
+                                placeholder="e.g. Toasted Rumali Roti"
+                                className="flex-1 text-xs font-bold text-zinc-900 border-0 p-0 focus:outline-none"
+                              />
+                              <div className="flex items-center gap-1 bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200 shrink-0">
+                                <span className="text-[10px] text-zinc-500 font-bold">+₹</span>
+                                <input
+                                  type="number"
+                                  value={bread.price ?? 0}
+                                  onChange={(e) => {
+                                    const updated = [...modalItem.breadList];
+                                    updated[bIdx] = { ...updated[bIdx], price: Number(e.target.value) || 0 };
+                                    setModalItem({ ...modalItem, breadList: updated });
+                                  }}
+                                  className="w-10 text-xs font-mono font-bold text-zinc-900 border-0 p-0 focus:outline-none text-right"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = modalItem.breadList.filter((_, idx) => idx !== bIdx);
+                                  setModalItem({ ...modalItem, breadList: updated });
+                                }}
+                                className="p-1 text-zinc-400 hover:text-red-600 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Quick Presets for Bread */}
+                        <div className="flex items-center gap-1 pt-1 flex-wrap">
+                          <span className="text-[10px] font-bold text-zinc-400 mr-1">Quick Add:</span>
+                          {[
+                            { name: 'Toasted Rumali Roti', price: 0 },
+                            { name: 'Fluffy Lebanese Pita', price: 20 },
+                            { name: 'Crispy Arabian Saj Bread', price: 30 },
+                            { name: 'Kuboos Bread', price: 10 }
+                          ].map(preset => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => {
+                                const curr = Array.isArray(modalItem.breadList) ? [...modalItem.breadList] : [];
+                                if (!curr.some(b => b.name === preset.name)) {
+                                  setModalItem({ ...modalItem, breadList: [...curr, preset] });
+                                }
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-white text-zinc-700 text-[9px] font-bold border border-zinc-200 cursor-pointer hover:bg-zinc-100"
+                            >
+                              + {preset.name} (+₹{preset.price})
+                            </button>
+                          ))}
+                        </div>
                       </div>
+
+                      {/* Section 2: Spiciness Levels */}
+                      <div className="bg-[#FFFBF7] p-3.5 rounded-2xl border border-zinc-200/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider flex items-center gap-1">
+                              <Flame className="w-3 h-3 text-orange-500" />
+                              <span>2. Spiciness Levels ({modalItem.spicinessList?.length || 0})</span>
+                            </label>
+                            <p className="text-[10px] text-zinc-500">Customer apni pasand ka teekhapan select karega</p>
+                          </div>
+                        </div>
+
+                        {/* Active Spice Chips */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {(modalItem.spicinessList || []).map((spice, sIdx) => (
+                            <span 
+                              key={sIdx} 
+                              className="inline-flex items-center gap-1 bg-white text-orange-800 border border-orange-200 px-2.5 py-1 rounded-xl text-xs font-bold shadow-2xs"
+                            >
+                              <span>{spice}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = modalItem.spicinessList.filter((_, idx) => idx !== sIdx);
+                                  setModalItem({ ...modalItem, spicinessList: updated });
+                                }}
+                                className="text-zinc-400 hover:text-red-600 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Quick Presets for Spice */}
+                        <div className="flex items-center gap-1 pt-1 flex-wrap">
+                          <span className="text-[10px] font-bold text-zinc-400 mr-1">Quick Add:</span>
+                          {['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire', 'Medium Teekha', 'Extra Spicy'].map(sp => (
+                            <button
+                              key={sp}
+                              type="button"
+                              onClick={() => {
+                                const curr = Array.isArray(modalItem.spicinessList) ? [...modalItem.spicinessList] : [];
+                                if (!curr.includes(sp)) {
+                                  setModalItem({ ...modalItem, spicinessList: [...curr, sp] });
+                                }
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-white text-zinc-700 text-[9px] font-bold border border-zinc-200 cursor-pointer hover:bg-zinc-100"
+                            >
+                              + {sp}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Section 3: Addons & Extra Toppings */}
+                      <div className="bg-[#FFFBF7] p-3.5 rounded-2xl border border-zinc-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                              3. Addons & Extra Toppings ({modalItem.addonsList?.length || 0})
+                            </label>
+                            <p className="text-[10px] text-zinc-500">Cheese, Garlic Toum, French Fries and extra meat</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const curr = Array.isArray(modalItem.addonsList) ? [...modalItem.addonsList] : [];
+                              setModalItem({
+                                ...modalItem,
+                                addonsList: [...curr, { id: `addon-${Date.now()}`, name: '', price: 20 }]
+                              });
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-zinc-900 text-white text-[10px] font-bold cursor-pointer"
+                          >
+                            + Add Addon
+                          </button>
+                        </div>
+
+                        {/* Addons List */}
+                        <div className="space-y-1.5">
+                          {(modalItem.addonsList || []).map((addon, aIdx) => (
+                            <div key={aIdx} className="flex items-center gap-2 bg-white p-2 rounded-xl border border-zinc-200">
+                              <input
+                                type="text"
+                                value={addon.name || ''}
+                                onChange={(e) => {
+                                  const updated = [...modalItem.addonsList];
+                                  updated[aIdx] = { ...updated[aIdx], name: e.target.value };
+                                  setModalItem({ ...modalItem, addonsList: updated });
+                                }}
+                                placeholder="e.g. Extra Garlic Toum"
+                                className="flex-1 text-xs font-bold text-zinc-900 border-0 p-0 focus:outline-none"
+                              />
+                              <div className="flex items-center gap-1 bg-zinc-50 px-2 py-1 rounded-lg border border-zinc-200 shrink-0">
+                                <span className="text-[10px] text-zinc-500 font-bold">+₹</span>
+                                <input
+                                  type="number"
+                                  value={addon.price ?? 20}
+                                  onChange={(e) => {
+                                    const updated = [...modalItem.addonsList];
+                                    updated[aIdx] = { ...updated[aIdx], price: Number(e.target.value) || 0 };
+                                    setModalItem({ ...modalItem, addonsList: updated });
+                                  }}
+                                  className="w-10 text-xs font-mono font-bold text-zinc-900 border-0 p-0 focus:outline-none text-right"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = modalItem.addonsList.filter((_, idx) => idx !== aIdx);
+                                  setModalItem({ ...modalItem, addonsList: updated });
+                                }}
+                                className="p-1 text-zinc-400 hover:text-red-600 transition-colors"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Quick Presets for Addons */}
+                        <div className="flex items-center gap-1 pt-1 flex-wrap">
+                          <span className="text-[10px] font-bold text-zinc-400 mr-1">Quick Add:</span>
+                          {[
+                            { name: 'Extra Garlic Toum (Famous Dip)', price: 25 },
+                            { name: 'Smoked Melted Mozzarella', price: 39 },
+                            { name: 'Double Charcoal Grilled Meat', price: 59 },
+                            { name: 'Crispy Fries Wrapped Inside', price: 25 },
+                            { name: 'Extra Jalapeños & Pickles', price: 20 }
+                          ].map(preset => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => {
+                                const curr = Array.isArray(modalItem.addonsList) ? [...modalItem.addonsList] : [];
+                                if (!curr.some(a => a.name === preset.name)) {
+                                  setModalItem({ 
+                                    ...modalItem, 
+                                    addonsList: [...curr, { id: `addon-${preset.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`, ...preset }] 
+                                  });
+                                }
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-white text-zinc-700 text-[9px] font-bold border border-zinc-200 cursor-pointer hover:bg-zinc-100"
+                            >
+                              + {preset.name.split('(')[0]} (+₹{preset.price})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                     </div>
                   )}
                 </div>
@@ -1089,6 +1425,275 @@ export default function MenuTab() {
                   Cancel
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 1.5: COMBO MEAL BUILDER & EDITOR */}
+      {comboModalItem && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white text-zinc-900 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border-0 overflow-hidden my-auto">
+            
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-zinc-100 flex items-center justify-between shrink-0 bg-stone-900 text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-black flex items-center justify-center font-bold">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <span>{comboModalItem.id ? 'Edit Combo Meal' : 'Create New Combo Meal'}</span>
+                    <span className="text-[10px] bg-amber-400 text-black font-black px-2 py-0.5 rounded-full uppercase">
+                      Bundle
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-stone-300">Multiple dishes ko bundle karke special price par bechein</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setComboModalItem(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveCombo} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs">
+              
+              {/* Combo Title */}
+              <div>
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                  COMBO NAME / TITLE *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={comboModalItem.name || ''}
+                  onChange={(e) => setComboModalItem({ ...comboModalItem, name: e.target.value })}
+                  placeholder="e.g. The Royal Duo Shawarma Feast"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm font-bold text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                />
+              </div>
+
+              {/* Select Dishes to Bundle */}
+              <div className="space-y-2 bg-[#FFFBF7] p-3.5 rounded-2xl border border-zinc-200/80">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                    SELECT DISHES TO BUNDLE ({(comboModalItem.selectedDishIds || []).length} SELECTED)
+                  </label>
+                  <span className="text-[10px] font-bold text-zinc-500">
+                    Click dishes to add/remove
+                  </span>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-1.5 p-2 bg-white rounded-xl border border-zinc-200">
+                  {(!menu || menu.length === 0) ? (
+                    <div className="text-zinc-400 text-center py-4">No dishes found in menu.</div>
+                  ) : (
+                    menu.filter(d => !d.isCombo || d.id === comboModalItem.id).map(dish => {
+                      const isSelected = (comboModalItem.selectedDishIds || []).includes(dish.id);
+                      return (
+                        <div
+                          key={dish.id}
+                          onClick={() => {
+                            const current = comboModalItem.selectedDishIds || [];
+                            const next = isSelected 
+                              ? current.filter(id => id !== dish.id)
+                              : [...current, dish.id];
+                            
+                            // Auto-sum selected dishes prices
+                            const selDishes = menu.filter(d => next.includes(d.id));
+                            const autoOrig = selDishes.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+                            
+                            setComboModalItem({
+                              ...comboModalItem,
+                              selectedDishIds: next,
+                              originalPrice: autoOrig
+                            });
+                          }}
+                          className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all border ${
+                            isSelected 
+                              ? 'bg-amber-50/80 border-amber-300 shadow-2xs' 
+                              : 'bg-white border-zinc-200/70 hover:bg-zinc-50'
+                          }`}
+                        >
+                          <img
+                            src={getImageUrl(dish.image)}
+                            alt={dish.name}
+                            onError={handleImageError}
+                            className="w-10 h-10 rounded-lg object-cover bg-zinc-100 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-bold text-zinc-900 truncate text-xs">{dish.name}</h5>
+                            <span className="text-[10px] text-zinc-400 block">{dish.category || 'Dish'}</span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-mono font-bold text-xs text-zinc-800">₹{dish.price}</span>
+                            <div className={`w-4 h-4 rounded-full mt-0.5 ml-auto flex items-center justify-center border ${
+                              isSelected ? 'bg-amber-500 border-amber-500 text-white' : 'border-zinc-300'
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing & Savings Live Math Box */}
+              {(() => {
+                const selectedDishes = (menu || []).filter(d => (comboModalItem.selectedDishIds || []).includes(d.id));
+                const autoCalculatedOriginal = selectedDishes.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+                const comboSellingPrice = Number(comboModalItem.price) || 0;
+                const savings = autoCalculatedOriginal > comboSellingPrice ? autoCalculatedOriginal - comboSellingPrice : 0;
+                const savingsPercent = autoCalculatedOriginal > 0 && savings > 0 
+                  ? Math.round((savings / autoCalculatedOriginal) * 100) 
+                  : 0;
+
+                return (
+                  <div className="grid grid-cols-2 gap-3 bg-gradient-to-r from-red-50 to-amber-50 p-3.5 rounded-2xl border border-red-200/80">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-600 uppercase tracking-wider mb-1">
+                        Combined Item Total:
+                      </label>
+                      <div className="text-base font-black font-mono text-zinc-700 line-through">
+                        ₹{autoCalculatedOriginal}
+                      </div>
+                      <span className="text-[10px] text-zinc-400">Sum of selected items</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-[#DC2626] uppercase tracking-wider mb-1">
+                        COMBO OFFER PRICE (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        value={comboModalItem.price || ''}
+                        onChange={(e) => setComboModalItem({ ...comboModalItem, price: e.target.value })}
+                        placeholder="e.g. 349"
+                        className="w-full bg-white rounded-xl px-3 py-1.5 text-sm font-black text-[#DC2626] border border-red-300 focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                      />
+                      {savings > 0 && (
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full inline-block mt-1">
+                          Save ₹{savings} ({savingsPercent}% OFF)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Combo Badge */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    COMBO BADGE (RIBBON)
+                  </label>
+                  <input
+                    type="text"
+                    value={comboModalItem.badge || ''}
+                    onChange={(e) => setComboModalItem({ ...comboModalItem, badge: e.target.value })}
+                    placeholder="e.g. SAVE ₹100, DUO SPECIAL"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs font-bold text-zinc-900 border-0 shadow-xs focus:bg-white focus:ring-2 focus:ring-[#DC2626]"
+                  />
+                  <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    {['SAVE ₹100', 'SAVE ₹150', 'DUO SPECIAL', 'WEEKEND FEAST', 'PARTY PACK'].map(bd => (
+                      <button
+                        key={bd}
+                        type="button"
+                        onClick={() => setComboModalItem({ ...comboModalItem, badge: bd })}
+                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-[9px] font-bold text-zinc-700 hover:bg-zinc-200 cursor-pointer"
+                      >
+                        {bd}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                    COMBO PHOTO (URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={comboModalItem.image || ''}
+                    onChange={(e) => setComboModalItem({ ...comboModalItem, image: e.target.value })}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 border-0 shadow-xs focus:bg-white focus:ring-2 focus:ring-[#DC2626]"
+                  />
+                  <div className="flex items-center gap-1 pt-1 flex-wrap">
+                    {[
+                      { name: 'Feast 1', url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80' },
+                      { name: 'Feast 2', url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80' },
+                      { name: 'Party Platter', url: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&auto=format&fit=crop&q=80' }
+                    ].map(im => (
+                      <button
+                        key={im.name}
+                        type="button"
+                        onClick={() => setComboModalItem({ ...comboModalItem, image: im.url })}
+                        className="px-2 py-0.5 rounded-md bg-zinc-100 text-[9px] font-bold text-zinc-700 hover:bg-zinc-200 cursor-pointer"
+                      >
+                        {im.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Combo Description */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider">
+                    COMBO DESCRIPTION
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sel = (menu || []).filter(d => (comboModalItem.selectedDishIds || []).includes(d.id));
+                      if (sel.length > 0) {
+                        setComboModalItem({
+                          ...comboModalItem,
+                          description: sel.map(d => d.name).join(' + ')
+                        });
+                      }
+                    }}
+                    className="text-[10px] font-bold text-[#DC2626] hover:underline cursor-pointer"
+                  >
+                    Auto-Fill from Selected Items
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={comboModalItem.description || ''}
+                  onChange={(e) => setComboModalItem({ ...comboModalItem, description: e.target.value })}
+                  placeholder="e.g. 2x Sultan Shawarma + 1x Loaded Peri Peri Fries + 2x Mint Mojito"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 border-0 shadow-xs focus:bg-white focus:ring-2 focus:ring-[#DC2626] resize-none"
+                />
+              </div>
+
+              {/* Submit & Cancel Buttons */}
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0 active:scale-98 transition-all"
+                >
+                  {comboModalItem.id ? 'UPDATE COMBO MEAL' : 'SAVE & PUBLISH COMBO MEAL'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComboModalItem(null)}
+                  className="py-3.5 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer border-0"
+                >
+                  Cancel
+                </button>
+              </div>
+
             </form>
           </div>
         </div>

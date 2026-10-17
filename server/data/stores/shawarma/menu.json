@@ -46,6 +46,78 @@
       "rating": 5,
       "reviews": 1,
       "id": "dish-1789999032815",
+      "available": true,
+      "options": {
+        "bread": [
+          { "name": "Toasted Rumali Roti", "price": 0 },
+          { "name": "Fluffy Lebanese Pita", "price": 20 },
+          { "name": "Crispy Arabian Saj Bread", "price": 30 }
+        ],
+        "spiciness": ["Mild Herb", "Spicy Garlic", "Ghost Naga Fire"],
+        "addons": [
+          { "id": "toum", "name": "Extra Garlic Toum (Famous Dip)", "price": 25 },
+          { "id": "cheese", "name": "Smoked Melted Mozzarella", "price": 39 },
+          { "id": "meat", "name": "Double Charcoal Grilled Meat", "price": 59 }
+        ]
+      }
+    },
+    {
+      "id": "cb-1",
+      "name": "Midnight Craving Duo Box",
+      "category": "combos",
+      "price": 399,
+      "originalPrice": 559,
+      "rating": 5.0,
+      "reviews": 2100,
+      "prepTime": "15-20 min",
+      "isVeg": false,
+      "isCombo": true,
+      "badge": "VALUE DUO",
+      "spiceLevel": "Spicy",
+      "description": "2x Midnight Sultan Shawarmas + 1x Peri-Peri Loaded Fries + 2x Chilled Mint Mojitos or Cokes. Complete late-night feast.",
+      "image": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80",
+      "comboItems": [
+        { "id": "sh-1", "name": "Midnight Sultan Shawarma (x2)", "price": 398 },
+        { "id": "fr-2", "name": "Peri-Peri Loaded Fries", "price": 161 }
+      ],
+      "options": {
+        "bread": [
+          { "name": "Toasted Rumali Roti", "price": 0 },
+          { "name": "Fluffy Lebanese Pita", "price": 20 }
+        ],
+        "spiciness": ["Mild", "Spicy Garlic"],
+        "addons": [
+          { "id": "cheese", "name": "Add Cheese to Both Shawarmas", "price": 59 },
+          { "id": "dip", "name": "Extra Duo Dip Pack", "price": 39 }
+        ]
+      },
+      "available": true
+    },
+    {
+      "id": "cb-2",
+      "name": "Midnight Solo Champion Box",
+      "category": "combos",
+      "price": 279,
+      "originalPrice": 359,
+      "rating": 4.9,
+      "reviews": 1350,
+      "prepTime": "12-15 min",
+      "isVeg": false,
+      "isCombo": true,
+      "badge": "SOLO BOX",
+      "spiceLevel": "Spicy",
+      "description": "1x Cheesy Lava Shawarma + 1x Regular Salted Fries + 1x Refreshing Chilled Soft Drink.",
+      "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80",
+      "comboItems": [
+        { "id": "sh-2", "name": "Cheesy Lava Shawarma", "price": 229 },
+        { "id": "fr-1", "name": "Salted Golden Fries", "price": 130 }
+      ],
+      "options": {
+        "spiciness": ["Spicy Garlic", "Mild Herb"],
+        "addons": [
+          { "id": "cheese", "name": "Upgrade to Cheesy Fries", "price": 35 }
+        ]
+      },
       "available": true
     }
   ],
