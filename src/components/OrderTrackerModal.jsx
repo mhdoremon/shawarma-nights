@@ -129,9 +129,9 @@ export default function OrderTrackerModal() {
 
             <div className="text-right">
               <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                Total Paid
+                {String(activeTracking.paymentMethod || '').toUpperCase() === 'COD' && currentStep < 4 ? 'To Pay (Cash)' : 'Total Paid'}
               </div>
-              <div className="text-sm font-black text-red-600 font-mono">
+              <div className={`text-sm font-black font-mono ${String(activeTracking.paymentMethod || '').toUpperCase() === 'COD' && currentStep < 4 ? 'text-amber-700' : 'text-emerald-600'}`}>
                 ₹{activeTracking.grandTotal}
               </div>
             </div>
@@ -169,10 +169,21 @@ export default function OrderTrackerModal() {
                 </div>
               </div>
 
-              {activeTracking.paymentMethod === 'COD' && (
-                <div className="text-[11px] font-bold text-amber-900 bg-amber-100/60 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
-                  <span>💵 Cash On Delivery Collectible:</span>
-                  <span className="font-mono font-black text-[#DC2626]">₹{activeTracking.grandTotal}</span>
+              {String(activeTracking.paymentMethod || '').toUpperCase() === 'COD' ? (
+                <div className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center justify-between ${
+                  currentStep === 4 || activeTracking.status === 'delivered'
+                    ? 'text-emerald-800 bg-emerald-100/80 border border-emerald-200'
+                    : 'text-amber-900 bg-amber-100/60 border border-amber-200'
+                }`}>
+                  <span>💵 Cash On Delivery ({currentStep === 4 || activeTracking.status === 'delivered' ? 'Paid / Collected' : 'To Collect'}):</span>
+                  <span className={`font-mono font-black ${currentStep === 4 || activeTracking.status === 'delivered' ? 'text-emerald-700' : 'text-[#DC2626]'}`}>
+                    ₹{activeTracking.grandTotal} {currentStep === 4 || activeTracking.status === 'delivered' ? '✓ PAID' : ''}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2.5 py-1.5 rounded-lg flex items-center justify-between">
+                  <span>⚡ Online UPI Payment:</span>
+                  <span className="font-mono font-black text-emerald-700">₹{activeTracking.grandTotal} ✓ PAID ONLINE</span>
                 </div>
               )}
             </div>

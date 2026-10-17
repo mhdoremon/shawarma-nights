@@ -147,6 +147,26 @@ export const placeOrder = async (req, res) => {
             }
         }
 
+        // ─── IDEMPOTENCY GUARD: Block duplicate orderId or accidental double-tap within 5 seconds ───
+        const targetId = payload.orderId || payload.id;
+        const existingById = targetId ? orders.find(o => String(o.id) === String(targetId)) : null;
+        if (existingById) {
+            console.log(`🛡️ [Order Guard] Blocked duplicate submission for existing order ID ${targetId}. Returning existing order #${existingById.orderNumber}`);
+            return res.json({ success: true, order: existingById, isDuplicateBlocked: true });
+        }
+
+        const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
+        const incomingTotal = safeNum(payload.total || payload.grandTotal || payload.totalPrice || 0);
+        const duplicateRecent = orders.find(o => 
+            cleanPhone && o.customer?.phone && normalizePhone(o.customer.phone) === cleanPhone &&
+            Math.abs(safeNum(o.total || o.totalPrice) - incomingTotal) < 1 &&
+            o.createdAt && o.createdAt >= fiveSecondsAgo
+        );
+        if (duplicateRecent) {
+            console.log(`🛡️ [Order Guard] Blocked rapid duplicate submission for ${cleanPhone}. Returning existing order #${duplicateRecent.orderNumber}`);
+            return res.json({ success: true, order: duplicateRecent, isDuplicateBlocked: true });
+        }
+
         const prefix = (storeConfig.slug || storeId).split('-').map(s => s[0]).join('').toUpperCase().slice(0, 3) || 'ORD';
         const orderNumCount = orders.length + 1;
         const defaultOrderNum = `${prefix}-${String(orderNumCount).padStart(4, '0')}`;
@@ -155,7 +175,10 @@ export const placeOrder = async (req, res) => {
         const isOnlinePayment = String(payload.paymentMethod || '').trim().toLowerCase() === 'upi' || 
                                 String(payload.paymentMethod || '').trim().toLowerCase() === 'online';
         const status = payload.status || (isOnlinePayment ? 'payment_pending' : 'new');
-        const deliveryOtp = payload.deliveryType === 'delivery' ? generateOtp() : null;
+        
+        // CRITICAL FIX: Ensure deliveryOtp is NEVER null for home delivery
+        const isPickupOrDineIn = payload.deliveryType === 'pickup' || payload.deliveryType === 'dine_in';
+        const deliveryOtp = isPickupOrDineIn ? null : (payload.deliveryOtp || generateOtp());
 
         // Extract customer
         const customerName = payload.customer?.name || payload.customerName || payload.name || "";

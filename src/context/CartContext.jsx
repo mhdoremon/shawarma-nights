@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { PROMO_CODES, RESTAURANT_INFO } from '../data/menuData';
 import { sounds } from '../utils/soundEffects';
 import { useRealtimeDB } from './RealtimeContext';
@@ -47,6 +47,7 @@ export function CartProvider({ children }) {
 
   const [deliveryType, setDeliveryType] = useState('delivery');
   const [userAddress, setUserAddress] = useState('');
+  const lastOrderTimeRef = useRef(0);
 
   const clearActiveTracking = () => {
     setActiveTracking(null);
@@ -58,7 +59,10 @@ export function CartProvider({ children }) {
   // Sync active tracking with real-time orders updates from Dukandar
   useEffect(() => {
     if (activeTracking && orders.length > 0) {
-      const liveOrder = orders.find((o) => o.id === activeTracking.orderId);
+      const liveOrder = orders.find((o) => o && (
+        String(o.id) === String(activeTracking.orderId) || 
+        (o.orderNumber && String(o.orderNumber) === String(activeTracking.orderId))
+      ));
       if (liveOrder) {
         let stepIndex = 0;
         const normStatus = (liveOrder.status || '').toLowerCase();
@@ -69,11 +73,13 @@ export function CartProvider({ children }) {
         else if (normStatus === 'cancelled') stepIndex = -1;
 
         const needsOtpSync = liveOrder.deliveryOtp && !activeTracking.deliveryOtp;
-        if (activeTracking.step !== stepIndex || activeTracking.status !== liveOrder.status || needsOtpSync) {
+        const needsPaymentSync = liveOrder.paymentStatus && activeTracking.paymentStatus !== liveOrder.paymentStatus;
+        if (activeTracking.step !== stepIndex || activeTracking.status !== liveOrder.status || needsOtpSync || needsPaymentSync) {
           setActiveTracking((prev) => ({
             ...prev,
             status: liveOrder.status,
             step: stepIndex,
+            paymentStatus: liveOrder.paymentStatus || (stepIndex === 4 ? 'paid' : prev?.paymentStatus),
             deliveryOtp: liveOrder.deliveryOtp || prev?.deliveryOtp,
           }));
         }
@@ -319,18 +325,26 @@ export function CartProvider({ children }) {
   };
 
   const startOrderTracking = (orderMeta = {}) => {
+    const now = Date.now();
+    if (now - lastOrderTimeRef.current < 4000) {
+      console.warn('⚠️ [CartContext] Throttled duplicate startOrderTracking call within 4s.');
+      return;
+    }
+    lastOrderTimeRef.current = now;
+
     const orderId = orderMeta.orderId || ('SN-' + Math.floor(100000 + Math.random() * 900000));
     const paymentMethod = orderMeta.paymentMethod || 'COD';
     const paymentStatus = orderMeta.paymentStatus || (paymentMethod === 'UPI' ? 'paid' : 'pending_cash');
     const utr = orderMeta.utr || null;
     const deliveryOtp = orderMeta.deliveryOtp || String(Math.floor(1000 + Math.random() * 9000));
+    const finalDeliveryType = orderMeta.deliveryType || deliveryType || 'delivery';
 
     const trackingObj = {
       orderId,
       items: orderMeta.items || [...cart],
       grandTotal: orderMeta.grandTotal || grandTotal,
       deliveryAddress: orderMeta.address || userAddress,
-      deliveryType,
+      deliveryType: finalDeliveryType,
       placedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       estimatedArrival: '18 - 24 Mins',
       step: 0,
@@ -359,6 +373,7 @@ export function CartProvider({ children }) {
         paymentStatus,
         utr,
         deliveryOtp,
+        deliveryType: finalDeliveryType,
         orderGps: orderMeta.orderGps || null,
       });
     }

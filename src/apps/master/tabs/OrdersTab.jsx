@@ -276,9 +276,29 @@ export default function OrdersTab() {
 
     // CRITICAL FIX: Sort descending by timestamp so newest order is ALWAYS at the top (index 0)
     return list.sort((a, b) => {
-      const tA = new Date(a.createdAt || a.date || a.dateISO || a.placedAt || 0).getTime();
-      const tB = new Date(b.createdAt || b.date || b.dateISO || b.placedAt || 0).getTime();
-      return tB - tA;
+      const getOrderTimestamp = (o) => {
+        if (!o) return 0;
+        if (o.createdAt) {
+          const t = new Date(o.createdAt).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (o.dateISO) {
+          const t = new Date(o.dateISO).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        if (o.date) {
+          const t = new Date(o.date).getTime();
+          if (!isNaN(t) && t > 0) return t;
+        }
+        const match = String(o.orderNumber || o.id || '').match(/(\d+)/);
+        if (match) return Number(match[1]);
+        return 0;
+      };
+
+      const tA = getOrderTimestamp(a);
+      const tB = getOrderTimestamp(b);
+      if (tB !== tA) return tB - tA;
+      return String(b.orderNumber || b.id || '').localeCompare(String(a.orderNumber || a.id || ''), undefined, { numeric: true });
     });
   }, [uniqueTodayOrders, statusFilter, searchQuery]);
 
@@ -349,7 +369,7 @@ export default function OrdersTab() {
       return;
     }
 
-    const isCOD = deliveryOtpModalOrder.paymentMethod === 'cod';
+    const isCOD = String(deliveryOtpModalOrder?.paymentMethod || '').toLowerCase() === 'cod' || String(deliveryOtpModalOrder?.paymentMethod || '').toLowerCase().includes('cash');
     if (isCOD && !cashConfirmed) {
       setOtpError('Please confirm that you have collected the cash');
       return;
@@ -875,7 +895,7 @@ export default function OrdersTab() {
             const customerPhone = order.customer?.phone || order.customerPhone || '';
             const orderNum = order.orderNumber || order.id?.slice(-5) || 'ORD';
             const items = Array.isArray(order.items) ? order.items : [];
-            const isCOD = order.paymentMethod === 'cod';
+            const isCOD = String(order.paymentMethod || '').toLowerCase() === 'cod' || String(order.paymentMethod || '').toLowerCase().includes('cash');
             const status = (order.status || 'new').toLowerCase();
             const total = Number(order.total || order.grandTotal || 0);
             const deliveryOtp = order.deliveryOtp || order.otp || '';
@@ -1278,7 +1298,7 @@ export default function OrdersTab() {
             </p>
 
             {/* COD CASH COLLECTION CONFIRMATION CHECKBOX */}
-            {deliveryOtpModalOrder.paymentMethod === 'cod' && (
+            {(String(deliveryOtpModalOrder?.paymentMethod || '').toLowerCase() === 'cod' || String(deliveryOtpModalOrder?.paymentMethod || '').toLowerCase().includes('cash')) && (
               <div className="bg-amber-50 p-4 rounded-2xl space-y-2 border-0">
                 <div className="text-xs font-black text-amber-800">
                   CASH ON DELIVERY: ₹{deliveryOtpModalOrder.total || deliveryOtpModalOrder.grandTotal || 0}

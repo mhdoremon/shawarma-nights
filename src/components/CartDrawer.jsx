@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -101,6 +101,7 @@ export default function CartDrawer({ onOpenTracker }) {
   const [isUpiModalOpen, setIsUpiModalOpen] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState(null);
   const [isInitiatingPayment, setIsInitiatingPayment] = useState(false);
+  const isPlacingOrderRef = useRef(false);
 
   // Location Modal State
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
@@ -143,7 +144,7 @@ export default function CartDrawer({ onOpenTracker }) {
   };
 
   const handleConfirmLocation = async () => {
-    if (!orderLiveGps) return;
+    if (!orderLiveGps || isInitiatingPayment || isPlacingOrderRef.current) return;
     const locString = `GPS: ${orderLiveGps.lat.toFixed(5)}, ${orderLiveGps.lng.toFixed(5)} (±${orderLiveGps.accuracy}m) [${orderLiveGps.mapsUrl}]${landmark ? ' | ' + landmark : ''}`;
     
     setUserAddress(locString);
@@ -183,6 +184,11 @@ export default function CartDrawer({ onOpenTracker }) {
   };
 
   const handleProceedCheckout = async (overrideAddress = null, gpsOverride = null) => {
+    if (isPlacingOrderRef.current) {
+      console.warn('⚠️ [Order Guard] Order submission already in progress. Ignoring duplicate call.');
+      return;
+    }
+
     if (!isStoreCurrentlyOpen) {
       alert("⚠️ Store filhal band hai (Store is Closed). Kripya store open hone ke waqt order karein.");
       return;
@@ -209,21 +215,33 @@ export default function CartDrawer({ onOpenTracker }) {
       return;
     }
 
+    // Lock submission immediately to prevent duplicate orders
+    isPlacingOrderRef.current = true;
+    setIsInitiatingPayment(true);
+
     const generatedDeliveryOtp = String(Math.floor(1000 + Math.random() * 9000));
+    const finalDeliveryType = deliveryType || 'delivery';
 
     if (paymentMethod === 'cod') {
-      startOrderTracking({
-        customerName: currentUser.name,
-        customerPhone: `+91 ${currentUser.phone}`,
-        address: currentAddr,
-        paymentMethod: 'COD',
-        orderGps: activeGps,
-        deliveryOtp: generatedDeliveryOtp,
-      });
+      try {
+        startOrderTracking({
+          customerName: currentUser.name,
+          customerPhone: `+91 ${currentUser.phone}`,
+          address: currentAddr,
+          paymentMethod: 'COD',
+          orderGps: activeGps,
+          deliveryOtp: generatedDeliveryOtp,
+          deliveryType: finalDeliveryType,
+        });
+      } finally {
+        setTimeout(() => {
+          isPlacingOrderRef.current = false;
+          setIsInitiatingPayment(false);
+        }, 3500);
+      }
       return;
     }
 
-    setIsInitiatingPayment(true);
     const orderId = `SN-${Math.floor(100000 + Math.random() * 900000)}`;
     const itemsPayload = cart.map((c) => ({
       name: c.name,
@@ -241,6 +259,7 @@ export default function CartDrawer({ onOpenTracker }) {
         items: itemsPayload,
         orderGps: activeGps,
         deliveryOtp: generatedDeliveryOtp,
+        deliveryType: finalDeliveryType,
       });
 
       if (res && res.success) {
@@ -256,6 +275,7 @@ export default function CartDrawer({ onOpenTracker }) {
           address: currentAddr,
           orderGps: activeGps,
           deliveryOtp: res.deliveryOtp || generatedDeliveryOtp,
+          deliveryType: finalDeliveryType,
         });
         setIsUpiModalOpen(true);
       } else {
@@ -268,6 +288,7 @@ export default function CartDrawer({ onOpenTracker }) {
           address: currentAddr,
           orderGps: activeGps,
           deliveryOtp: generatedDeliveryOtp,
+          deliveryType: finalDeliveryType,
         });
         setIsUpiModalOpen(true);
       }
@@ -282,10 +303,14 @@ export default function CartDrawer({ onOpenTracker }) {
         address: currentAddr,
         orderGps: activeGps,
         deliveryOtp: generatedDeliveryOtp,
+        deliveryType: finalDeliveryType,
       });
       setIsUpiModalOpen(true);
     } finally {
-      setIsInitiatingPayment(false);
+      setTimeout(() => {
+        isPlacingOrderRef.current = false;
+        setIsInitiatingPayment(false);
+      }, 3500);
     }
   };
 
@@ -1102,10 +1127,10 @@ export default function CartDrawer({ onOpenTracker }) {
 
               <button
                 onClick={handleConfirmLocation}
-                disabled={!orderLiveGps}
+                disabled={!orderLiveGps || isInitiatingPayment}
                 className="w-full py-3.5 rounded-xl bg-zinc-900 text-white font-black text-sm hover:bg-[#DC2626] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirm Location & Proceed to Order 🔥
+                {isInitiatingPayment ? 'Placing Order...' : 'Confirm Location & Proceed to Order 🔥'}
               </button>
             </div>
           </motion.div>

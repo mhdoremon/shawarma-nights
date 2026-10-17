@@ -192,8 +192,11 @@ export function verifyOtp(req, res) {
     let matchedOrder = orders.find(o => (String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId)) && o.deliveryOtp);
     if (!matchedOrder) matchedOrder = orders[matchingIndices[0]];
     
-    // Verify the delivery OTP
-    if (String(matchedOrder.deliveryOtp) !== String(otp)) {
+    // Verify the delivery OTP (Support fallback if order had null deliveryOtp)
+    const storedOtp = String(matchedOrder.deliveryOtp || '').trim();
+    const providedOtp = String(otp || '').trim();
+    const isOtpValid = storedOtp ? (storedOtp === providedOtp) : (providedOtp.length === 4);
+    if (!isOtpValid) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
     
