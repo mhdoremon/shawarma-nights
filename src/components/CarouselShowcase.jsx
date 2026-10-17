@@ -84,9 +84,9 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
     cart.filter((ci) => ci.itemId === id).reduce((s, ci) => s + ci.quantity, 0);
 
   const handleAdd = (item) => {
-    if (item.available === false) return;
-    const isCombo = Boolean(item.isCombo || item.category === 'combos');
-    const hasOpt = isCombo || (item.options && (
+    if (!item || item.available === false) return;
+    const isCombo = Boolean(item?.isCombo || item?.category === 'combos');
+    const hasOpt = isCombo || (item?.options && (
       (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
       (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
       (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
@@ -240,10 +240,10 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                 const item = getItem(0);
                 if (!item) return null;
                 const isOutOfStock = item.available === false;
-                const isCombo = Boolean(item.isCombo || item.category === 'combos');
+                const isCombo = Boolean(item?.isCombo || item?.category === 'combos');
                 const dp = discountPercent(item) || 20; // Default discount badge like image if originalPrice not provided
                 const inCart = cartQty(item.id);
-                const hasOpt = isCombo || (item.options && (
+                const hasOpt = isCombo || (item?.options && (
                   (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
                   (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
                   (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
@@ -339,7 +339,7 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
 
                       {/* Spicy pill badge or Combo Items list */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        {item.isCombo ? (
+                        {item?.isCombo ? (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full">
                             <Package className="w-3.5 h-3.5 text-amber-600" />
                             <span>Combo Feast</span>
@@ -347,10 +347,10 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-700 bg-orange-50 border border-orange-200/60 px-2.5 py-0.5 rounded-full">
                             <Flame className="w-3 h-3 text-orange-500" />
-                            <span>{item.spiceLevel || 'Spicy'}</span>
+                            <span>{item?.spiceLevel || 'Spicy'}</span>
                           </span>
                         )}
-                        {item.isCombo && item.comboItems?.length > 0 && (
+                        {item?.isCombo && item?.comboItems?.length > 0 && (
                           <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded-full">
                             {item.comboItems.length} dishes bundled
                           </span>

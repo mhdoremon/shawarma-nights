@@ -236,7 +236,7 @@ export default function CustomerBillModal({ order, isOpen, onClose }) {
                         <div className="flex-1 min-w-0 pr-2">
                           <div className="font-bold text-stone-900 leading-snug flex items-center gap-1.5 flex-wrap">
                             <span>{item.name}</span>
-                            {(item.isCombo || item.comboItems) && (
+                            {(item?.isCombo || item?.comboItems) && (
                               <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
                                 COMBO FEAST
                               </span>
@@ -244,7 +244,7 @@ export default function CustomerBillModal({ order, isOpen, onClose }) {
                           </div>
                           
                           {/* Bundled Items if Combo */}
-                          {(Array.isArray(item.comboItems) && item.comboItems.length > 0) && (
+                          {(Array.isArray(item?.comboItems) && item.comboItems.length > 0) && (
                             <div className="text-[10px] text-stone-600 font-medium mt-0.5">
                               Includes: {item.comboItems.map(c => c.name).join(' • ')}
                             </div>

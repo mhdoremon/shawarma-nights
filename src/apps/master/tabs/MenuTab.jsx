@@ -576,7 +576,7 @@ export default function MenuTab() {
                           {dish.badge}
                         </span>
                       )}
-                      {dish.isCombo && (
+                      {dish?.isCombo && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
                           <Package className="w-3 h-3 text-amber-700" />
                           <span>COMBO</span>
@@ -666,7 +666,7 @@ export default function MenuTab() {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => {
-                        if (dish.isCombo) {
+                        if (dish?.isCombo) {
                           setComboModalItem({
                             ...dish,
                             selectedDishIds: Array.isArray(dish.comboItems) 
@@ -1513,7 +1513,7 @@ export default function MenuTab() {
                   {(!menu || menu.length === 0) ? (
                     <div className="text-zinc-400 text-center py-4">No dishes found in menu.</div>
                   ) : (
-                    menu.filter(d => !d.isCombo || d.id === comboModalItem.id).map(dish => {
+                    menu.filter(d => d && (!d.isCombo || d.id === comboModalItem?.id)).map(dish => {
                       const isSelected = (comboModalItem.selectedDishIds || []).includes(dish.id);
                       return (
                         <div

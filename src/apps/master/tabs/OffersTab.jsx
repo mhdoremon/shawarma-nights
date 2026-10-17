@@ -204,14 +204,14 @@ export default function OffersTab() {
                           <span className="text-xs font-black px-3 py-1 rounded-xl bg-zinc-900 text-white tracking-widest uppercase">
                             {deal.code}
                           </span>
-                          {deal.isCombo && (
+                          {deal?.isCombo && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
                               COMBO PACKAGE
                             </span>
                           )}
                         </div>
                         <h3 className="text-base font-black text-zinc-900 mt-2">
-                          {deal.title || (deal.isCombo ? 'Special Combo Package' : 'Special Discount')}
+                          {deal.title || (deal?.isCombo ? 'Special Combo Package' : 'Special Discount')}
                         </h3>
                       </div>
 
@@ -749,9 +749,9 @@ export default function OffersTab() {
                       onChange={(e) => setDealModalData({ ...dealModalData, applicableDishIds: [e.target.value] })}
                       className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs font-bold text-zinc-900 border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#DC2626] cursor-pointer"
                     >
-                      {(menu || []).map(dish => (
+                      {(menu || []).filter(Boolean).map(dish => (
                         <option key={dish.id} value={dish.id}>
-                          {dish.isCombo ? '🍱 [COMBO] ' : ''}{dish.name} (₹{dish.price})
+                          {dish?.isCombo ? '🍱 [COMBO] ' : ''}{dish.name} (₹{dish.price})
                         </option>
                       ))}
                     </select>
@@ -806,7 +806,7 @@ export default function OffersTab() {
                                   {dish.name}
                                 </span>
                               </div>
-                              {dish.isCombo && (
+                              {dish?.isCombo && (
                                 <span className="text-[9px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded uppercase">
                                   Combo
                                 </span>

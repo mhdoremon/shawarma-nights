@@ -14,8 +14,8 @@ export default function CombosShowcase({ onSelectForCustomize }) {
   const allDishes = (menu && menu.length > 0) ? menu : MENU_ITEMS;
 
   // Filter combo items (isCombo === true or category === 'combos')
-  const combos = allDishes.filter(
-    (item) => item.available !== false && (item.isCombo === true || item.category === 'combos')
+  const combos = (allDishes || []).filter(
+    (item) => item && item.available !== false && (item.isCombo === true || item.category === 'combos')
   );
 
   if (!combos || combos.length === 0) {

@@ -960,8 +960,8 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                             <span style={{
                               fontSize:10, 
                               fontWeight:800, 
-                              background: deal.isCombo ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.06)", 
-                              color: deal.isCombo ? "#d4af37" : "var(--paper)", 
+                              background: deal?.isCombo ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.06)", 
+                              color: deal?.isCombo ? "#d4af37" : "var(--paper)", 
                               padding:"3px 8px", 
                               borderRadius:4,
                               letterSpacing:"0.1em",
@@ -970,8 +970,8 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                               alignItems:"center",
                               gap:4
                             }}>
-                              {deal.isCombo ? <Gift size={11} color="#d4af37" /> : <Tag size={11} />}
-                              <span>{deal.isCombo ? "COMBO PACKAGE" : "PROMO VOUCHER"}</span>
+                              {deal?.isCombo ? <Gift size={11} color="#d4af37" /> : <Tag size={11} />}
+                              <span>{deal?.isCombo ? "COMBO PACKAGE" : "PROMO VOUCHER"}</span>
                             </span>
                             {deal.minOrder > 0 && (
                               <span style={{fontSize:9, color:"var(--muted)", fontWeight:600}}>

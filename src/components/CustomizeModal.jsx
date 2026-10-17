@@ -12,7 +12,7 @@ export default function CustomizeModal({ item, onClose }) {
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [quantity, setQuantity] = useState(1);
 
-  const isCombo = Boolean(item.isCombo || item.category === 'combos');
+  const isCombo = Boolean(item?.isCombo || item?.category === 'combos');
 
   // Smart options for combos if Dukandar hasn't explicitly set them
   const comboDefaultBread = [
@@ -28,17 +28,17 @@ export default function CustomizeModal({ item, onClose }) {
     { id: 'combo_drink', name: 'Add Extra Chilled Mint Mojito Drink', price: 49 }
   ];
 
-  const breadOptions = (item.options?.bread && item.options.bread.length > 0)
+  const breadOptions = (item?.options?.bread && item.options.bread.length > 0)
     ? item.options.bread
     : (isCombo ? comboDefaultBread : []);
 
-  const spicinessOptions = (item.options?.spiciness && item.options.spiciness.length > 0)
+  const spicinessOptions = (item?.options?.spiciness && item.options.spiciness.length > 0)
     ? item.options.spiciness
     : (isCombo ? comboDefaultSpiciness : []);
 
-  const availableAddons = (item.options?.addons && item.options.addons.length > 0)
+  const availableAddons = (item?.options?.addons && item.options.addons.length > 0)
     ? item.options.addons
-    : (Array.isArray(item.addons) && item.addons.length > 0)
+    : (Array.isArray(item?.addons) && item.addons.length > 0)
     ? item.addons
     : (isCombo ? comboDefaultAddons : []);
 

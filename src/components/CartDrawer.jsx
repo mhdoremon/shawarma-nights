@@ -475,7 +475,7 @@ export default function CartDrawer({ onOpenTracker }) {
                                 <h4 className="font-bold text-zinc-900 text-xs">
                                   {item.name}
                                 </h4>
-                                {item.isCombo && (
+                                {item?.isCombo && (
                                   <span className="bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-black text-[9px] uppercase tracking-wider">
                                     Combo Feast
                                   </span>
@@ -483,7 +483,7 @@ export default function CartDrawer({ onOpenTracker }) {
                               </div>
 
                               {/* Bundled Items in Combo */}
-                              {item.comboItems && item.comboItems.length > 0 && (
+                              {item?.comboItems && item.comboItems.length > 0 && (
                                 <div className="text-[10px] text-amber-900 font-medium mt-0.5 line-clamp-1">
                                   Includes: {item.comboItems.map(c => c.name).join(' • ')}
                                 </div>

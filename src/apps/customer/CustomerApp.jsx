@@ -88,7 +88,9 @@ export default function CustomerApp() {
             <CartDrawer />
             <OrderTrackerModal />
             <AuthModal />
-            <CustomizeModal item={customizeItem} onClose={() => setCustomizeItem(null)} />
+            {customizeItem && (
+              <CustomizeModal item={customizeItem} onClose={() => setCustomizeItem(null)} />
+            )}
             <FranchiseModal isOpen={isFranchiseOpen} onClose={() => setIsFranchiseOpen(false)} />
             <BottomNavBar />
           </div>

@@ -6,14 +6,15 @@ import { getImageUrl, handleImageError } from '../utils/imageHelper';
 
 export default function FoodCard({ item, onSelectForCustomize }) {
   const { cart, addToCart } = useCart();
+  if (!item) return null;
 
   // Check if this item is in the cart
   const inCartQty = cart
     .filter((ci) => ci.itemId === item.id)
     .reduce((sum, ci) => sum + ci.quantity, 0);
 
-  const isCombo = Boolean(item.isCombo || item.category === 'combos');
-  const hasOptions = isCombo || (item.options && (
+  const isCombo = Boolean(item?.isCombo || item?.category === 'combos');
+  const hasOptions = isCombo || (item?.options && (
     (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
     (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
     (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
