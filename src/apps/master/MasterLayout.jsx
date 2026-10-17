@@ -214,7 +214,7 @@ export default function MasterLayout() {
       </nav>
 
       {/* 3. MAIN TAB CONTENT CONTAINER */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 pb-32 sm:pb-36">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

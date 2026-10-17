@@ -42,16 +42,25 @@ export function CartProvider({ children }) {
   const [deliveryType, setDeliveryType] = useState('delivery');
   const [userAddress, setUserAddress] = useState('');
 
+  const clearActiveTracking = () => {
+    setActiveTracking(null);
+    try {
+      localStorage.removeItem('sn_active_tracking');
+    } catch {}
+  };
+
   // Sync active tracking with real-time orders updates from Dukandar
   useEffect(() => {
     if (activeTracking && orders.length > 0) {
       const liveOrder = orders.find((o) => o.id === activeTracking.orderId);
       if (liveOrder) {
         let stepIndex = 0;
-        if (liveOrder.status === 'new') stepIndex = 0;
-        else if (liveOrder.status === 'preparing') stepIndex = 1;
-        else if (liveOrder.status === 'out' || liveOrder.status === 'out_for_delivery') stepIndex = 3;
-        else if (liveOrder.status === 'delivered') stepIndex = 4;
+        const normStatus = (liveOrder.status || '').toLowerCase();
+        if (normStatus === 'new' || normStatus === 'pending') stepIndex = 0;
+        else if (normStatus === 'preparing' || normStatus === 'confirmed') stepIndex = 1;
+        else if (normStatus === 'out' || normStatus === 'out_for_delivery') stepIndex = 3;
+        else if (normStatus === 'delivered' || normStatus === 'completed') stepIndex = 4;
+        else if (normStatus === 'cancelled') stepIndex = -1;
 
         const needsOtpSync = liveOrder.deliveryOtp && !activeTracking.deliveryOtp;
         if (activeTracking.step !== stepIndex || activeTracking.status !== liveOrder.status || needsOtpSync) {
@@ -385,6 +394,7 @@ export function CartProvider({ children }) {
         setUserAddress,
         activeTracking,
         setActiveTracking,
+        clearActiveTracking,
         startOrderTracking,
       }}
     >

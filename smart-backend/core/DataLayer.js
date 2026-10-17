@@ -472,7 +472,9 @@ async function syncMongoData() {
           const localItems = Array.isArray(localData) ? localData : (Array.isArray(localData?.menu) ? localData.menu : []);
           const mongoItems = Array.isArray(data) ? data : (Array.isArray(data?.menu) ? data.menu : []);
 
-          if (localItems.length > mongoItems.length && colName !== 'customers' && colName !== 'customers.json') {
+          const isTransactional = ['orders', 'orders.json', 'customers', 'customers.json', 'coupon_usage', 'coupon_usage.json'].includes(colName);
+
+          if (!isTransactional && localItems.length > mongoItems.length) {
             if (!cache[storeId]) cache[storeId] = {};
             cache[storeId][colName] = localData;
             persistToMongo(storeId, colName, localData);

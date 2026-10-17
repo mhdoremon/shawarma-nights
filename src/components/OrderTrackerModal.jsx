@@ -53,7 +53,7 @@ const TRACKER_STEPS = [
 ];
 
 export default function OrderTrackerModal() {
-  const { activeTracking, isTrackerOpen, setIsTrackerOpen } = useCart();
+  const { activeTracking, isTrackerOpen, setIsTrackerOpen, clearActiveTracking } = useCart();
   const [currentStep, setCurrentStep] = useState(0);
   const [isBillOpen, setIsBillOpen] = useState(false);
 
@@ -269,12 +269,32 @@ export default function OrderTrackerModal() {
               </span>
             </div>
 
-            <button
-              onClick={() => setIsTrackerOpen(false)}
-              className="px-5 py-2 rounded-full bg-zinc-900 hover:bg-[#DC2626] text-white font-bold transition-all shadow-sm cursor-pointer"
-            >
-              {currentStep === 4 ? 'Close' : 'Minimize Tracker'}
-            </button>
+            {currentStep === 4 ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (clearActiveTracking) clearActiveTracking();
+                    setIsTrackerOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-sm cursor-pointer border-0"
+                >
+                  ✓ Done (Clear)
+                </button>
+                <button
+                  onClick={() => setIsTrackerOpen(false)}
+                  className="px-3 py-2 rounded-full bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold text-xs transition-all cursor-pointer border-0"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsTrackerOpen(false)}
+                className="px-5 py-2 rounded-full bg-zinc-900 hover:bg-[#DC2626] text-white font-bold transition-all shadow-sm cursor-pointer border-0"
+              >
+                Minimize Tracker
+              </button>
+            )}
           </div>
 
         </div>

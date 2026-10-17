@@ -11,16 +11,17 @@
         "unitPrice": 50
       }
     ],
-    "status": "new",
+    "status": "delivered",
     "placedAt": "12:19 AM",
     "total": 250,
     "note": "",
     "paymentMethod": "COD",
-    "paymentStatus": "pending_cash",
+    "paymentStatus": "paid",
     "utr": null,
     "couponCode": null,
     "discountApplied": 0,
     "deliveryOtp": "5498",
+    "deliveredAt": "2026-09-30T19:00:00.000Z",
     "createdAt": "2026-09-30T18:49:10.973Z",
     "updatedAt": "2026-09-30T18:49:10.973Z"
   },
@@ -551,7 +552,7 @@
   {
     "id": "ord-1790793390715-7d7f",
     "orderNumber": "SN-0022",
-    "status": "payment_pending",
+    "status": "cancelled",
     "customer": {
       "name": "",
       "phone": "",
@@ -569,7 +570,7 @@
     "lat": null,
     "lng": null,
     "paymentMethod": "COD",
-    "paymentStatus": "pending",
+    "paymentStatus": "cancelled",
     "couponCode": null,
     "subtotal": 0,
     "discount": 0,
@@ -587,7 +588,7 @@
   {
     "id": "ord-1790793450207-5abc",
     "orderNumber": "SN-0023",
-    "status": "payment_pending",
+    "status": "cancelled",
     "customer": {
       "name": "",
       "phone": "",
@@ -605,7 +606,7 @@
     "lat": null,
     "lng": null,
     "paymentMethod": "COD",
-    "paymentStatus": "pending",
+    "paymentStatus": "cancelled",
     "couponCode": null,
     "subtotal": 0,
     "discount": 0,
@@ -623,7 +624,7 @@
   {
     "id": "ord-1790794150983-19a6",
     "orderNumber": "SN-0025",
-    "status": "payment_pending",
+    "status": "cancelled",
     "customer": {
       "name": "",
       "phone": "",
@@ -641,7 +642,7 @@
     "lat": null,
     "lng": null,
     "paymentMethod": "COD",
-    "paymentStatus": "pending",
+    "paymentStatus": "cancelled",
     "couponCode": null,
     "subtotal": 0,
     "discount": 0,

@@ -500,15 +500,17 @@ export default function OffersTab() {
 
       {/* MODAL: ADD / EDIT PROMO DEAL */}
       {dealModalData && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white text-zinc-900 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden animate-in fade-in duration-200">
+          <div className="bg-white text-zinc-900 rounded-t-[32px] sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border-0 overflow-hidden">
+            {/* Sticky Header */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-zinc-100 bg-white shrink-0">
               <h3 className="text-base font-black text-zinc-900">
                 {dealModalData.id 
                   ? (dealModalData.isCombo ? 'Edit Combo Package' : 'Edit Promo Deal') 
                   : (isSalon ? 'Create New Salon Package / Deal' : 'Create New Deal')}
               </h3>
               <button
+                type="button"
                 onClick={() => setDealModalData(null)}
                 className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-600 cursor-pointer"
               >
@@ -516,7 +518,9 @@ export default function OffersTab() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveDeal} className="space-y-3.5">
+            <form onSubmit={handleSaveDeal} className="flex-1 flex flex-col min-h-0">
+              {/* Scrollable Form Body */}
+              <div className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-4 space-y-4">
               {/* 1-Tap Quick Salon Presets */}
               {isSalon && (
                 <div className="bg-[#FFFBF7] p-3 rounded-2xl border-0">
@@ -854,11 +858,13 @@ export default function OffersTab() {
                   <span className="text-amber-800">Special Combo Package (Website hero / packages cards me dikhega)</span>
                 </label>
               </div>
+              </div>
 
-              <div className="pt-2 flex items-center gap-2">
+              {/* Sticky Footer Action Buttons */}
+              <div className="p-4 sm:px-6 border-t border-zinc-100 bg-zinc-50 shrink-0 flex items-center gap-2">
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0"
+                  className="flex-1 py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0 active:scale-98 transition-all"
                 >
                   {dealModalData.id ? 'UPDATE DEAL' : 'ACTIVATE DEAL'}
                 </button>

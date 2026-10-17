@@ -1207,7 +1207,7 @@ export default function OrdersTab() {
 
       {/* DELIVERY OTP VERIFICATION DIALOG (Exact Android App showDeliveryOtpDialog) */}
       {deliveryOtpModalOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
@@ -1292,7 +1292,7 @@ export default function OrdersTab() {
 
       {/* RECEIPT / BILL MODAL */}
       {selectedReceiptOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white text-zinc-900 rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl border-0">
             <div className="text-center space-y-1 border-b border-zinc-100 pb-3">
               <h4 className="text-lg font-black tracking-tight">{storeInfo?.name?.toUpperCase() || 'ORDER RECEIPT'}</h4>

@@ -243,7 +243,9 @@ export function registerWsHandler(handler) {
 
 // Register module WS handlers
 import { handleGatewayMessage } from './modules/gateway/gateway.service.js';
+import { handleOrdersWsMessage } from './modules/orders/orders.service.js';
 wsMessageHandlers.push(handleGatewayMessage);
+wsMessageHandlers.push(handleOrdersWsMessage);
 
 // Initialize WebSocket Hub
 WebSocketHub.init(server, handleWebSocketMessage);

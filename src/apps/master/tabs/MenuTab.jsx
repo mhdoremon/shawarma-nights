@@ -711,7 +711,7 @@ export default function MenuTab() {
 
       {/* MODAL 1: ADD / EDIT DISH DIALOG (Full Feature Set matching Android App) */}
       {modalItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white text-zinc-900 rounded-t-[32px] sm:rounded-3xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border-0 overflow-hidden">
             {/* Sticky Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white shrink-0">
@@ -1452,7 +1452,7 @@ export default function MenuTab() {
 
       {/* MODAL 1.5: COMBO MEAL BUILDER & EDITOR */}
       {comboModalItem && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <div className="bg-white text-zinc-900 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border-0 overflow-hidden my-auto">
             
             {/* Modal Header */}
@@ -1721,7 +1721,7 @@ export default function MenuTab() {
 
       {/* MODAL 2: SET HOMEPAGE HERO OFFER DIALOG (Exact Android App showSetHeroOfferDialog) */}
       {heroModalDish && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white text-zinc-900 rounded-3xl max-w-md w-full p-6 sm:p-7 space-y-4 shadow-2xl border-0">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>

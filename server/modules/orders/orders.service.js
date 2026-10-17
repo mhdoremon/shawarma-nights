@@ -333,15 +333,20 @@ export function handleOrdersWsMessage(data, ws, storeId, source) {
 
     if (data.action === 'UPDATE_ORDER_STATUS') {
         const orders = DataLayer.read(storeId, 'orders') || [];
-        const orderId = data.payload?.orderId;
-        const status = data.payload?.status;
+        const orderId = data.orderId || data.id || data.payload?.orderId || data.payload?.id;
+        const status = data.status || data.payload?.status;
+        const deliveryBoyId = data.deliveryBoyId || data.payload?.deliveryBoyId;
         
-        const index = orders.findIndex(o => o.id === orderId);
+        const index = orders.findIndex(o => String(o.id) === String(orderId));
         if (index !== -1) {
             orders[index].status = status;
             orders[index].updatedAt = now();
-            if (status === 'delivered') {
+            if (deliveryBoyId) {
+                orders[index].deliveryBoyId = deliveryBoyId;
+            }
+            if (status === 'delivered' || status === 'completed') {
                 orders[index].paymentStatus = 'paid';
+                orders[index].deliveredAt = now();
             }
             DataLayer.writeSync(storeId, 'orders', orders);
             WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: orders[index] });

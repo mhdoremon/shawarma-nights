@@ -60,9 +60,17 @@ export default function CartDrawer({ onOpenTracker }) {
     userAddress,
     setUserAddress,
     activeTracking,
+    clearActiveTracking,
     setIsTrackerOpen,
     startOrderTracking,
   } = useCart();
+
+  const isOrderActive = Boolean(
+    activeTracking && !['delivered', 'completed', 'cancelled'].includes(String(activeTracking.status || '').toLowerCase())
+  );
+  const isOrderDelivered = Boolean(
+    activeTracking && ['delivered', 'completed'].includes(String(activeTracking.status || '').toLowerCase())
+  );
 
   const [activeTab, setActiveTab] = useState('cart'); // 'cart' or 'orders'
   const [couponInput, setCouponInput] = useState('');
@@ -396,7 +404,7 @@ export default function CartDrawer({ onOpenTracker }) {
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>Active Orders {activeTracking ? '(1 Live)' : ''}</span>
+                <span>Active Orders {isOrderActive ? '(1 Live)' : ''}</span>
               </button>
             </div>
           </div>
@@ -842,7 +850,7 @@ export default function CartDrawer({ onOpenTracker }) {
             {/* TAB 2: ACTIVE PLACED ORDERS & STATUS */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
-                {activeTracking ? (
+                {activeTracking && isOrderActive ? (
                   <div className="p-4 rounded-2xl bg-white border-2 border-[#DC2626] shadow-md space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
                       <div className="flex items-center gap-2">
@@ -875,7 +883,7 @@ export default function CartDrawer({ onOpenTracker }) {
                     </div>
 
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-800 pt-1">
-                      <span>Total Amount Paid:</span>
+                      <span>Total Amount:</span>
                       <span className="text-base text-[#DC2626] font-mono font-black">₹{activeTracking.grandTotal}</span>
                     </div>
 
@@ -885,12 +893,85 @@ export default function CartDrawer({ onOpenTracker }) {
                           setIsCartOpen(false);
                           setIsTrackerOpen(true);
                         }}
-                        className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-[#DC2626] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+                        className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-[#DC2626] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
                         <span>Live Animated Tracker Kholein</span>
                       </button>
                     </div>
+                  </div>
+                ) : activeTracking && isOrderDelivered ? (
+                  <div className="p-4 rounded-2xl bg-white border-2 border-emerald-500 shadow-md space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
+                          {activeTracking.orderId}
+                        </span>
+                        <span className="text-zinc-400 text-[11px]">{activeTracking.placedAt}</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
+                        <Check className="w-3 h-3 stroke-[2.5]" /> Delivered
+                      </span>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-bold text-zinc-400 uppercase tracking-wide">Status:</div>
+                      <div className="text-sm font-black text-emerald-700 mt-0.5 flex items-center gap-1.5">
+                        <span>✓ Order Safaltapoorvak Deliver Ho Gaya!</span>
+                      </div>
+                    </div>
+
+                    {/* Items ordered */}
+                    <div className="bg-zinc-50 rounded-xl p-2.5 space-y-1 text-xs">
+                      {activeTracking.items?.map((it, idx) => (
+                        <div key={idx} className="flex justify-between text-zinc-700">
+                          <span><strong>{it.quantity || it.qty}x</strong> {it.name}</span>
+                          <span className="font-mono">₹{(it.unitPrice || 0) * (it.quantity || it.qty || 1)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-between items-center text-xs font-bold text-zinc-800 pt-1">
+                      <span>Total Amount Paid:</span>
+                      <span className="text-base text-zinc-900 font-mono font-black">₹{activeTracking.grandTotal}</span>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-2">
+                      <button
+                        onClick={clearActiveTracking}
+                        className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      >
+                        <Check className="w-4 h-4 stroke-[2.5]" />
+                        <span>✓ Order Mil Gaya (Dismiss)</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsCartOpen(false);
+                          setIsTrackerOpen(true);
+                        }}
+                        className="py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer"
+                      >
+                        Receipt
+                      </button>
+                    </div>
+                  </div>
+                ) : activeTracking ? (
+                  <div className="p-4 rounded-2xl bg-white border border-zinc-200 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100">
+                      <span className="font-mono text-xs font-black bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
+                        {activeTracking.orderId}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold">
+                        Cancelled
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-500">Yeh order cancel ho gaya tha.</p>
+                    <button
+                      onClick={clearActiveTracking}
+                      className="w-full py-2 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 ) : (
                   <div className="py-16 text-center space-y-3">

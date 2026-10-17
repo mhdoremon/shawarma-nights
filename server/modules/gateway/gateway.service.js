@@ -106,10 +106,18 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const orders = DataLayer.read(storeId, 'orders') || [];
       const orderId = data.orderId || data.id || data.payload?.orderId || data.payload?.id;
       const status = data.status || data.payload?.status;
+      const deliveryBoyId = data.deliveryBoyId || data.payload?.deliveryBoyId;
       const idx = orders.findIndex(o => String(o.id) === String(orderId));
       if (idx !== -1) {
         orders[idx].status = status;
         orders[idx].updatedAt = now();
+        if (deliveryBoyId) {
+          orders[idx].deliveryBoyId = deliveryBoyId;
+        }
+        if (status === 'delivered' || status === 'completed') {
+          orders[idx].paymentStatus = 'paid';
+          orders[idx].deliveredAt = now();
+        }
         DataLayer.writeSync(storeId, 'orders', orders);
         WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: orders[idx] });
       }
