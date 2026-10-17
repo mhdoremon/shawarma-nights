@@ -238,6 +238,7 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
               {(() => {
                 const item = getItem(0);
                 if (!item) return null;
+                const isOutOfStock = item.available === false;
                 const dp = discountPercent(item) || 20; // Default discount badge like image if originalPrice not provided
                 const inCart = cartQty(item.id);
                 const hasOpt = !item.isCombo && item.options && (

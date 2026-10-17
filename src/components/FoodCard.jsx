@@ -19,7 +19,10 @@ export default function FoodCard({ item, onSelectForCustomize }) {
     (Array.isArray(item.addons) && item.addons.length > 0)
   );
 
+  const isOutOfStock = item.available === false;
+
   const handleAction = () => {
+    if (isOutOfStock) return;
     if (hasOptions) {
       onSelectForCustomize(item);
     } else {
@@ -134,18 +137,24 @@ export default function FoodCard({ item, onSelectForCustomize }) {
           </div>
 
           {/* Domino's / McDonald's Style Action Button */}
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={handleAction}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
-              hasOptions
-                ? 'bg-charcoal-800 hover:bg-brand-600 text-white border border-brand-500/40 hover:border-brand-500 hover:shadow-glow-sm'
-                : 'bg-brand-600 hover:bg-brand-500 text-white hover:shadow-glow'
-            }`}
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{item.isCombo ? 'Add Combo' : (hasOptions ? 'Customize' : 'Add')}</span>
-          </motion.button>
+          {isOutOfStock ? (
+            <div className="px-3.5 py-2 rounded-xl text-xs font-bold bg-zinc-800 text-zinc-500 border border-white/5 cursor-not-allowed">
+              Unavailable
+            </div>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={handleAction}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                hasOptions
+                  ? 'bg-charcoal-800 hover:bg-brand-600 text-white border border-brand-500/40 hover:border-brand-500 hover:shadow-glow-sm'
+                  : 'bg-brand-600 hover:bg-brand-500 text-white hover:shadow-glow'
+              }`}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{item.isCombo ? 'Add Combo' : (hasOptions ? 'Customize' : 'Add')}</span>
+            </motion.button>
+          )}
         </div>
 
       </div>
