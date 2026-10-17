@@ -342,11 +342,16 @@ export const MasterProvider = ({ children }) => {
 
       // 2. Orders
       const ordersRes = await apiFetch('/api/orders').catch(() => null);
-      if (ordersRes && Array.isArray(ordersRes)) {
-        setOrders(ordersRes);
-      } else if (ordersRes?.orders) {
-        setOrders(ordersRes.orders);
-      }
+      const rawOrders = Array.isArray(ordersRes) ? ordersRes : (ordersRes?.orders || []);
+      const dedupedMap = new Map();
+      rawOrders.forEach(o => {
+        if (!o) return;
+        const key = o.id || o.orderNumber;
+        if (key && !dedupedMap.has(key)) {
+          dedupedMap.set(key, o);
+        }
+      });
+      setOrders(Array.from(dedupedMap.values()));
 
       // 3. Customers (admin only)
       const custRes = await apiFetch('/api/auth/admin/customers').catch(() => null);
@@ -420,8 +425,10 @@ export const MasterProvider = ({ children }) => {
             case 'ORDER_CREATED': {
               const newOrder = payload.order || payload;
               setOrders(prev => {
-                const exists = prev.some(o => o.id === newOrder.id);
-                if (exists) return prev;
+                const exists = prev.some(o => o && (o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber)));
+                if (exists) {
+                  return prev.map(o => (o && (o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber))) ? { ...o, ...newOrder } : o);
+                }
                 return [newOrder, ...prev];
               });
               if (soundEnabled) playOrderSound();
@@ -432,7 +439,8 @@ export const MasterProvider = ({ children }) => {
             case 'ORDER_UPDATED':
             case 'ORDER_STATUS_CHANGED': {
               const updatedOrder = payload.order || payload;
-              setOrders(prev => prev.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o));
+              const updateId = updatedOrder?.id || updatedOrder?.orderId;
+              setOrders(prev => prev.map(o => (o && (o.id === updateId || o.orderNumber === updateId || (updatedOrder.orderNumber && o.orderNumber === updatedOrder.orderNumber))) ? { ...o, ...updatedOrder } : o));
               break;
             }
 
@@ -653,7 +661,7 @@ export const MasterProvider = ({ children }) => {
   const updateOrderStatus = async (orderId, newStatus, deliveryBoyId = null) => {
     playClickSound();
     // 1. Optimistic local update
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, deliveryBoyId } : o));
+    setOrders(prev => prev.map(o => (o && (o.id === orderId || o.orderNumber === orderId)) ? { ...o, status: newStatus, deliveryBoyId } : o));
 
     // 2. Send via WebSocket
     const sentWs = sendWs({

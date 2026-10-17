@@ -179,13 +179,21 @@ export function verifyOtp(req, res) {
     if (!orderId || !otp) return res.status(400).json({ success: false, message: 'Order ID and OTP are required' });
     
     const orders = DataLayer.read(req.storeId, 'orders') || [];
-    const orderIndex = orders.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) return res.status(404).json({ success: false, message: 'Order not found' });
+    const matchingIndices = [];
+    orders.forEach((o, idx) => {
+      if (String(o.id) === String(orderId) || (o.orderNumber && String(o.orderNumber) === String(orderId))) {
+        matchingIndices.push(idx);
+      }
+    });
+
+    if (matchingIndices.length === 0) return res.status(404).json({ success: false, message: 'Order not found' });
     
-    const order = orders[orderIndex];
+    // Find an order that has deliveryOtp
+    let matchedOrder = orders.find(o => (String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId)) && o.deliveryOtp);
+    if (!matchedOrder) matchedOrder = orders[matchingIndices[0]];
     
     // Verify the delivery OTP
-    if (String(order.deliveryOtp) !== String(otp)) {
+    if (String(matchedOrder.deliveryOtp) !== String(otp)) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
     
@@ -193,23 +201,34 @@ export function verifyOtp(req, res) {
     if (token) {
       const deliveryBoys = DataLayer.read(req.storeId, 'delivery_boys') || [];
       const boy = deliveryBoys.find(d => d.token === token);
-      if (boy && order.deliveryBoyId && order.deliveryBoyId !== boy.id) {
+      if (boy && matchedOrder.deliveryBoyId && matchedOrder.deliveryBoyId !== boy.id) {
         return res.status(403).json({ success: false, message: 'Order assigned to another partner' });
       }
     }
     
-    // Mark as delivered
-    order.status = 'delivered';
-    order.deliveredAt = now();
+    // Mark ALL matching copies as delivered & paid
+    matchingIndices.forEach(idx => {
+      orders[idx].status = 'delivered';
+      orders[idx].paymentStatus = 'paid';
+      orders[idx].deliveredAt = now();
+      orders[idx].updatedAt = now();
+    });
     
     DataLayer.writeSync(req.storeId, 'orders', orders);
     
+    const finalized = orders[matchingIndices[0]];
     WebSocketHub.broadcastToAll(req.storeId, {
       action: 'ORDER_UPDATED',
-      payload: order
+      payload: finalized,
+      order: finalized
+    });
+    WebSocketHub.broadcastToGateway(req.storeId, {
+      action: 'ORDER_UPDATED',
+      payload: finalized,
+      order: finalized
     });
     
-    return res.json({ success: true, order });
+    return res.json({ success: true, order: finalized });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

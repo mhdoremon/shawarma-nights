@@ -7,8 +7,9 @@ import { sounds } from '../utils/soundEffects';
 export default function FloatingCartBar() {
   const { cart, itemsCount, grandTotal, isCartOpen, setIsCartOpen, activeTracking } = useCart();
 
-  // Hide if cart is empty or cart drawer / tracker is currently active
-  if (itemsCount === 0 || isCartOpen || activeTracking) return null;
+  // Hide if cart is empty or cart drawer is open or an in-progress order is ongoing
+  const isOngoingOrder = Boolean(activeTracking && !['delivered', 'completed', 'cancelled'].includes(String(activeTracking.status || '').toLowerCase()));
+  if (itemsCount === 0 || isCartOpen || isOngoingOrder) return null;
 
   const handleOpenBag = () => {
     sounds.playTick?.();

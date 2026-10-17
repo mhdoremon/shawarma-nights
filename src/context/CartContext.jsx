@@ -33,7 +33,13 @@ export function CartProvider({ children }) {
   const [activeTracking, setActiveTracking] = useState(() => {
     try {
       const saved = localStorage.getItem('sn_active_tracking');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (['delivered', 'completed', 'cancelled'].includes(String(parsed?.status || '').toLowerCase())) {
+        localStorage.removeItem('sn_active_tracking');
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }

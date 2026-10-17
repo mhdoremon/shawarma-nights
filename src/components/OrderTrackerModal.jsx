@@ -99,7 +99,10 @@ export default function OrderTrackerModal() {
           </div>
 
           <button
-            onClick={() => setIsTrackerOpen(false)}
+            onClick={() => {
+              if (currentStep === 4 && clearActiveTracking) clearActiveTracking();
+              setIsTrackerOpen(false);
+            }}
             className="p-1 rounded-full text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 transition-all"
             title="Minimize Tracker"
           >
@@ -281,7 +284,10 @@ export default function OrderTrackerModal() {
                   ✓ Done (Clear)
                 </button>
                 <button
-                  onClick={() => setIsTrackerOpen(false)}
+                  onClick={() => {
+                    if (clearActiveTracking) clearActiveTracking();
+                    setIsTrackerOpen(false);
+                  }}
                   className="px-3 py-2 rounded-full bg-zinc-200 hover:bg-zinc-300 text-zinc-700 font-bold text-xs transition-all cursor-pointer border-0"
                 >
                   Close

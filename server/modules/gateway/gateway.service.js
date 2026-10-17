@@ -107,19 +107,28 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const orderId = data.orderId || data.id || data.payload?.orderId || data.payload?.id;
       const status = data.status || data.payload?.status;
       const deliveryBoyId = data.deliveryBoyId || data.payload?.deliveryBoyId;
-      const idx = orders.findIndex(o => String(o.id) === String(orderId));
-      if (idx !== -1) {
-        orders[idx].status = status;
-        orders[idx].updatedAt = now();
-        if (deliveryBoyId) {
-          orders[idx].deliveryBoyId = deliveryBoyId;
+      let updatedAny = false;
+      let lastUpdated = null;
+      orders.forEach((o, idx) => {
+        if (String(o.id) === String(orderId) || (o.orderNumber && String(o.orderNumber) === String(orderId))) {
+          o.status = status;
+          o.updatedAt = now();
+          if (deliveryBoyId) {
+            o.deliveryBoyId = deliveryBoyId;
+          }
+          if (status === 'delivered' || status === 'completed') {
+            o.paymentStatus = 'paid';
+            o.deliveredAt = now();
+          }
+          orders[idx] = o;
+          lastUpdated = o;
+          updatedAny = true;
         }
-        if (status === 'delivered' || status === 'completed') {
-          orders[idx].paymentStatus = 'paid';
-          orders[idx].deliveredAt = now();
-        }
+      });
+      if (updatedAny) {
         DataLayer.writeSync(storeId, 'orders', orders);
-        WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: orders[idx] });
+        WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: lastUpdated, order: lastUpdated });
+        WebSocketHub.broadcastToGateway(storeId, { action: 'ORDER_UPDATED', payload: lastUpdated, order: lastUpdated });
       }
       return true;
     }
@@ -242,14 +251,34 @@ export function handleGatewayMessage(data, ws, storeId, source) {
         updatedAt: now()
       };
 
-      orders.unshift(newOrder);
+      // DEDUPLICATION: Check if order with this id or orderNumber already exists
+      const existingIdx = orders.findIndex(o => 
+        (orderId && String(o.id) === String(orderId)) ||
+        (payload.orderId && String(o.id) === String(payload.orderId)) ||
+        (payload.orderNumber && String(o.orderNumber) === String(payload.orderNumber))
+      );
+
+      if (existingIdx !== -1) {
+        orders[existingIdx] = {
+          ...orders[existingIdx],
+          ...newOrder,
+          id: orders[existingIdx].id,
+          orderNumber: orders[existingIdx].orderNumber || newOrder.orderNumber,
+          status: (orders[existingIdx].status && orders[existingIdx].status !== 'new') ? orders[existingIdx].status : newOrder.status,
+          updatedAt: now()
+        };
+      } else {
+        orders.unshift(newOrder);
+      }
       DataLayer.writeSync(storeId, 'orders', orders);
 
+      const targetOrder = existingIdx !== -1 ? orders[existingIdx] : newOrder;
+
       // Broadcast to both customer web and Android phone gateway
-      WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_CREATED', type: 'ORDER_CREATED', payload: newOrder, order: newOrder });
+      WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_CREATED', type: 'ORDER_CREATED', payload: targetOrder, order: targetOrder });
       
       // Also reply back to sender
-      WebSocketHub.sendTo(ws, { action: 'ORDER_CONFIRMED', type: 'ORDER_CONFIRMED', order: newOrder, payload: newOrder });
+      WebSocketHub.sendTo(ws, { action: 'ORDER_CONFIRMED', type: 'ORDER_CONFIRMED', order: targetOrder, payload: targetOrder });
       return true;
     }
     default:

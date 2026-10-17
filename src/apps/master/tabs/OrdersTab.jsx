@@ -236,9 +236,23 @@ export default function OrdersTab() {
            d.getDate() === now.getDate();
   };
 
+  // Deduplicated unique today orders list
+  const uniqueTodayOrders = useMemo(() => {
+    const list = (orders || []).filter(isOrderToday);
+    const seen = new Set();
+    return list.filter(o => {
+      if (!o) return false;
+      const key = o.id || o.orderNumber;
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [orders]);
+
   // Filtered Today's orders with 4 Pipeline Stages (NEW, KITCHEN, DISPATCHED, DELIVERED)
   const todayOrders = useMemo(() => {
-    let list = (orders || []).filter(isOrderToday);
+    let list = [...uniqueTodayOrders];
 
     if (statusFilter === 'NEW') {
       list = list.filter(o => o.status === 'new' || o.status === 'pending');
@@ -266,7 +280,7 @@ export default function OrdersTab() {
       const tB = new Date(b.createdAt || b.date || b.dateISO || b.placedAt || 0).getTime();
       return tB - tA;
     });
-  }, [orders, statusFilter, searchQuery]);
+  }, [uniqueTodayOrders, statusFilter, searchQuery]);
 
   // Historical orders filtered by selected period (Week / Month / Year / All)
   const historyOrders = useMemo(() => {
@@ -415,7 +429,7 @@ export default function OrdersTab() {
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                <span>TODAY'S ORDERS ({todayOrders.length})</span>
+                <span>TODAY'S ORDERS ({uniqueTodayOrders.length})</span>
               </button>
 
               <button
@@ -472,16 +486,15 @@ export default function OrdersTab() {
           /* 4 Pipeline Stages: NEW, KITCHEN, DISPATCHED, DELIVERED */
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {filterTabs.map(tab => {
-              const allToday = (orders || []).filter(isOrderToday);
               const count = tab.id === 'ALL' 
-                ? allToday.length
+                ? uniqueTodayOrders.length
                 : tab.id === 'NEW'
-                  ? allToday.filter(o => o.status === 'new' || o.status === 'pending').length
+                  ? uniqueTodayOrders.filter(o => o.status === 'new' || o.status === 'pending').length
                   : tab.id === 'KITCHEN'
-                    ? allToday.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing').length
+                    ? uniqueTodayOrders.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing').length
                     : tab.id === 'DISPATCHED'
-                      ? allToday.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way').length
-                      : allToday.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+                      ? uniqueTodayOrders.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way').length
+                      : uniqueTodayOrders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
 
               const active = statusFilter === tab.id;
 

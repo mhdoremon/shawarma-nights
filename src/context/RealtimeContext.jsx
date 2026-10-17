@@ -257,11 +257,19 @@ export function RealtimeProvider({ children }) {
         showToast('Live Update: Menu me badlaav hua!');
         break;
 
-      case 'ORDER_CREATED':
-        setOrders((prev) => [payload, ...prev]);
+      case 'ORDER_CREATED': {
+        const newOrder = payload?.order || payload;
+        setOrders((prev) => {
+          const exists = prev.some(o => o && (o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber)));
+          if (exists) {
+            return prev.map(o => (o && (o.id === newOrder.id || (o.orderNumber && newOrder.orderNumber && o.orderNumber === newOrder.orderNumber))) ? { ...o, ...newOrder } : o);
+          }
+          return [newOrder, ...prev];
+        });
         sounds.playChime();
-        showToast(`Naya Order Aaya: #${payload.id} (₹${payload.total})`);
+        showToast(`Naya Order Aaya: #${newOrder.orderNumber || newOrder.id} (₹${newOrder.total || newOrder.grandTotal})`);
         break;
+      }
 
       case 'ORDER_UPDATED':
       case 'ORDER_STATUS_CHANGED': {
@@ -269,7 +277,7 @@ export function RealtimeProvider({ children }) {
         const status = payload?.status;
         if (orderId && status) {
           setOrders((prev) =>
-            prev.map((o) => (o.id === orderId ? { ...o, ...payload, status } : o))
+            prev.map((o) => ((o && (String(o.id) === String(orderId) || String(o.orderNumber) === String(orderId))) ? { ...o, ...payload, status } : o))
           );
           showToast(`Order Status: #${orderId} ab "${status}" ho gaya!`);
         }
@@ -442,10 +450,7 @@ export function RealtimeProvider({ children }) {
 
     const activeStoreId = getStoreId();
 
-    // 1. Send via WebSocket for real-time delivery
-    sendEvent('PLACE_ORDER', { ...orderData, storeId: activeStoreId });
-
-    // 2. Guaranteed REST delivery to server database
+    // 1. Primary: Authoritative REST delivery to server database
     try {
       const apiUrl = API_URL ? API_URL.replace(/\/+$/, '') : '';
       fetch(`${apiUrl}/api/orders`, {
@@ -458,12 +463,17 @@ export function RealtimeProvider({ children }) {
       }).then(r => r.json()).then(data => {
         if (data.success && data.order) {
           console.log('✅ [REST Order Success] Saved:', data.order.id);
+        } else {
+          // Fallback to WebSocket if REST rejected or offline
+          sendEvent('PLACE_ORDER', { ...orderData, storeId: activeStoreId });
         }
       }).catch(err => {
-        console.warn('⚠️ REST order delivery failed:', err);
+        console.warn('⚠️ REST order delivery failed, falling back to WebSocket:', err);
+        sendEvent('PLACE_ORDER', { ...orderData, storeId: activeStoreId });
       });
     } catch (err) {
-      console.warn('⚠️ REST order fetch error:', err);
+      console.warn('⚠️ REST order fetch error, falling back to WebSocket:', err);
+      sendEvent('PLACE_ORDER', { ...orderData, storeId: activeStoreId });
     }
   };
 

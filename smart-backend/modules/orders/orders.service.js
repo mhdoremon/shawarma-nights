@@ -154,7 +154,7 @@ export const placeOrder = async (req, res) => {
         
         const isOnlinePayment = String(payload.paymentMethod || '').trim().toLowerCase() === 'upi' || 
                                 String(payload.paymentMethod || '').trim().toLowerCase() === 'online';
-        const status = payload.status || (isOnlinePayment ? 'payment_pending' : 'confirmed');
+        const status = payload.status || (isOnlinePayment ? 'payment_pending' : 'new');
         const deliveryOtp = payload.deliveryType === 'delivery' ? generateOtp() : null;
 
         // Extract customer
@@ -238,7 +238,27 @@ export const placeOrder = async (req, res) => {
             }
         }
 
-        orders.push(order);
+        // DEDUPLICATION: Check if order already exists to prevent duplicate entries
+        const existingOrderIdx = orders.findIndex(o => 
+            (order.id && String(o.id) === String(order.id)) ||
+            (payload.orderId && String(o.id) === String(payload.orderId)) ||
+            (order.orderNumber && String(o.orderNumber) === String(order.orderNumber))
+        );
+
+        if (existingOrderIdx !== -1) {
+            orders[existingOrderIdx] = {
+                ...orders[existingOrderIdx],
+                ...order,
+                id: orders[existingOrderIdx].id,
+                orderNumber: orders[existingOrderIdx].orderNumber || order.orderNumber,
+                status: (orders[existingOrderIdx].status && orders[existingOrderIdx].status !== 'new')
+                    ? orders[existingOrderIdx].status
+                    : order.status,
+                updatedAt: now()
+            };
+        } else {
+            orders.unshift(order);
+        }
         DataLayer.writeSync(storeId, 'orders', orders);
 
         // Sync customer to customers.json so they appear in dukandar database
@@ -298,30 +318,33 @@ export const updateOrderStatus = async (req, res) => {
     try {
         const storeId = req.storeId;
         const { orderId, status, deliveryBoyId } = req.body;
-        const orders = DataLayer.read(storeId, 'orders') || [];
-        const orderIndex = orders.findIndex(o => o.id === orderId);
+        let updatedAny = false;
+        let lastUpdated = null;
+        orders.forEach((o, idx) => {
+            if (String(o.id) === String(orderId) || (o.orderNumber && String(o.orderNumber) === String(orderId))) {
+                o.status = status;
+                o.updatedAt = now();
+                if (status === 'out_for_delivery' && deliveryBoyId) {
+                    o.deliveryBoyId = deliveryBoyId;
+                }
+                if (status === 'delivered' || status === 'completed') {
+                    o.paymentStatus = 'paid';
+                    o.deliveredAt = o.deliveredAt || now();
+                }
+                orders[idx] = o;
+                lastUpdated = o;
+                updatedAny = true;
+            }
+        });
 
-        if (orderIndex === -1) {
+        if (!updatedAny) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        const order = orders[orderIndex];
-        order.status = status;
-        order.updatedAt = now();
-
-        if (status === 'out_for_delivery' && deliveryBoyId) {
-            order.deliveryBoyId = deliveryBoyId;
-        }
-
-        if (status === 'delivered' || status === 'completed') {
-            order.paymentStatus = 'paid';
-            order.deliveredAt = order.deliveredAt || now();
-        }
-
-        orders[orderIndex] = order;
         DataLayer.writeSync(storeId, 'orders', orders);
 
-        WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: order });
+        WebSocketHub.broadcastToAll(storeId, { action: 'ORDER_UPDATED', payload: lastUpdated, order: lastUpdated });
+        WebSocketHub.broadcastToGateway(storeId, { action: 'ORDER_UPDATED', payload: lastUpdated, order: lastUpdated });
 
         res.json({ success: true, order });
     } catch (error) {
