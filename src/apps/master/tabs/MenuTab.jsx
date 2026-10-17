@@ -340,10 +340,30 @@ export default function MenuTab() {
       category: 'combos',
       isCombo: true,
       available: comboModalItem.available !== false,
-      comboItems: selectedDishes.map(d => ({ id: d.id, name: d.name, price: d.price, image: d.image })),
+      comboItems: selectedDishes.map(d => ({ 
+        id: d.id, 
+        name: d.name, 
+        price: d.price, 
+        image: d.image,
+        options: d.options || null
+      })),
       image: comboModalItem.image || (selectedDishes[0]?.image || 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80'),
       description: comboModalItem.description || selectedDishes.map(d => d.name).join(' + '),
-      badge: comboModalItem.badge || (origPrice > Number(comboModalItem.price) ? `SAVE ₹${origPrice - Number(comboModalItem.price)}` : 'COMBO FEAST')
+      badge: comboModalItem.badge || (origPrice > Number(comboModalItem.price) ? `SAVE ₹${origPrice - Number(comboModalItem.price)}` : 'COMBO FEAST'),
+      options: comboModalItem.options || {
+        bread: [
+          { name: 'Toasted Rumali Roti (Included)', price: 0 },
+          { name: 'Fluffy Lebanese Pita', price: 20 },
+          { name: 'Crispy Arabian Saj Bread', price: 30 }
+        ],
+        spiciness: ['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire'],
+        addons: [
+          { id: 'combo_toum', name: 'Extra Garlic Toum (Famous Dip)', price: 25 },
+          { id: 'combo_cheese', name: 'Add Melted Mozzarella to Wraps', price: 49 },
+          { id: 'combo_fries', name: 'Upgrade to Cheesy Loaded Fries', price: 39 },
+          { id: 'combo_drink', name: 'Add Extra Chilled Mint Mojito Drink', price: 49 }
+        ]
+      }
     };
 
     if (comboModalItem.id && (menu || []).some(d => d.id === comboModalItem.id)) {

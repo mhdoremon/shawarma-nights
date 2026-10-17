@@ -470,12 +470,24 @@ export default function CartDrawer({ onOpenTracker }) {
                               className="w-14 h-14 rounded-xl object-cover shrink-0 border border-zinc-100"
                             />
                             <div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className={`w-2 h-2 rounded-full ${item.isVeg ? 'bg-emerald-600' : 'bg-[#DC2626]'}`} />
                                 <h4 className="font-bold text-zinc-900 text-xs">
                                   {item.name}
                                 </h4>
+                                {item.isCombo && (
+                                  <span className="bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-black text-[9px] uppercase tracking-wider">
+                                    Combo Feast
+                                  </span>
+                                )}
                               </div>
+
+                              {/* Bundled Items in Combo */}
+                              {item.comboItems && item.comboItems.length > 0 && (
+                                <div className="text-[10px] text-amber-900 font-medium mt-0.5 line-clamp-1">
+                                  Includes: {item.comboItems.map(c => c.name).join(' • ')}
+                                </div>
+                              )}
 
                               <div className="flex flex-wrap gap-1 mt-1 text-[10px] text-zinc-500">
                                 {item.bread && (

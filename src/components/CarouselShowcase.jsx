@@ -85,12 +85,13 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
 
   const handleAdd = (item) => {
     if (item.available === false) return;
-    const hasOpt = !item.isCombo && item.options && (
+    const isCombo = Boolean(item.isCombo || item.category === 'combos');
+    const hasOpt = isCombo || (item.options && (
       (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
       (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
       (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
       (Array.isArray(item.addons) && item.addons.length > 0)
-    );
+    ));
     if (hasOpt && onSelectForCustomize) {
       onSelectForCustomize(item);
     } else {
@@ -239,14 +240,15 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                 const item = getItem(0);
                 if (!item) return null;
                 const isOutOfStock = item.available === false;
+                const isCombo = Boolean(item.isCombo || item.category === 'combos');
                 const dp = discountPercent(item) || 20; // Default discount badge like image if originalPrice not provided
                 const inCart = cartQty(item.id);
-                const hasOpt = !item.isCombo && item.options && (
+                const hasOpt = isCombo || (item.options && (
                   (Array.isArray(item.options.bread) && item.options.bread.length > 0) ||
                   (Array.isArray(item.options.addons) && item.options.addons.length > 0) ||
                   (Array.isArray(item.options.spiciness) && item.options.spiciness.length > 0) ||
                   (Array.isArray(item.addons) && item.addons.length > 0)
-                );
+                ));
 
                 return (
                   <motion.div
@@ -355,6 +357,32 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                         )}
                       </div>
 
+                      {/* Combo Included Items Breakdown Box */}
+                      {isCombo && (
+                        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-3 space-y-1.5">
+                          <div className="text-[10px] font-black text-amber-950 uppercase tracking-wider flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              <Package className="w-3 h-3 text-[#DC2626]" />
+                              <span>Included in this Combo:</span>
+                            </span>
+                            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full border border-emerald-300">
+                              Included • शामिल
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            {(item.comboItems?.length > 0
+                              ? item.comboItems
+                              : item.description?.split('+').map((s, i) => ({ id: i, name: s.trim() })) || [{ name: item.name }]
+                            ).map((b, bIdx) => (
+                              <div key={bIdx} className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#DC2626] shrink-0" />
+                                <span className="truncate">{b.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Price & Action Button (Image 1) */}
                       <div className="pt-3 border-t border-zinc-100 flex items-center justify-between">
                         <div className="flex items-baseline gap-2">
@@ -380,10 +408,10 @@ export default function CarouselShowcase({ onSelectForCustomize }) {
                           <motion.button
                             whileTap={{ scale: 0.94 }}
                             onClick={() => handleAdd(item)}
-                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+                            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer border-0"
                           >
                             <Plus className="w-4 h-4 stroke-[3]" />
-                            <span>{item.isCombo ? 'Add Combo' : (hasOpt ? 'Customize' : 'Add')}</span>
+                            <span>{isCombo ? 'Customize Combo' : (hasOpt ? 'Customize' : 'Add')}</span>
                           </motion.button>
                         )}
                       </div>

@@ -5,6 +5,7 @@ import { CartProvider } from '../../context/CartContext';
 import Navbar from '../../components/Navbar';
 import HeroBanner from '../../components/HeroBanner';
 import DealBanners from '../../components/DealBanners';
+import CombosShowcase from '../../components/CombosShowcase';
 import CarouselShowcase from '../../components/CarouselShowcase';
 import CustomerReviews from '../../components/CustomerReviews';
 import FranchiseTeaser from '../../components/FranchiseTeaser';
@@ -74,6 +75,7 @@ export default function CustomerApp() {
                 onOpenFranchise={() => setIsFranchiseOpen(true)}
               />
               <DealBanners />
+              <CombosShowcase onSelectForCustomize={setCustomizeItem} />
               <div id="menu">
                 <CarouselShowcase onSelectForCustomize={setCustomizeItem} />
               </div>
