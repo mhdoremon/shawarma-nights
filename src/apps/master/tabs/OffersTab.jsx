@@ -24,6 +24,7 @@ export default function OffersTab() {
   } = useMaster();
 
   const isSalon = capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon' || capabilities?.catalog?.hasServiceDuration;
+  const isFashion = Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
   const hasFreeDelivery = !isSalon && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
 
   // Free delivery threshold state
@@ -34,23 +35,28 @@ export default function OffersTab() {
   const [comboModalData, setComboModalData] = useState(null); // null (closed) | {} (add/edit combo package)
 
   // Filter combo packages from menu catalog
-  const salonCombos = (menu || []).filter(item => 
-    item && (item.isCombo === true || item.categoryId === 'cat_combo' || item.category === 'Combo Packages' || (item.category && item.category.toLowerCase().includes('combo')))
+  const availableCombos = (menu || []).filter(item => 
+    item && (item.isCombo === true || item.categoryId === 'cat_combo' || item.category === 'Combo Packages' || item.category === 'combos' || item.category === 'combo' || (item.category && item.category.toLowerCase().includes('combo')))
   );
 
   // Hero Offer Editor state
   const [heroOffer, setHeroOffer] = useState({
-    studioName: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
+    studioName: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
     featuredItemId: heroBanner?.featuredItemId || (menu?.[0]?.id || ''),
-    priceText: heroBanner?.priceText || 'Starts from',
-    priceValue: heroBanner?.priceValue || (isSalon ? '500' : '179'),
-    badgeText: heroBanner?.badgeText || (isSalon ? 'VIP GROOMING LOUNGE' : '50% OFF — NIGHT50'),
-    titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : 'REAL'),
-    titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : 'CHARCOAL'),
-    titleHighlight: heroBanner?.titleHighlight || (isSalon ? 'NASH STUDIO' : 'SHAWARMA'),
-    subtitle: heroBanner?.subtitle || storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
+    priceText: heroBanner?.priceText || (isFashion ? 'Starting at' : isSalon ? 'Starts from' : 'Starts from'),
+    priceValue: heroBanner?.priceValue || (isSalon ? '500' : isFashion ? '1799' : '179'),
+    badgeText: heroBanner?.badgeText || (isSalon ? 'VIP GROOMING LOUNGE' : isFashion ? 'CHURU FLAGSHIP' : '50% OFF — NIGHT50'),
+    titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : isFashion ? 'SKYLINE' : 'REAL'),
+    titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : isFashion ? 'PREMIUM' : 'CHARCOAL'),
+    titleHighlight: heroBanner?.titleHighlight || (isSalon ? 'NASH STUDIO' : isFashion ? 'OUTFITS' : 'SHAWARMA'),
+    subtitle: heroBanner?.subtitle || storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : isFashion ? 'Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & bespoke outfits curated in Churu.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
     heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || '/video/hero.mp4',
-    heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || 'EXPLORE STYLES & BOOK'
+    heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || (isFashion ? 'SHOP COLLECTION' : isSalon ? 'EXPLORE STYLES & BOOK' : 'ORDER NOW'),
+    marqueeText: heroBanner?.marqueeText || (isFashion ? 'SKYLINE BESPOKE • 100% ITALIAN LINEN • BESPOKE HANDCRAFTED TAILORING • CHURU SAME-DAY EXPRESS • ARCHITECTURAL SILHOUETTES' : '★ TAP HERE TO OWN A FRANCHISE ● ★ 3-6 MONTHS ROI ● ★ HIGH CASH FLOW ● ★ TURNKEY SETUP ● ★ LIMITED CITY SLOTS AVAILABLE ★'),
+    trendingTag: heroBanner?.trendingTag || '— Our Trending Menswear Collection —',
+    trendingTitle: heroBanner?.trendingTitle || 'Most Popular\nGarments',
+    trendingSubtitle: heroBanner?.trendingSubtitle || 'Curated luxury essentials engineered for sharp tailoring, comfort and enduring elegance in Churu.',
+    trendingItemIds: Array.isArray(heroBanner?.trendingItemIds) ? heroBanner.trendingItemIds : []
   });
 
   useEffect(() => {
@@ -61,7 +67,16 @@ export default function OffersTab() {
         subtitle: heroBanner?.subtitle || storeInfo?.tagline || prev.subtitle,
         heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || prev.heroVideoUrl,
         heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || prev.heroButtonText,
-        titleHighlight: heroBanner?.titleHighlight || storeInfo?.name || prev.titleHighlight
+        titleHighlight: heroBanner?.titleHighlight || storeInfo?.name || prev.titleHighlight,
+        marqueeText: heroBanner?.marqueeText || prev.marqueeText,
+        trendingTag: heroBanner?.trendingTag || prev.trendingTag,
+        trendingTitle: heroBanner?.trendingTitle || prev.trendingTitle,
+        trendingSubtitle: heroBanner?.trendingSubtitle || prev.trendingSubtitle,
+        trendingItemIds: Array.isArray(heroBanner?.trendingItemIds) ? heroBanner.trendingItemIds : prev.trendingItemIds,
+        featuredItemId: heroBanner?.featuredItemId || prev.featuredItemId,
+        badgeText: heroBanner?.badgeText || prev.badgeText,
+        titleLine1: heroBanner?.titleLine1 || prev.titleLine1,
+        titleLine2: heroBanner?.titleLine2 || prev.titleLine2
       }));
     }
   }, [storeInfo, heroBanner]);
@@ -210,7 +225,12 @@ export default function OffersTab() {
       titleHighlight: heroOffer.studioName || heroOffer.titleHighlight,
       subtitle: heroOffer.subtitle,
       heroVideoUrl: heroOffer.heroVideoUrl,
-      heroButtonText: heroOffer.heroButtonText
+      heroButtonText: heroOffer.heroButtonText,
+      marqueeText: heroOffer.marqueeText,
+      trendingTag: heroOffer.trendingTag,
+      trendingTitle: heroOffer.trendingTitle,
+      trendingSubtitle: heroOffer.trendingSubtitle,
+      trendingItemIds: heroOffer.trendingItemIds
     };
 
     await updateHeroBanner(bannerPayload);
@@ -224,6 +244,11 @@ export default function OffersTab() {
         heroTagline: heroOffer.subtitle,
         heroButtonText: heroOffer.heroButtonText,
         heroVideoUrl: heroOffer.heroVideoUrl
+      });
+    } else if (isFashion) {
+      await updateStoreSettings({
+        marqueeText: heroOffer.marqueeText,
+        tagline: heroOffer.subtitle
       });
     }
     showToast(isSalon ? 'Salon Video Hero Banner & Studio Branding Updated!' : 'Homepage Hero Offer & Banner Updated!', 'success');
@@ -287,20 +312,24 @@ export default function OffersTab() {
 
 
 
-      {/* 1. VIP SALON PACKAGES & COMBOS SECTION (Salon only) */}
-      {isSalon && (
+      {/* 1. VIP PACKAGES & COMBOS SECTION (Salon & Fashion stores) */}
+      {(isSalon || isFashion) && (
         <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black uppercase tracking-wider mb-2">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>Bespoke Packages • बंडल कॉम्बो</span>
+                <span>{isSalon ? 'Bespoke Packages • बंडल कॉम्बो' : 'Curated Outfits • बंडल कॉम्बो'}</span>
               </div>
               <h2 className="text-xl font-black text-zinc-900">
-                VIP SALON PACKAGES & COMBOS ({salonCombos.length})
+                {isSalon 
+                  ? `VIP SALON PACKAGES & COMBOS (${availableCombos.length})` 
+                  : `CURATED WARDROBE SETS & COMBOS (${availableCombos.length})`}
               </h2>
               <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-                Haircut + Daadi + Shave + Facial ke multi-service package bundles yahan se banayein aur website par live showcase karein.
+                {isSalon 
+                  ? 'Haircut + Daadi + Shave + Facial ke multi-service package bundles yahan se banayein aur website par live showcase karein.'
+                  : 'Shirt + Trouser + Jacket ke coordinated outfits & matching sets yahan se banayein aur website par live showcase karein.'}
               </p>
             </div>
 
@@ -308,32 +337,38 @@ export default function OffersTab() {
               type="button"
               onClick={() => setComboModalData({
                 name: '',
-                price: 599,
-                originalPrice: 850,
+                price: isFashion ? 2999 : 599,
+                originalPrice: isFashion ? 4499 : 850,
                 time: 50,
-                badge: 'BESTSELLER COMBO',
+                badge: isFashion ? 'CURATED ENSEMBLE' : 'BESTSELLER COMBO',
                 selectedDishIds: [],
-                image: '/images/hs_scissor_sculpt.jpg',
+                image: isFashion ? (menu?.[0]?.image || '') : '/images/hs_scissor_sculpt.jpg',
                 description: '',
                 available: true
               })}
               className="px-5 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
             >
               <Package className="w-4 h-4 stroke-[2.5]" />
-              <span>+ CREATE NEW COMBO PACKAGE</span>
+              <span>{isSalon ? '+ CREATE NEW COMBO PACKAGE' : '+ CREATE WARDROBE COMBO SET'}</span>
             </button>
           </div>
 
           {/* Combos Grid */}
-          {salonCombos.length === 0 ? (
+          {availableCombos.length === 0 ? (
             <div className="text-center py-12 text-zinc-400 text-xs font-medium bg-[#FFFBF7] rounded-3xl p-8 border-2 border-dashed border-zinc-200">
               <Package className="w-10 h-10 text-zinc-300 mx-auto mb-3" />
-              <p className="font-bold text-zinc-600 text-sm">Koi bhi Combo Package listed nahi hai</p>
-              <p className="mt-1">"+ CREATE NEW COMBO PACKAGE" button daba kar Daadi + Haircut ya Royal Grooming bundle banayein.</p>
+              <p className="font-bold text-zinc-600 text-sm">
+                {isSalon ? 'Koi bhi Combo Package listed nahi hai' : 'Koi bhi Wardrobe Combo Set listed nahi hai'}
+              </p>
+              <p className="mt-1">
+                {isSalon 
+                  ? '"+ CREATE NEW COMBO PACKAGE" button daba kar Daadi + Haircut ya Royal Grooming bundle banayein.'
+                  : '"+ CREATE WARDROBE COMBO SET" button daba kar Shirt + Trouser ya 2-Piece Ensemble bundle banayein.'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {salonCombos.map(combo => {
+              {availableCombos.map(combo => {
                 const isAvail = combo.available !== false;
                 const orig = Number(combo.originalPrice) || 0;
                 const curr = Number(combo.price) || 0;
@@ -840,42 +875,188 @@ export default function OffersTab() {
           />
         </div>
 
+        {/* CTA Button Text */}
+        <div>
+          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+            CTA BUTTON TEXT
+          </label>
+          <input
+            type="text"
+            value={heroOffer.heroButtonText || ''}
+            onChange={(e) => setHeroOffer({ ...heroOffer, heroButtonText: e.target.value })}
+            placeholder={isFashion ? "SHOP COLLECTION" : isSalon ? "EXPLORE STYLES & BOOK" : "ORDER NOW"}
+            className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+          />
+          <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
+            {(isFashion 
+              ? ['SHOP COLLECTION', 'EXPLORE PIECES', 'VIEW LOOKBOOK', 'BESPOKE TAILORING'] 
+              : isSalon 
+                ? ['EXPLORE STYLES & BOOK', 'BOOK APPOINTMENT', 'VIEW SALON SERVICES']
+                : ['ORDER NOW', 'EXPLORE MENU', 'HOT DEALS', 'VIEW OFFERS']
+            ).map(cta => (
+              <button
+                key={cta}
+                type="button"
+                onClick={() => setHeroOffer({ ...heroOffer, heroButtonText: cta })}
+                className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold border-0 cursor-pointer"
+              >
+                {cta}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Salon Video Hero Fields */}
         {isSalon && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
-            <div>
-              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                HERO BACKGROUND VIDEO URL / PATH
-              </label>
-              <input
-                type="text"
-                value={heroOffer.heroVideoUrl || ''}
-                onChange={(e) => setHeroOffer({ ...heroOffer, heroVideoUrl: e.target.value })}
-                placeholder="/video/hero.mp4"
-                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono"
-              />
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <button
-                  type="button"
-                  onClick={() => setHeroOffer({ ...heroOffer, heroVideoUrl: '/video/hero.mp4' })}
-                  className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold border-0 cursor-pointer"
-                >
-                  Reset Default Video (/video/hero.mp4)
-                </button>
+          <div className="pt-2 border-t border-zinc-100">
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              HERO BACKGROUND VIDEO URL / PATH
+            </label>
+            <input
+              type="text"
+              value={heroOffer.heroVideoUrl || ''}
+              onChange={(e) => setHeroOffer({ ...heroOffer, heroVideoUrl: e.target.value })}
+              placeholder="/video/hero.mp4"
+              className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-mono"
+            />
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setHeroOffer({ ...heroOffer, heroVideoUrl: '/video/hero.mp4' })}
+                className="px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-700 text-[10px] font-bold border-0 cursor-pointer"
+              >
+                Reset Default Video (/video/hero.mp4)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Chalne Wali Patti (Running Marquee Ribbon Ticker) */}
+        <div className="pt-3 border-t border-zinc-100 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+              चलने वाली पट्टी (RUNNING TICKER RIBBON / MARQUEE TEXT)
+            </label>
+            <span className="text-[10px] text-zinc-400 font-mono">Bullet (•) se text divide karein</span>
+          </div>
+          <textarea
+            rows={2}
+            value={heroOffer.marqueeText || ''}
+            onChange={(e) => setHeroOffer({ ...heroOffer, marqueeText: e.target.value })}
+            placeholder="SKYLINE BESPOKE • 100% ITALIAN LINEN • BESPOKE HANDCRAFTED TAILORING • CHURU SAME-DAY EXPRESS"
+            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+          />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(isFashion ? [
+              'SKYLINE BESPOKE • 100% ITALIAN LINEN • BESPOKE HANDCRAFTED TAILORING • CHURU SAME-DAY EXPRESS • ARCHITECTURAL SILHOUETTES',
+              '100% FRENCH LINEN • SELVEDGE DENIM • GURKHA TROUSERS • BESPOKE ATELIER • CHURU SUBHASH CHOWK'
+            ] : [
+              '★ TAP HERE TO OWN A FRANCHISE ● ★ 3-6 MONTHS ROI ● ★ HIGH CASH FLOW ● ★ TURNKEY SETUP ● ★ LIMITED CITY SLOTS AVAILABLE ★',
+              '🔥 AUTHENTIC CHARCOAL SHAWARMA • 🍗 FRESH HAND-CARVED CHICKEN • 🧄 HOMEMADE GARLIC TOUM • 🚀 25 MIN EXPRESS DELIVERY'
+            ]).map((preset, pIdx) => (
+              <button
+                key={pIdx}
+                type="button"
+                onClick={() => setHeroOffer({ ...heroOffer, marqueeText: preset })}
+                className="px-2.5 py-1 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-bold border-0 cursor-pointer truncate max-w-xs"
+              >
+                Preset {pIdx + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Most Popular / Trending Collection Editor */}
+        {isFashion && (
+          <div className="pt-4 border-t border-zinc-100 space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-black" />
+              <h4 className="text-xs font-black text-zinc-900 uppercase tracking-wider">
+                MOST POPULAR GARMENTS SECTION (TRENDING COLLECTION)
+              </h4>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                  SECTION TOP TAG
+                </label>
+                <input
+                  type="text"
+                  value={heroOffer.trendingTag || ''}
+                  onChange={(e) => setHeroOffer({ ...heroOffer, trendingTag: e.target.value })}
+                  placeholder="— Our Trending Menswear Collection —"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                  SECTION TITLE (ENTER KEY SE LINE BREAK HOGA)
+                </label>
+                <input
+                  type="text"
+                  value={heroOffer.trendingTitle || ''}
+                  onChange={(e) => setHeroOffer({ ...heroOffer, trendingTitle: e.target.value })}
+                  placeholder="Most Popular\nGarments"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+                />
               </div>
             </div>
 
             <div>
               <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                CTA BUTTON TEXT
+                SECTION SUBTITLE
               </label>
-              <input
-                type="text"
-                value={heroOffer.heroButtonText || ''}
-                onChange={(e) => setHeroOffer({ ...heroOffer, heroButtonText: e.target.value })}
-                placeholder="EXPLORE STYLES & BOOK"
-                className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              <textarea
+                rows={2}
+                value={heroOffer.trendingSubtitle || ''}
+                onChange={(e) => setHeroOffer({ ...heroOffer, trendingSubtitle: e.target.value })}
+                placeholder="Curated luxury essentials engineered for sharp tailoring, comfort and enduring elegance in Churu."
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none"
               />
+            </div>
+
+            {/* Checklist of featured trending garments */}
+            <div>
+              <div className="flex items-center justify-between text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1.5">
+                <span>Select Products to Showcase in Trending (3-4 Items):</span>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  {heroOffer.trendingItemIds?.length || 0} items selected
+                </span>
+              </div>
+              <div className="max-h-52 overflow-y-auto space-y-1 p-2.5 bg-[#FFFBF7] rounded-2xl border border-zinc-200/60">
+                {(menu || []).filter(item => !item?.isCombo).map(item => {
+                  const isChecked = (heroOffer.trendingItemIds || []).includes(item.id);
+                  return (
+                    <label 
+                      key={item.id}
+                      className={`flex items-center justify-between p-2 rounded-xl cursor-pointer text-xs transition-colors ${
+                        isChecked ? 'bg-black text-white' : 'hover:bg-white text-zinc-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const current = heroOffer.trendingItemIds || [];
+                            const next = e.target.checked
+                              ? [...current, item.id]
+                              : current.filter(id => id !== item.id);
+                            setHeroOffer({ ...heroOffer, trendingItemIds: next });
+                          }}
+                          className="rounded text-black focus:ring-black w-4 h-4 cursor-pointer"
+                        />
+                        <span className="font-bold truncate">{item.name}</span>
+                      </div>
+                      <span className={`font-mono font-bold shrink-0 text-xs ${isChecked ? 'text-stone-300' : 'text-zinc-500'}`}>
+                        ₹{item.price}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

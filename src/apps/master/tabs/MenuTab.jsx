@@ -39,7 +39,11 @@ export default function MenuTab() {
   });
 
   const fileInputRef = useRef(null);
+  const secondaryFileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingSecondary, setIsUploadingSecondary] = useState(false);
+  const [customColorName, setCustomColorName] = useState('');
+  const [customColorHex, setCustomColorHex] = useState('#0D0D0D');
 
   // Ready Photo Presets adapted to capability
   const photoPresets = hasServiceDuration ? [
@@ -172,12 +176,17 @@ export default function MenuTab() {
     });
   };
 
-  // Handle Image File Upload (Device / Gallery)
-  const handleImageUpload = async (e) => {
+  // Handle Image File Upload (Device / Gallery) for Primary & Secondary Angle
+  const handleImageUpload = async (e, targetField = 'image') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    if (targetField === 'secondaryImage') {
+      setIsUploadingSecondary(true);
+    } else {
+      setIsUploading(true);
+    }
+
     try {
       const compressedBase64 = await compressImage(file);
       if (!compressedBase64) throw new Error('Compression failed');
@@ -196,20 +205,24 @@ export default function MenuTab() {
         });
         const data = await res.json();
         if (data.success && data.url) {
-          setModalItem(prev => ({ ...prev, image: data.url }));
-          showToast('Image uploaded successfully!', 'success');
+          setModalItem(prev => ({ ...prev, [targetField]: data.url }));
+          showToast(`${targetField === 'secondaryImage' ? 'Angle 2 (Lookbook) photo' : 'Primary photo'} uploaded successfully!`, 'success');
         } else {
-          setModalItem(prev => ({ ...prev, image: compressedBase64 }));
-          showToast('Image loaded from device', 'info');
+          setModalItem(prev => ({ ...prev, [targetField]: compressedBase64 }));
+          showToast(`${targetField === 'secondaryImage' ? 'Angle 2 photo' : 'Photo'} loaded from device`, 'info');
         }
       } catch (err) {
-        setModalItem(prev => ({ ...prev, image: compressedBase64 }));
-        showToast('Image loaded from device', 'info');
+        setModalItem(prev => ({ ...prev, [targetField]: compressedBase64 }));
+        showToast(`${targetField === 'secondaryImage' ? 'Angle 2 photo' : 'Photo'} loaded from device`, 'info');
       }
     } catch (err) {
       showToast('Error processing image', 'error');
     } finally {
-      setIsUploading(false);
+      if (targetField === 'secondaryImage') {
+        setIsUploadingSecondary(false);
+      } else {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -234,6 +247,8 @@ export default function MenuTab() {
         const trimmed = c.trim();
         return { name: trimmed, hex: '#1A1A1A' };
       }).filter(Boolean);
+    } else if (Array.isArray(colors)) {
+      colors = colors.map(c => typeof c === 'string' ? { name: c.trim(), hex: '#1A1A1A' } : c).filter(c => c && c.name);
     }
 
     // Process durationMinutes for salons & appointment services
@@ -761,7 +776,7 @@ export default function MenuTab() {
               <div className="bg-[#FFFBF7] p-4 rounded-2xl space-y-3 border-0">
                 <div className="flex items-center justify-between">
                   <label className={`block text-xs font-black ${hasServiceDuration ? 'text-[#d4af37]' : (hasSizes && hasColors) ? 'text-zinc-900' : 'text-[#DC2626]'} uppercase tracking-wider`}>
-                    {itemNoun.toUpperCase()} PHOTO (GALLERY YA PRESET SE)
+                    {hasLookbook ? 'ANGLE 1: PRIMARY PHOTO (FRONT VIEW)' : `${itemNoun.toUpperCase()} PHOTO (GALLERY YA PRESET SE)`}
                   </label>
                   {isUploading && <span className="text-[10px] text-zinc-500 font-bold">Uploading...</span>}
                 </div>
@@ -1098,47 +1113,221 @@ export default function MenuTab() {
                     </div>
                   )}
 
-                  {/* COLORS (Fashion & Retail) */}
+                  {/* COLORS & SWATCH BUILDER (Fashion & Retail) */}
                   {hasColors && (
-                    <div>
-                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                        COLOR SWATCHES (Comma Separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={Array.isArray(modalItem.colors) ? modalItem.colors.map(c => typeof c === 'string' ? c : c.name).join(', ') : (modalItem.colors || '')}
-                        onChange={(e) => setModalItem({ ...modalItem, colors: e.target.value })}
-                        placeholder="e.g. Onyx Black, Glacier White, Camel Tan"
-                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                      />
-                      <div className="flex items-center gap-1 pt-1 flex-wrap">
-                        {['Onyx Black, Glacier White', 'Navy Blue, Camel Tan', 'Pure White', 'Jet Black'].map(col => (
-                          <button
-                            key={col}
-                            type="button"
-                            onClick={() => setModalItem({ ...modalItem, colors: col })}
-                            className="px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-[9px] font-bold border-0 cursor-pointer"
-                          >
-                            {col}
-                          </button>
-                        ))}
+                    <div className="space-y-2.5 bg-white p-3.5 rounded-2xl border border-zinc-200/80">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                          COLOR SWATCHES & SHADES (मल्टी-कलर विकल्प)
+                        </label>
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          {Array.isArray(modalItem.colors) ? modalItem.colors.length : 0} Colors Added
+                        </span>
+                      </div>
+
+                      {/* Currently Selected Color Swatches List */}
+                      {Array.isArray(modalItem.colors) && modalItem.colors.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pb-1">
+                          {modalItem.colors.map((c, cIdx) => {
+                            const cName = typeof c === 'string' ? c : c.name;
+                            const cHex = typeof c === 'object' && c.hex ? c.hex : '#1A1A1A';
+                            return (
+                              <span 
+                                key={cIdx}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-800 text-xs font-bold border border-zinc-200 shadow-2xs"
+                              >
+                                <span 
+                                  className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-2xs shrink-0" 
+                                  style={{ backgroundColor: cHex }} 
+                                />
+                                <span>{cName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setModalItem(prev => ({
+                                      ...prev,
+                                      colors: prev.colors.filter((_, i) => i !== cIdx)
+                                    }));
+                                  }}
+                                  className="w-4 h-4 rounded-full hover:bg-zinc-300 flex items-center justify-center text-zinc-500 hover:text-black cursor-pointer border-0 p-0 ml-0.5"
+                                  title="Remove color"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* 1-Tap Quick Color Presets */}
+                      <div>
+                        <span className="text-[10px] text-zinc-500 font-bold block mb-1">
+                          1-Tap Popular Colors:
+                        </span>
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                          {[
+                            { name: 'Jet Pitch Black', hex: '#0D0D0D' },
+                            { name: 'Crisp Chalk White', hex: '#FDFBF7' },
+                            { name: 'French Riviera Navy', hex: '#1B2A4A' },
+                            { name: 'Normandie Olive', hex: '#4B5320' },
+                            { name: 'Desert Sand Khaki', hex: '#C2B280' },
+                            { name: 'Terracotta Rust', hex: '#B7410E' },
+                            { name: 'Slate Steel Grey', hex: '#708090' },
+                            { name: 'Raw Indigo Denim', hex: '#1F3A52' },
+                            { name: 'Bordeaux Wine', hex: '#5E1914' },
+                            { name: 'Champagne Linen', hex: '#EEDC82' }
+                          ].map((preset) => {
+                            const isAlready = Array.isArray(modalItem.colors) && modalItem.colors.some(
+                              c => (typeof c === 'string' ? c : c.name).toLowerCase() === preset.name.toLowerCase()
+                            );
+                            return (
+                              <button
+                                key={preset.name}
+                                type="button"
+                                onClick={() => {
+                                  const current = Array.isArray(modalItem.colors) ? [...modalItem.colors] : [];
+                                  if (!isAlready) {
+                                    setModalItem({
+                                      ...modalItem,
+                                      colors: [...current, preset]
+                                    });
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 whitespace-nowrap border-0 cursor-pointer transition-all ${
+                                  isAlready ? 'bg-zinc-900 text-white shadow-2xs' : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700'
+                                }`}
+                              >
+                                <span 
+                                  className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0" 
+                                  style={{ backgroundColor: preset.hex }} 
+                                />
+                                <span>{preset.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Add Custom Color Input Row */}
+                      <div className="flex items-center gap-2 pt-1 border-t border-zinc-100">
+                        <input
+                          type="color"
+                          value={customColorHex}
+                          onChange={(e) => setCustomColorHex(e.target.value)}
+                          className="w-9 h-9 rounded-xl border border-zinc-200 cursor-pointer p-0.5 bg-white shadow-2xs shrink-0"
+                          title="Pick Color Hex"
+                        />
+                        <input
+                          type="text"
+                          value={customColorName}
+                          onChange={(e) => setCustomColorName(e.target.value)}
+                          placeholder="Custom Color Name (e.g. Royal Emerald, Dusty Pink)"
+                          className="flex-1 bg-[#FFFBF7] rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-black border-0"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (customColorName.trim()) {
+                                const current = Array.isArray(modalItem.colors) ? [...modalItem.colors] : [];
+                                setModalItem({
+                                  ...modalItem,
+                                  colors: [...current, { name: customColorName.trim(), hex: customColorHex }]
+                                });
+                                setCustomColorName('');
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!customColorName.trim()) {
+                              showToast('Pehle Color Name likhein', 'warning');
+                              return;
+                            }
+                            const current = Array.isArray(modalItem.colors) ? [...modalItem.colors] : [];
+                            setModalItem({
+                              ...modalItem,
+                              colors: [...current, { name: customColorName.trim(), hex: customColorHex }]
+                            });
+                            setCustomColorName('');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold whitespace-nowrap shadow-xs cursor-pointer border-0"
+                        >
+                          + Add Color
+                        </button>
                       </div>
                     </div>
                   )}
 
-                  {/* LOOKBOOK / SECONDARY PHOTO */}
+                  {/* DUAL-PHOTO: ANGLE 2 / STUDIO LOOKBOOK PHOTO */}
                   {hasLookbook && (
-                    <div>
-                      <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-                        SECONDARY / LOOKBOOK PHOTO (URL)
-                      </label>
-                      <input
-                        type="url"
-                        value={modalItem.secondaryImage || ''}
-                        onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
-                        placeholder="https://images.unsplash.com/..."
-                        className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-                      />
+                    <div className="space-y-2.5 bg-white p-3.5 rounded-2xl border border-zinc-200/80">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                          ANGLE 2: SECONDARY / LOOKBOOK PHOTO (2-ANGLE CROSSFADE)
+                        </label>
+                        {isUploadingSecondary && <span className="text-[10px] text-zinc-500 font-bold">Uploading Angle 2...</span>}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-18 h-18 rounded-2xl bg-zinc-100 overflow-hidden shrink-0 border border-zinc-200 flex items-center justify-center relative">
+                          {modalItem.secondaryImage ? (
+                            <img
+                              src={modalItem.secondaryImage}
+                              alt="Angle 2 Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80'; }}
+                            />
+                          ) : (
+                            <div className="text-center p-1">
+                              <ImageIcon className="w-6 h-6 text-zinc-300 mx-auto" />
+                              <span className="text-[9px] text-zinc-400 font-bold block mt-0.5">No Angle 2</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 space-y-2">
+                          <input
+                            type="file"
+                            ref={secondaryFileInputRef}
+                            onChange={(e) => handleImageUpload(e, 'secondaryImage')}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => secondaryFileInputRef.current?.click()}
+                              className="flex-1 py-2 px-3 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Angle 2 Gallery Se Upload Karein</span>
+                            </button>
+                            {modalItem.secondaryImage && (
+                              <button
+                                type="button"
+                                onClick={() => setModalItem({ ...modalItem, secondaryImage: '' })}
+                                className="px-3 py-2 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 text-xs font-bold border-0 cursor-pointer"
+                                title="Remove Angle 2"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+
+                          <input
+                            type="url"
+                            value={modalItem.secondaryImage || ''}
+                            onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
+                            placeholder="Or enter Angle 2 Photo URL (Studio / Model Angle)"
+                            className="w-full bg-[#FFFBF7] rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-black shadow-2xs border-0 font-mono"
+                          />
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 block">
+                        💡 Website par product card ke upar mouse le jaane (hover karne) par ye Angle 2 photo crossfade transition ke sath smooth dikhegi.
+                      </span>
                     </div>
                   )}
 
