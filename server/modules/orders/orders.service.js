@@ -351,7 +351,7 @@ export const placeOrder = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const storeId = req.storeId;
-        const { orderId, status, deliveryBoyId } = req.body;
+        const { orderId, status, deliveryBoyId, paymentStatus } = req.body;
         const orders = DataLayer.read(storeId, 'orders') || [];
         let updatedAny = false;
         let lastUpdated = null;
@@ -359,6 +359,9 @@ export const updateOrderStatus = async (req, res) => {
             if (String(o.id) === String(orderId) || (o.orderNumber && String(o.orderNumber) === String(orderId))) {
                 o.status = status;
                 o.updatedAt = now();
+                if (paymentStatus) {
+                    o.paymentStatus = paymentStatus;
+                }
                 if (status === 'out_for_delivery' && deliveryBoyId) {
                     o.deliveryBoyId = deliveryBoyId;
                 }

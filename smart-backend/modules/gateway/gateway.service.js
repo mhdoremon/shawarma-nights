@@ -103,12 +103,16 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       const orderId = data.orderId || data.id || data.payload?.orderId || data.payload?.id;
       const status = data.status || data.payload?.status;
       const deliveryBoyId = data.deliveryBoyId || data.payload?.deliveryBoyId;
+      const paymentStatus = data.paymentStatus || data.payload?.paymentStatus;
       let updatedAny = false;
       let lastUpdated = null;
       orders.forEach((o, idx) => {
         if (String(o.id) === String(orderId) || (o.orderNumber && String(o.orderNumber) === String(orderId))) {
           o.status = status;
           o.updatedAt = now();
+          if (paymentStatus) {
+            o.paymentStatus = paymentStatus;
+          }
           if (deliveryBoyId) {
             o.deliveryBoyId = deliveryBoyId;
           }

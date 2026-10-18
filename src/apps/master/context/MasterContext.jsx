@@ -670,10 +670,20 @@ export const MasterProvider = ({ children }) => {
   };
 
   // 3. UPDATE ORDER STATUS
-  const updateOrderStatus = async (orderId, newStatus, deliveryBoyId = null) => {
+  const updateOrderStatus = async (orderId, newStatus, deliveryBoyId = null, paymentStatus = null) => {
     playClickSound();
     // 1. Optimistic local update
-    setOrders(prev => prev.map(o => (o && (o.id === orderId || o.orderNumber === orderId)) ? { ...o, status: newStatus, deliveryBoyId } : o));
+    setOrders(prev => prev.map(o => {
+      if (o && (o.id === orderId || o.orderNumber === orderId)) {
+        return {
+          ...o,
+          status: newStatus,
+          deliveryBoyId: deliveryBoyId !== null ? deliveryBoyId : o.deliveryBoyId,
+          ...(paymentStatus ? { paymentStatus } : {})
+        };
+      }
+      return o;
+    }));
 
     // 2. Send via WebSocket
     const sentWs = sendWs({
@@ -681,14 +691,20 @@ export const MasterProvider = ({ children }) => {
       type: 'UPDATE_ORDER_STATUS',
       orderId,
       status: newStatus,
-      deliveryBoyId
+      deliveryBoyId,
+      ...(paymentStatus ? { paymentStatus } : {})
     });
 
     // 3. REST Fallback
     try {
       await apiFetch('/api/orders/update-status', {
         method: 'POST',
-        body: JSON.stringify({ orderId, status: newStatus, deliveryBoyId })
+        body: JSON.stringify({
+          orderId,
+          status: newStatus,
+          deliveryBoyId,
+          ...(paymentStatus ? { paymentStatus } : {})
+        })
       });
       showToast(`Order status updated to: ${newStatus.toUpperCase()}`, 'success');
     } catch (err) {

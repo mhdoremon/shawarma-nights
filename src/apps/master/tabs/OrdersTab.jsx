@@ -294,7 +294,7 @@ export default function OrdersTab() {
     let list = [...uniqueTodayOrders];
 
     if (statusFilter === 'NEW') {
-      list = list.filter(o => o.status === 'new' || o.status === 'pending');
+      list = list.filter(o => o.status === 'new' || o.status === 'pending' || o.status === 'payment_pending' || o.status === 'pending_upi');
     } else if (statusFilter === 'KITCHEN') {
       list = list.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing');
     } else if (statusFilter === 'DISPATCHED') {
@@ -542,7 +542,7 @@ export default function OrdersTab() {
               const count = tab.id === 'ALL' 
                 ? uniqueTodayOrders.length
                 : tab.id === 'NEW'
-                  ? uniqueTodayOrders.filter(o => o.status === 'new' || o.status === 'pending').length
+                  ? uniqueTodayOrders.filter(o => o.status === 'new' || o.status === 'pending' || o.status === 'payment_pending' || o.status === 'pending_upi').length
                   : tab.id === 'KITCHEN'
                     ? uniqueTodayOrders.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing').length
                     : tab.id === 'DISPATCHED'
@@ -937,6 +937,8 @@ export default function OrdersTab() {
             const statusStyle = {
               new: 'bg-red-50 text-red-700',
               pending: 'bg-red-50 text-red-700',
+              payment_pending: 'bg-amber-100 text-amber-900 border border-amber-300 font-black',
+              pending_upi: 'bg-amber-100 text-amber-900 border border-amber-300 font-black',
               confirmed: 'bg-amber-50 text-amber-700',
               preparing: 'bg-amber-50 text-amber-700',
               ready: 'bg-sky-50 text-sky-700',
@@ -978,11 +980,13 @@ export default function OrdersTab() {
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusStyle}`}>
                       {status === 'new' || status === 'pending'
                         ? (hasAppointments ? 'NEW BOOKING' : 'NEW ORDER')
-                        : status === 'preparing'
-                          ? (hasAppointments ? 'IN CHAIR' : hasKotPrinting ? 'IN KITCHEN' : 'PACKING')
-                          : status === 'out_for_delivery'
-                            ? 'OUT FOR DELIVERY'
-                            : status}
+                        : (status === 'payment_pending' || status === 'pending_upi')
+                          ? 'PAYMENT PENDING (UPI)'
+                          : status === 'preparing'
+                            ? (hasAppointments ? 'IN CHAIR' : hasKotPrinting ? 'IN KITCHEN' : 'PACKING')
+                            : status === 'out_for_delivery'
+                              ? 'OUT FOR DELIVERY'
+                              : status.toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -1046,9 +1050,13 @@ export default function OrdersTab() {
                         <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
                           <Banknote className="w-3.5 h-3.5" /> CASH ON DELIVERY
                         </span>
-                      ) : (
+                      ) : (order.paymentStatus === 'paid' || order.paymentStatus === 'PAID') ? (
                         <span className="inline-flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                          <CreditCard className="w-3.5 h-3.5" /> UPI AUTO-VERIFIED
+                          <CreditCard className="w-3.5 h-3.5" /> UPI PAID & VERIFIED
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full font-black border border-amber-300">
+                          <CreditCard className="w-3.5 h-3.5 text-amber-700" /> ONLINE PAYMENT PENDING
                         </span>
                       )}
                     </div>
@@ -1148,16 +1156,29 @@ export default function OrdersTab() {
                   ) : hasKotPrinting || hasRiderDispatch ? (
                     /* RESTAURANT WORKFLOW */
                     <>
-                      {/* STEP 1: NEW / PENDING -> ACCEPT & SEND TO KITCHEN */}
-                      {(status === 'new' || status === 'pending') && (
+                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING -> ACCEPT & SEND TO KITCHEN */}
+                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi') && (
                         <>
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'preparing')}
-                            className="flex-1 py-3 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                          >
-                            <ChefHat className="w-4 h-4 stroke-[2.2]" />
-                            <span>ACCEPT & SEND TO KITCHEN</span>
-                          </button>
+                          {(status === 'payment_pending' || status === 'pending_upi' || (!isCOD && order.paymentStatus !== 'paid')) ? (
+                            <button
+                              onClick={() => {
+                                updateOrderStatus(order.id, 'preparing', null, 'paid');
+                                showToast(`Order #${orderNum} marked as PAID & sent to kitchen!`, 'success');
+                              }}
+                              className="flex-1 py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                            >
+                              <ChefHat className="w-4 h-4 stroke-[2.2]" />
+                              <span>ACCEPT & MARK AS PAID</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'preparing')}
+                              className="flex-1 py-3 px-4 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                            >
+                              <ChefHat className="w-4 h-4 stroke-[2.2]" />
+                              <span>ACCEPT & SEND TO KITCHEN</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               if (window.confirm(`Reject / Cancel Order #${orderNum}?`)) {
@@ -1211,16 +1232,29 @@ export default function OrdersTab() {
                   ) : (
                     /* RETAIL / FASHION WORKFLOW */
                     <>
-                      {/* STEP 1: NEW / PENDING -> ACCEPT & PACK */}
-                      {(status === 'new' || status === 'pending') && (
+                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING -> ACCEPT & PACK */}
+                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi') && (
                         <>
-                          <button
-                            onClick={() => updateOrderStatus(order.id, 'preparing')}
-                            className="flex-1 py-3 px-4 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                          >
-                            <Check className="w-4 h-4 stroke-[2.2]" />
-                            <span>ACCEPT & PACK ORDER</span>
-                          </button>
+                          {(status === 'payment_pending' || status === 'pending_upi' || (!isCOD && order.paymentStatus !== 'paid')) ? (
+                            <button
+                              onClick={() => {
+                                updateOrderStatus(order.id, 'preparing', null, 'paid');
+                                showToast(`Order #${orderNum} marked as PAID & accepted!`, 'success');
+                              }}
+                              className="flex-1 py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                            >
+                              <Check className="w-4 h-4 stroke-[2.5]" />
+                              <span>ACCEPT & MARK AS PAID</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'preparing')}
+                              className="flex-1 py-3 px-4 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                            >
+                              <Check className="w-4 h-4 stroke-[2.2]" />
+                              <span>ACCEPT & PACK ORDER</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               if (window.confirm(`Cancel Order #${orderNum}?`)) {

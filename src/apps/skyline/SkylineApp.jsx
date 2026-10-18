@@ -43,7 +43,9 @@ import {
   Copy,
   Gift,
   Package,
-  Compass
+  Compass,
+  Instagram,
+  MessageCircle
 } from 'lucide-react';
 import { 
   getSkylineData, 
@@ -262,6 +264,14 @@ export default function SkylineApp() {
   const [trackPhoneInput, setTrackPhoneInput] = useState('');
   const [trackedOrders, setTrackedOrders] = useState([]);
   const [trackingLoading, setTrackingLoading] = useState(false);
+  const [recentOrder, setRecentOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('skyline_recent_order');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Write Review Modal State
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -747,6 +757,20 @@ export default function SkylineApp() {
         
         if (paymentMethod === 'cod') {
           setConfirmedOrder(created);
+          const recentData = {
+            id: created.id,
+            orderNumber: created.orderNumber,
+            total: created.total || grandTotal,
+            status: created.status || 'confirmed',
+            paymentStatus: 'pending',
+            phone: cleanPhone,
+            items: cartItems,
+            deliveryOtp: created.deliveryOtp || generatedDeliveryOtp,
+            address: fullDeliveryAddress,
+            createdAt: new Date().toISOString()
+          };
+          setRecentOrder(recentData);
+          try { localStorage.setItem('skyline_recent_order', JSON.stringify(recentData)); } catch (e) {}
           clearCartCompletely();
           setIsCheckoutOpen(false);
           setIsCartOpen(false);
@@ -793,11 +817,26 @@ export default function SkylineApp() {
     } catch (e) {
       console.warn('Order status update error:', e);
     }
-    setConfirmedOrder({
+    const updatedOrder = {
       ...(orderToConfirm || {}),
       paymentStatus: 'paid',
       status: 'confirmed'
-    });
+    };
+    setConfirmedOrder(updatedOrder);
+    const recentData = {
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      total: updatedOrder.total || grandTotal,
+      status: 'confirmed',
+      paymentStatus: 'paid',
+      phone: String(updatedOrder.customer?.phone || currentUser?.phone || checkoutPhone).replace(/\D/g, '').slice(-10),
+      items: updatedOrder.items || cartItems,
+      deliveryOtp: updatedOrder.deliveryOtp,
+      address: updatedOrder.address || fullDeliveryAddress,
+      createdAt: new Date().toISOString()
+    };
+    setRecentOrder(recentData);
+    try { localStorage.setItem('skyline_recent_order', JSON.stringify(recentData)); } catch (e) {}
     setPendingOrder(null);
     clearCartCompletely();
     setIsUpiModalOpen(false);
@@ -807,8 +846,45 @@ export default function SkylineApp() {
   };
 
   // ─── ORDER TRACKER ────────────────────────────────────────────
+  const openDirectOrderTracker = async (specificOrder = null) => {
+    setIsTrackerOpen(true);
+    const targetPhone = specificOrder?.phone || currentUser?.phone || recentOrder?.phone || trackPhoneInput;
+    if (targetPhone) {
+      const cleanPhone = String(targetPhone).replace(/\D/g, '').slice(-10);
+      if (cleanPhone.length === 10) {
+        setTrackPhoneInput(cleanPhone);
+        setTrackingLoading(true);
+        try {
+          const data = await getSkylineData();
+          const allOrders = data.orders || [];
+          const matches = allOrders.filter(o => {
+            const ph = String(o.customer?.phone || '').replace(/\D/g, '');
+            const matchById = specificOrder && (String(o.id) === String(specificOrder.id) || (o.orderNumber && String(o.orderNumber) === String(specificOrder.orderNumber)));
+            return ph.endsWith(cleanPhone) || matchById;
+          });
+          if (matches.length > 0) {
+            setTrackedOrders(matches);
+          } else if (specificOrder) {
+            setTrackedOrders([specificOrder]);
+          } else {
+            setTrackedOrders([]);
+            showToast('No active orders found for this account');
+          }
+        } catch (err) {
+          if (specificOrder) setTrackedOrders([specificOrder]);
+        } finally {
+          setTrackingLoading(false);
+        }
+        return;
+      }
+    }
+    if (specificOrder) {
+      setTrackedOrders([specificOrder]);
+    }
+  };
+
   const handleTrackOrders = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const cleanPhone = trackPhoneInput.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length !== 10) {
       showToast('Please enter a valid 10-digit mobile number');
@@ -832,6 +908,16 @@ export default function SkylineApp() {
       setTrackingLoading(false);
     }
   };
+
+  // Auto-fetch orders when tracker modal opens if phone or recent order is known
+  useEffect(() => {
+    if (isTrackerOpen && trackedOrders.length === 0) {
+      const ph = currentUser?.phone || recentOrder?.phone;
+      if (ph) {
+        openDirectOrderTracker(recentOrder);
+      }
+    }
+  }, [isTrackerOpen, currentUser?.phone, recentOrder]);
 
   // ─── HERO & TRENDING ITEMS (CLOTHES ONLY) ──────────────────────
   const heroProduct = useMemo(() => {
@@ -1047,38 +1133,41 @@ export default function SkylineApp() {
       </AnimatePresence>
 
       {/* ─── FLOATING BOTTOM BAG PILL (Appears when items in bag) ─── */}
+      {/* ─── FLOATING BOTTOM BAG PILL (Appears when items in bag) ─── */}
       <AnimatePresence>
         {cartItems.length > 0 && !isCartOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm pointer-events-auto"
-          >
-            <div
-              onClick={() => setIsCartOpen(true)}
-              className="bg-black text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-stone-900 transition-all active:scale-98"
+          <div className="fixed bottom-24 inset-x-0 mx-auto z-40 w-[92%] max-w-sm pointer-events-none flex justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="w-full pointer-events-auto"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
-                  {totalItemsCount}
+              <div
+                onClick={() => setIsCartOpen(true)}
+                className="bg-black text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-stone-900 transition-all active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
+                    {totalItemsCount}
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold block">
+                      {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} in bag
+                    </span>
+                    <span className="text-[11px] text-stone-400 font-mono">
+                      Subtotal: ₹ {cartSubtotal}.00
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-xs font-bold block">
-                    {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} in bag
-                  </span>
-                  <span className="text-[11px] text-stone-400 font-mono">
-                    Subtotal: ₹ {cartSubtotal}.00
-                  </span>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                  <span>View Bag</span>
+                  <ArrowUpRight className="w-4 h-4" />
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
-                <span>View Bag</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1086,22 +1175,27 @@ export default function SkylineApp() {
       <header className="sticky top-0 z-50 bg-white border-b border-stone-200 shadow-sm transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between bg-white">
           
-          {/* Brand Logo: Skyline Premium */}
+          {/* Brand Logo: Dynamic from Dukandar Portal */}
           <div className="flex items-center gap-6">
             <a href="/skyline" className="group flex items-center gap-2 text-stone-950 no-underline">
-              <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-black">
-                Skyline
-              </span>
-              <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase bg-stone-950 text-white px-2 py-0.5 rounded-md">
-                Premium
-              </span>
+              {(() => {
+                const brand = storeData?.storeInfo?.name || storeData?.storeInfo?.storeName || 'Skyline Premium';
+                const parts = brand.trim().split(' ');
+                const mainName = parts[0] || 'Skyline';
+                const subBadge = parts.slice(1).join(' ') || 'Premium';
+                return (
+                  <>
+                    <span className="text-2xl sm:text-3xl font-extrabold tracking-tighter text-black">
+                      {mainName}
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-black tracking-widest uppercase bg-stone-950 text-white px-2 py-0.5 rounded-md">
+                      {subBadge}
+                    </span>
+                  </>
+                );
+              })()}
               <span className="w-1.5 h-1.5 rounded-full bg-black group-hover:scale-150 transition-transform"></span>
             </a>
-
-            {/* ChuruOne Network Pill */}
-            <span className="hidden xl:inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-stone-400 font-medium px-2 py-0.5 rounded-full bg-stone-50 border border-stone-100">
-              Station Road, Churu • Flagship
-            </span>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -1208,8 +1302,8 @@ export default function SkylineApp() {
               <span>Dukan OS (Merchant Console)</span>
             </a>
             <button 
-              onClick={() => { setIsMobileMenuOpen(false); setIsTrackerOpen(true); }}
-              className="w-full text-left text-sm font-medium text-stone-600 py-1 flex items-center gap-2"
+              onClick={() => { setIsMobileMenuOpen(false); openDirectOrderTracker(recentOrder); }}
+              className="w-full text-left text-sm font-medium text-stone-600 py-1 flex items-center gap-2 cursor-pointer"
             >
               <Clock className="w-4 h-4 text-stone-400" />
               <span>Track Orders</span>
@@ -1512,13 +1606,6 @@ export default function SkylineApp() {
                   </motion.div>
                 );
               })}
-            </div>
-
-            {/* Pagination Indicator Dots */}
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <span className="w-6 h-1.5 rounded-full bg-black"></span>
-              <span className="w-1.5 h-1.5 rounded-full bg-stone-300"></span>
-              <span className="w-1.5 h-1.5 rounded-full bg-stone-300"></span>
             </div>
 
           </div>
@@ -1998,62 +2085,113 @@ export default function SkylineApp() {
             </p>
           </div>
 
-          {/* Right Column: Boutique Specifications & Visiting Info */}
+          {/* Right Column: Boutique Specifications & Multi-Channel Contact */}
           <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 space-y-2">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">
-                Flagship Boutique Location
-              </span>
-              <h4 className="text-sm font-bold text-stone-900">
-                {storeData?.storeInfo?.address || 'Subhash Chowk, Churu – 331001'}
-              </h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Central showroom & tailoring fitting rooms in the heart of Churu city.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 space-y-2">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">
-                Atelier Hours
-              </span>
-              <h4 className="text-sm font-bold text-stone-900">
-                {storeData?.storeInfo?.timing || 'Daily 10:30 AM – 09:30 PM'}
-              </h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Open all 7 days for custom bespoke trials, measurements and collection pick-ups.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 space-y-2">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">
-                Fabric Integrity
-              </span>
-              <h4 className="text-sm font-bold text-stone-900">
-                Certified Natural Fibers
-              </h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Pre-washed Normandie flax, 14.5oz Kurabo raw denim, and Australian extra-fine merino wool.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 space-y-2 flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">
-                  Concierge & Bespoke Orders
-                </span>
-                <h4 className="text-sm font-bold text-stone-900">
-                  Direct Atelier Assistance
+            {/* 1. Flagship Boutique Location */}
+            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 flex flex-col justify-between space-y-3 shadow-xs">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-stone-400">
+                  <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+                    Flagship Boutique Location
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-stone-900 leading-snug">
+                  {storeData?.storeInfo?.address || 'Subhash Chowk, Station Road, Churu, Rajasthan – 331001'}
                 </h4>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  {storeData?.storeInfo?.locationNote || 'Central showroom & tailoring fitting rooms in the heart of Churu city.'}
+                </p>
               </div>
               <a
-                href={`https://wa.me/91${String(storeData?.storeInfo?.phone || '7023963189').replace(/\D/g, '').slice(-10)}?text=Hello%20Skyline%20Atelier,%20I%20would%20like%20to%20inquire%20about%20a%20bespoke%20garment.`}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(storeData?.storeInfo?.address || 'Subhash Chowk, Station Road, Churu')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-2 w-full py-2.5 px-4 rounded-xl bg-black hover:bg-stone-800 text-white text-xs font-semibold uppercase tracking-wider text-center block shadow-xs transition-colors no-underline cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-stone-900 hover:text-black uppercase tracking-wider underline decoration-stone-300 hover:decoration-black no-underline"
               >
-                Chat on WhatsApp
+                <span>Open in Google Maps</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
               </a>
+            </div>
+
+            {/* 2. Dynamic Atelier Hours */}
+            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 flex flex-col justify-between space-y-3 shadow-xs">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-stone-400">
+                    <Clock className="w-3.5 h-3.5 text-black shrink-0" />
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+                      Atelier Hours
+                    </span>
+                  </div>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                    storeData?.storeInfo?.isOpen !== false ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
+                  }`}>
+                    {storeData?.storeInfo?.isOpen !== false ? '● Open Today' : '○ Closed Today'}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-stone-900">
+                  {storeData?.storeInfo?.timing || (storeData?.storeInfo?.openTillText ? `Open Daily • ${storeData?.storeInfo?.openTillText}` : 'Mon–Sun: 10:30 AM – 10:00 PM')}
+                </h4>
+                <p className="text-xs text-stone-500 leading-relaxed">
+                  {storeData?.storeInfo?.openTillText ? `Store timings: ${storeData.storeInfo.openTillText}. Bespoke trials & collection trials available.` : 'Open all 7 days for custom bespoke trials, measurements and collection pick-ups.'}
+                </p>
+              </div>
+              <div className="text-[10px] font-mono text-stone-400">
+                Weekly Schedule Synced with Dukandar Portal
+              </div>
+            </div>
+
+            {/* 3. Concierge & Multi-Channel Contact (Full Width) */}
+            <div className="sm:col-span-2 bg-stone-900 text-white rounded-2xl p-5 space-y-3 shadow-md">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-stone-800 pb-2.5">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400 block">
+                    Direct Atelier Assistance & Concierge
+                  </span>
+                  <h4 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                    Connect With Our Master Stylists
+                  </h4>
+                </div>
+                <span className="text-[11px] text-stone-400 font-mono">
+                  Instant Support 7 Days a Week
+                </span>
+              </div>
+
+              {/* Dynamic Contact Action Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                {/* 1. Call Now */}
+                <a
+                  href={`tel:${String(storeData?.storeInfo?.phone || storeData?.storeInfo?.phoneDisplay || '7023963189').replace(/\D/g, '').slice(-10)}`}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white text-stone-950 hover:bg-stone-100 text-xs font-bold uppercase tracking-wider transition-all no-underline shadow-xs active:scale-98"
+                >
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span>Call: {String(storeData?.storeInfo?.phoneDisplay || storeData?.storeInfo?.phone || '7023963189')}</span>
+                </a>
+
+                {/* 2. WhatsApp Concierge */}
+                <a
+                  href={`https://wa.me/91${String(storeData?.storeInfo?.phone || storeData?.storeInfo?.phoneDisplay || '7023963189').replace(/\D/g, '').slice(-10)}?text=Hello%20Skyline%20Atelier,%20I%20would%20like%20to%20inquire%20about%20a%20garment%20or%20order.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider transition-all no-underline shadow-xs active:scale-98"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp Concierge</span>
+                </a>
+
+                {/* 3. Instagram Direct / Profile */}
+                <a
+                  href={storeData?.storeInfo?.socials?.instagram || storeData?.storeInfo?.instagram || 'https://instagram.com/churuone'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white text-xs font-bold uppercase tracking-wider transition-all no-underline shadow-xs active:scale-98"
+                >
+                  <Instagram className="w-4 h-4" />
+                  <span>Instagram Direct</span>
+                </a>
+              </div>
             </div>
 
           </div>
@@ -2135,22 +2273,24 @@ export default function SkylineApp() {
       {/* ─── 7. MINIMAL FOOTER ─────────────────────────────────────── */}
       <footer className="border-t border-stone-200 bg-[#FAFAFA] text-stone-600 text-xs py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div className="space-y-3">
-              <span className="text-2xl font-black text-black">Skyline Premium</span>
+              <span className="text-2xl font-black text-black">
+                {storeData?.storeInfo?.name || storeData?.storeInfo?.storeName || 'Skyline Premium'}
+              </span>
               <p className="text-stone-500 text-xs leading-relaxed">
-                Skyline Premium Outfits. Architectural menswear and tailored clothing studio in Churu, Rajasthan.
+                {storeData?.storeInfo?.aboutText || 'Architectural menswear and tailored clothing studio in Churu, Rajasthan.'}
               </p>
               <div className="flex items-center gap-2 text-stone-800 font-medium">
                 <MapPin className="w-3.5 h-3.5 text-black shrink-0" />
-                <span>Station Road / Subhash Chowk, Churu – 331001</span>
+                <span>{storeData?.storeInfo?.address || 'Station Road / Subhash Chowk, Churu – 331001'}</span>
               </div>
             </div>
 
             <div className="space-y-2">
               <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Care & Policies</h5>
-              <button onClick={() => setIsTrackerOpen(true)} className="block hover:text-black cursor-pointer text-left">
-                Track Order
+              <button onClick={() => openDirectOrderTracker(recentOrder)} className="block hover:text-black cursor-pointer text-left font-semibold">
+                Track Live Order
               </button>
               <a href="/contact-us" className="block hover:text-black transition-colors">
                 Contact Us
@@ -2167,35 +2307,11 @@ export default function SkylineApp() {
               <a href="/shipping-policy" className="block hover:text-black transition-colors">
                 Shipping & Delivery Policy
               </a>
-              <a href="https://wa.me/917023963189" target="_blank" rel="noreferrer" className="block text-emerald-700 hover:text-emerald-900 font-medium pt-1">
-                WhatsApp: +91 70239 63189
-              </a>
-            </div>
-
-            <div className="space-y-3">
-              <h5 className="font-bold text-black uppercase tracking-wider text-[11px]">Customer Account</h5>
-              <p className="text-stone-500 text-xs leading-relaxed">
-                Sign in to track orders, save addresses and manage your profile.
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigateToChuruOneAuth('login')}
-                  className="bg-black hover:bg-stone-800 text-white px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => navigateToChuruOneAuth('signup')}
-                  className="border border-stone-300 hover:border-black text-black px-3 py-1.5 rounded-full text-[11px] font-medium cursor-pointer"
-                >
-                  Sign Up
-                </button>
-              </div>
             </div>
           </div>
 
           <div className="border-t border-stone-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-stone-500 text-[11px]">
-            <span>© 2026 Skyline Premium Outfits. Legal Entity: Vasudhaiva Kutumbakam Robotics.</span>
+            <span>© 2026 {storeData?.storeInfo?.name || 'Skyline Premium Outfits'}. Legal Entity: Vasudhaiva Kutumbakam Robotics.</span>
             <span>Station Road, Churu, Rajasthan - 331001. All rights reserved.</span>
           </div>
         </div>
@@ -2447,6 +2563,35 @@ export default function SkylineApp() {
 
                 {/* Cart Items List */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {/* Recent / Active Order Quick Track in Bag */}
+                  {recentOrder && (
+                    <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                          <Package className="w-4 h-4 text-black" />
+                          <span>Active Order #{recentOrder.orderNumber || recentOrder.id?.slice(-5) || recentOrder.id}</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                          {(recentOrder.status || 'Confirmed').replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-stone-500 font-mono">
+                        <span>Total: ₹{recentOrder.total || recentOrder.grandTotal}.00</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCartOpen(false);
+                            openDirectOrderTracker(recentOrder);
+                          }}
+                          className="font-bold text-black flex items-center gap-1 hover:underline cursor-pointer"
+                        >
+                          <span>Track Live Order</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {cartItems.length === 0 ? (
                     <div className="text-center py-16 space-y-3">
                       <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto stroke-1" />
@@ -3157,11 +3302,23 @@ export default function SkylineApp() {
 
                 {/* Action Buttons */}
                 <div className="space-y-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const o = confirmedOrder;
+                      setConfirmedOrder(null);
+                      openDirectOrderTracker(o);
+                    }}
+                    className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-98"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>Track This Order Live</span>
+                  </button>
                   <a
                     href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}%20for%20Rs%20${confirmedOrder.total || grandTotal}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline shadow-md"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider block text-center no-underline shadow-xs"
                   >
                     Confirm on WhatsApp Concierge
                   </a>
@@ -3366,44 +3523,97 @@ export default function SkylineApp() {
                     SKYLINE • REAL-TIME DISPATCH
                   </span>
                   <h3 className="text-xl font-bold text-stone-950">
-                    Track Your Orders
+                    Live Order Tracker
                   </h3>
+                  {(currentUser?.phone || recentOrder?.phone) && (
+                    <p className="text-xs text-stone-500">
+                      Tracking orders for: <strong className="text-stone-900">+91 {currentUser?.phone || recentOrder?.phone}</strong>
+                    </p>
+                  )}
                 </div>
 
-                <form onSubmit={handleTrackOrders} className="flex gap-2">
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={trackPhoneInput}
-                    onChange={(e) => setTrackPhoneInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="Enter 10-digit mobile number"
-                    className="flex-1 border border-stone-200 focus:border-black rounded-xl px-3 py-2 text-xs outline-none font-mono"
-                    required
-                  />
-                  <button
-                    type="submit"
-                    disabled={trackingLoading}
-                    className="bg-black hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
-                  >
-                    {trackingLoading ? 'Searching...' : 'Track'}
-                  </button>
-                </form>
-
-                {trackedOrders.length > 0 && (
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {trackedOrders.map((ord) => (
-                      <div key={ord.id} className="bg-stone-50 rounded-xl p-3 border border-stone-100 text-xs space-y-1">
-                        <div className="flex justify-between font-bold text-stone-900">
-                          <span>Order #{ord.orderNumber || ord.id}</span>
-                          <span className="uppercase text-amber-600">{ord.status || 'Confirmed'}</span>
-                        </div>
-                        <div className="flex justify-between text-stone-500 font-mono text-[11px]">
-                          <span>Total: ₹ {ord.total}.00</span>
-                          <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Recent'}</span>
-                        </div>
-                      </div>
-                    ))}
+                {trackingLoading ? (
+                  <div className="py-8 text-center text-xs text-stone-500 flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                    <span>Checking live order status...</span>
                   </div>
+                ) : trackedOrders.length > 0 ? (
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {trackedOrders.map((ord) => {
+                      const st = (ord.status || 'confirmed').toLowerCase();
+                      const statusColor = st === 'delivered' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : st === 'out_for_delivery' ? 'text-sky-700 bg-sky-50 border-sky-200' : 'text-amber-700 bg-amber-50 border-amber-200';
+                      return (
+                        <div key={ord.id} className="bg-stone-50 rounded-2xl p-4 border border-stone-200 text-xs space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-stone-950">Order #{ord.orderNumber || ord.id?.slice(-5) || ord.id}</span>
+                            <span className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border ${statusColor}`}>
+                              {st === 'preparing' ? 'PACKING' : st.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+
+                          {Array.isArray(ord.items) && ord.items.length > 0 && (
+                            <div className="text-[11px] text-stone-600 border-t border-stone-200/60 pt-1.5 space-y-0.5 font-mono">
+                              {ord.items.map((it, idx) => (
+                                <div key={idx} className="flex justify-between">
+                                  <span>{it.qty || 1}x {it.name}</span>
+                                  <span>₹{(it.unitPrice || it.price || 0) * (it.qty || 1)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {ord.deliveryOtp && (
+                            <div className="flex items-center justify-between bg-amber-100/60 p-2.5 rounded-xl text-amber-950 text-xs font-bold border border-amber-200">
+                              <span>Delivery Verification OTP:</span>
+                              <span className="font-mono tracking-widest text-sm bg-white px-2 py-0.5 rounded shadow-xs">{ord.deliveryOtp}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between text-stone-500 font-mono text-[11px] pt-1 border-t border-stone-200/60">
+                            <span>Total: ₹ {ord.total || ord.grandTotal}.00</span>
+                            <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Active'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="pt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTrackedOrders([]);
+                          setTrackPhoneInput('');
+                        }}
+                        className="text-[11px] text-stone-500 hover:text-black underline cursor-pointer"
+                      >
+                        Search with different mobile number
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleTrackOrders} className="space-y-3">
+                    <p className="text-xs text-stone-600">
+                      Enter your 10-digit mobile number to track active and previous orders.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        value={trackPhoneInput}
+                        onChange={(e) => setTrackPhoneInput(e.target.value.replace(/\D/g, ''))}
+                        placeholder="10-digit mobile number"
+                        className="flex-1 border border-stone-200 focus:border-black rounded-xl px-3 py-2 text-xs outline-none font-mono"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={trackingLoading}
+                        className="bg-black hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
+                      >
+                        {trackingLoading ? 'Searching...' : 'Track'}
+                      </button>
+                    </div>
+                  </form>
                 )}
 
               </motion.div>

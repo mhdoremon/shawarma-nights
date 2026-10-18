@@ -212,12 +212,19 @@ export const verifyCashfreeOrder = async (req, res) => {
 
       for (const sId of storeIds) {
         const orders = DataLayer.read(sId, 'orders') || [];
-        const found = orders.find(o => o.id === orderId || o.orderId === orderId);
+        const found = orders.find(o => 
+          String(o.id) === String(orderId) || 
+          String(o.orderId) === String(orderId) || 
+          String(o.orderNumber) === String(orderId) || 
+          String(o.token) === String(orderId) ||
+          (o.orderNumber && String(o.orderNumber).toLowerCase() === String(orderId).toLowerCase()) ||
+          (o.id && String(o.id).toLowerCase() === String(orderId).toLowerCase())
+        );
         if (found) {
           targetOrder = found;
           matchedStoreId = sId;
           found.paymentStatus = 'paid';
-          if (found.status === 'payment_pending' || found.status === 'pending') {
+          if (found.status === 'payment_pending' || found.status === 'pending' || found.status === 'new') {
             found.status = 'confirmed';
           }
           found.cashfreePayment = {
@@ -227,6 +234,11 @@ export const verifyCashfreeOrder = async (req, res) => {
             verifiedAt: new Date().toISOString()
           };
           DataLayer.writeSync(sId, 'orders', orders);
+          WebSocketHub.broadcastToAll(matchedStoreId, {
+            action: 'ORDER_UPDATED',
+            payload: targetOrder,
+            order: targetOrder
+          });
           break;
         }
       }
