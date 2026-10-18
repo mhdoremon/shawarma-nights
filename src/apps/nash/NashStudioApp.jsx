@@ -89,14 +89,93 @@ const DEFAULT_SETTINGS = {
     sat: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
     sun: { isOpen: true, open: "11:00 AM", close: "11:00 PM" }
   },
+  isOpen: true,
   bookingFee: 50,
   upiId: "nashstudio@upi",
   accountTitle: "Nash Studio",
 };
 
 const DEFAULT_HAIRSTYLES = [
-  // COMBOS & PACKAGES
-  { id: 'hs_royal_combo', name: 'Royal Grooming Combo', type: 'premium', img: '/images/hs_scissor_sculpt.jpg', time: 75, price: 1800, desc: 'Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).' },
+  // COMBOS & PACKAGES (Bespoke Salon Bundles)
+  {
+    id: 'hs_hair_beard_combo',
+    name: 'Haircut + Beard Styling Combo',
+    type: 'premium',
+    category: 'Combo Packages',
+    categoryId: 'cat_combo',
+    isCombo: true,
+    badge: 'BESTSELLER COMBO',
+    img: '/images/hs_scissor_sculpt.jpg',
+    image: '/images/hs_scissor_sculpt.jpg',
+    time: 50,
+    price: 599,
+    originalPrice: 850,
+    desc: 'Signature Precision Haircut + Razor Beard Lineup & Hot Towel Finish.',
+    comboItems: [
+      { id: 'c1', name: 'Signature Precision Haircut', price: 500, time: 30 },
+      { id: 'c2', name: 'Razor Beard Trim & Sculpt', price: 250, time: 15 },
+      { id: 'c3', name: 'Hot Towel & Aftershave Finish', price: 100, time: 5 }
+    ]
+  },
+  {
+    id: 'hs_royal_combo',
+    name: 'Royal Grooming VIP Combo',
+    type: 'premium',
+    category: 'Combo Packages',
+    categoryId: 'cat_combo',
+    isCombo: true,
+    badge: 'ROYAL VIP',
+    img: '/images/hs_scissor_sculpt.jpg',
+    image: '/images/hs_scissor_sculpt.jpg',
+    time: 75,
+    price: 1199,
+    originalPrice: 1600,
+    desc: 'Executive Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Facial Cleanup.',
+    comboItems: [
+      { id: 'r1', name: 'Executive Contour Haircut', price: 800, time: 30 },
+      { id: 'r2', name: 'Hot Towel Razor Shave & Beard Blend', price: 400, time: 20 },
+      { id: 'r3', name: 'Charcoal Detox Facial Cleanup', price: 400, time: 25 }
+    ]
+  },
+  {
+    id: 'hs_beard_shave_combo',
+    name: 'Beard Transformation & Hot Razor Shave Combo',
+    type: 'premium',
+    category: 'Combo Packages',
+    categoryId: 'cat_combo',
+    isCombo: true,
+    badge: 'BEARD SPECIAL',
+    img: '/images/hs_razor_fade.jpg',
+    image: '/images/hs_razor_fade.jpg',
+    time: 40,
+    price: 449,
+    originalPrice: 650,
+    desc: 'Full Beard Fade, Sharp Razor Lineup, Eucalyptus Hot Steam & Nourishing Beard Oil.',
+    comboItems: [
+      { id: 'b1', name: 'Beard Fade & Sculpt', price: 350, time: 20 },
+      { id: 'b2', name: 'Hot Towel Razor Edge Lineup', price: 200, time: 10 },
+      { id: 'b3', name: 'Steam Therapy & Beard Elixir', price: 100, time: 10 }
+    ]
+  },
+  {
+    id: 'hs_dad_son_combo',
+    name: 'Dad & Son Classic Duo Combo',
+    type: 'premium',
+    category: 'Combo Packages',
+    categoryId: 'cat_combo',
+    isCombo: true,
+    badge: 'FAMILY DUO',
+    img: '/images/10-messy-spiky-undercut-for-men.webp',
+    image: '/images/10-messy-spiky-undercut-for-men.webp',
+    time: 60,
+    price: 799,
+    originalPrice: 1100,
+    desc: 'Two Haircuts: Executive Cut for Dad + Trend Fade for Son with Double Hair Wash & Style.',
+    comboItems: [
+      { id: 'd1', name: 'Dad Executive Scissor/Fade Cut', price: 600, time: 30 },
+      { id: 'd2', name: 'Son Trendy Texture/Fade Cut', price: 500, time: 30 }
+    ]
+  },
 
   // PREMIUM (60 min • Rs 1500)
   { id: 'hs1', name: 'Messy Spiky Undercut', type: 'premium', img: '/images/10-messy-spiky-undercut-for-men.webp', time: 60, price: 1500, desc: 'High-texture spiky top with ultra-sharp disconnected fade.' },
@@ -896,181 +975,348 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         </section>
       )}
 
-      {/* SMART MODULAR WIRE: DYNAMIC SALON PACKAGES & COMBOS (REALTIME SYNC FROM DUKANDAR OS) */}
+      {/* SMART MODULAR WIRE: VIP SALON COMBOS SHOWCASE & PROMO VOUCHERS */}
       {(() => {
+        const activeCombos = (hairstyles || []).filter(h => 
+          h && h.available !== false && (h.isCombo || h.categoryId === 'cat_combo' || h.category === 'Combo Packages' || (h.category && h.category.toLowerCase().includes('combo')))
+        );
         const activeDeals = (deals || []).filter(d => d.isActive !== false && d.active !== false);
-        if (activeDeals.length === 0 || settings.showOfferCards === false) return null;
+
+        if (activeCombos.length === 0 && (activeDeals.length === 0 || settings.showOfferCards === false)) {
+          return null;
+        }
 
         return (
-          <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"36px 20px"}}>
-            <div style={{maxWidth:1100, margin:"0 auto"}}>
-              <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:20, flexWrap:"wrap", gap:10}}>
-                <div style={{display:"flex", alignItems:"center", gap:8}}>
-                  <div style={{width:28, height:28, borderRadius:8, background:"rgba(212,175,55,0.15)", display:"flex", alignItems:"center", justifyContent:"center"}}>
-                    <Sparkles size={16} color="#d4af37" />
-                  </div>
-                  <div>
-                    <h2 style={{fontFamily:"var(--display)", fontSize:15, fontWeight:800, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--paper)", margin:0}}>
-                      EXCLUSIVE SALON PACKAGES & COMBOS
-                    </h2>
-                    <p style={{fontSize:11, color:"var(--muted)", margin:0}}>
-                      Curated grooming packages & limited-time appointment promo vouchers
-                    </p>
-                  </div>
-                </div>
-                <div style={{display:"flex", alignItems:"center", gap:8}}>
-                  <span style={{fontSize:10, color:"#d4af37", fontWeight:800, letterSpacing:"0.15em", textTransform:"uppercase", background:"rgba(212,175,55,0.1)", padding:"4px 10px", borderRadius:20, border:"1px solid rgba(212,175,55,0.3)"}}>
-                    {activeDeals.length} ACTIVE OFFERS
-                  </span>
-                </div>
-              </div>
+          <>
+            {/* 1. DEDICATED VIP COMBO PACKAGES SHOWCASE */}
+            {activeCombos.length > 0 && (
+              <section className="nash-combos-showcase" style={{background:"var(--surface)", borderBottom:"1px solid var(--line)", padding:"40px 20px"}}>
+                <div style={{maxWidth:1150, margin:"0 auto"}}>
+                  {/* Section Header */}
+                  <div style={{display:"flex", alignItems:"flex-end", justifyContent:"space-between", marginBottom:24, flexWrap:"wrap", gap:12}}>
+                    <div>
+                      <div style={{display:"inline-flex", alignItems:"center", gap:6, padding:"4px 10px", borderRadius:20, background:"rgba(212,175,55,0.12)", border:"1px solid rgba(212,175,55,0.3)", marginBottom:8}}>
+                        <Sparkles size={12} color="#d4af37" />
+                        <span style={{fontSize:10, fontWeight:900, color:"#d4af37", letterSpacing:"0.12em", textTransform:"uppercase"}}>
+                          VIP Grooming Bundles • बड़ी बचत
+                        </span>
+                      </div>
+                      <h2 style={{fontFamily:"var(--display)", fontSize:22, fontWeight:900, letterSpacing:"0.04em", textTransform:"uppercase", color:"var(--paper)", margin:0}}>
+                        EXCLUSIVE COMBO PACKAGES
+                      </h2>
+                      <p style={{fontSize:12, color:"var(--muted)", margin:"4px 0 0"}}>
+                        Signature haircuts, beard fades, hot towel razor shaves and facial detox bundled together
+                      </p>
+                    </div>
 
-              <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(290px, 1fr))", gap:16}}>
-                {activeDeals.map((deal) => {
-                  const isApplied = appliedDeal?.code === deal.code;
-                  const isCopied = copiedCode === deal.code;
-                  const discountBadge = deal.discountType === 'percentage' || deal.discountPercent
-                    ? `${deal.discountPercent || deal.discount}% OFF`
-                    : `FLAT ₹${deal.flatDiscount || deal.discountAmount || deal.discount || 100} OFF`;
+                    <div style={{display:"flex", alignItems:"center", gap:8}}>
+                      <span style={{fontSize:11, color:"var(--muted)", fontWeight:700, background:"var(--ink)", padding:"6px 12px", borderRadius:20, border:"1px solid var(--line)"}}>
+                        {activeCombos.length} PACKAGES AVAILABLE
+                      </span>
+                    </div>
+                  </div>
 
-                  return (
-                    <div 
-                      key={deal.id || deal.code}
-                      style={{
-                        background:"var(--surface)",
-                        border: isApplied ? "1px solid #d4af37" : "1px solid var(--line)",
-                        borderRadius:14,
-                        padding:22,
-                        display:"flex",
-                        flexDirection:"column",
-                        justifyContent:"space-between",
-                        gap:16,
-                        boxShadow: isApplied ? "0 8px 30px rgba(212,175,55,0.2)" : "var(--card-shadow)",
-                        position:"relative",
-                        overflow:"hidden",
-                        transition:"all 0.25s ease"
-                      }}
-                    >
-                      {/* Top Badges */}
-                      <div>
-                        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12, gap:8, flexWrap:"wrap"}}>
-                          <div style={{display:"flex", alignItems:"center", gap:6}}>
-                            <span style={{
-                              fontSize:10, 
-                              fontWeight:800, 
-                              background: deal?.isCombo ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.06)", 
-                              color: deal?.isCombo ? "#d4af37" : "var(--paper)", 
-                              padding:"3px 8px", 
-                              borderRadius:4,
-                              letterSpacing:"0.1em",
-                              textTransform:"uppercase",
-                              display:"inline-flex",
-                              alignItems:"center",
-                              gap:4
-                            }}>
-                              {deal?.isCombo ? <Gift size={11} color="#d4af37" /> : <Tag size={11} />}
-                              <span>{deal?.isCombo ? "COMBO PACKAGE" : "PROMO VOUCHER"}</span>
-                            </span>
-                            {deal.minOrder > 0 && (
-                              <span style={{fontSize:9, color:"var(--muted)", fontWeight:600}}>
-                                Min ₹{deal.minOrder}
-                              </span>
-                            )}
+                  {/* Combos Cards Grid */}
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(270px, 1fr))", gap:20}}>
+                    {activeCombos.map((combo) => {
+                      const orig = Number(combo.originalPrice) || 0;
+                      const curr = Number(combo.price) || 0;
+                      const savings = orig > curr ? orig - curr : 0;
+                      const discountPct = orig > curr ? Math.round((savings / orig) * 100) : 0;
+                      const dur = Number(combo.time || combo.durationMinutes || combo.prepTime || 50);
+
+                      let incItems = [];
+                      if (Array.isArray(combo.comboItems) && combo.comboItems.length > 0) {
+                        incItems = combo.comboItems.map(i => typeof i === 'string' ? i : i.name);
+                      } else if (combo.description && combo.description.includes('+')) {
+                        incItems = combo.description.split('+').map(s => s.trim());
+                      } else if (combo.desc && combo.desc.includes('+')) {
+                        incItems = combo.desc.split('+').map(s => s.trim());
+                      } else {
+                        incItems = [combo.name];
+                      }
+
+                      return (
+                        <div
+                          key={combo.id}
+                          className="nash-hs-hover"
+                          style={{
+                            background: "var(--ink)",
+                            border: "1.5px solid rgba(212,175,55,0.4)",
+                            borderRadius: 18,
+                            overflow: "hidden",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            boxShadow: "0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,175,55,0.15)",
+                            transition: "all 0.3s ease"
+                          }}
+                        >
+                          <div>
+                            {/* Top Image Viewport */}
+                            <div style={{position:"relative", height:170, overflow:"hidden", background:"#121318"}}>
+                              <img
+                                src={combo.img || combo.image || "/images/hs_scissor_sculpt.jpg"}
+                                alt={combo.name}
+                                onError={(e) => { e.target.src = "/images/hs_scissor_sculpt.jpg"; }}
+                                style={{width:"100%", height:"100%", objectFit:"cover", transition:"transform 0.4s ease"}}
+                              />
+                              <div style={{position:"absolute", inset:0, background:"linear-gradient(to top, rgba(10,12,16,0.9) 0%, rgba(10,12,16,0.2) 60%, rgba(10,12,16,0.6) 100%)"}} />
+
+                              {/* Badges on top */}
+                              <div style={{position:"absolute", top:10, left:10, right:10, display:"flex", alignItems:"center", justifyContent:"space-between", gap:8}}>
+                                <span style={{
+                                  background: "linear-gradient(135deg, #d4af37 0%, #aa8214 100%)",
+                                  color: "#000000",
+                                  fontSize: 9,
+                                  fontWeight: 900,
+                                  padding: "4px 9px",
+                                  borderRadius: 4,
+                                  letterSpacing: "0.12em",
+                                  textTransform: "uppercase",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.5)"
+                                }}>
+                                  <Gift size={10} color="#000" />
+                                  <span>{combo.badge || "VIP COMBO"}</span>
+                                </span>
+
+                                <span style={{
+                                  background: "rgba(0,0,0,0.75)",
+                                  backdropFilter: "blur(6px)",
+                                  color: "var(--paper)",
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  padding: "3px 8px",
+                                  borderRadius: 4,
+                                  border: "1px solid rgba(255,255,255,0.1)",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 4
+                                }}>
+                                  <Clock size={10} color="#d4af37" />
+                                  <span>{dur}M</span>
+                                </span>
+                              </div>
+
+                              {/* Savings pill on bottom */}
+                              {savings > 0 && (
+                                <div style={{position:"absolute", bottom:10, left:10}}>
+                                  <span style={{
+                                    background: "#10b981",
+                                    color: "#ffffff",
+                                    fontSize: 10,
+                                    fontWeight: 900,
+                                    padding: "3px 8px",
+                                    borderRadius: 4,
+                                    letterSpacing: "0.06em",
+                                    textTransform: "uppercase",
+                                    boxShadow: "0 2px 8px rgba(16,185,129,0.3)"
+                                  }}>
+                                    SAVE ₹{savings} ({discountPct}% OFF)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Content */}
+                            <div style={{padding:"18px 16px", display:"flex", flexDirection:"column", gap:10}}>
+                              <div>
+                                <h3 style={{fontFamily:"var(--display)", fontSize:16, fontWeight:800, color:"var(--paper)", margin:"0 0 4px", letterSpacing:"0.03em"}}>
+                                  {combo.name}
+                                </h3>
+                                <p style={{fontSize:11, color:"var(--muted)", margin:0, lineHeight:1.5}}>
+                                  {combo.desc || combo.description || "Signature multi-service grooming package."}
+                                </p>
+                              </div>
+
+                              {/* Included Services Pills */}
+                              <div style={{
+                                background: "rgba(212,175,55,0.06)",
+                                border: "1px solid rgba(212,175,55,0.2)",
+                                borderRadius: 10,
+                                padding: "8px 10px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 4
+                              }}>
+                                <span style={{fontSize:9, fontWeight:800, color:"#d4af37", letterSpacing:"0.1em", textTransform:"uppercase"}}>
+                                  INCLUDES ({incItems.length} SERVICES):
+                                </span>
+                                <div style={{display:"flex", flexWrap:"wrap", gap:4}}>
+                                  {incItems.map((item, idx) => (
+                                    <span key={idx} style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      color: "var(--paper)",
+                                      background: "rgba(255,255,255,0.06)",
+                                      padding: "2px 6px",
+                                      borderRadius: 4,
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 3
+                                    }}>
+                                      <Check size={9} color="#10b981" strokeWidth={3} />
+                                      <span>{item}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
                           </div>
 
-                          <span style={{
-                            fontSize:11,
-                            fontWeight:800,
-                            color: "#d4af37",
-                            background: "rgba(212,175,55,0.12)",
-                            padding: "3px 8px",
-                            borderRadius: 4,
-                            letterSpacing: "0.08em"
+                          {/* Card Footer: Price & Direct Book Action */}
+                          <div style={{
+                            padding: "14px 16px",
+                            borderTop: "1px solid var(--line)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            background: "rgba(0,0,0,0.15)"
                           }}>
-                            {discountBadge}
-                          </span>
-                        </div>
+                            <div>
+                              <div style={{display:"flex", alignItems:"baseline", gap:6}}>
+                                <span style={{fontSize:18, fontWeight:900, color:"#d4af37", fontFamily:"monospace"}}>
+                                  ₹{curr}
+                                </span>
+                                {orig > curr && (
+                                  <span style={{fontSize:11, color:"var(--muted)", textDecoration:"line-through"}}>
+                                    ₹{orig}
+                                  </span>
+                                )}
+                              </div>
+                              <span style={{fontSize:9, color:"var(--muted)", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.05em"}}>
+                                Complete Package
+                              </span>
+                            </div>
 
-                        {/* Title & Desc */}
-                        <h3 style={{fontFamily:"var(--display)", fontSize:17, fontWeight:800, color:"var(--paper)", margin:"0 0 6px", letterSpacing:"0.04em"}}>
-                          {deal.title}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedStyle(combo);
+                                goStep(2);
+                              }}
+                              style={{
+                                background: "linear-gradient(135deg, #d4af37 0%, #aa8214 100%)",
+                                border: "none",
+                                color: "#000000",
+                                padding: "9px 16px",
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 900,
+                                letterSpacing: "0.1em",
+                                textTransform: "uppercase",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                boxShadow: "0 4px 14px rgba(212,175,55,0.3)",
+                                transition: "all 0.2s ease"
+                              }}
+                            >
+                              <span>BOOK THIS COMBO</span>
+                              <ChevronRight size={13} strokeWidth={3} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 2. PROMOTIONAL DISCOUNT VOUCHERS STRIP */}
+            {activeDeals.length > 0 && settings.showOfferCards !== false && (
+              <section className="nash-promotional-offers" style={{background:"var(--ink)", borderBottom:"1px solid var(--line)", padding:"28px 20px"}}>
+                <div style={{maxWidth:1150, margin:"0 auto"}}>
+                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14, flexWrap:"wrap", gap:10}}>
+                    <div style={{display:"flex", alignItems:"center", gap:8}}>
+                      <div style={{width:24, height:24, borderRadius:6, background:"rgba(212,175,55,0.15)", display:"flex", alignItems:"center", justifyContent:"center"}}>
+                        <Tag size={13} color="#d4af37" />
+                      </div>
+                      <div>
+                        <h3 style={{fontFamily:"var(--display)", fontSize:13, fontWeight:800, letterSpacing:"0.12em", textTransform:"uppercase", color:"var(--paper)", margin:0}}>
+                          PROMO VOUCHER CODES ({activeDeals.length})
                         </h3>
-                        <p style={{fontSize:12, color:"var(--muted)", margin:0, lineHeight:1.5}}>
-                          {deal.desc || "Special discount voucher crafted for gentlemen."}
+                        <p style={{fontSize:11, color:"var(--muted)", margin:0}}>
+                          Checkout step par discount ke liye in promo vouchers ko use karein
                         </p>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Code Pill & Action Buttons */}
-                      <div style={{borderTop:"1px dashed var(--line)", paddingTop:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, flexWrap:"wrap"}}>
-                        <div style={{
-                          display:"inline-flex",
-                          alignItems:"center",
-                          gap:6,
-                          background:"rgba(255,255,255,0.04)",
-                          border:"1px dashed rgba(212,175,55,0.4)",
-                          padding:"6px 10px",
-                          borderRadius:6
-                        }}>
-                          <span style={{fontSize:9, color:"var(--muted)", fontWeight:700, letterSpacing:"0.1em"}}>CODE:</span>
-                          <span style={{fontSize:11, fontWeight:900, color:"#d4af37", letterSpacing:"0.12em", textTransform:"uppercase"}}>
-                            {deal.code}
-                          </span>
-                        </div>
+                  <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))", gap:12}}>
+                    {activeDeals.map((deal) => {
+                      const isApplied = appliedDeal?.code === deal.code;
+                      const isCopied = copiedCode === deal.code;
+                      const discountBadge = deal.discountType === 'percentage' || deal.discountPercent
+                        ? `${deal.discountPercent || deal.discount}% OFF`
+                        : `FLAT ₹${deal.flatDiscount || deal.discountAmount || deal.discount || 100} OFF`;
 
-                        <div style={{display:"flex", alignItems:"center", gap:6}}>
+                      return (
+                        <div 
+                          key={deal.id || deal.code}
+                          style={{
+                            background:"var(--surface)",
+                            border: isApplied ? "1px solid #10b981" : "1px solid var(--line)",
+                            borderRadius:12,
+                            padding:14,
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"space-between",
+                            gap:12,
+                            boxShadow: "var(--card-shadow)"
+                          }}
+                        >
+                          <div style={{minWidth:0}}>
+                            <div style={{display:"flex", alignItems:"center", gap:6, marginBottom:4}}>
+                              <span style={{fontSize:11, fontWeight:900, color:"#d4af37", letterSpacing:"0.1em", textTransform:"uppercase"}}>
+                                {deal.code}
+                              </span>
+                              <span style={{fontSize:9, fontWeight:800, color:"#10b981", background:"rgba(16,185,129,0.1)", padding:"2px 5px", borderRadius:4}}>
+                                {discountBadge}
+                              </span>
+                            </div>
+                            <p style={{fontSize:11, color:"var(--muted)", margin:0, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                              {deal.title || deal.desc || `Min order ₹${deal.minOrder || 0}`}
+                            </p>
+                          </div>
+
                           <button
                             type="button"
                             onClick={() => handleApplyDealFromBanner(deal)}
                             style={{
-                              background: isApplied ? "rgba(16,185,129,0.15)" : "transparent",
-                              border: isApplied ? "1px solid #10b981" : "1px solid var(--line)",
-                              color: isApplied ? "#10b981" : "var(--paper)",
-                              padding: "7px 12px",
+                              background: isApplied ? "rgba(16,185,129,0.15)" : "rgba(212,175,55,0.1)",
+                              border: isApplied ? "1px solid #10b981" : "1px solid rgba(212,175,55,0.3)",
+                              color: isApplied ? "#10b981" : "#d4af37",
+                              padding: "6px 10px",
                               borderRadius: 6,
                               fontSize: 10,
                               fontWeight: 800,
                               cursor: "pointer",
-                              letterSpacing: "0.1em",
+                              letterSpacing: "0.08em",
                               textTransform: "uppercase",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 4
+                              gap: 4,
+                              shrink: 0
                             }}
                           >
-                            {isApplied ? <Check size={11} strokeWidth={3} /> : <Tag size={11} />}
-                            <span>{isApplied ? "APPLIED" : (isCopied ? "COPIED" : "APPLY")}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleBookComboPackage(deal)}
-                            style={{
-                              background: "#d4af37",
-                              border: "none",
-                              color: "#000000",
-                              padding: "7px 14px",
-                              borderRadius: 6,
-                              fontSize: 10,
-                              fontWeight: 800,
-                              cursor: "pointer",
-                              letterSpacing: "0.1em",
-                              textTransform: "uppercase",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4
-                            }}
-                          >
-                            <span>BOOK NOW</span>
-                            <ChevronRight size={11} strokeWidth={2.5} />
+                            {isApplied ? <Check size={11} strokeWidth={3} /> : <Copy size={11} />}
+                            <span>{isApplied ? "APPLIED" : (isCopied ? "COPIED" : "USE CODE")}</span>
                           </button>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
         );
       })()}
 
@@ -1182,8 +1428,9 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               <div style={S.filterBar}>
                 <div style={S.filterPillGroup}>
                   {[
-                    {key:"all",label:"All Styles"},
-                    {key:"premium",label:"Premium (60m)"},
+                    {key:"all",label:"All Services"},
+                    {key:"combo",label:"Combos & Bundles 🎁"},
+                    {key:"premium",label:"VIP Luxury (60m)"},
                     {key:"standard",label:"Standard (30m)"},
                   ].map(tab => {
                     const isSel = filterT === tab.key;
@@ -1232,7 +1479,8 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
               {/* Hairstyle Cards Grid */}
               {(() => {
                 const filtered = hairstyles.filter(h => {
-                  const matchCat = filterT === "all" || h.type === filterT;
+                  const isComboItem = h.isCombo || h.categoryId === 'cat_combo' || h.category === 'Combo Packages' || (h.category && h.category.toLowerCase().includes('combo'));
+                  const matchCat = filterT === "all" || (filterT === "combo" ? isComboItem : (h.type === filterT && !isComboItem));
                   const matchSearch = !searchQ.trim() || h.name.toLowerCase().includes(searchQ.toLowerCase()) || (h.desc && h.desc.toLowerCase().includes(searchQ.toLowerCase()));
                   return matchCat && matchSearch;
                 });

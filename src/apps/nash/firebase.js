@@ -212,7 +212,12 @@ export function subscribeToHairstyles(callback, defaultList = []) {
           originalPrice: Number(item.originalPrice) || 0,
           bookingFee: item.bookingFee !== undefined ? Number(item.bookingFee) : undefined,
           available: item.available !== false,
-          desc: item.desc || item.description || ''
+          desc: item.desc || item.description || '',
+          category: item.category || (item.categoryId === 'cat_combo' ? 'Combo Packages' : 'Hairstyles'),
+          categoryId: item.categoryId || (item.isCombo ? 'cat_combo' : 'cat_standard'),
+          isCombo: Boolean(item.isCombo || item.categoryId === 'cat_combo' || item.category === 'Combo Packages' || (item.category && item.category.toLowerCase().includes('combo'))),
+          comboItems: Array.isArray(item.comboItems) ? item.comboItems : [],
+          badge: item.badge || (item.isCombo ? 'VIP COMBO' : '')
         }));
         localStorage.setItem("nash_hairstyles_catalog", JSON.stringify(mapped));
         callback(mapped);

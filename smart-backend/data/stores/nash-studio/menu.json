@@ -1,29 +1,189 @@
 {
   "categories": [
-    { "id": "cat_premium", "name": "Premium Styling", "icon": "👑" },
-    { "id": "cat_standard", "name": "Standard Cuts", "icon": "✂️" },
-    { "id": "cat_beard", "name": "Beard & Grooming", "icon": "🧔" },
-    { "id": "cat_spa", "name": "Facial & Spa", "icon": "🧖" },
-    { "id": "cat_combo", "name": "Combo Packages", "icon": "🎁" }
+    {
+      "id": "cat_premium",
+      "name": "Premium Styling",
+      "icon": "👑"
+    },
+    {
+      "id": "cat_standard",
+      "name": "Standard Cuts",
+      "icon": "✂️"
+    },
+    {
+      "id": "cat_beard",
+      "name": "Beard & Grooming",
+      "icon": "🧔"
+    },
+    {
+      "id": "cat_spa",
+      "name": "Facial & Spa",
+      "icon": "🧖"
+    },
+    {
+      "id": "cat_combo",
+      "name": "Combo Packages",
+      "icon": "🎁"
+    }
   ],
   "menu": [
     {
-      "id": "hs_royal_combo",
-      "name": "Royal Grooming Combo",
+      "id": "hs_hair_beard_combo",
+      "name": "Haircut + Beard Styling Combo",
       "type": "premium",
       "category": "Combo Packages",
       "categoryId": "cat_combo",
+      "isCombo": true,
+      "badge": "BESTSELLER COMBO",
+      "img": "/images/hs_scissor_sculpt.jpg",
+      "image": "/images/hs_scissor_sculpt.jpg",
+      "time": 50,
+      "prepTime": 50,
+      "durationMinutes": 50,
+      "price": 599,
+      "originalPrice": 850,
+      "desc": "Signature Precision Haircut + Razor Beard Lineup & Hot Towel Finish.",
+      "description": "Signature Precision Haircut + Razor Beard Lineup & Hot Towel Finish.",
+      "comboItems": [
+        {
+          "id": "c1",
+          "name": "Signature Precision Haircut",
+          "price": 500,
+          "time": 30
+        },
+        {
+          "id": "c2",
+          "name": "Razor Beard Trim & Sculpt",
+          "price": 250,
+          "time": 15
+        },
+        {
+          "id": "c3",
+          "name": "Hot Towel & Aftershave Finish",
+          "price": 100,
+          "time": 5
+        }
+      ],
+      "available": true,
+      "rating": 4.9,
+      "reviews": 42
+    },
+    {
+      "id": "hs_royal_combo",
+      "name": "Royal Grooming VIP Combo",
+      "type": "premium",
+      "category": "Combo Packages",
+      "categoryId": "cat_combo",
+      "isCombo": true,
+      "badge": "ROYAL VIP",
       "img": "/images/hs_scissor_sculpt.jpg",
       "image": "/images/hs_scissor_sculpt.jpg",
       "time": 75,
       "prepTime": 75,
-      "price": 1800,
-      "originalPrice": 2200,
-      "desc": "Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).",
-      "description": "Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Cleanup (VIP Combo Package).",
+      "durationMinutes": 75,
+      "price": 1199,
+      "originalPrice": 1600,
+      "desc": "Executive Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Facial Cleanup.",
+      "description": "Executive Haircut + Hot Towel Razor Shave + Beard Blend + Charcoal Facial Cleanup.",
+      "comboItems": [
+        {
+          "id": "r1",
+          "name": "Executive Contour Haircut",
+          "price": 800,
+          "time": 30
+        },
+        {
+          "id": "r2",
+          "name": "Hot Towel Razor Shave & Beard Blend",
+          "price": 400,
+          "time": 20
+        },
+        {
+          "id": "r3",
+          "name": "Charcoal Detox Facial Cleanup",
+          "price": 400,
+          "time": 25
+        }
+      ],
       "available": true,
-      "rating": 5.0,
+      "rating": 5,
       "reviews": 54
+    },
+    {
+      "id": "hs_beard_shave_combo",
+      "name": "Beard Transformation & Hot Razor Shave Combo",
+      "type": "premium",
+      "category": "Combo Packages",
+      "categoryId": "cat_combo",
+      "isCombo": true,
+      "badge": "BEARD SPECIAL",
+      "img": "/images/hs_razor_fade.jpg",
+      "image": "/images/hs_razor_fade.jpg",
+      "time": 40,
+      "prepTime": 40,
+      "durationMinutes": 40,
+      "price": 449,
+      "originalPrice": 650,
+      "desc": "Full Beard Fade, Sharp Razor Lineup, Eucalyptus Hot Steam & Nourishing Beard Oil.",
+      "description": "Full Beard Fade, Sharp Razor Lineup, Eucalyptus Hot Steam & Nourishing Beard Oil.",
+      "comboItems": [
+        {
+          "id": "b1",
+          "name": "Beard Fade & Sculpt",
+          "price": 350,
+          "time": 20
+        },
+        {
+          "id": "b2",
+          "name": "Hot Towel Razor Edge Lineup",
+          "price": 200,
+          "time": 10
+        },
+        {
+          "id": "b3",
+          "name": "Steam Therapy & Beard Elixir",
+          "price": 100,
+          "time": 10
+        }
+      ],
+      "available": true,
+      "rating": 4.8,
+      "reviews": 36
+    },
+    {
+      "id": "hs_dad_son_combo",
+      "name": "Dad & Son Classic Duo Combo",
+      "type": "premium",
+      "category": "Combo Packages",
+      "categoryId": "cat_combo",
+      "isCombo": true,
+      "badge": "FAMILY DUO",
+      "img": "/images/10-messy-spiky-undercut-for-men.webp",
+      "image": "/images/10-messy-spiky-undercut-for-men.webp",
+      "time": 60,
+      "prepTime": 60,
+      "durationMinutes": 60,
+      "price": 799,
+      "originalPrice": 1100,
+      "desc": "Two Haircuts: Executive Cut for Dad + Trend Fade for Son with Double Hair Wash & Style.",
+      "description": "Two Haircuts: Executive Cut for Dad + Trend Fade for Son with Double Hair Wash & Style.",
+      "comboItems": [
+        {
+          "id": "d1",
+          "name": "Dad Executive Scissor/Fade Cut",
+          "price": 600,
+          "time": 30
+        },
+        {
+          "id": "d2",
+          "name": "Son Trendy Texture/Fade Cut",
+          "price": 500,
+          "time": 30
+        }
+      ],
+      "available": true,
+      "rating": 4.9,
+      "reviews": 29
     },
     {
       "id": "hs1",
@@ -73,7 +233,7 @@
       "desc": "Voluminous high pompadour with seamless skin fade.",
       "description": "Voluminous high pompadour with seamless skin fade.",
       "available": true,
-      "rating": 5.0,
+      "rating": 5,
       "reviews": 45
     },
     {
@@ -141,7 +301,7 @@
       "desc": "100% precision scissor craftsmanship with hot towel finish.",
       "description": "100% precision scissor craftsmanship with hot towel finish.",
       "available": true,
-      "rating": 5.0,
+      "rating": 5,
       "reviews": 41
     },
     {

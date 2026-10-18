@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Tag, Trash2, X, Percent, Check, IndianRupee, Truck, Sparkles, Edit2, Video, Upload, Play } from 'lucide-react';
+import { Plus, Tag, Trash2, X, Percent, Check, IndianRupee, Truck, Sparkles, Edit2, Video, Upload, Play, Package, Clock, Gift } from 'lucide-react';
 import { getImageUrl } from '../../../utils/imageHelper';
 
 export default function OffersTab() {
-  const { deals, menu, heroBanner, storeInfo, storeId, capabilities, addDeal, toggleDealActive, deleteDeal, updateStoreSettings, updateHeroBanner, showToast } = useMaster();
+  const { 
+    deals, 
+    menu, 
+    heroBanner, 
+    storeInfo, 
+    storeId, 
+    capabilities, 
+    addDeal, 
+    toggleDealActive, 
+    deleteDeal, 
+    addMenuItem, 
+    updateMenuItem, 
+    deleteMenuItem, 
+    toggleItemAvailability, 
+    updateStoreSettings, 
+    updateHeroBanner, 
+    showToast 
+  } = useMaster();
 
-  const isSalon = capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon';
+  const isSalon = capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon' || capabilities?.catalog?.hasServiceDuration;
   const hasFreeDelivery = !isSalon && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
 
   // Free delivery threshold state
@@ -14,6 +31,7 @@ export default function OffersTab() {
 
   // Modal states
   const [dealModalData, setDealModalData] = useState(null); // null (closed) | {} (add/edit)
+  const [comboModalData, setComboModalData] = useState(null); // null (closed) | {} (add/edit combo package)
 
   // Hero Offer Editor state
   const [heroOffer, setHeroOffer] = useState({
@@ -122,7 +140,55 @@ export default function OffersTab() {
     setDealModalData(null);
   };
 
-  // Handle Save Hero Offer Editor
+  // Handle Save Salon Combo Package
+  const handleSaveSalonCombo = async (e) => {
+    e.preventDefault();
+    if (!comboModalData.name?.trim() || !comboModalData.price) {
+      showToast('Combo Package name and price are required', 'error');
+      return;
+    }
+
+    const selectedServices = (menu || []).filter(d => (comboModalData.selectedDishIds || []).includes(d.id));
+    const autoDuration = selectedServices.reduce((sum, d) => sum + (Number(d.time || d.durationMinutes || d.prepTime) || 30), 0);
+    const autoOrigPrice = selectedServices.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+
+    const payload = {
+      ...comboModalData,
+      name: comboModalData.name.trim(),
+      price: Number(comboModalData.price),
+      originalPrice: comboModalData.originalPrice > 0 ? Number(comboModalData.originalPrice) : autoOrigPrice,
+      time: Number(comboModalData.time || autoDuration || 60),
+      durationMinutes: Number(comboModalData.time || autoDuration || 60),
+      prepTime: Number(comboModalData.time || autoDuration || 60),
+      category: 'Combo Packages',
+      categoryId: 'cat_combo',
+      type: 'premium',
+      isCombo: true,
+      badge: comboModalData.badge || 'VIP COMBO',
+      available: comboModalData.available !== false,
+      image: comboModalData.image || (selectedServices[0]?.image || selectedServices[0]?.img || '/images/hs_scissor_sculpt.jpg'),
+      img: comboModalData.image || (selectedServices[0]?.image || selectedServices[0]?.img || '/images/hs_scissor_sculpt.jpg'),
+      comboItems: selectedServices.map(s => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        time: s.time || s.durationMinutes || s.prepTime || 30
+      })),
+      description: comboModalData.description || selectedServices.map(s => s.name).join(' + '),
+      desc: comboModalData.description || selectedServices.map(s => s.name).join(' + ')
+    };
+
+    if (comboModalData.id) {
+      await updateMenuItem(comboModalData.id, payload);
+      showToast(`Combo Package "${payload.name}" updated!`, 'success');
+    } else {
+      await addMenuItem(payload);
+      showToast(`New Combo Package "${payload.name}" created!`, 'success');
+    }
+    setComboModalData(null);
+  };
+
+  // Currently selected dish in Hero Offer editor
   const handleSaveHeroOffer = async (e) => {
     e.preventDefault();
     const chosenDish = (menu || []).find(d => d.id === heroOffer.featuredItemId);
@@ -216,31 +282,236 @@ export default function OffersTab() {
 
 
 
-      {/* 1. PROMO CODES & DEALS SECTION */}
+      {/* 1. VIP SALON PACKAGES & COMBOS SECTION (Salon only) */}
+      {isSalon && (
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>Bespoke Packages • बंडल कॉम्बो</span>
+              </div>
+              <h2 className="text-xl font-black text-zinc-900">
+                VIP SALON PACKAGES & COMBOS ({salonCombos.length})
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
+                Haircut + Daadi + Shave + Facial ke multi-service package bundles yahan se banayein aur website par live showcase karein.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setComboModalData({
+                name: '',
+                price: 599,
+                originalPrice: 850,
+                time: 50,
+                badge: 'BESTSELLER COMBO',
+                selectedDishIds: [],
+                image: '/images/hs_scissor_sculpt.jpg',
+                description: '',
+                available: true
+              })}
+              className="px-5 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
+            >
+              <Package className="w-4 h-4 stroke-[2.5]" />
+              <span>+ CREATE NEW COMBO PACKAGE</span>
+            </button>
+          </div>
+
+          {/* Combos Grid */}
+          {salonCombos.length === 0 ? (
+            <div className="text-center py-12 text-zinc-400 text-xs font-medium bg-[#FFFBF7] rounded-3xl p-8 border-2 border-dashed border-zinc-200">
+              <Package className="w-10 h-10 text-zinc-300 mx-auto mb-3" />
+              <p className="font-bold text-zinc-600 text-sm">Koi bhi Combo Package listed nahi hai</p>
+              <p className="mt-1">"+ CREATE NEW COMBO PACKAGE" button daba kar Daadi + Haircut ya Royal Grooming bundle banayein.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {salonCombos.map(combo => {
+                const isAvail = combo.available !== false;
+                const orig = Number(combo.originalPrice) || 0;
+                const curr = Number(combo.price) || 0;
+                const savings = orig > curr ? orig - curr : 0;
+                const discountPct = orig > curr ? Math.round((savings / orig) * 100) : 0;
+                const dur = Number(combo.time || combo.durationMinutes || combo.prepTime || 50);
+
+                let incItems = [];
+                if (Array.isArray(combo.comboItems) && combo.comboItems.length > 0) {
+                  incItems = combo.comboItems.map(i => typeof i === 'string' ? i : i.name);
+                } else if (combo.description && combo.description.includes('+')) {
+                  incItems = combo.description.split('+').map(s => s.trim());
+                } else if (combo.desc && combo.desc.includes('+')) {
+                  incItems = combo.desc.split('+').map(s => s.trim());
+                } else {
+                  incItems = [combo.name];
+                }
+
+                return (
+                  <div
+                    key={combo.id}
+                    className={`bg-[#FFFBF7] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-0 ${
+                      !isAvail ? 'opacity-70' : ''
+                    }`}
+                  >
+                    <div>
+                      {/* Image header */}
+                      <div className="relative h-36 bg-zinc-200 overflow-hidden">
+                        <img
+                          src={getImageUrl(combo.image || combo.img)}
+                          alt={combo.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.target.src = '/images/hs_scissor_sculpt.jpg'; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between">
+                          <span className="px-2.5 py-0.5 rounded-full bg-black/80 backdrop-blur-xs text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-400/30 flex items-center gap-1 shadow-xs">
+                            <Package className="w-3 h-3 text-amber-400" />
+                            <span>{combo.badge || 'VIP COMBO'}</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-zinc-900/80 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-400" />
+                            <span>{dur} MINS</span>
+                          </span>
+                        </div>
+                        {savings > 0 && (
+                          <div className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black shadow-xs">
+                            SAVE ₹{savings} ({discountPct}% OFF)
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4 space-y-3">
+                        <div>
+                          <h3 className="text-base font-black text-zinc-900 line-clamp-1">
+                            {combo.name}
+                          </h3>
+                          <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                            {combo.desc || combo.description || 'Bespoke multi-service grooming package.'}
+                          </p>
+                        </div>
+
+                        {/* Bundled Items pills */}
+                        <div className="bg-amber-50/80 rounded-2xl p-2.5 border border-amber-200/60 space-y-1">
+                          <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider block">
+                            Included Services ({incItems.length}):
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {incItems.map((item, idx) => (
+                              <span key={idx} className="inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-800 bg-white px-2 py-0.5 rounded-md shadow-2xs">
+                                <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                <span>{item}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-baseline justify-between pt-1">
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-lg font-black text-zinc-900 font-mono">₹{curr}</span>
+                              {orig > curr && (
+                                <span className="text-xs text-zinc-400 line-through">₹{orig}</span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-zinc-500 font-bold">Bundle Package Price</span>
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            isAvail ? 'bg-emerald-100 text-emerald-800' : 'bg-zinc-200 text-zinc-600'
+                          }`}>
+                            {isAvail ? 'ACTIVE' : 'OUT OF STOCK'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-4 pt-2 border-t border-zinc-100 flex items-center justify-between gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isAvail}
+                          onChange={(e) => toggleItemAvailability(combo.id, e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-8 h-4 bg-zinc-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                        <span className="text-xs font-bold text-zinc-600">Available</span>
+                      </label>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const curDishIds = Array.isArray(combo.comboItems)
+                              ? combo.comboItems.map(i => i.id).filter(Boolean)
+                              : [];
+                            setComboModalData({
+                              id: combo.id,
+                              name: combo.name,
+                              price: combo.price,
+                              originalPrice: combo.originalPrice || 0,
+                              time: dur,
+                              badge: combo.badge || 'VIP COMBO',
+                              selectedDishIds: curDishIds,
+                              image: combo.image || combo.img || '/images/hs_scissor_sculpt.jpg',
+                              description: combo.desc || combo.description || '',
+                              available: isAvail
+                            });
+                          }}
+                          className="p-2 rounded-xl bg-white hover:bg-zinc-100 text-zinc-700 shadow-xs cursor-pointer border-0"
+                          title="Edit Combo Package"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-zinc-600" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Kya aap "${combo.name}" package ko delete karna chahte hain?`)) {
+                              deleteMenuItem(combo.id);
+                            }
+                          }}
+                          className="p-2 rounded-xl bg-white hover:bg-red-50 text-red-500 shadow-xs cursor-pointer border-0"
+                          title="Delete Combo Package"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 2. PROMO CODES & DEALS SECTION */}
       <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-zinc-900">
-              {isSalon ? `SPECIAL SALON PACKAGES, COMBOS & PROMO CODES (${deals?.length || 0})` : `PROMO CODES & DEALS (${deals?.length || 0})`}
+              {isSalon ? `PROMO VOUCHER CODES (${deals?.length || 0})` : `PROMO CODES & DEALS (${deals?.length || 0})`}
             </h2>
             <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-              {isSalon ? 'Manage salon packages, combo deals, and discount vouchers' : 'Manage discount codes, checkout vouchers, and auto-applied offers'}
+              {isSalon ? 'Manage salon appointment checkout discount promo vouchers (e.g. NASH20, ROYAL100)' : 'Manage discount codes, checkout vouchers, and auto-applied offers'}
             </p>
           </div>
 
           <button
             onClick={() => setDealModalData({
-              code: isSalon ? 'ROYALCOMBO' : '',
-              title: isSalon ? 'Royal Grooming Combo' : '',
-              discountType: isSalon ? 'flat' : 'percentage',
-              discountPercent: 50,
-              flatDiscount: isSalon ? 200 : 50,
-              maxDiscount: isSalon ? 200 : 100,
-              minOrder: isSalon ? 1200 : 199,
+              code: isSalon ? 'NASH20' : '',
+              title: isSalon ? 'Special Grooming Voucher' : '',
+              discountType: isSalon ? 'percentage' : 'percentage',
+              discountPercent: 20,
+              flatDiscount: 100,
+              maxDiscount: 200,
+              minOrder: 499,
               usageLimit: 0,
               firstOrderOnly: false,
-              autoApply: isSalon,
-              isCombo: isSalon,
+              autoApply: false,
+              isCombo: false,
               applicableTo: 'all',
               applicableDishIds: [],
               isActive: true,
@@ -249,7 +520,7 @@ export default function OffersTab() {
             className="px-5 py-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{isSalon ? '+ ADD COMBO / DEAL' : '+ NEW DEAL'}</span>
+            <span>{isSalon ? '+ NEW PROMO VOUCHER' : '+ NEW DEAL'}</span>
           </button>
         </div>
 
@@ -986,6 +1257,250 @@ export default function OffersTab() {
                 <button
                   type="button"
                   onClick={() => setDealModalData(null)}
+                  className="py-3.5 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer border-0"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. SALON COMBO PACKAGE CREATOR / EDITOR MODAL */}
+      {comboModalData && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 sm:px-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-zinc-900">
+                    {comboModalData.id ? 'EDIT VIP COMBO PACKAGE' : 'CREATE VIP COMBO PACKAGE'}
+                  </h3>
+                  <p className="text-xs text-zinc-500">
+                    Multiple salon services ko ek package me bundle karein aur discounted price set karein
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setComboModalData(null)}
+                className="w-8 h-8 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center text-zinc-600 transition-all cursor-pointer border-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveSalonCombo} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              {/* Package Title */}
+              <div>
+                <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1.5">
+                  Combo Package Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={comboModalData.name || ''}
+                  onChange={(e) => setComboModalData({ ...comboModalData, name: e.target.value })}
+                  placeholder="e.g. Haircut + Beard Styling Combo"
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-xs border-0 font-bold"
+                />
+              </div>
+
+              {/* Service Multi-Select Checkboxes */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-black uppercase text-zinc-700 tracking-wider">
+                    Select Services to Bundle ({comboModalData.selectedDishIds?.length || 0} Selected)
+                  </label>
+                  <span className="text-[11px] text-amber-700 font-bold">
+                    Auto-calculates duration & MRP
+                  </span>
+                </div>
+
+                <div className="max-h-44 overflow-y-auto space-y-1.5 bg-[#FFFBF7] p-2.5 rounded-2xl border border-zinc-200/80">
+                  {((menu || []).filter(item => !item.isCombo && item.categoryId !== 'cat_combo' && item.category !== 'Combo Packages')).length === 0 ? (
+                    <div className="text-center py-4 text-zinc-400 text-xs">
+                      Salon menu me abhi koi single services nahi hain.
+                    </div>
+                  ) : (
+                    (menu || [])
+                      .filter(item => !item.isCombo && item.categoryId !== 'cat_combo' && item.category !== 'Combo Packages')
+                      .map((service) => {
+                        const isSelected = (comboModalData.selectedDishIds || []).includes(service.id);
+                        return (
+                          <label
+                            key={service.id}
+                            className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer text-xs transition-all ${
+                              isSelected ? 'bg-amber-100/90 text-amber-950 font-bold shadow-2xs' : 'bg-white hover:bg-zinc-100 text-zinc-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const currentIds = comboModalData.selectedDishIds || [];
+                                  const nextIds = e.target.checked
+                                    ? [...currentIds, service.id]
+                                    : currentIds.filter(id => id !== service.id);
+                                  
+                                  const nextServices = (menu || []).filter(d => nextIds.includes(d.id));
+                                  const calcDuration = nextServices.reduce((sum, d) => sum + (Number(d.time || d.durationMinutes || d.prepTime) || 30), 0);
+                                  const calcOrigPrice = nextServices.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+
+                                  setComboModalData({
+                                    ...comboModalData,
+                                    selectedDishIds: nextIds,
+                                    time: calcDuration > 0 ? calcDuration : comboModalData.time,
+                                    originalPrice: calcOrigPrice > 0 ? calcOrigPrice : comboModalData.originalPrice,
+                                    description: nextServices.map(d => d.name).join(' + ')
+                                  });
+                                }}
+                                className="rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                              />
+                              <span className="truncate">{service.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] text-zinc-500 font-medium">⏱️ {service.time || service.durationMinutes || 30}m</span>
+                              <span className="font-mono font-bold text-zinc-900">₹{service.price}</span>
+                            </div>
+                          </label>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing & Duration row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1">
+                    Combo Offer Price (₹) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={comboModalData.price || ''}
+                    onChange={(e) => setComboModalData({ ...comboModalData, price: e.target.value })}
+                    placeholder="e.g. 599"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-xs border-0 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1">
+                    Original MRP (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={comboModalData.originalPrice || ''}
+                    onChange={(e) => setComboModalData({ ...comboModalData, originalPrice: e.target.value })}
+                    placeholder="e.g. 850"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-xs border-0 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1">
+                    Duration (Minutes) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={comboModalData.time || ''}
+                    onChange={(e) => setComboModalData({ ...comboModalData, time: e.target.value })}
+                    placeholder="e.g. 50"
+                    className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-xs border-0 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Badge Selection */}
+              <div>
+                <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1.5">
+                  Combo Package Badge
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {['BESTSELLER COMBO', 'ROYAL VIP', 'BEARD SPECIAL', 'FAMILY DUO', 'SAVE ₹200', 'SPECIAL OFFER'].map(b => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setComboModalData({ ...comboModalData, badge: b })}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all border-0 cursor-pointer ${
+                        comboModalData.badge === b ? 'bg-amber-500 text-black shadow-xs' : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Selection */}
+              <div>
+                <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1.5">
+                  Package Photo
+                </label>
+                <div className="flex items-center gap-2 mb-2">
+                  {[
+                    { label: 'Scissor & Cut', url: '/images/hs_scissor_sculpt.jpg' },
+                    { label: 'Beard & Fade', url: '/images/hs_razor_fade.jpg' },
+                    { label: 'Trend Cut', url: '/images/10-messy-spiky-undercut-for-men.webp' },
+                    { label: 'Pompadour', url: '/images/hs_pompadour_fade.jpg' },
+                  ].map(preset => (
+                    <button
+                      key={preset.url}
+                      type="button"
+                      onClick={() => setComboModalData({ ...comboModalData, image: preset.url })}
+                      className={`flex-1 p-1 rounded-xl border text-[11px] font-bold cursor-pointer transition-all ${
+                        comboModalData.image === preset.url ? 'border-amber-500 bg-amber-50 text-amber-900' : 'border-zinc-200 bg-white text-zinc-600'
+                      }`}
+                    >
+                      <img src={preset.url} alt={preset.label} className="w-full h-12 object-cover rounded-lg mb-1" />
+                      <span className="block truncate">{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={comboModalData.image || ''}
+                  onChange={(e) => setComboModalData({ ...comboModalData, image: e.target.value })}
+                  placeholder="Or enter custom image URL"
+                  className="w-full bg-[#FFFBF7] rounded-xl px-3 py-2 text-xs text-zinc-900 font-mono border-0 shadow-2xs"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-xs font-black uppercase text-zinc-700 tracking-wider block mb-1">
+                  Description / Inclusions
+                </label>
+                <textarea
+                  rows={2}
+                  value={comboModalData.description || ''}
+                  onChange={(e) => setComboModalData({ ...comboModalData, description: e.target.value })}
+                  placeholder="e.g. Signature Precision Haircut + Razor Beard Lineup & Hot Towel Finish."
+                  className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-xs text-zinc-900 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all shadow-xs border-0"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-3 border-t border-zinc-100 flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-3.5 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase tracking-wider shadow-lg cursor-pointer border-0 active:scale-98 transition-all"
+                >
+                  {comboModalData.id ? 'UPDATE COMBO PACKAGE' : 'SAVE COMBO PACKAGE'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComboModalData(null)}
                   className="py-3.5 px-5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-xs cursor-pointer border-0"
                 >
                   Cancel

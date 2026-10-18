@@ -55,15 +55,25 @@ export function addOrUpdateMenuItem(req, res) {
       trackInventory: itemData.trackInventory || false,
       weight: itemData.weight || null,
       taxCode: itemData.taxCode || null,
+      categoryId: itemData.categoryId || null,
+      isCombo: itemData.isCombo !== undefined ? Boolean(itemData.isCombo) : (itemData.categoryId === 'cat_combo' || itemData.category === 'Combo Packages' || itemData.category === 'combos'),
+      comboItems: Array.isArray(itemData.comboItems) ? itemData.comboItems : [],
+      durationMinutes: itemData.durationMinutes || itemData.time || null,
+      bookingFee: itemData.bookingFee !== undefined ? Number(itemData.bookingFee) : null,
+      options: itemData.options || null,
+      addons: itemData.addons || [],
+      availableSizes: itemData.availableSizes || [],
+      colors: itemData.colors || [],
+      secondaryImage: itemData.secondaryImage || null,
       createdAt: itemData.createdAt || now(),
       updatedAt: now()
     };
     
     if (existingIndex >= 0) {
       // Keep existing fields not overwritten
-      menu[existingIndex] = { ...menu[existingIndex], ...itemData, updatedAt: now() };
+      menu[existingIndex] = { ...menu[existingIndex], ...universalItem, ...itemData, updatedAt: now() };
     } else {
-      menu.push(universalItem);
+      menu.push({ ...universalItem, ...itemData, updatedAt: now() });
     }
     
     menuData.menu = menu;

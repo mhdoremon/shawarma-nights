@@ -722,7 +722,7 @@ export const MasterProvider = ({ children }) => {
 
     sendWs({ action: 'ADD_MENU_ITEM', item });
 
-    await apiFetch('/api/catalog/items', {
+    await apiFetch('/api/menu/item', {
       method: 'POST',
       body: JSON.stringify(item)
     }).catch(err => console.warn('Add item error:', err));
@@ -735,9 +735,9 @@ export const MasterProvider = ({ children }) => {
 
     sendWs({ action: 'UPDATE_MENU_ITEM', item: { id: itemId, ...updates } });
 
-    await apiFetch(`/api/catalog/items/${itemId}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates)
+    await apiFetch('/api/menu/item', {
+      method: 'POST',
+      body: JSON.stringify({ id: itemId, ...updates })
     }).catch(err => console.warn('Update item error:', err));
     showToast(`Dish updated successfully`, 'success');
   };
@@ -748,7 +748,7 @@ export const MasterProvider = ({ children }) => {
 
     sendWs({ action: 'DELETE_MENU_ITEM', itemId });
 
-    await apiFetch(`/api/catalog/items/${itemId}`, {
+    await apiFetch(`/api/menu/item/${itemId}`, {
       method: 'DELETE'
     }).catch(err => console.warn('Delete item error:', err));
     showToast('Dish removed from menu', 'info');

@@ -332,26 +332,37 @@ export default function MenuTab() {
     const origPrice = comboModalItem.originalPrice > 0 
       ? Number(comboModalItem.originalPrice)
       : selectedDishes.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+    const autoDuration = selectedDishes.reduce((sum, d) => sum + (Number(d.time || d.prepTime) || 30), 0);
 
     const comboPayload = {
       ...comboModalItem,
       name: comboModalItem.name.trim(),
       price: Number(comboModalItem.price),
       originalPrice: Number(origPrice),
-      category: 'combos',
+      time: Number(comboModalItem.time || autoDuration || 60),
+      prepTime: Number(comboModalItem.time || autoDuration || 60),
+      category: isSalon ? 'Combo Packages' : 'combos',
+      categoryId: isSalon ? 'cat_combo' : 'cat_combos',
+      type: 'premium',
       isCombo: true,
       available: comboModalItem.available !== false,
       comboItems: selectedDishes.map(d => ({ 
         id: d.id, 
         name: d.name, 
         price: d.price, 
-        image: d.image,
+        image: d.image || d.img,
+        time: d.time || d.prepTime || 30,
         options: d.options || null
       })),
-      image: comboModalItem.image || (selectedDishes[0]?.image || 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80'),
+      image: comboModalItem.image || (selectedDishes[0]?.image || selectedDishes[0]?.img || (isSalon ? '/images/hs_scissor_sculpt.jpg' : 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80')),
+      img: comboModalItem.image || (selectedDishes[0]?.image || selectedDishes[0]?.img || (isSalon ? '/images/hs_scissor_sculpt.jpg' : 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80')),
       description: comboModalItem.description || selectedDishes.map(d => d.name).join(' + '),
-      badge: comboModalItem.badge || (origPrice > Number(comboModalItem.price) ? `SAVE ₹${origPrice - Number(comboModalItem.price)}` : 'COMBO FEAST'),
-      options: comboModalItem.options || {
+      desc: comboModalItem.description || selectedDishes.map(d => d.name).join(' + '),
+      badge: comboModalItem.badge || (origPrice > Number(comboModalItem.price) ? `SAVE ₹${origPrice - Number(comboModalItem.price)}` : (isSalon ? 'VIP PACKAGE' : 'COMBO FEAST'))
+    };
+
+    if (!isSalon) {
+      comboPayload.options = comboModalItem.options || {
         bread: [
           { name: 'Toasted Rumali Roti (Included)', price: 0 },
           { name: 'Fluffy Lebanese Pita', price: 20 },
@@ -364,8 +375,8 @@ export default function MenuTab() {
           { id: 'combo_fries', name: 'Upgrade to Cheesy Loaded Fries', price: 39 },
           { id: 'combo_drink', name: 'Add Extra Chilled Mint Mojito Drink', price: 49 }
         ]
-      }
-    };
+      };
+    }
 
     if (comboModalItem.id && (menu || []).some(d => d.id === comboModalItem.id)) {
       await updateMenuItem(comboModalItem.id, comboPayload);
@@ -474,26 +485,27 @@ export default function MenuTab() {
               <span>{addBtnText}</span>
             </button>
 
-            {/* Create Combo Meal Button (For Food Stores) */}
-            {hasFoodAddons && (
+            {/* Create Combo Meal / Salon Combo Package Button */}
+            {(hasFoodAddons || hasServiceDuration) && (
               <button
                 type="button"
                 onClick={() => setComboModalItem({
                   name: '',
                   price: '',
                   originalPrice: 0,
-                  badge: 'SAVE ₹100',
+                  time: hasServiceDuration ? 60 : 30,
+                  badge: hasServiceDuration ? 'VIP PACKAGE' : 'SAVE ₹100',
                   description: '',
-                  image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80',
+                  image: hasServiceDuration ? '/images/hs_scissor_sculpt.jpg' : 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80',
                   selectedDishIds: [],
-                  category: 'combos',
+                  category: hasServiceDuration ? 'Combo Packages' : 'combos',
                   isCombo: true,
                   available: true
                 })}
                 className="px-5 py-3 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all"
               >
                 <Package className="w-4 h-4 text-amber-400 stroke-[2.5]" />
-                <span>+ CREATE COMBO MEAL</span>
+                <span>{hasServiceDuration ? '+ CREATE COMBO PACKAGE' : '+ CREATE COMBO MEAL'}</span>
               </button>
             )}
           </div>
@@ -1570,14 +1582,16 @@ export default function MenuTab() {
                               ? current.filter(id => id !== dish.id)
                               : [...current, dish.id];
                             
-                            // Auto-sum selected dishes prices
+                            // Auto-sum selected dishes prices & duration
                             const selDishes = menu.filter(d => next.includes(d.id));
                             const autoOrig = selDishes.reduce((sum, d) => sum + (Number(d.price) || 0), 0);
+                            const autoTime = selDishes.reduce((sum, d) => sum + (Number(d.time || d.prepTime) || 30), 0);
                             
                             setComboModalItem({
                               ...comboModalItem,
                               selectedDishIds: next,
-                              originalPrice: autoOrig
+                              originalPrice: autoOrig,
+                              time: autoTime || comboModalItem.time || 60
                             });
                           }}
                           className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all border ${
@@ -1655,7 +1669,28 @@ export default function MenuTab() {
                 );
               })()}
 
-              {/* Combo Badge */}
+              {/* Duration in Minutes (Salon Only) */}
+              {hasServiceDuration && (
+                <div className="bg-[#FFFBF7] p-3 rounded-2xl border border-zinc-200">
+                  <label className="block text-[11px] font-black text-zinc-800 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>TOTAL SERVICE DURATION (कुल समय - मिनट में) *</span>
+                    <span className="text-[10px] text-amber-600 font-bold">Auto-calculated: {comboModalItem.time || 60} mins</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    value={comboModalItem.time || 60}
+                    onChange={(e) => setComboModalItem({ ...comboModalItem, time: Number(e.target.value) || 60 })}
+                    placeholder="e.g. 60 or 75"
+                    className="w-full bg-white rounded-xl px-3.5 py-2 text-xs font-bold text-zinc-900 border border-zinc-300 focus:outline-none focus:ring-2 focus:ring-[#DC2626]"
+                  />
+                  <span className="text-[10px] text-zinc-400 mt-0.5 block">
+                    Website booking calendar me is combo ke liye itna samay automatically block hoga.
+                  </span>
+                </div>
+              )}
+
+              {/* Combo Badge & Photo */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
@@ -1665,11 +1700,14 @@ export default function MenuTab() {
                     type="text"
                     value={comboModalItem.badge || ''}
                     onChange={(e) => setComboModalItem({ ...comboModalItem, badge: e.target.value })}
-                    placeholder="e.g. SAVE ₹100, DUO SPECIAL"
+                    placeholder={hasServiceDuration ? "e.g. VIP PACKAGE, SAVE ₹200" : "e.g. SAVE ₹100, DUO SPECIAL"}
                     className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs font-bold text-zinc-900 border-0 shadow-xs focus:bg-white focus:ring-2 focus:ring-[#DC2626]"
                   />
                   <div className="flex items-center gap-1 pt-1 flex-wrap">
-                    {['SAVE ₹100', 'SAVE ₹150', 'DUO SPECIAL', 'WEEKEND FEAST', 'PARTY PACK'].map(bd => (
+                    {(hasServiceDuration 
+                      ? ['VIP PACKAGE', 'SAVE ₹200', 'SAVE ₹300', 'ROYAL DUO', 'GROOM SPECIAL', 'BESTSELLER']
+                      : ['SAVE ₹100', 'SAVE ₹150', 'DUO SPECIAL', 'WEEKEND FEAST', 'PARTY PACK']
+                    ).map(bd => (
                       <button
                         key={bd}
                         type="button"
@@ -1690,15 +1728,20 @@ export default function MenuTab() {
                     type="text"
                     value={comboModalItem.image || ''}
                     onChange={(e) => setComboModalItem({ ...comboModalItem, image: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="/images/... ya https://..."
                     className="w-full bg-[#FFFBF7] rounded-2xl px-3.5 py-2 text-xs text-zinc-900 border-0 shadow-xs focus:bg-white focus:ring-2 focus:ring-[#DC2626]"
                   />
                   <div className="flex items-center gap-1 pt-1 flex-wrap">
-                    {[
+                    {(hasServiceDuration ? [
+                      { name: 'VIP Scissors', url: '/images/hs_scissor_sculpt.jpg' },
+                      { name: 'Razor Fade', url: '/images/hs_razor_fade.jpg' },
+                      { name: 'Beard Sculpt', url: '/images/hs_beard_sculpt.jpg' },
+                      { name: 'Spa Cleanup', url: '/images/hs_face_cleanup.jpg' }
+                    ] : [
                       { name: 'Feast 1', url: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=800&auto=format&fit=crop&q=80' },
                       { name: 'Feast 2', url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&auto=format&fit=crop&q=80' },
                       { name: 'Party Platter', url: 'https://images.unsplash.com/photo-1561651823-34feb02250e4?w=800&auto=format&fit=crop&q=80' }
-                    ].map(im => (
+                    ]).map(im => (
                       <button
                         key={im.name}
                         type="button"
