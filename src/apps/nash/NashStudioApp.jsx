@@ -1407,7 +1407,7 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                 </div>
 
                 {/* Step indicator pills */}
-                <div style={{display:"flex", alignItems:"center", gap:8}}>
+                <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
                   <div style={step === 2 ? S.stepPillActive : S.stepPillDone} onClick={() => goStep(2)}>
                     <span>1. DATE & TIME</span>
                   </div>
@@ -1416,11 +1416,27 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                     <span>2. CONFIRM & TOKEN</span>
                   </div>
                   <button 
+                    type="button"
                     onClick={() => goStep(1)} 
-                    style={S.changeStyleBtn}
-                    title="Change hairstyle"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: "rgba(212,175,55,0.15)",
+                      color: "#b48c1e",
+                      padding: "6px 14px",
+                      borderRadius: 20,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      border: "1px solid rgba(212,175,55,0.45)",
+                      cursor: "pointer",
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      transition: "all 0.2s"
+                    }}
+                    title="Change hairstyle / Return to catalog"
                   >
-                    <ArrowLeft size={13} strokeWidth={2} />
+                    <ArrowLeft size={13} strokeWidth={2.5} />
                     <span>CHANGE STYLE</span>
                   </button>
                 </div>
@@ -1438,6 +1454,7 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                     setSlot={setSlot} 
                     realtimeBookings={realtimeBookings} 
                     onNext={() => goStep(3)} 
+                    onBack={() => goStep(1)}
                     settings={settings}
                   />
                 )}
@@ -1802,6 +1819,59 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                         : `PAY ₹${bookingFee} VIA CASHFREE & CONFIRM APPOINTMENT`}
                     </button>
 
+                    {/* Step 3 Back Navigation Buttons */}
+                    <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => goStep(2)}
+                        style={{
+                          flex: 1,
+                          padding: "14px 18px",
+                          background: "var(--surface-hover)",
+                          border: "1px solid var(--line)",
+                          borderRadius: 8,
+                          color: "var(--paper)",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          cursor: "pointer"
+                        }}
+                      >
+                        <ArrowLeft size={14} strokeWidth={2.2} />
+                        <span>← BACK (CHANGE TIME)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => goStep(1)}
+                        style={{
+                          flex: 1,
+                          padding: "14px 18px",
+                          background: "transparent",
+                          border: "1px solid var(--line)",
+                          borderRadius: 8,
+                          color: "var(--muted)",
+                          fontSize: 11,
+                          fontWeight: 800,
+                          letterSpacing: "0.1em",
+                          textTransform: "uppercase",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          cursor: "pointer"
+                        }}
+                      >
+                        <Scissors size={14} strokeWidth={2.2} />
+                        <span>CHANGE STYLE</span>
+                      </button>
+                    </div>
+
                   </div>
                 )}
               </div>
@@ -2037,8 +2107,13 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         <div style={S.wrap}>
           <div style={S.footerGrid}>
             <div>
-              <div style={S.footBrand}>{settings.studioName || "NASH STUDIO"}</div>
+              <div style={S.footBrand}>{settings.studioName || settings.name || "NASH STUDIO"}</div>
               <p style={S.footAddr}>{settings.address || "Main Market, Churu, Rajasthan 331001"}</p>
+              {settings.aboutText && (
+                <p style={{fontSize: 12, color: "var(--muted)", marginTop: 8, lineHeight: 1.6, maxWidth: 360}}>
+                  {settings.aboutText}
+                </p>
+              )}
               <div style={{marginTop:12, fontSize:12, color:"var(--muted)"}}>
                 Unified Partner of <strong style={{color:"var(--paper)"}}>ChuruOne Network</strong>
               </div>
@@ -2047,7 +2122,15 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
             <div style={S.footHours}>
               <div><strong style={{color:"var(--paper)"}}>Mon-Sat:</strong> {settings.weeklySchedule?.mon?.open && settings.weeklySchedule?.mon?.close ? `${settings.weeklySchedule.mon.open} to ${settings.weeklySchedule.mon.close}` : (settings.openTime && settings.closeTime ? `${settings.openTime} to ${settings.closeTime}` : "11:00 AM to 11:00 PM")}</div>
               <div><strong style={{color:"var(--paper)"}}>Sunday:</strong> {settings.weeklySchedule?.sun ? (settings.weeklySchedule.sun.isOpen === false ? "Closed" : `${settings.weeklySchedule.sun.open || '11:00 AM'} to ${settings.weeklySchedule.sun.close || '11:00 PM'}`) : "11:00 AM to 11:00 PM"}</div>
-              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || settings.phone || "+91 70239 63189"}</div>
+              <div>
+                <strong style={{color:"var(--paper)"}}>Helpline:</strong>{" "}
+                <a 
+                  href={`tel:${(settings.phoneDisplay || settings.phone || "7023963189").replace(/[^0-9+]/g, "")}`}
+                  style={{color:"#b48c1e", textDecoration:"none", fontWeight: 700}}
+                >
+                  {settings.phoneDisplay || settings.phone || "+91 70239 63189"}
+                </a>
+              </div>
             </div>
 
             {/* Social Media & Direction Links */}
@@ -2246,7 +2329,7 @@ function SectionHead({ eyebrow, title, sub }) {
   );
 }
 
-function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot, realtimeBookings, onNext, settings }) {
+function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot, realtimeBookings, onNext, onBack, settings }) {
   const schedule = settings?.weeklySchedule || DEFAULT_SETTINGS.weeklySchedule;
   const selectedDate = dates[dateIndex] || new Date();
   const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -2395,9 +2478,48 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
               </div>
             )}
           </div>
-          <button style={!slot?{...S.btnConfirm,...S.btnDisabled}:S.btnConfirm} className="nash-btn-confirm" disabled={!slot} onClick={onNext}>
-            CONTINUE TO TOKEN LOCK
-          </button>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  flex: 1,
+                  padding: '16px 20px',
+                  background: 'var(--surface-hover)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 8,
+                  color: 'var(--paper)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                className="nash-btn-confirm"
+                title="Change hairstyle / service"
+              >
+                <ArrowLeft size={15} strokeWidth={2.2} />
+                <span>← CHANGE STYLE</span>
+              </button>
+            )}
+            <button 
+              style={{
+                flex: onBack ? 2 : 1,
+                ...(!slot ? { ...S.btnConfirm, ...S.btnDisabled } : S.btnConfirm)
+              }} 
+              className="nash-btn-confirm" 
+              disabled={!slot} 
+              onClick={onNext}
+            >
+              CONTINUE TO TOKEN LOCK →
+            </button>
+          </div>
         </>
       )}
     </div>

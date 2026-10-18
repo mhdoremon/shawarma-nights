@@ -54,7 +54,7 @@
     "timezone": "Asia/Kolkata",
     "language": "hi",
     "isOpen": true,
-    "timing": "Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed",
+    "timing": "Open All 7 Days: 11:00 AM – 11:00 PM",
     "studioName": "Nash Studio",
     "heroTagline": "PRECISION GROOMING. BINA INTEZAAR KE.",
     "heroButtonText": "BOOK APPOINTMENT NOW",
@@ -66,7 +66,7 @@
     "phoneDisplay": "0300-1234567",
     "address": "Shop 12, Main Boulevard, Gulberg",
     "monSatHours": "11:00 AM to 11:00 PM",
-    "sundayHours": "Closed",
+    "sundayHours": "11:00 AM to 11:00 PM",
     "weeklySchedule": {
       "mon": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
       "tue": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
@@ -74,7 +74,7 @@
       "thu": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
       "fri": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
       "sat": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" },
-      "sun": { "isOpen": false, "open": "11:00 AM", "close": "11:00 PM" }
+      "sun": { "isOpen": true, "open": "11:00 AM", "close": "11:00 PM" }
     },
     "bookingFee": 50,
     "upiId": "nashstudio@upi",

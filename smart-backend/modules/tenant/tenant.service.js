@@ -132,9 +132,45 @@ export const getStoreSettings = (req, res) => {
 
 export const updateStoreSettings = (req, res) => {
     try {
-        DataLayer.updateStoreConfig(req.storeId, req.body);
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'STORE_INFO_UPDATED', payload: req.body });
-        return res.json({ success: true, message: 'Updated' });
+        const config = DataLayer.getStoreConfig(req.storeId) || {};
+        const updates = req.body || {};
+        config.settings = { ...(config.settings || {}), ...updates };
+        
+        const storeNameVal = updates.name || updates.studioName || updates.storeName;
+        if (storeNameVal) {
+            config.name = storeNameVal;
+            config.storeName = storeNameVal;
+            config.studioName = storeNameVal;
+            config.settings.name = storeNameVal;
+            config.settings.storeName = storeNameVal;
+            config.settings.studioName = storeNameVal;
+        }
+
+        const phoneVal = updates.phoneDisplay || updates.phone;
+        if (phoneVal) {
+            config.settings.phoneDisplay = phoneVal;
+            config.settings.phone = phoneVal;
+        }
+
+        if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
+        if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
+        if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
+        DataLayer.updateStoreConfig(req.storeId, config);
+
+        const activeName = config.name || config.settings?.name || config.settings?.studioName;
+        const combined = {
+            ...(config.settings || {}),
+            name: activeName,
+            studioName: activeName,
+            storeName: activeName,
+            phoneDisplay: config.settings?.phoneDisplay || config.settings?.phone || '',
+            phone: config.settings?.phone || config.settings?.phoneDisplay || '',
+            payment: config.payment || {},
+            socials: config.socials || {},
+            taxesAndCharges: config.taxesAndCharges || {}
+        };
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
+        return res.json({ success: true, message: 'Updated', storeInfo: combined });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
     }

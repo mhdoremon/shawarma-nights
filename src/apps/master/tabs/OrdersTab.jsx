@@ -198,10 +198,49 @@ export default function OrdersTab() {
     }).filter(b => b.dateISO === selectedDate);
   }, [orders, selectedDate]);
 
-  // Timeline rows: 11:00 AM to 11:00 PM in 30-minute rows
+  const selectedDayKey = useMemo(() => {
+    try {
+      const d = new Date(selectedDate + 'T12:00:00');
+      return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
+    } catch {
+      return 'mon';
+    }
+  }, [selectedDate]);
+
+  const selectedDaySchedule = storeInfo?.weeklySchedule?.[selectedDayKey];
+
+  const { workStartMinutes, workEndMinutes, operatingHoursLabel } = useMemo(() => {
+    let start = parseTimeToMinutes(selectedDaySchedule?.open) ?? (11 * 60);
+    let end = parseTimeToMinutes(selectedDaySchedule?.close) ?? (23 * 60);
+    if (end <= start) end = start + 12 * 60;
+
+    // Check if any booking on that day starts earlier or ends later than scheduled hours
+    for (const b of dayBookings) {
+      if (b.startMin !== null && b.startMin !== undefined) {
+        if (b.startMin < start) {
+          start = Math.floor(b.startMin / 30) * 30;
+        }
+        const bEnd = b.startMin + (b.totalMinutes || 30);
+        if (bEnd > end) {
+          end = Math.ceil(bEnd / 30) * 30;
+        }
+      }
+    }
+
+    const startLabel = formatTimeLabel(Math.floor(start / 60), start % 60);
+    const endLabel = formatTimeLabel(Math.floor(end / 60), end % 60);
+
+    return {
+      workStartMinutes: start,
+      workEndMinutes: end,
+      operatingHoursLabel: `${startLabel} – ${endLabel}`
+    };
+  }, [selectedDaySchedule, dayBookings]);
+
+  // Dynamic Timeline rows based on store operating schedule and all day bookings
   const timelineRows = useMemo(() => {
     const rows = [];
-    for (let t = WORK_START; t < WORK_END; t += ROW_STEP) {
+    for (let t = workStartMinutes; t < workEndMinutes; t += ROW_STEP) {
       const label = formatTimeLabel(Math.floor(t / 60), t % 60);
       let occupying = null;
       let isStart = false;
@@ -219,7 +258,7 @@ export default function OrdersTab() {
       rows.push({ t, label, booking: occupying, isStart });
     }
     return rows;
-  }, [dayBookings]);
+  }, [dayBookings, workStartMinutes, workEndMinutes]);
 
   // Primary View Mode: 'today' | 'history' (plus 'timeline' for salon appointments)
   const [activeOrderView, setActiveOrderView] = useState('today'); // 'today' | 'history'
@@ -633,7 +672,7 @@ export default function OrdersTab() {
                 </span>
               </h2>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Operating Hours: 11:00 AM – 11:00 PM (30-Minute Barber Chair Slots)
+                Operating Hours: {operatingHoursLabel} (30-Minute Barber Chair Slots)
               </p>
             </div>
 

@@ -177,6 +177,7 @@ export default function SettingsTab() {
     timing: storeInfo?.timing || (isSalon ? 'Open All 7 Days: 11:00 AM – 11:00 PM' : 'Open Daily: 12:00 PM – 04:00 AM'),
     openTillText: storeInfo?.openTillText || 'OPEN TILL 11:00 PM',
     address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
+    phoneDisplay: storeInfo?.phoneDisplay || storeInfo?.phone || storeInfo?.settings?.phoneDisplay || (isSalon ? '0300-1234567' : '7023963189'),
     locationNote: storeInfo?.locationNote || 'Central hub kitchen with 30-45 min local delivery',
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
     halalBadgeText: storeInfo?.halalBadgeText || '',
@@ -267,6 +268,7 @@ export default function SettingsTab() {
         timing: storeInfo.timing || prev.timing,
         openTillText: storeInfo.openTillText || prev.openTillText,
         address: storeInfo.address || prev.address,
+        phoneDisplay: storeInfo.phoneDisplay || storeInfo.phone || storeInfo.settings?.phoneDisplay || prev.phoneDisplay,
         locationNote: storeInfo.locationNote || prev.locationNote,
         deliveryNote: storeInfo.deliveryNote || prev.deliveryNote,
         halalBadgeText: storeInfo.halalBadgeText || prev.halalBadgeText,
@@ -450,6 +452,8 @@ export default function SettingsTab() {
       timing: operationalForm.timing || autoTiming,
       openTillText: operationalForm.openTillText,
       address: operationalForm.address,
+      phoneDisplay: operationalForm.phoneDisplay,
+      phone: operationalForm.phoneDisplay,
       locationNote: operationalForm.locationNote,
       aboutText: operationalForm.aboutText,
       ownerEyebrow: operationalForm.ownerEyebrow,
@@ -933,18 +937,37 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Store Physical Address */}
-        <div>
-          <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-            Store Physical Address
-          </label>
-          <input
-            type="text"
-            value={operationalForm.address}
-            onChange={(e) => setOperationalForm({ ...operationalForm, address: e.target.value })}
-            placeholder={isSalon ? "Shop 12, Main Boulevard, Gulberg" : "Near Railway Station, Churu, Rajasthan"}
-            className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-          />
+        {/* Store Physical Address & Customer Helpline Phone */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              Store Physical Address
+            </label>
+            <input
+              type="text"
+              value={operationalForm.address}
+              onChange={(e) => setOperationalForm({ ...operationalForm, address: e.target.value })}
+              placeholder={isSalon ? "Shop 12, Main Boulevard, Gulberg" : "Near Railway Station, Churu, Rajasthan"}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-[#DC2626]" />
+              <span>Customer Helpline Phone / Support Number</span>
+            </label>
+            <input
+              type="text"
+              value={operationalForm.phoneDisplay}
+              onChange={(e) => setOperationalForm({ ...operationalForm, phoneDisplay: e.target.value })}
+              placeholder={isSalon ? "e.g. 0300-1234567" : "e.g. 7023963189"}
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+            />
+            <span className="text-[10px] text-zinc-400 mt-1 block">
+              Website ke top bar aur footer me helpline no. live update hoga.
+            </span>
+          </div>
         </div>
 
         {/* Delivery Note (Delivery / Food stores only - strictly hidden for Salon) */}
@@ -1082,37 +1105,39 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* Delivery Note & Kitchen Location Note */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              "Still Hungry" Banner Open Till Text
-            </label>
-            <input
-              type="text"
-              value={operationalForm.openTillText}
-              onChange={(e) => setOperationalForm({ ...operationalForm, openTillText: e.target.value })}
-              placeholder="e.g. OPEN TILL 4:00 AM or OPEN TILL 2:00 AM"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-bold"
-            />
-            <span className="text-[10px] text-zinc-400 mt-1 block">
-              Website ke Still Hungry section ke upar jo pill badge dikhta hai, wo yahan se dynamically update hoga.
-            </span>
-          </div>
+        {/* Delivery Note & Kitchen Location Note (Food / Restaurant only) */}
+        {!isSalon && hasFood && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                "Still Hungry" Banner Open Till Text
+              </label>
+              <input
+                type="text"
+                value={operationalForm.openTillText}
+                onChange={(e) => setOperationalForm({ ...operationalForm, openTillText: e.target.value })}
+                placeholder="e.g. OPEN TILL 4:00 AM or OPEN TILL 2:00 AM"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 font-bold"
+              />
+              <span className="text-[10px] text-zinc-400 mt-1 block">
+                Website ke Still Hungry section ke upar jo pill badge dikhta hai, wo yahan se dynamically update hoga.
+              </span>
+            </div>
 
-          <div>
-            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
-              Kitchen Location Subtext / Delivery Note
-            </label>
-            <input
-              type="text"
-              value={operationalForm.locationNote}
-              onChange={(e) => setOperationalForm({ ...operationalForm, locationNote: e.target.value })}
-              placeholder="e.g. Central hub kitchen with 30-45 min local delivery"
-              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
-            />
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                Kitchen Location Subtext / Delivery Note
+              </label>
+              <input
+                type="text"
+                value={operationalForm.locationNote}
+                onChange={(e) => setOperationalForm({ ...operationalForm, locationNote: e.target.value })}
+                placeholder="e.g. Central hub kitchen with 30-45 min local delivery"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* OWNER & FOUNDER PROFILE (Bug 6 & Dukandar 8) */}
         <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3.5 border-0">
