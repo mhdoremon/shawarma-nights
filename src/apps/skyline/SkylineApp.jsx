@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShoppingBag, 
   Search, 
@@ -35,7 +36,10 @@ import {
   Banknote,
   Smartphone,
   Navigation,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  SlidersHorizontal,
+  Layers
 } from 'lucide-react';
 import { 
   getSkylineData, 
@@ -175,6 +179,8 @@ export default function SkylineApp() {
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [heroActiveAngle, setHeroActiveAngle] = useState('primary'); // 'primary' | 'secondary'
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -288,7 +294,7 @@ export default function SkylineApp() {
         if (parsed.address) {
           setStreetArea(parsed.address);
         }
-        showToast(`✦ ChuruOne SSO Verified: Welcome, ${parsed.name || 'Friend'}!`);
+        showToast(`ChuruOne SSO Verified: Welcome, ${parsed.name || 'Friend'}!`);
 
         // Clean query parameters from URL
         params.delete('churuone_user');
@@ -327,7 +333,7 @@ export default function SkylineApp() {
             setCheckoutPhone(String(u.phone || u.phoneNumber).replace(/\D/g, '').slice(-10));
           }
           if (u.address) setStreetArea(u.address);
-          showToast(`✦ Verified by ChuruOne: ${u.name || 'Friend'}`);
+          showToast(`Verified by ChuruOne: ${u.name || 'Friend'}`);
         }
       }
     };
@@ -353,7 +359,7 @@ export default function SkylineApp() {
 
     // 5. Connect real-time WebSocket for instant live sync when Dukandar updates
     const unsubWs = connectSkylineWebSocket((action, payload) => {
-      console.log('⚡ [Skyline Realtime Event]', action, payload);
+      console.log('[Skyline Realtime Event]', action, payload);
       if (action === 'MENU_UPDATED') {
         if (payload?.menu && Array.isArray(payload.menu)) {
           setMenuItems(sanitizeClothesOnly(payload.menu));
@@ -429,7 +435,7 @@ export default function SkylineApp() {
     setWishlist(prev => {
       const exists = prev.includes(productId);
       const updated = exists ? prev.filter(id => id !== productId) : [...prev, productId];
-      showToast(exists ? 'Removed from wishlist' : 'Saved to wishlist ♥');
+      showToast(exists ? 'Removed from wishlist' : 'Saved to wishlist');
       return updated;
     });
   };
@@ -494,7 +500,7 @@ export default function SkylineApp() {
           console.warn('Reverse geocoding error:', e);
         }
         setIsCapturingGps(false);
-        showToast('📍 Live GPS Location captured successfully!');
+        showToast('Live GPS Location captured successfully!');
       },
       (err) => {
         console.warn('Geolocation error:', err);
@@ -658,7 +664,7 @@ export default function SkylineApp() {
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     if (!currentUser || !isUserPhoneVerified) {
-      showToast('✦ Skyline orders ke liye verified mobile number anivarya hai');
+      showToast('Skyline orders ke liye verified mobile number anivarya hai');
       setIsCheckoutOpen(false);
       navigateToChuruOneAuth('login');
       return;
@@ -783,7 +789,7 @@ export default function SkylineApp() {
     setIsUpiModalOpen(false);
     setIsCheckoutOpen(false);
     setIsCartOpen(false);
-    showToast('✦ Payment Verified! Wardrobe Order Confirmed.');
+    showToast('Payment Verified! Wardrobe Order Confirmed.');
   };
 
   // ─── ORDER TRACKER ────────────────────────────────────────────
@@ -886,7 +892,7 @@ export default function SkylineApp() {
     }
   };
 
-  // ─── ALL PRODUCTS (CLOTHES ONLY — UNIFIED CATALOG WITHOUT CATEGORY TABS) ──
+  // ─── ALL PRODUCTS (CLOTHES ONLY — UNIFIED CATALOG WITH CATEGORY FILTER) ──
   const allClothingProducts = useMemo(() => {
     let list = sanitizeClothesOnly(menuItems);
 
@@ -903,8 +909,36 @@ export default function SkylineApp() {
     return list;
   }, [menuItems, searchQuery]);
 
-  // Alias for backward-compatibility in JSX
-  const bestSellingProducts = allClothingProducts;
+  const availableCategories = useMemo(() => {
+    const clothes = sanitizeClothesOnly(menuItems);
+    const catMap = { all: clothes.length };
+    clothes.forEach(item => {
+      const cat = item.category || 'other';
+      catMap[cat] = (catMap[cat] || 0) + 1;
+    });
+
+    const categoryLabels = {
+      all: 'All Pieces',
+      shirts: 'Linen & Shirts',
+      pants: 'Trousers & Chinos',
+      jackets: 'Jackets & Blazers',
+      ethnic: 'Kurtas & Ethnic',
+      jeans: 'Selvedge Denims',
+      tshirts: 'Polos & Tees'
+    };
+
+    const keys = Object.keys(catMap);
+    return keys.map(k => ({
+      id: k,
+      name: categoryLabels[k] || (k.charAt(0).toUpperCase() + k.slice(1)),
+      count: catMap[k]
+    }));
+  }, [menuItems]);
+
+  const bestSellingProducts = useMemo(() => {
+    if (selectedCategory === 'all') return allClothingProducts;
+    return allClothingProducts.filter(item => item.category === selectedCategory);
+  }, [allClothingProducts, selectedCategory]);
 
   // ─── REVIEWS LIST (CLOTHING ONLY) ─────────────────────────────
   const customerReviews = useMemo(() => {
@@ -936,43 +970,59 @@ export default function SkylineApp() {
     <div className="min-h-screen bg-white text-stone-900 font-sans selection:bg-black selection:text-white antialiased">
       
       {/* ─── TOAST NOTIFICATION ───────────────────────────────────── */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-stone-950 text-white px-5 py-3 rounded-lg shadow-2xl text-xs font-medium tracking-wide flex items-center gap-2.5 animate-bounce">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* ─── FLOATING BOTTOM BAG PILL (Appears when items in bag, doesn't interrupt shopping) ─── */}
-      {cartItems.length > 0 && !isCartOpen && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div
-            onClick={() => setIsCartOpen(true)}
-            className="bg-black text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-stone-900 transition-all active:scale-98"
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed bottom-6 right-6 z-50 bg-stone-950 text-white px-5 py-3 rounded-xl shadow-2xl text-xs font-medium tracking-wide flex items-center gap-2.5 border border-stone-800"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
-                {totalItemsCount}
-              </div>
-              <div>
-                <span className="text-xs font-bold block">
-                  {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} in bag
-                </span>
-                <span className="text-[11px] text-stone-400 font-mono">
-                  Subtotal: ₹ {cartSubtotal}.00
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
-              <span>View Bag</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </div>
-          </div>
-        </div>
-      )}
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ─── 1. MINIMALIST HEADER / NAVBAR ────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-100 transition-all">
+      {/* ─── FLOATING BOTTOM BAG PILL (Appears when items in bag) ─── */}
+      <AnimatePresence>
+        {cartItems.length > 0 && !isCartOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-sm pointer-events-auto"
+          >
+            <div
+              onClick={() => setIsCartOpen(true)}
+              className="bg-black text-white rounded-full px-5 py-3.5 shadow-2xl border border-stone-800 flex items-center justify-between cursor-pointer hover:bg-stone-900 transition-all active:scale-98"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center font-black text-xs">
+                  {totalItemsCount}
+                </div>
+                <div>
+                  <span className="text-xs font-bold block">
+                    {totalItemsCount} {totalItemsCount === 1 ? 'item' : 'items'} in bag
+                  </span>
+                  <span className="text-[11px] text-stone-400 font-mono">
+                    Subtotal: ₹ {cartSubtotal}.00
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                <span>View Bag</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 1. MINIMALIST HEADER / NAVBAR (SOLID LUXURY LIGHT) ────── */}
+      <header className="sticky top-0 z-40 bg-white/98 border-b border-stone-200 shadow-xs transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           
           {/* Brand Logo: Skyline Premium */}
@@ -1007,7 +1057,7 @@ export default function SkylineApp() {
             {/* Search Toggle */}
             <div className="relative">
               {isSearchOpen ? (
-                <div className="flex items-center bg-stone-100 rounded-full px-3 py-1.5 text-xs w-44 sm:w-56 transition-all">
+                <div className="flex items-center bg-stone-100 rounded-full px-3 py-1.5 text-xs w-44 sm:w-56 transition-all border border-stone-200">
                   <Search className="w-3.5 h-3.5 text-stone-500 shrink-0 mr-2" />
                   <input
                     type="text"
@@ -1032,19 +1082,30 @@ export default function SkylineApp() {
               )}
             </div>
 
-            {/* Shopping Bag Button */}
-            <button
+            {/* Shopping Bag Button with Spring Scale */}
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => setIsCartOpen(true)}
               className="relative p-2 text-stone-700 hover:text-black transition-colors cursor-pointer"
               title="Shopping Bag"
             >
               <ShoppingBag className="w-4 h-4 stroke-[1.8]" />
-              {totalItemsCount > 0 && (
-                <span className="absolute top-1 right-1 bg-black text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center">
-                  {totalItemsCount}
-                </span>
-              )}
-            </button>
+              <AnimatePresence>
+                {totalItemsCount > 0 && (
+                  <motion.span
+                    key={totalItemsCount}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute top-1 right-1 bg-black text-white rounded-full text-[9px] font-bold w-4 h-4 flex items-center justify-center"
+                  >
+                    {totalItemsCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
 
             {/* Dukandar Portal */}
             <a
@@ -1069,7 +1130,7 @@ export default function SkylineApp() {
 
         {/* Mobile Navigation Dropdown */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-stone-100 bg-white px-6 py-4 space-y-3">
+          <div className="md:hidden border-t border-stone-200 bg-white px-6 py-4 space-y-3 shadow-lg">
             <a href="#hero" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Home</a>
             <a href="#trending" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Shop</a>
             <a href="#bestselling" onClick={() => setIsMobileMenuOpen(false)} className="block text-sm font-medium text-stone-900 py-1">Collection</a>
@@ -1092,65 +1153,125 @@ export default function SkylineApp() {
         )}
       </header>
 
-      {/* ─── 2. HERO SECTION (MATCHES LEFT PANEL OF SCREENSHOT) ────── */}
+      {/* ─── 2. KINETIC EDITORIAL HERO SECTION ──────────────────────── */}
       <section id="hero" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Left Text Column */}
+          {/* Left Text Column with Kinetic Typography */}
           <div className="lg:col-span-5 space-y-5 text-center lg:text-left">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-bold tracking-wider uppercase">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Churu Flagship Menswear Studio
-            </span>
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-stone-950 tracking-tight leading-[1.05]">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-bold tracking-wider uppercase border border-stone-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Churu Flagship Menswear Studio
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-stone-950 tracking-tight leading-[1.05]"
+            >
               Skyline<br />
               Premium<br />
               Outfits
-            </h1>
+            </motion.h1>
             
-            <p className="text-stone-600 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0">
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="text-stone-600 text-sm sm:text-base font-normal leading-relaxed max-w-md mx-auto lg:mx-0"
+            >
               Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & bespoke outfits curated in Churu.
-            </p>
+            </motion.p>
 
-            <div className="pt-2 flex items-center justify-center lg:justify-start gap-4">
-              <a
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="pt-2 flex items-center justify-center lg:justify-start gap-4"
+            >
+              <motion.a
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 href="#bestselling"
-                className="inline-block bg-black text-white hover:bg-stone-800 transition-all px-8 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold shadow-md active:scale-95 no-underline cursor-pointer"
+                className="inline-block bg-black text-white hover:bg-stone-800 transition-all px-8 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold shadow-md no-underline cursor-pointer"
               >
                 Shop Collection
-              </a>
-              <a
+              </motion.a>
+              <motion.a
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 href="#trending"
-                className="inline-block bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all px-6 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold active:scale-95 no-underline cursor-pointer"
+                className="inline-block bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all px-6 py-3.5 rounded-md text-xs uppercase tracking-widest font-semibold no-underline cursor-pointer border border-stone-200"
               >
                 Trending
-              </a>
-            </div>
+              </motion.a>
+            </motion.div>
           </div>
 
-          {/* Right Product Showcase with "ULTIMATE" Watermark */}
+          {/* Right Product Showcase with Levitating Garment & Architectural Watermark */}
           <div className="lg:col-span-7">
-            <div className="relative bg-[#F6F6F6] rounded-3xl p-6 sm:p-12 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[480px]">
+            <div className="relative bg-[#F6F6F8] rounded-3xl p-6 sm:p-12 overflow-hidden flex items-center justify-center min-h-[380px] sm:min-h-[480px] border border-stone-200/80">
               
               {/* Giant Translucent Vertical Watermark: SKYLINE */}
-              <div className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-6xl sm:text-8xl lg:text-9xl font-black text-stone-200/90 tracking-[0.25em] select-none pointer-events-none">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-6xl sm:text-8xl lg:text-9xl font-black text-stone-200/90 tracking-[0.25em] select-none pointer-events-none"
+              >
                 SKYLINE
-              </div>
+              </motion.div>
 
-              {/* Floating Hero Clothing Showcase */}
-              <div 
+              {/* Multi-angle Pill Switcher in Hero (If secondary image available) */}
+              {heroProduct.secondaryImage && (
+                <div className="absolute top-5 left-5 z-20 flex items-center gap-1.5 bg-white border border-stone-200 rounded-full p-1 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setHeroActiveAngle('primary'); }}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                      heroActiveAngle === 'primary' ? 'bg-black text-white shadow-xs' : 'text-stone-600 hover:text-black'
+                    }`}
+                  >
+                    01 Angle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setHeroActiveAngle('secondary'); }}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                      heroActiveAngle === 'secondary' ? 'bg-black text-white shadow-xs' : 'text-stone-600 hover:text-black'
+                    }`}
+                  >
+                    02 Studio
+                  </button>
+                </div>
+              )}
+
+              {/* Floating Levitating Hero Garment */}
+              <motion.div 
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+                whileHover={{ scale: 1.04 }}
                 onClick={() => openProductModal(heroProduct)}
-                className="relative z-10 w-full max-w-md mx-auto cursor-pointer group"
+                className="relative z-10 w-full max-w-md mx-auto cursor-pointer group select-none"
               >
                 <img
-                  src={heroProduct.image}
+                  src={heroActiveAngle === 'secondary' && heroProduct.secondaryImage ? heroProduct.secondaryImage : heroProduct.image}
                   alt={heroProduct.name}
-                  className="w-full h-72 sm:h-96 object-contain drop-shadow-2xl transition-transform duration-500 group-hover:scale-105"
+                  className="w-full h-72 sm:h-96 object-contain drop-shadow-2xl transition-all duration-500"
                 />
-              </div>
+              </motion.div>
 
-              {/* Floating Badge / Card Below the Showcase */}
-              <div className="absolute bottom-6 right-6 sm:right-10 z-20 bg-white/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-stone-100 shadow-xl flex items-center gap-4">
+              {/* Floating Solid White Badge Below the Showcase */}
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="absolute bottom-6 right-6 sm:right-10 z-20 bg-white px-5 py-3 rounded-2xl border border-stone-200 shadow-xl flex items-center gap-4"
+              >
                 <div>
                   <span className="block text-xs font-semibold text-stone-950 tracking-tight">
                     {heroProduct.name}
@@ -1159,14 +1280,16 @@ export default function SkylineApp() {
                     ₹ {heroProduct.price}.00
                   </span>
                 </div>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   onClick={() => addToCart(heroProduct)}
-                  className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm"
+                  className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-colors cursor-pointer shadow-sm"
                   title="Add to Bag"
                 >
                   <Plus className="w-4 h-4" />
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
 
             </div>
           </div>
@@ -1174,18 +1297,33 @@ export default function SkylineApp() {
         </div>
       </section>
 
-      {/* ─── 3. SOLID BLACK BRAND STRIP (SKYLINE LUXURY ATTRIBUTES) ─── */}
-      <section className="bg-black text-white py-5 px-4 overflow-hidden select-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-around flex-wrap gap-8 sm:gap-14 text-center font-mono font-bold text-xs sm:text-sm uppercase tracking-widest text-stone-300">
-          <span className="text-white font-extrabold tracking-wider">SKYLINE BESPOKE</span>
-          <span className="text-stone-700">✦</span>
-          <span>100% ITALIAN LINEN</span>
-          <span className="text-stone-700">✦</span>
-          <span className="text-amber-400 font-extrabold">{PHONEPE_REVIEW_MODE ? 'TAILORED CASUAL SHIRTS' : 'RAW SELVEDGE DENIM'}</span>
-          <span className="text-stone-700">✦</span>
-          <span>BESPOKE HANDCRAFTED TAILORING</span>
-          <span className="text-stone-700">✦</span>
-          <span className="text-emerald-400 font-extrabold">CHURU SAME-DAY EXPRESS</span>
+      {/* ─── 3. INFINITE LUXURY MARQUEE RIBBON (NO EMOJIS, SEAMLESS LOOP) ─── */}
+      <section className="bg-black text-white py-4 overflow-hidden select-none border-y border-stone-900">
+        <div className="flex whitespace-nowrap overflow-hidden">
+          <motion.div
+            animate={{ x: ['0%', '-50%'] }}
+            transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+            className="flex items-center gap-10 text-xs sm:text-sm font-mono font-bold uppercase tracking-widest shrink-0"
+          >
+            {[1, 2].map((iteration) => (
+              <React.Fragment key={iteration}>
+                <span className="text-white font-extrabold tracking-wider">SKYLINE BESPOKE</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-stone-300">100% ITALIAN LINEN</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-amber-400 font-extrabold">{PHONEPE_REVIEW_MODE ? 'TAILORED CASUAL SHIRTS' : 'RAW SELVEDGE DENIM'}</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-stone-300">BESPOKE HANDCRAFTED TAILORING</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-emerald-400 font-extrabold">CHURU SAME-DAY EXPRESS</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-white font-extrabold tracking-wider">ARCHITECTURAL SILHOUETTES</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+                <span className="text-stone-300">GENUINE MOTHER-OF-PEARL BUTTONS</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-stone-600" />
+              </React.Fragment>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -1213,63 +1351,114 @@ export default function SkylineApp() {
             <div className="pt-2">
               <a
                 href="#bestselling"
-                className="inline-block bg-black text-white hover:bg-stone-800 transition-colors px-6 py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider cursor-pointer no-underline"
+                className="inline-block bg-black text-white hover:bg-stone-800 transition-colors px-6 py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider cursor-pointer no-underline active:scale-95 shadow-sm"
               >
                 Explore All Outfits
               </a>
             </div>
           </div>
 
-          {/* Right Column: 3 Trending Clothing Cards + Controls */}
+          {/* Right Column: 3 Trending Clothing Cards */}
           <div className="lg:col-span-8 space-y-6">
             
             {/* 3-Card Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {trendingProducts.map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className="bg-[#F5F5F7] rounded-2xl p-5 relative group hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
-                >
-                  {/* Garment Image */}
-                  <div 
-                    onClick={() => openProductModal(item)}
-                    className="h-44 sm:h-48 flex items-center justify-center cursor-pointer overflow-hidden p-2"
+              {trendingProducts.map((item, idx) => {
+                const isWishlisted = wishlist.includes(item.id);
+                return (
+                  <motion.div
+                    key={item.id || idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: idx * 0.1 }}
+                    whileHover={{ y: -6 }}
+                    className="bg-[#F5F5F7] rounded-2xl p-5 relative group transition-shadow duration-300 hover:shadow-xl border border-stone-200/60 flex flex-col justify-between overflow-hidden"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md rounded-lg"
-                    />
-                  </div>
-
-                  {/* Details & Circular Action Button */}
-                  <div className="pt-4 flex items-end justify-between">
-                    <div>
-                      <h4 className="text-xs font-semibold text-stone-900 truncate max-w-[140px]">
-                        {item.name}
-                      </h4>
-                      <p className="text-xs font-mono font-medium text-stone-600 mt-1">
-                        ₹ {item.price}.00
-                      </p>
+                    {/* Top Badges */}
+                    <div className="flex items-center justify-between z-10 mb-2">
+                      <span className="bg-black text-white text-[9px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        {item.badge || 'Trending'}
+                      </span>
+                      <motion.button
+                        whileHover={{ scale: 1.15 }}
+                        whileTap={{ scale: 0.8 }}
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }}
+                        className="p-1 text-stone-400 hover:text-red-500 transition-colors cursor-pointer"
+                        title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${isWishlisted ? 'fill-red-500 text-red-500' : 'stroke-[1.8]'}`} />
+                      </motion.button>
                     </div>
 
-                    <button
-                      onClick={() => addToCart(item)}
-                      className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm shrink-0"
-                      title="Add to Bag"
+                    {/* Garment Image with Dual-Angle Crossfade on Hover */}
+                    <div 
+                      onClick={() => openProductModal(item)}
+                      className="relative h-44 sm:h-48 flex items-center justify-center cursor-pointer overflow-hidden p-2 select-none"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-lg ${
+                          item.secondaryImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
+                        }`}
+                      />
+                      {item.secondaryImage && (
+                        <img
+                          src={item.secondaryImage}
+                          alt={`${item.name} studio angle`}
+                          className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-lg group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+
+                    {/* Sliding Quick View Action on Card Hover */}
+                    <div className="absolute inset-x-4 bottom-16 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-2 z-20 pointer-events-none group-hover:pointer-events-auto">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openProductModal(item); }}
+                        className="flex-1 bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Quick View</span>
+                      </button>
+                    </div>
+
+                    {/* Details & Circular Action Button */}
+                    <div className="pt-3 flex items-end justify-between border-t border-stone-200/60 mt-2">
+                      <div>
+                        <h4 
+                          onClick={() => openProductModal(item)}
+                          className="text-xs font-semibold text-stone-900 hover:text-black cursor-pointer truncate max-w-[140px]"
+                        >
+                          {item.name}
+                        </h4>
+                        <p className="text-xs font-mono font-medium text-stone-600 mt-0.5">
+                          ₹ {item.price}.00
+                        </p>
+                      </div>
+
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => addToCart(item)}
+                        className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform cursor-pointer shadow-sm shrink-0"
+                        title="Add to Bag"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
 
-            {/* Carousel Controls & Pagination Dots */}
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <span className="w-2 h-2 rounded-full bg-black"></span>
-              <span className="w-2 h-2 rounded-full bg-stone-300"></span>
-              <span className="w-2 h-2 rounded-full bg-stone-300"></span>
+            {/* Pagination Indicator Dots */}
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="w-6 h-1.5 rounded-full bg-black"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-stone-300"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-stone-300"></span>
             </div>
 
           </div>
@@ -1277,11 +1466,11 @@ export default function SkylineApp() {
         </div>
       </section>
 
-      {/* ─── 5. ALL PRODUCTS SECTION (CLOTHES ONLY — UNIFIED CATALOG) ─── */}
+      {/* ─── 5. ALL PRODUCTS SECTION (CLOTHES ONLY — UNIFIED CATALOG WITH CATEGORY FILTER) ─── */}
       <section id="bestselling" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 border-t border-stone-100">
         
-        {/* Section Header (No Category Pills — All Outfits Displayed Together) */}
-        <div className="text-center space-y-3 mb-12">
+        {/* Section Header */}
+        <div className="text-center space-y-3 mb-10">
           <span className="text-xs uppercase tracking-[0.25em] font-semibold text-stone-400 block">
             — Complete Collection —
           </span>
@@ -1293,51 +1482,144 @@ export default function SkylineApp() {
               ? "Handcrafted French linen & luxury tailored casual shirts — ready for same-day dispatch."
               : "Pure French linen shirts, pleated Gurkha trousers, authentic Japanese selvedge denim, kurtas & jackets — all garments in one place."}
           </p>
+
+          {/* Interactive Luxury Category Switcher with Framer Motion Sliding Pill */}
+          {availableCategories.length > 1 && (
+            <div className="pt-4 flex items-center justify-center flex-wrap gap-2">
+              {availableCategories.map(cat => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`relative px-4 py-2 rounded-full text-xs font-semibold tracking-wider uppercase transition-colors cursor-pointer select-none ${
+                      isActive ? 'text-white' : 'text-stone-600 hover:text-black bg-stone-100'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeCatalogPill"
+                        className="absolute inset-0 bg-black rounded-full z-0"
+                        transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <span>{cat.name}</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${isActive ? 'bg-stone-800 text-stone-200' : 'bg-stone-200 text-stone-700'}`}>
+                        {cat.count}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-stone-100 text-stone-800 text-xs font-mono font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Showing all {bestSellingProducts.length} premium pieces</span>
+            <span>Showing {bestSellingProducts.length} premium pieces</span>
           </div>
         </div>
 
-        {/* All Products Grid (Unified Catalog) */}
+        {/* All Products Grid with Dual-Angle Crossfade & Micro-Interactions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bestSellingProducts.map((product) => {
+          {bestSellingProducts.map((product, pIdx) => {
             const isWishlisted = wishlist.includes(product.id);
 
             return (
-              <div
+              <motion.div
                 key={product.id}
-                className="bg-[#F6F6F6] rounded-2xl p-6 relative group hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.35, delay: (pIdx % 3) * 0.08 }}
+                whileHover={{ y: -6 }}
+                className="bg-[#F6F6F8] rounded-2xl p-6 relative group transition-shadow duration-300 hover:shadow-xl border border-stone-200/60 flex flex-col justify-between overflow-hidden"
               >
-                {/* Top Badges: [ New ] tag on left, Wishlist Heart on right */}
-                <div className="flex items-center justify-between z-10">
+                {/* Top Badges */}
+                <div className="flex items-center justify-between z-10 mb-1">
                   <span className="bg-black text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     {product.badge || 'New'}
                   </span>
                   
-                  <button
-                    onClick={() => toggleWishlist(product.id)}
-                    className="p-1 text-stone-400 hover:text-red-500 transition-colors cursor-pointer"
+                  <motion.button
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.8 }}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                    className="p-1.5 rounded-full bg-white/80 hover:bg-white text-stone-400 hover:text-red-500 transition-colors shadow-2xs cursor-pointer z-20"
                     title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
                   >
                     <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'stroke-[1.8]'}`} />
-                  </button>
+                  </motion.button>
                 </div>
 
-                {/* Garment Image */}
+                {/* Garment Image with Dual-Angle Crossfade on Hover */}
                 <div
                   onClick={() => openProductModal(product)}
-                  className="h-52 sm:h-60 flex items-center justify-center my-4 cursor-pointer overflow-hidden p-2"
+                  className="relative h-52 sm:h-60 flex items-center justify-center my-3 cursor-pointer overflow-hidden p-2 select-none"
                 >
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-md rounded-xl"
+                    className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-xl ${
+                      product.secondaryImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
+                    }`}
                   />
+                  {product.secondaryImage && (
+                    <img
+                      src={product.secondaryImage}
+                      alt={`${product.name} studio angle`}
+                      className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-xl group-hover:scale-105"
+                    />
+                  )}
                 </div>
 
+                {/* Sliding Quick Action Pill on Hover */}
+                <div className="absolute inset-x-6 bottom-[88px] opacity-0 group-hover:opacity-100 translate-y-3 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-2 z-20 pointer-events-none group-hover:pointer-events-auto">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); openProductModal(product); }}
+                    className="flex-1 bg-white hover:bg-stone-50 text-stone-900 border border-stone-200 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Quick View</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                    className="bg-black hover:bg-stone-800 text-white px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-md flex items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
+                    title="Add to Bag"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Color Swatch Dots Preview */}
+                {product.colors && product.colors.length > 0 && (
+                  <div className="flex items-center gap-1.5 mb-2">
+                    {product.colors.slice(0, 4).map((c, cIdx) => {
+                      const cHex = typeof c === 'object' && c.hex ? c.hex : '#111827';
+                      const cName = typeof c === 'object' && c.name ? c.name : c;
+                      return (
+                        <span
+                          key={cIdx}
+                          title={cName}
+                          className="w-2.5 h-2.5 rounded-full border border-stone-300 shadow-2xs"
+                          style={{ backgroundColor: cHex }}
+                        />
+                      );
+                    })}
+                    {product.colors.length > 4 && (
+                      <span className="text-[10px] text-stone-400 font-mono">+{product.colors.length - 4}</span>
+                    )}
+                  </div>
+                )}
+
                 {/* Bottom Details & Circular Action Button */}
-                <div className="flex items-end justify-between pt-2">
+                <div className="flex items-end justify-between pt-2 border-t border-stone-200/60">
                   <div>
                     <h3 
                       onClick={() => openProductModal(product)}
@@ -1358,16 +1640,19 @@ export default function SkylineApp() {
                     </div>
                   </div>
 
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    type="button"
                     onClick={() => addToCart(product)}
-                    className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform active:scale-90 cursor-pointer shadow-sm shrink-0"
+                    className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center hover:bg-stone-800 transition-transform cursor-pointer shadow-sm shrink-0"
                     title="Add to Bag"
                   >
                     <ArrowUpRight className="w-4 h-4" />
-                  </button>
+                  </motion.button>
                 </div>
 
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -1513,389 +1798,438 @@ export default function SkylineApp() {
         </div>
       </footer>
 
-      {/* ─── 8. PRODUCT QUICK VIEW MODAL ──────────────────────────── */}
-      {selectedProduct && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }} />
-          
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-2xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 overflow-hidden">
-              
-              <button
-                onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }}
-                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 rounded-full cursor-pointer"
+      {/* ─── 8. PRODUCT QUICK VIEW MODAL (WITH SPRING ANIMATION & DUAL-ANGLE LOOKBOOK) ─── */}
+      <AnimatePresence>
+        {selectedProduct && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }}
+            />
+            
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.94, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94, y: 15 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                className="relative bg-white max-w-2xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 overflow-hidden z-10"
               >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                 
-                {/* Product Image Preview & Lookbook */}
-                <div className="bg-[#F6F6F6] rounded-xl p-4 flex flex-col items-center justify-center">
-                  <div className="h-56 flex items-center justify-center w-full">
-                    <img
-                      src={modalActiveImage || selectedProduct.image}
-                      alt={selectedProduct.name}
-                      className="max-h-full max-w-full object-contain drop-shadow-xl transition-all duration-300"
-                    />
-                  </div>
-                  {selectedProduct.secondaryImage && (
-                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-200 w-full justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setModalActiveImage(selectedProduct.image)}
-                        className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
-                          (!modalActiveImage || modalActiveImage === selectedProduct.image)
-                            ? 'border-black ring-1 ring-black'
-                            : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
-                        }`}
-                        title="Primary Angle"
-                      >
-                        <img src={selectedProduct.image} alt="Primary" className="w-full h-full object-contain" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalActiveImage(selectedProduct.secondaryImage)}
-                        className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
-                          modalActiveImage === selectedProduct.secondaryImage
-                            ? 'border-black ring-1 ring-black'
-                            : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
-                        }`}
-                        title="Lookbook / Alternate Angle"
-                      >
-                        <img src={selectedProduct.secondaryImage} alt="Secondary" className="w-full h-full object-contain" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Details & Selection */}
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                      {selectedProduct.badge || 'Skyline Exclusive'}
-                    </span>
-                    <h3 className="text-lg font-bold text-stone-950 mt-1">
-                      {selectedProduct.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-base font-mono font-bold text-stone-950">
-                        ₹ {selectedProduct.price}.00
-                      </span>
-                      {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
-                        <span className="text-xs font-mono text-stone-400 line-through">
-                          ₹ {selectedProduct.originalPrice}.00
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-stone-600 leading-relaxed font-light">
-                    {selectedProduct.description || 'Premium comfort engineering with architectural silhouette.'}
-                  </p>
-
-                  {/* Color Swatch Selector */}
-                  {selectedProduct.colors && selectedProduct.colors.length > 0 && (
-                    <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
-                        Color / Shade: <span className="text-black font-extrabold">{modalColor || (typeof selectedProduct.colors[0] === 'object' ? selectedProduct.colors[0].name : selectedProduct.colors[0])}</span>
-                      </label>
-                      <div className="flex items-center flex-wrap gap-2">
-                        {selectedProduct.colors.map((c, idx) => {
-                          const cName = typeof c === 'string' ? c : (c.name || 'Classic');
-                          const cHex = typeof c === 'object' && c.hex ? c.hex : '#111827';
-                          const isSelected = (modalColor || (typeof selectedProduct.colors[0] === 'string' ? selectedProduct.colors[0] : selectedProduct.colors[0]?.name)) === cName;
-                          return (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => setModalColor(cName)}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'bg-black text-white border-black shadow-xs'
-                                  : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
-                              }`}
-                            >
-                              <span
-                                className="w-3.5 h-3.5 rounded-full border border-white/50 shrink-0"
-                                style={{ backgroundColor: cHex }}
-                              />
-                              <span>{cName}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Size Selector */}
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
-                      Select Size
-                    </label>
-                    <div className="flex items-center flex-wrap gap-2">
-                      {(selectedProduct.availableSizes || selectedProduct.sizes || ['S', 'M', 'L', 'XL', 'XXL']).map((sz) => (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => setModalSize(sz)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                            (modalSize || (selectedProduct.availableSizes || selectedProduct.sizes)?.[0] || 'M') === sz
-                              ? 'bg-black text-white border-black shadow-xs'
-                              : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Add to Bag Button */}
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        addToCart(selectedProduct, modalSize, modalColor);
-                        setSelectedProduct(null);
-                        setModalActiveImage('');
-                        setModalColor('');
-                        setModalSize('');
-                      }}
-                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>Add to Bag</span>
-                    </button>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 9. SHOPPING CART DRAWER ──────────────────────────────── */}
-      {isCartOpen && (
-        <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsCartOpen(false)} />
-
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between">
-              
-              {/* Drawer Header */}
-              <div className="p-6 border-b border-stone-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag className="w-5 h-5 text-black" />
-                  <h3 className="font-bold text-sm tracking-tight text-stone-950 uppercase">
-                    Your Shopping Bag ({totalItemsCount})
-                  </h3>
-                </div>
                 <button
-                  onClick={() => setIsCartOpen(false)}
-                  className="p-1 text-stone-400 hover:text-black cursor-pointer"
+                  onClick={() => { setSelectedProduct(null); setModalActiveImage(''); setModalColor(''); setModalSize(''); }}
+                  className="absolute right-4 top-4 text-stone-400 hover:text-black p-1.5 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
-              </div>
 
-              {/* Free Delivery Bar */}
-              <div className="bg-stone-50 px-6 py-3 border-b border-stone-100 text-xs">
-                {amountNeededForFreeShip === 0 ? (
-                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Unlocked Free Express Delivery in Churu!</span>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <span className="text-stone-600 block">
-                      Add <strong className="text-black">₹{amountNeededForFreeShip}</strong> more for <strong>FREE Delivery</strong>
-                    </span>
-                    <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-black h-full transition-all duration-300"
-                        style={{ width: `${freeShippingProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Cart Items List */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {cartItems.length === 0 ? (
-                  <div className="text-center py-16 space-y-3">
-                    <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto stroke-1" />
-                    <p className="text-stone-600 text-xs">Your shopping bag is empty.</p>
-                    <button
-                      onClick={() => setIsCartOpen(false)}
-                      className="bg-black text-white px-5 py-2 rounded-full text-xs font-semibold cursor-pointer"
-                    >
-                      Browse Skyline Collection
-                    </button>
-                  </div>
-                ) : (
-                  cartItems.map((item) => (
-                    <div
-                      key={item.cartItemId}
-                      className="flex items-center gap-4 bg-stone-50 rounded-xl p-3 border border-stone-100"
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-contain rounded-lg bg-white p-1 shrink-0"
-                      />
-
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-semibold text-stone-900 truncate">
-                          {item.name}
-                        </h4>
-                        <span className="text-[10px] text-stone-500 block">
-                          Size: {item.size}
-                        </span>
-                        <span className="text-xs font-mono font-semibold text-stone-950 mt-1 block">
-                          ₹ {item.price * item.quantity}.00
-                        </span>
-                      </div>
-
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-2 bg-white rounded-lg border border-stone-200 px-2 py-1">
-                        <button
-                          onClick={() => updateCartQuantity(item.cartItemId, -1)}
-                          className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                        <button
-                          onClick={() => updateCartQuantity(item.cartItemId, 1)}
-                          className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* Remove Button */}
-                      <button
-                        onClick={() => removeFromCart(item.cartItemId)}
-                        className="text-stone-400 hover:text-red-500 p-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Cart Footer: Coupon & Checkout */}
-              {cartItems.length > 0 && (
-                <div className="p-6 border-t border-stone-100 bg-white space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
                   
-                  {/* Coupon Code Input */}
-                  <div className="space-y-1.5">
-                    {appliedCoupon ? (
-                      <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg text-xs text-emerald-800">
-                        <div className="flex items-center gap-1.5">
-                          <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="font-semibold">{appliedCoupon.code}</span>
-                          <span>(-₹{discountAmount})</span>
-                        </div>
-                        <button onClick={removeCoupon} className="text-stone-400 hover:text-stone-700 font-bold">
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={couponCodeInput}
-                          onChange={(e) => setCouponCodeInput(e.target.value)}
-                          placeholder="Promo code (e.g. NIGHT50)"
-                          className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-xs uppercase outline-none focus:border-black"
-                        />
+                  {/* Product Image Preview & Lookbook */}
+                  <div className="bg-[#F6F6F8] rounded-xl p-4 flex flex-col items-center justify-center border border-stone-200/60">
+                    <div className="h-56 flex items-center justify-center w-full">
+                      <motion.img
+                        key={modalActiveImage || selectedProduct.image}
+                        initial={{ opacity: 0.6, scale: 0.97 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        src={modalActiveImage || selectedProduct.image}
+                        alt={selectedProduct.name}
+                        className="max-h-full max-w-full object-contain drop-shadow-xl"
+                      />
+                    </div>
+                    {selectedProduct.secondaryImage && (
+                      <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-200 w-full justify-center">
                         <button
-                          onClick={() => handleApplyCoupon()}
-                          disabled={couponLoading}
-                          className="bg-black text-white px-4 py-2 rounded-lg text-xs font-semibold uppercase cursor-pointer hover:bg-stone-800 disabled:opacity-50"
+                          type="button"
+                          onClick={() => setModalActiveImage(selectedProduct.image)}
+                          className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
+                            (!modalActiveImage || modalActiveImage === selectedProduct.image)
+                              ? 'border-black ring-1 ring-black'
+                              : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
+                          }`}
+                          title="Primary Angle"
                         >
-                          {couponLoading ? '...' : 'Apply'}
+                          <img src={selectedProduct.image} alt="Primary" className="w-full h-full object-contain" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModalActiveImage(selectedProduct.secondaryImage)}
+                          className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
+                            modalActiveImage === selectedProduct.secondaryImage
+                              ? 'border-black ring-1 ring-black'
+                              : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
+                          }`}
+                          title="Lookbook / Alternate Angle"
+                        >
+                          <img src={selectedProduct.secondaryImage} alt="Secondary" className="w-full h-full object-contain" />
                         </button>
                       </div>
                     )}
-                    {couponMessage.text && (
-                      <span className={`text-[10px] block ${couponMessage.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
-                        {couponMessage.text}
-                      </span>
-                    )}
                   </div>
 
-                  {/* Price Calculations */}
-                  <div className="space-y-1.5 text-xs text-stone-600">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span className="font-mono text-stone-900">₹ {cartSubtotal}.00</span>
+                  {/* Product Details & Selection */}
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                        {selectedProduct.badge || 'Skyline Exclusive'}
+                      </span>
+                      <h3 className="text-lg font-bold text-stone-950 mt-1">
+                        {selectedProduct.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-base font-mono font-bold text-stone-950">
+                          ₹ {selectedProduct.price}.00
+                        </span>
+                        {selectedProduct.originalPrice && selectedProduct.originalPrice > selectedProduct.price && (
+                          <span className="text-xs font-mono text-stone-400 line-through">
+                            ₹ {selectedProduct.originalPrice}.00
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between text-emerald-700 font-medium">
-                        <span>Discount</span>
-                        <span className="font-mono">- ₹ {discountAmount}.00</span>
+
+                    <p className="text-xs text-stone-600 leading-relaxed font-light">
+                      {selectedProduct.description || 'Premium comfort engineering with architectural silhouette.'}
+                    </p>
+
+                    {/* Color Swatch Selector */}
+                    {selectedProduct.colors && selectedProduct.colors.length > 0 && (
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
+                          Color / Shade: <span className="text-black font-extrabold">{modalColor || (typeof selectedProduct.colors[0] === 'object' ? selectedProduct.colors[0].name : selectedProduct.colors[0])}</span>
+                        </label>
+                        <div className="flex items-center flex-wrap gap-2">
+                          {selectedProduct.colors.map((c, idx) => {
+                            const cName = typeof c === 'string' ? c : (c.name || 'Classic');
+                            const cHex = typeof c === 'object' && c.hex ? c.hex : '#111827';
+                            const isSelected = (modalColor || (typeof selectedProduct.colors[0] === 'string' ? selectedProduct.colors[0] : selectedProduct.colors[0]?.name)) === cName;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setModalColor(cName)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-black text-white border-black shadow-xs'
+                                    : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
+                                }`}
+                              >
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full border border-white/50 shrink-0"
+                                  style={{ backgroundColor: cHex }}
+                                />
+                                <span>{cName}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
-                    <div className="flex justify-between">
-                      <span>Delivery Fee</span>
-                      <span className="font-mono text-stone-900">
-                        {deliveryFee === 0 ? <strong className="text-emerald-700">FREE</strong> : `₹ ${deliveryFee}.00`}
-                      </span>
-                    </div>
-                    <div className="border-t border-stone-100 pt-2 flex justify-between text-sm font-bold text-stone-950">
-                      <span>Total</span>
-                      <span className="font-mono text-base">₹ {grandTotal}.00</span>
-                    </div>
-                  </div>
 
-                  {/* Checkout Button */}
-                  <button
-                    onClick={() => {
-                      if (!currentUser || !isUserPhoneVerified) {
-                        showToast('✦ Order karne ke liye verified mobile number se sign in karein');
-                        setIsCartOpen(false);
-                        navigateToChuruOneAuth('login');
-                        return;
-                      }
-                      setIsCartOpen(false);
-                      setIsCheckoutOpen(true);
-                    }}
-                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Proceed to Checkout</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                    {/* Size Selector */}
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-stone-700 mb-1.5">
+                        Select Size
+                      </label>
+                      <div className="flex items-center flex-wrap gap-2">
+                        {(selectedProduct.availableSizes || selectedProduct.sizes || ['S', 'M', 'L', 'XL', 'XXL']).map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => setModalSize(sz)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                              (modalSize || (selectedProduct.availableSizes || selectedProduct.sizes)?.[0] || 'M') === sz
+                                ? 'bg-black text-white border-black shadow-xs'
+                                : 'bg-stone-50 border-stone-200 text-stone-700 hover:border-black'
+                            }`}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Add to Bag Button */}
+                    <div className="pt-2">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        type="button"
+                        onClick={() => {
+                          addToCart(selectedProduct, modalSize, modalColor);
+                          setSelectedProduct(null);
+                          setModalActiveImage('');
+                          setModalColor('');
+                          setModalSize('');
+                        }}
+                        className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md transition-all flex items-center justify-center gap-2"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>Add to Bag</span>
+                      </motion.button>
+                    </div>
+
+                  </div>
 
                 </div>
-              )}
 
+              </motion.div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* ─── 9. SHOPPING CART DRAWER (WITH SLIDE-IN SPRING MOTION) ─── */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50"
+              onClick={() => setIsCartOpen(false)}
+            />
+
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className="w-screen max-w-md bg-white border-l border-stone-200 shadow-2xl flex flex-col justify-between z-10"
+              >
+                
+                {/* Drawer Header */}
+                <div className="p-6 border-b border-stone-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-black" />
+                    <h3 className="font-bold text-sm tracking-tight text-stone-950 uppercase">
+                      Your Shopping Bag ({totalItemsCount})
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setIsCartOpen(false)}
+                    className="p-1 text-stone-400 hover:text-black cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Free Delivery Bar */}
+                <div className="bg-stone-50 px-6 py-3 border-b border-stone-100 text-xs">
+                  {amountNeededForFreeShip === 0 ? (
+                    <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Unlocked Free Express Delivery in Churu!</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <span className="text-stone-600 block">
+                        Add <strong className="text-black">₹{amountNeededForFreeShip}</strong> more for <strong>FREE Delivery</strong>
+                      </span>
+                      <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="bg-black h-full transition-all duration-300"
+                          style={{ width: `${freeShippingProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cart Items List */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {cartItems.length === 0 ? (
+                    <div className="text-center py-16 space-y-3">
+                      <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto stroke-1" />
+                      <p className="text-stone-600 text-xs">Your shopping bag is empty.</p>
+                      <button
+                        onClick={() => setIsCartOpen(false)}
+                        className="bg-black text-white px-5 py-2 rounded-full text-xs font-semibold cursor-pointer"
+                      >
+                        Browse Skyline Collection
+                      </button>
+                    </div>
+                  ) : (
+                    cartItems.map((item) => (
+                      <div
+                        key={item.cartItemId}
+                        className="flex items-center gap-4 bg-stone-50 rounded-xl p-3 border border-stone-100"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-16 object-contain rounded-lg bg-white p-1 shrink-0"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-semibold text-stone-900 truncate">
+                            {item.name}
+                          </h4>
+                          <span className="text-[10px] text-stone-500 block">
+                            Size: {item.size}
+                          </span>
+                          <span className="text-xs font-mono font-semibold text-stone-950 mt-1 block">
+                            ₹ {item.price * item.quantity}.00
+                          </span>
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-stone-200 px-2 py-1">
+                          <button
+                            onClick={() => updateCartQuantity(item.cartItemId, -1)}
+                            className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateCartQuantity(item.cartItemId, 1)}
+                            className="text-stone-500 hover:text-black p-0.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => removeFromCart(item.cartItemId)}
+                          className="text-stone-400 hover:text-red-500 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Cart Footer: Coupon & Checkout */}
+                {cartItems.length > 0 && (
+                  <div className="p-6 border-t border-stone-100 bg-white space-y-4">
+                    
+                    {/* Coupon Code Input */}
+                    <div className="space-y-1.5">
+                      {appliedCoupon ? (
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg text-xs text-emerald-800">
+                          <div className="flex items-center gap-1.5">
+                            <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="font-semibold">{appliedCoupon.code}</span>
+                            <span>(-₹{discountAmount})</span>
+                          </div>
+                          <button onClick={removeCoupon} className="text-stone-400 hover:text-stone-700 font-bold">
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={couponCodeInput}
+                            onChange={(e) => setCouponCodeInput(e.target.value)}
+                            placeholder="Promo code (e.g. NIGHT50)"
+                            className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-xs uppercase outline-none focus:border-black"
+                          />
+                          <button
+                            onClick={() => handleApplyCoupon()}
+                            disabled={couponLoading}
+                            className="bg-black text-white px-4 py-2 rounded-lg text-xs font-semibold uppercase cursor-pointer hover:bg-stone-800 disabled:opacity-50"
+                          >
+                            {couponLoading ? '...' : 'Apply'}
+                          </button>
+                        </div>
+                      )}
+                      {couponMessage.text && (
+                        <span className={`text-[10px] block ${couponMessage.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+                          {couponMessage.text}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price Calculations */}
+                    <div className="space-y-1.5 text-xs text-stone-600">
+                      <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span className="font-mono text-stone-900">₹ {cartSubtotal}.00</span>
+                      </div>
+                      {discountAmount > 0 && (
+                        <div className="flex justify-between text-emerald-700 font-medium">
+                          <span>Discount</span>
+                          <span className="font-mono">- ₹ {discountAmount}.00</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span>Delivery Fee</span>
+                        <span className="font-mono text-stone-900">
+                          {deliveryFee === 0 ? <strong className="text-emerald-700">FREE</strong> : `₹ ${deliveryFee}.00`}
+                        </span>
+                      </div>
+                      <div className="border-t border-stone-100 pt-2 flex justify-between text-sm font-bold text-stone-950">
+                        <span>Total</span>
+                        <span className="font-mono text-base">₹ {grandTotal}.00</span>
+                      </div>
+                    </div>
+
+                    {/* Checkout Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        if (!currentUser || !isUserPhoneVerified) {
+                          showToast('Order karne ke liye verified mobile number se sign in karein');
+                          setIsCartOpen(false);
+                          navigateToChuruOneAuth('login');
+                          return;
+                        }
+                        setIsCartOpen(false);
+                        setIsCheckoutOpen(true);
+                      }}
+                      className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Proceed to Checkout</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.button>
+
+                  </div>
+                )}
+
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ─── 10. COMPREHENSIVE CHECKOUT MODAL (ADDRESS, GPS & PAYMENT) ─── */}
-      {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsCheckoutOpen(false)} />
+      <AnimatePresence>
+        {isCheckoutOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setIsCheckoutOpen(false)}
+            />
 
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6 my-8">
-              
-              <button
-                onClick={() => setIsCheckoutOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative bg-white max-w-xl w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6 my-8"
               >
-                <X className="w-5 h-5" />
-              </button>
+                
+                <button
+                  onClick={() => setIsCheckoutOpen(false)}
+                  className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
 
               <div className="space-y-1">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
@@ -1985,7 +2319,7 @@ export default function SkylineApp() {
                       <div>
                         <span className="font-bold">{currentUser.name || 'Friend'}</span>
                         <span className="text-[10px] text-emerald-700 block font-mono">
-                          Verified via Mobile OTP (+91 {currentUser.phone || checkoutPhone}) ✓
+                          Verified via Mobile OTP (+91 {currentUser.phone || checkoutPhone})
                         </span>
                       </div>
                     </div>
@@ -2056,7 +2390,7 @@ export default function SkylineApp() {
                         10-Digit Mobile Number *
                       </label>
                       <span className="text-[9px] uppercase tracking-wider font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded">
-                        OTP Verified ✓
+                        OTP Verified
                       </span>
                     </div>
                     <div className="flex items-center border border-emerald-300 bg-stone-50 rounded-lg px-3 py-2">
@@ -2347,85 +2681,100 @@ export default function SkylineApp() {
                 </>
               )}
 
+              </motion.div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* ─── 11. CONFIRMED ORDER RECEIPT MODAL ────────────────────── */}
-      {confirmedOrder && !isUpiModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setConfirmedOrder(null)} />
+      <AnimatePresence>
+        {confirmedOrder && !isUpiModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setConfirmedOrder(null)}
+            />
 
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-md w-full rounded-2xl shadow-2xl border border-stone-200 p-8 text-center space-y-5">
-              
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-                  SKYLINE • WARDROBE DISPATCH READY
-                </span>
-                <h3 className="text-2xl font-black text-stone-950">
-                  Order Successfully Placed!
-                </h3>
-                <p className="text-xs text-stone-500">
-                  Thank you, {confirmedOrder.customer?.name || checkoutName}! Your order has been recorded in the Skyline smart backend.
-                </p>
-              </div>
-
-              {/* Order Receipt Details */}
-              <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-700 space-y-2 text-left font-mono border border-stone-200">
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Order ID:</span>
-                  <span className="font-bold text-black">{confirmedOrder.orderNumber || confirmedOrder.id}</span>
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative bg-white max-w-md w-full rounded-2xl shadow-2xl border border-stone-200 p-8 text-center space-y-5"
+              >
+                
+                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                  <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Payment Status:</span>
-                  <span className={`font-bold uppercase ${confirmedOrder.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                    {confirmedOrder.paymentStatus === 'paid' ? 'Verified Paid ✓' : 'Pay on Delivery (COD)'}
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+                    SKYLINE • WARDROBE DISPATCH READY
                   </span>
+                  <h3 className="text-2xl font-black text-stone-950">
+                    Order Successfully Placed!
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    Thank you, {confirmedOrder.customer?.name || checkoutName}! Your order has been recorded in the Skyline smart backend.
+                  </p>
                 </div>
-                {confirmedOrder.deliveryOtp && (
-                  <div className="flex justify-between bg-amber-100/70 p-2 rounded-lg text-amber-950 font-bold border border-amber-300">
-                    <span>Delivery Verification OTP:</span>
-                    <span className="text-sm tracking-widest">{confirmedOrder.deliveryOtp}</span>
+
+                {/* Order Receipt Details */}
+                <div className="bg-stone-50 rounded-xl p-4 text-xs text-stone-700 space-y-2 text-left font-mono border border-stone-200">
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Order ID:</span>
+                    <span className="font-bold text-black">{confirmedOrder.orderNumber || confirmedOrder.id}</span>
                   </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-stone-500">Grand Total:</span>
-                  <span className="font-bold text-black text-sm">₹ {confirmedOrder.total || grandTotal}.00</span>
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Payment Status:</span>
+                    <span className={`font-bold uppercase ${confirmedOrder.paymentStatus === 'paid' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {confirmedOrder.paymentStatus === 'paid' ? 'Verified Paid' : 'Pay on Delivery (COD)'}
+                    </span>
+                  </div>
+                  {confirmedOrder.deliveryOtp && (
+                    <div className="flex justify-between bg-amber-100/70 p-2 rounded-lg text-amber-950 font-bold border border-amber-300">
+                      <span>Delivery Verification OTP:</span>
+                      <span className="text-sm tracking-widest">{confirmedOrder.deliveryOtp}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Grand Total:</span>
+                    <span className="font-bold text-black text-sm">₹ {confirmedOrder.total || grandTotal}.00</span>
+                  </div>
+                  <div className="border-t border-stone-200 pt-2 text-[11px] text-stone-600">
+                    <span className="block text-stone-400 uppercase text-[9px]">Destination:</span>
+                    <span className="block truncate">{confirmedOrder.address || fullDeliveryAddress}</span>
+                  </div>
                 </div>
-                <div className="border-t border-stone-200 pt-2 text-[11px] text-stone-600">
-                  <span className="block text-stone-400 uppercase text-[9px]">Destination:</span>
-                  <span className="block truncate">{confirmedOrder.address || fullDeliveryAddress}</span>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-2">
+                  <a
+                    href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}%20for%20Rs%20${confirmedOrder.total || grandTotal}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline shadow-md"
+                  >
+                    Confirm on WhatsApp Concierge
+                  </a>
+                  <button
+                    onClick={() => setConfirmedOrder(null)}
+                    className="w-full border border-stone-200 text-stone-800 hover:bg-stone-100 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Continue Shopping
+                  </button>
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-2 pt-2">
-                <a
-                  href={`https://wa.me/917023963189?text=Hello%20Skyline,%20I%20just%20placed%20order%20${confirmedOrder.orderNumber || confirmedOrder.id}%20for%20Rs%20${confirmedOrder.total || grandTotal}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-xs font-semibold uppercase tracking-wider block no-underline shadow-md"
-                >
-                  Confirm on WhatsApp Concierge
-                </a>
-                <button
-                  onClick={() => setConfirmedOrder(null)}
-                  className="w-full border border-stone-200 text-stone-800 hover:bg-stone-100 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-
+              </motion.div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* ─── 12. REAL UPI PAYMENT MODAL (UNIFIED ENGINE) ──────────── */}
       {isUpiModalOpen && (
@@ -2444,298 +2793,341 @@ export default function SkylineApp() {
       )}
 
       {/* ─── 13. CHURUONE SSO ACCOUNT MODAL ───────────────────────── */}
-      {isAccountModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsAccountModalOpen(false)} />
+      <AnimatePresence>
+        {isAccountModalOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setIsAccountModalOpen(false)}
+            />
 
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-sm w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
-              
-              <button
-                onClick={() => setIsAccountModalOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative bg-white max-w-sm w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6"
               >
-                <X className="w-5 h-5" />
-              </button>
+                
+                <button
+                  onClick={() => setIsAccountModalOpen(false)}
+                  className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
 
-              <div className="text-center space-y-1">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                  CHURUONE UNIFIED SSO
-                </span>
-                <h3 className="text-xl font-bold text-stone-950">
-                  {currentUser ? 'Your Verified Profile' : 'ChuruOne Account'}
-                </h3>
-              </div>
+                <div className="text-center space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                    CHURUONE UNIFIED SSO
+                  </span>
+                  <h3 className="text-xl font-bold text-stone-950">
+                    {currentUser ? 'Your Verified Profile' : 'ChuruOne Account'}
+                  </h3>
+                </div>
 
-              {currentUser ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
-                    <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
-                      {(currentUser.name || 'U')[0]}
-                    </div>
-                    <div className="overflow-hidden">
-                      <span className="font-bold text-stone-950 text-xs block truncate">
-                        {currentUser.name || 'Friend'}
-                      </span>
-                      <span className="text-[11px] text-stone-500 block font-mono">
-                        {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isUserPhoneVerified ? (
-                    <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Phone & SSO Verified ✓ Ready for Orders</span>
-                    </div>
-                  ) : (
-                    <div className="bg-amber-50 border-2 border-amber-300 p-3 rounded-lg text-xs text-amber-950 space-y-2">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>Mobile Verification Mandatory</span>
+                {currentUser ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 bg-stone-50 rounded-xl p-3 border border-stone-100">
+                      <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold shrink-0">
+                        {(currentUser.name || 'U')[0]}
                       </div>
-                      <p className="text-[11px] text-amber-800 leading-normal">
-                        Skyline par order place karne ke liye mobile number OTP verify hona anivarya hai.
-                      </p>
+                      <div className="overflow-hidden">
+                        <span className="font-bold text-stone-950 text-xs block truncate">
+                          {currentUser.name || 'Friend'}
+                        </span>
+                        <span className="text-[11px] text-stone-500 block font-mono">
+                          {currentUser.phone ? `+91 ${currentUser.phone}` : 'No phone linked'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isUserPhoneVerified ? (
+                      <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-xs text-emerald-800 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Phone & SSO Verified • Ready for Orders</span>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 border-2 border-amber-300 p-3 rounded-lg text-xs text-amber-950 space-y-2">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Mobile Verification Mandatory</span>
+                        </div>
+                        <p className="text-[11px] text-amber-800 leading-normal">
+                          Skyline par order place karne ke liye mobile number OTP verify hona anivarya hai.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAccountModalOpen(false);
+                            navigateToChuruOneAuth('login');
+                          }}
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                        >
+                          Verify Mobile OTP Now →
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="space-y-2 pt-2">
                       <button
                         type="button"
                         onClick={() => {
                           setIsAccountModalOpen(false);
                           navigateToChuruOneAuth('login');
                         }}
-                        className="w-full bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                        className="w-full bg-black hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
                       >
-                        Verify Mobile OTP Now →
+                        Switch Account via ChuruOne
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
+                      >
+                        Sign Out
                       </button>
                     </div>
-                  )}
-
-                  <div className="space-y-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAccountModalOpen(false);
-                        navigateToChuruOneAuth('login');
-                      }}
-                      className="w-full bg-black hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
-                    >
-                      Switch Account via ChuruOne
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="w-full border border-stone-300 text-stone-700 hover:bg-stone-100 py-2 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
-                    >
-                      Sign Out
-                    </button>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4 text-center">
-                  <p className="text-xs text-stone-600 leading-relaxed font-light">
-                    You are not currently signed in. Create a new account or sign in using ChuruOne single sign-on to access saved addresses and synchronized orders.
-                  </p>
-                  <div className="space-y-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAccountModalOpen(false);
-                        navigateToChuruOneAuth('signup');
-                      }}
-                      className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md flex items-center justify-center gap-1.5"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Create Account (Sign Up)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAccountModalOpen(false);
-                        navigateToChuruOneAuth('login');
-                      }}
-                      className="w-full border border-stone-300 hover:border-black text-stone-800 py-2.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer"
-                    >
-                      Sign In to Existing Account
-                    </button>
+                ) : (
+                  <div className="space-y-4 text-center">
+                    <p className="text-xs text-stone-600 leading-relaxed font-light">
+                      You are not currently signed in. Create a new account or sign in using ChuruOne single sign-on to access saved addresses and synchronized orders.
+                    </p>
+                    <div className="space-y-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAccountModalOpen(false);
+                          navigateToChuruOneAuth('signup');
+                        }}
+                        className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Create Account (Sign Up)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAccountModalOpen(false);
+                          navigateToChuruOneAuth('login');
+                        }}
+                        className="w-full border border-stone-300 hover:border-black text-stone-800 py-2.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer"
+                      >
+                        Sign In to Existing Account
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
+              </motion.div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* ─── 14. ORDER TRACKER MODAL ──────────────────────────────── */}
-      {isTrackerOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsTrackerOpen(false)} />
+      <AnimatePresence>
+        {isTrackerOpen && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setIsTrackerOpen(false)}
+            />
 
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6">
-              
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="relative bg-white max-w-lg w-full rounded-2xl shadow-2xl border border-stone-200 p-6 sm:p-8 space-y-6"
+              >
+                
+                <button
+                  onClick={() => setIsTrackerOpen(false)}
+                  className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
+                    SKYLINE • REAL-TIME DISPATCH
+                  </span>
+                  <h3 className="text-xl font-bold text-stone-950">
+                    Track Your Orders
+                  </h3>
+                </div>
+
+                <form onSubmit={handleTrackOrders} className="flex gap-2">
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={trackPhoneInput}
+                    onChange={(e) => setTrackPhoneInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 10-digit mobile number"
+                    className="flex-1 border border-stone-200 focus:border-black rounded-xl px-3 py-2 text-xs outline-none font-mono"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={trackingLoading}
+                    className="bg-black hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
+                  >
+                    {trackingLoading ? 'Searching...' : 'Track'}
+                  </button>
+                </form>
+
+                {trackedOrders.length > 0 && (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {trackedOrders.map((ord) => (
+                      <div key={ord.id} className="bg-stone-50 rounded-xl p-3 border border-stone-100 text-xs space-y-1">
+                        <div className="flex justify-between font-bold text-stone-900">
+                          <span>Order #{ord.orderNumber || ord.id}</span>
+                          <span className="uppercase text-amber-600">{ord.status || 'Confirmed'}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-500 font-mono text-[11px]">
+                          <span>Total: ₹ {ord.total}.00</span>
+                          <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Recent'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── WRITE A REVIEW MODAL ─────────────────────────────────── */}
+      <AnimatePresence>
+        {showReviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60"
+              onClick={() => setShowReviewModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-stone-100 z-10"
+            >
               <button
-                onClick={() => setIsTrackerOpen(false)}
-                className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 cursor-pointer"
+                onClick={() => setShowReviewModal(false)}
+                className="absolute right-5 top-5 text-stone-400 hover:text-black p-1.5 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="space-y-1">
+              <div className="space-y-1 mb-6">
                 <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                  SKYLINE • REAL-TIME DISPATCH
+                  SKYLINE • COMMUNITY FEEDBACK
                 </span>
                 <h3 className="text-xl font-bold text-stone-950">
-                  Track Your Orders
+                  Write a Review
                 </h3>
+                <p className="text-xs text-stone-500 font-light">
+                  Share your experience with Skyline Outfits & tailored clothing craftsmanship.
+                </p>
               </div>
 
-              <form onSubmit={handleTrackOrders} className="flex gap-2">
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={trackPhoneInput}
-                  onChange={(e) => setTrackPhoneInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 10-digit mobile number"
-                  className="flex-1 border border-stone-200 focus:border-black rounded-xl px-3 py-2 text-xs outline-none font-mono"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={trackingLoading}
-                  className="bg-black hover:bg-stone-800 text-white px-5 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
-                >
-                  {trackingLoading ? 'Searching...' : 'Track'}
-                </button>
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                {/* Star Rating Picker */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-2">
+                    Your Rating
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewReviewRating(star)}
+                        className="p-1 cursor-pointer transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`w-6 h-6 ${
+                            star <= newReviewRating
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-stone-300'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs font-bold text-stone-700 ml-2">
+                      {newReviewRating} / 5 Stars
+                    </span>
+                  </div>
+                </div>
+
+                {/* Customer Name */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newReviewName}
+                    onChange={(e) => setNewReviewName(e.target.value)}
+                    placeholder="e.g. Rahul Sharma"
+                    className="w-full border border-stone-200 focus:border-black rounded-xl px-3.5 py-2.5 text-xs outline-none transition-colors"
+                    required
+                  />
+                </div>
+
+                {/* Review Comment */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
+                    Your Review / Experience
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={newReviewComment}
+                    onChange={(e) => setNewReviewComment(e.target.value)}
+                    placeholder="Tell us what you liked about the material, comfort, or delivery..."
+                    className="w-full border border-stone-200 focus:border-black rounded-xl p-3 text-xs outline-none transition-colors resize-none"
+                    required
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="flex-1 border border-stone-200 hover:bg-stone-50 text-stone-700 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={newReviewSubmitting}
+                    className="flex-1 bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span>{newReviewSubmitting ? 'Posting...' : 'Submit Review'}</span>
+                  </button>
+                </div>
               </form>
-
-              {trackedOrders.length > 0 && (
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                  {trackedOrders.map((ord) => (
-                    <div key={ord.id} className="bg-stone-50 rounded-xl p-3 border border-stone-100 text-xs space-y-1">
-                      <div className="flex justify-between font-bold text-stone-900">
-                        <span>Order #{ord.orderNumber || ord.id}</span>
-                        <span className="uppercase text-amber-600">{ord.status || 'Confirmed'}</span>
-                      </div>
-                      <div className="flex justify-between text-stone-500 font-mono text-[11px]">
-                        <span>Total: ₹ {ord.total}.00</span>
-                        <span>{ord.createdAt ? new Date(ord.createdAt).toLocaleDateString() : 'Recent'}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      {/* ─── WRITE A REVIEW MODAL ─────────────────────────────────── */}
-      {showReviewModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-stone-100 animate-in fade-in zoom-in duration-200">
-            <button
-              onClick={() => setShowReviewModal(false)}
-              className="absolute right-5 top-5 text-stone-400 hover:text-black p-1.5 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="space-y-1 mb-6">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400">
-                SKYLINE • COMMUNITY FEEDBACK
-              </span>
-              <h3 className="text-xl font-bold text-stone-950">
-                Write a Review
-              </h3>
-              <p className="text-xs text-stone-500 font-light">
-                Share your experience with Skyline Outfits & tailored clothing craftsmanship.
-              </p>
-            </div>
-
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              {/* Star Rating Picker */}
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-2">
-                  Your Rating
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setNewReviewRating(star)}
-                      className="p-1 cursor-pointer transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={`w-6 h-6 ${
-                          star <= newReviewRating
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'text-stone-300'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-xs font-bold text-stone-700 ml-2">
-                    {newReviewRating} / 5 Stars
-                  </span>
-                </div>
-              </div>
-
-              {/* Customer Name */}
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
-                  Your Name
-                </label>
-                <input
-                  type="text"
-                  value={newReviewName}
-                  onChange={(e) => setNewReviewName(e.target.value)}
-                  placeholder="e.g. Rahul Sharma"
-                  className="w-full border border-stone-200 focus:border-black rounded-xl px-3.5 py-2.5 text-xs outline-none transition-colors"
-                  required
-                />
-              </div>
-
-              {/* Review Comment */}
-              <div>
-                <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
-                  Your Review / Experience
-                </label>
-                <textarea
-                  rows={4}
-                  value={newReviewComment}
-                  onChange={(e) => setNewReviewComment(e.target.value)}
-                  placeholder="Tell us what you liked about the material, comfort, or delivery..."
-                  className="w-full border border-stone-200 focus:border-black rounded-xl p-3 text-xs outline-none transition-colors resize-none"
-                  required
-                />
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-2 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowReviewModal(false)}
-                  className="flex-1 border border-stone-200 hover:bg-stone-50 text-stone-700 py-3 rounded-xl text-xs uppercase tracking-wider font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={newReviewSubmitting}
-                  className="flex-1 bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{newReviewSubmitting ? 'Posting...' : 'Submit Review'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Instagram-style Bottom Navigation Bar */}
       <BottomNavBar />
