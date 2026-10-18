@@ -16,6 +16,7 @@ import {
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
+import BottomNavBar from "../../components/BottomNavBar";
 import { smartFetch } from "./smartServerClient";
 import { 
   getChuruOneSession, 
@@ -2546,17 +2547,14 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         </div>
       </footer>
 
-      {/* Floating Sticky Mobile CTA */}
-      <div style={S.stickyCta} className="nash-sticky-cta">
-        <button style={S.stickyCall} onClick={() => window.location.href=`tel:${(settings.shopWhatsapp||"917023963189").replace(/[^0-9]/g,"")}`}>Call Salon</button>
-        <button style={S.stickyBook} onClick={scrollToBook} className="nash-cta-btn">Book Appointment</button>
-      </div>
+      {/* ChuruOne Unified Bottom Navigation Bar */}
+      <BottomNavBar />
 
       {/* Floating System Toast */}
       {toast && (
         <div style={{
           position: "fixed",
-          bottom: 24,
+          bottom: 80,
           left: "50%",
           transform: "translateX(-50%)",
           background: toast.type === "error" ? "#dc2626" : "#1a1714",
