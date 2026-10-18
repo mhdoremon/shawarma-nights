@@ -495,6 +495,18 @@ export const MasterProvider = ({ children }) => {
               break;
             }
 
+            case 'REVIEW_ADDED': {
+              const newRev = payload.review || payload;
+              setReviews(prev => [newRev, ...prev.filter(r => r.id !== newRev.id)]);
+              break;
+            }
+
+            case 'REVIEW_DELETED': {
+              const delId = payload.reviewId || payload.id || payload;
+              setReviews(prev => prev.filter(r => r.id !== delId));
+              break;
+            }
+
             case 'SEND_SMS':
             case 'SMS_SENT_CONFIRMATION':
             case 'PAYMENT_SMS_RECEIVED': {
@@ -812,6 +824,19 @@ export const MasterProvider = ({ children }) => {
     showToast('Promo deal removed', 'info');
   };
 
+  // 5.1 REVIEW ACTIONS
+  const deleteReview = async (reviewId) => {
+    playClickSound();
+    setReviews(prev => prev.filter(r => r.id !== reviewId));
+
+    sendWs({ action: 'DELETE_REVIEW', reviewId, id: reviewId });
+
+    await apiFetch(`/api/reviews/${reviewId}`, {
+      method: 'DELETE'
+    }).catch(err => console.warn('Delete review error:', err));
+    showToast('Review deleted successfully', 'info');
+  };
+
   // 6. FRANCHISE ACTIONS
   const updateFranchiseConfig = async (configUpdates) => {
     playClickSound();
@@ -999,6 +1024,7 @@ export const MasterProvider = ({ children }) => {
       updateDeal,
       toggleDealActive,
       deleteDeal,
+      deleteReview,
       updateFranchiseConfig,
       updateFranchiseInquiryStatus,
       updateStoreSettings,

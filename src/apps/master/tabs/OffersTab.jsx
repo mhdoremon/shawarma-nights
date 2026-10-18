@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Tag, Trash2, X, Percent, Check, IndianRupee, Truck, Sparkles, Edit2 } from 'lucide-react';
+import { Plus, Tag, Trash2, X, Percent, Check, IndianRupee, Truck, Sparkles, Edit2, Video, Upload, Play } from 'lucide-react';
 import { getImageUrl } from '../../../utils/imageHelper';
 
 export default function OffersTab() {
@@ -17,6 +17,7 @@ export default function OffersTab() {
 
   // Hero Offer Editor state
   const [heroOffer, setHeroOffer] = useState({
+    studioName: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
     featuredItemId: heroBanner?.featuredItemId || (menu?.[0]?.id || ''),
     priceText: heroBanner?.priceText || 'Starts from',
     priceValue: heroBanner?.priceValue || (isSalon ? '500' : '179'),
@@ -24,10 +25,62 @@ export default function OffersTab() {
     titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : 'REAL'),
     titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : 'CHARCOAL'),
     titleHighlight: heroBanner?.titleHighlight || (isSalon ? 'NASH STUDIO' : 'SHAWARMA'),
-    subtitle: heroBanner?.subtitle || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
+    subtitle: heroBanner?.subtitle || storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
     heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || '/video/hero.mp4',
     heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || 'EXPLORE STYLES & BOOK'
   });
+
+  useEffect(() => {
+    if (storeInfo || heroBanner) {
+      setHeroOffer(prev => ({
+        ...prev,
+        studioName: storeInfo?.name || storeInfo?.studioName || prev.studioName,
+        subtitle: heroBanner?.subtitle || storeInfo?.tagline || prev.subtitle,
+        heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || prev.heroVideoUrl,
+        heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || prev.heroButtonText,
+        titleHighlight: heroBanner?.titleHighlight || storeInfo?.name || prev.titleHighlight
+      }));
+    }
+  }, [storeInfo, heroBanner]);
+
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsVideoUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        const res = await fetch(`https://churuone-backend.onrender.com/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-store-id': storeId
+          },
+          body: JSON.stringify({
+            image: base64Data,
+            filename: file.name
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          setHeroOffer(prev => ({ ...prev, heroVideoUrl: data.url }));
+          showToast('Hero background video uploaded successfully!', 'success');
+        } else {
+          setHeroOffer(prev => ({ ...prev, heroVideoUrl: base64Data }));
+          showToast('Video loaded from device', 'info');
+        }
+      } catch (err) {
+        setHeroOffer(prev => ({ ...prev, heroVideoUrl: base64Data }));
+        showToast('Video loaded from device', 'info');
+      } finally {
+        setIsVideoUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Handle Save Free Delivery Limit
   const handleSaveFreeDelivery = async (e) => {
@@ -83,7 +136,7 @@ export default function OffersTab() {
       badgeText: heroOffer.badgeText,
       titleLine1: heroOffer.titleLine1,
       titleLine2: heroOffer.titleLine2,
-      titleHighlight: heroOffer.titleHighlight,
+      titleHighlight: heroOffer.studioName || heroOffer.titleHighlight,
       subtitle: heroOffer.subtitle,
       heroVideoUrl: heroOffer.heroVideoUrl,
       heroButtonText: heroOffer.heroButtonText
@@ -91,14 +144,18 @@ export default function OffersTab() {
 
     await updateHeroBanner(bannerPayload);
     if (isSalon) {
+      const sName = (heroOffer.studioName || heroOffer.titleHighlight || 'Nash Studio').trim();
       await updateStoreSettings({
+        name: sName,
+        studioName: sName,
+        storeName: sName,
+        tagline: heroOffer.subtitle,
         heroTagline: heroOffer.subtitle,
         heroButtonText: heroOffer.heroButtonText,
-        heroVideoUrl: heroOffer.heroVideoUrl,
-        studioName: heroOffer.titleHighlight || storeInfo?.name || 'Nash Studio'
+        heroVideoUrl: heroOffer.heroVideoUrl
       });
     }
-    showToast('Homepage Hero Offer & Banner Updated!', 'success');
+    showToast(isSalon ? 'Salon Video Hero Banner & Studio Branding Updated!' : 'Homepage Hero Offer & Banner Updated!', 'success');
   };
 
   // Currently selected dish in Hero Offer editor
@@ -155,6 +212,145 @@ export default function OffersTab() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* 0.1 SALON TOP VIDEO HERO BANNER & STUDIO BRANDING (Rendered first for Salon) */}
+      {isSalon && (
+        <form onSubmit={handleSaveHeroOffer} className="bg-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl border-0">
+          <div className="border-b border-zinc-100 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                <h3 className="text-lg font-black text-zinc-900">TOP VIDEO HERO BANNER & STUDIO BRANDING</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
+                Website ke top front par play hone wali background video, studio ka naam aur tagline yahan se live update karein.
+              </p>
+            </div>
+            <button
+              type="submit"
+              className="px-6 py-3 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl cursor-pointer border-0 active:scale-98 transition-all shrink-0"
+            >
+              SAVE HERO BANNER
+            </button>
+          </div>
+
+          {/* Live Video Preview Box */}
+          <div className="bg-black rounded-2xl overflow-hidden relative aspect-video max-h-56 w-full flex items-center justify-center shadow-lg border border-zinc-800">
+            <video
+              key={heroOffer.heroVideoUrl}
+              src={heroOffer.heroVideoUrl || "/video/hero.mp4"}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-80"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+            <div className="absolute bottom-4 left-4 right-4 z-10 text-white">
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500 text-black inline-block mb-1">
+                LIVE VIDEO PREVIEW
+              </span>
+              <h4 className="text-lg font-black tracking-wider uppercase font-serif">
+                {heroOffer.studioName || "Nash Studio"}
+              </h4>
+              <p className="text-xs text-zinc-300 font-medium tracking-wide">
+                {heroOffer.subtitle || "PRECISION GROOMING. BINA INTEZAAR KE."}
+              </p>
+            </div>
+          </div>
+
+          {/* Studio Name & CTA Button Text */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                STUDIO / DUKAN NAME (वेबसाइट का मुख्य नाम)
+              </label>
+              <input
+                type="text"
+                value={heroOffer.studioName}
+                onChange={(e) => setHeroOffer({ ...heroOffer, studioName: e.target.value, titleHighlight: e.target.value })}
+                placeholder="e.g. Nash Studio"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-black focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+                CTA BUTTON TEXT (बुकिंग बटन का टेक्स्ट)
+              </label>
+              <input
+                type="text"
+                value={heroOffer.heroButtonText || ''}
+                onChange={(e) => setHeroOffer({ ...heroOffer, heroButtonText: e.target.value })}
+                placeholder="EXPLORE STYLES & BOOK"
+                className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-3 text-sm text-zinc-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0"
+              />
+            </div>
+          </div>
+
+          {/* Subtitle / Tagline */}
+          <div>
+            <label className="block text-[11px] font-black text-zinc-700 uppercase tracking-wider mb-1">
+              HERO SUBTITLE / SLOGAN (टैगलाइन)
+            </label>
+            <textarea
+              rows={2}
+              value={heroOffer.subtitle}
+              onChange={(e) => setHeroOffer({ ...heroOffer, subtitle: e.target.value })}
+              placeholder="e.g. PRECISION GROOMING. BINA INTEZAAR KE."
+              className="w-full bg-[#FFFBF7] rounded-2xl px-4 py-2.5 text-sm text-zinc-900 focus:bg-white focus:ring-2 focus:ring-[#DC2626] focus:outline-none transition-all shadow-xs border-0 resize-none font-medium"
+            />
+          </div>
+
+          {/* Background Video URL & Upload */}
+          <div className="bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl space-y-3 border border-zinc-200/60 shadow-2xs">
+            <label className="block text-[11px] font-black text-zinc-800 uppercase tracking-wider flex items-center gap-2">
+              <Video className="w-4 h-4 text-[#DC2626]" />
+              <span>BACKGROUND VIDEO URL YA UPLOAD (बैकग्राउंड वीडियो)</span>
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+              <input
+                type="text"
+                value={heroOffer.heroVideoUrl || ''}
+                onChange={(e) => setHeroOffer({ ...heroOffer, heroVideoUrl: e.target.value })}
+                placeholder="/video/hero.mp4 ya https://..."
+                className="flex-1 bg-white rounded-xl px-4 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs font-mono"
+              />
+              <label className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-black text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0">
+                <Upload className="w-3.5 h-3.5" />
+                <span>{isVideoUploading ? 'Uploading...' : 'Upload Video File'}</span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoUpload}
+                  disabled={isVideoUploading}
+                  className="hidden"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setHeroOffer({ ...heroOffer, heroVideoUrl: '/video/hero.mp4' })}
+                className="px-3.5 py-2.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold border-0 cursor-pointer shrink-0"
+              >
+                Reset Default Video
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Yahan se koi bhi MP4 video upload karein ya direct URL paste karein. Website reload par yehi video loop me background me chalegi.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl cursor-pointer border-0 active:scale-98 transition-all"
+          >
+            SAVE & PUBLISH VIDEO BANNER & BRANDING
+          </button>
+        </form>
       )}
 
       {/* 1. PROMO CODES & DEALS SECTION */}
@@ -326,8 +522,9 @@ export default function OffersTab() {
         )}
       </div>
 
-      {/* 2. HOMEPAGE HERO BANNER & OFFER LIVE EDITOR (Exact match to Android App) */}
-      <form onSubmit={handleSaveHeroOffer} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
+      {/* 2. HOMEPAGE HERO BANNER & OFFER LIVE EDITOR (Restaurant food dish offer) */}
+      {!isSalon && (
+        <form onSubmit={handleSaveHeroOffer} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
         <div className="border-b border-zinc-100 pb-4">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
@@ -548,9 +745,10 @@ export default function OffersTab() {
           type="submit"
           className="w-full py-3.5 rounded-full bg-[#DC2626] hover:bg-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl cursor-pointer border-0 active:scale-98 transition-all"
         >
-          {isSalon ? 'SAVE & PUBLISH VIDEO HERO & SLOGAN' : 'SAVE & PUBLISH HOMEPAGE HERO OFFER'}
+          SAVE & PUBLISH HOMEPAGE HERO OFFER
         </button>
       </form>
+      )}
 
       {/* MODAL: ADD / EDIT PROMO DEAL */}
       {dealModalData && (

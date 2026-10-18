@@ -136,7 +136,7 @@ export default function SettingsTab() {
     thu: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
     fri: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
     sat: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    sun: { isOpen: false, open: '11:00 AM', close: '11:00 PM' }
+    sun: { isOpen: true, open: '11:00 AM', close: '11:00 PM' }
   };
 
   const [weeklySchedule, setWeeklySchedule] = useState(() => {
@@ -172,23 +172,25 @@ export default function SettingsTab() {
     name: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
     tagline: storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
     heroVideoUrl: storeInfo?.heroVideoUrl || '/video/hero.mp4',
-    timing: storeInfo?.timing || (isSalon ? 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed' : 'Open Daily: 12:00 PM – 04:00 AM'),
-    openTillText: storeInfo?.openTillText || 'OPEN TILL 4:00 AM',
+    timing: storeInfo?.timing || (isSalon ? 'Open All 7 Days: 11:00 AM – 11:00 PM' : 'Open Daily: 12:00 PM – 04:00 AM'),
+    openTillText: storeInfo?.openTillText || 'OPEN TILL 11:00 PM',
     address: storeInfo?.address || (isSalon ? 'Shop 12, Main Boulevard, Gulberg' : 'Near Railway Station, Churu, Rajasthan'),
     locationNote: storeInfo?.locationNote || 'Central hub kitchen with 30-45 min local delivery',
     deliveryNote: storeInfo?.deliveryNote || 'Fast delivery in 25-30 minutes across Churu city',
     halalBadgeText: storeInfo?.halalBadgeText || '',
     aboutText: storeInfo?.aboutText || (isSalon ? 'Bespoke haircuts, luxury skin fades, hot towel razor shaves, and executive beard grooming.' : 'Authentic Charcoal Shawarma grilled live with authentic Arabian Toum garlic sauce.'),
-    ownerName: storeInfo?.ownerName || (isSalon ? 'Nash & Team' : 'Furkan & Team'),
+    ownerEyebrow: storeInfo?.ownerEyebrow || (isSalon ? 'THE MASTER CRAFTSMAN' : 'THE ARTISAN CHEF'),
+    ownerHeadline: storeInfo?.ownerHeadline || (isSalon ? 'Artistry in Every Cut, Precision in Every Fade.' : 'Crafting Traditional Charcoal Shawarma with Passion.'),
+    ownerName: storeInfo?.ownerName || (isSalon ? 'Naushad Ali' : 'Furkan & Team'),
     ownerRole: storeInfo?.ownerRole || (isSalon ? 'Master Stylist & Founder' : 'Founder & Head Chef'),
-    ownerBio: storeInfo?.ownerBio || (isSalon ? '15+ years of craft grooming experience with precision fades and classic razor styling.' : 'Dedicated to authentic slow-roasted charcoal shawarma, hand-carved rolls, and fresh garlic toum made daily in Churu.'),
-    foundedYear: storeInfo?.foundedYear || '2024',
+    ownerBio: storeInfo?.ownerBio || (isSalon ? 'Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form.' : 'Dedicated to authentic slow-roasted charcoal shawarma, hand-carved rolls, and fresh garlic toum made daily in Churu.'),
+    foundedYear: storeInfo?.foundedYear || '2018',
     upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
     payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
     codEnabled: paymentObj.codEnabled !== false,
     onlineEnabled: paymentObj.onlineEnabled !== false,
-    whatsapp: socialsObj.whatsapp || (isSalon ? '923001234567' : '7023963189'),
-    instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio' : 'https://instagram.com/shawarmanights_churu'),
+    whatsapp: socialsObj.whatsapp || (isSalon ? '917023963189' : '7023963189'),
+    instagram: socialsObj.instagram || (isSalon ? 'https://instagram.com/nashstudio_churu' : 'https://instagram.com/shawarmanights_churu'),
     facebook: socialsObj.facebook || '',
     twitter: socialsObj.twitter || '',
     youtube: socialsObj.youtube || '',
@@ -266,6 +268,8 @@ export default function SettingsTab() {
         deliveryNote: storeInfo.deliveryNote || prev.deliveryNote,
         halalBadgeText: storeInfo.halalBadgeText || prev.halalBadgeText,
         aboutText: storeInfo.aboutText || prev.aboutText,
+        ownerEyebrow: storeInfo.ownerEyebrow || prev.ownerEyebrow,
+        ownerHeadline: storeInfo.ownerHeadline || prev.ownerHeadline,
         ownerName: storeInfo.ownerName || prev.ownerName,
         ownerRole: storeInfo.ownerRole || prev.ownerRole,
         ownerBio: storeInfo.ownerBio || prev.ownerBio,
@@ -393,7 +397,10 @@ export default function SettingsTab() {
 
     const payload = {
       name: operationalForm.name,
+      studioName: operationalForm.name,
+      storeName: operationalForm.name,
       tagline: operationalForm.tagline,
+      heroTagline: operationalForm.tagline,
       heroVideoUrl: operationalForm.heroVideoUrl,
       weeklySchedule: weeklySchedule,
       timing: operationalForm.timing || autoTiming,
@@ -401,6 +408,8 @@ export default function SettingsTab() {
       address: operationalForm.address,
       locationNote: operationalForm.locationNote,
       aboutText: operationalForm.aboutText,
+      ownerEyebrow: operationalForm.ownerEyebrow,
+      ownerHeadline: operationalForm.ownerHeadline,
       ownerName: operationalForm.ownerName,
       ownerRole: operationalForm.ownerRole,
       ownerBio: operationalForm.ownerBio,
@@ -1067,6 +1076,34 @@ export default function SettingsTab() {
           <p className="text-[11px] text-zinc-500">
             Aapki dukan ke About section me malik/founder ki jankari aur craftsmanship story yahan se display hogi.
           </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                Section Eyebrow Subtitle (जैसे: THE MASTER CRAFTSMAN)
+              </label>
+              <input
+                type="text"
+                value={operationalForm.ownerEyebrow || ''}
+                onChange={(e) => setOperationalForm({ ...operationalForm, ownerEyebrow: e.target.value })}
+                placeholder={isSalon ? "THE MASTER CRAFTSMAN" : "THE ARTISAN CHEF"}
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 font-bold focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                Founder Headline (जैसे: Artistry in Every Cut, Precision in Every Fade.)
+              </label>
+              <input
+                type="text"
+                value={operationalForm.ownerHeadline || ''}
+                onChange={(e) => setOperationalForm({ ...operationalForm, ownerHeadline: e.target.value })}
+                placeholder={isSalon ? "Artistry in Every Cut, Precision in Every Fade." : "Crafting Traditional Charcoal Shawarma with Passion."}
+                className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 font-bold focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs"
+              />
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>

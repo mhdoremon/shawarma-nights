@@ -16,7 +16,6 @@ import {
 } from "./firebase";
 import FeedbackModal from "./FeedbackModal";
 import LegalPoliciesModal from "../../components/LegalPoliciesModal";
-import BottomNavBar from "../../components/BottomNavBar";
 import { smartFetch } from "./smartServerClient";
 import { 
   getChuruOneSession, 
@@ -67,7 +66,7 @@ const ROW_STEP   = 30;
 const DEFAULT_SETTINGS = {
   studioName: "Nash Studio",
   heroTagline: "PRECISION GROOMING. BINA INTEZAAR KE.",
-  heroButtonText: "",
+  heroButtonText: "EXPLORE STYLES & BOOK",
   heroVideoUrl: "/video/hero.mp4",
   showHeroBanner: false,
   showOfferCards: true,
@@ -77,7 +76,9 @@ const DEFAULT_SETTINGS = {
   phoneDisplay: "+91 70239 63189",
   address: "Main Market, Churu, Rajasthan, PIN - 331001",
   monSatHours: "11:00 AM to 11:00 PM",
-  sundayHours: "Closed",
+  sundayHours: "11:00 AM to 11:00 PM",
+  ownerEyebrow: "THE MASTER CRAFTSMAN",
+  ownerHeadline: "Artistry in Every Cut, Precision in Every Fade.",
   weeklySchedule: {
     mon: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
     tue: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
@@ -85,7 +86,7 @@ const DEFAULT_SETTINGS = {
     thu: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
     fri: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
     sat: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
-    sun: { isOpen: false, open: "11:00 AM", close: "11:00 PM" }
+    sun: { isOpen: true, open: "11:00 AM", close: "11:00 PM" }
   },
   bookingFee: 50,
   upiId: "nashstudio@upi",
@@ -384,14 +385,14 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
   const [cashfreePaid, setCashfreePaid] = useState(false);
   const [cashfreeTxnId, setCashfreeTxnId] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [theme] = useState("dark");
+  const [theme] = useState("light");
   const [expandedStories, setExpandedStories] = useState(false);
   const bookRef = useRef(null);
 
   useEffect(() => {
     document.title = "Nash Studio | Men's Grooming Lounge";
-    document.body.setAttribute("data-theme", "dark");
-    localStorage.setItem("nash_theme", "dark");
+    document.body.setAttribute("data-theme", "light");
+    localStorage.setItem("nash_theme", "light");
   }, []);
 
   // Review states
@@ -765,43 +766,69 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
       
       {/* ─── High-Fashion Sticky Navigation Bar ────────────────── */}
       <nav style={S.navStickyHeader}>
-          {/* Centered Brand Mark */}
-          <div style={S.navBrandText} onClick={() => window.scrollTo({top:0, behavior:"smooth"})}>
-            <span>{settings.studioName || "NASH STUDIO"}</span>
+        <div style={{
+          maxWidth: 1180,
+          margin: "0 auto",
+          padding: "0 20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          height: 64,
+          position: "relative"
+        }}>
+          {/* Left Corner: Clean Book Appointment Button */}
+          <button 
+            onClick={scrollToBook} 
+            style={S.navBookBtn}
+            title="Reserve Appointment"
+          >
+            <Scissors size={14} strokeWidth={2.2} />
+            <span>BOOK</span>
+          </button>
+
+          {/* Dead Center: Studio Brand Title */}
+          <div 
+            style={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+              fontFamily: "var(--display)",
+              fontSize: "clamp(16px, 2.5vw, 20px)",
+              fontWeight: 900,
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              color: "var(--paper)",
+              whiteSpace: "nowrap",
+              userSelect: "none"
+            }} 
+            onClick={() => window.scrollTo({top:0, behavior:"smooth"})}
+          >
+            <span>{settings.studioName || settings.name || "NASH STUDIO"}</span>
           </div>
 
-          {/* Right Actions: Clean Book Button & Dukan Button */}
-          <div style={{display:"flex", alignItems:"center", gap:10}}>
-            <button 
-              onClick={scrollToBook} 
-              style={S.navBookBtn}
-              title="Reserve Appointment"
-            >
-              <Scissors size={14} strokeWidth={2.2} />
-              <span>BOOK</span>
-            </button>
-
-            <a 
-              href="/master?storeId=nash-studio"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                background: "rgba(255,255,255,0.08)",
-                color: "#d4af37",
-                padding: "8px 14px",
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 800,
-                textDecoration: "none",
-                border: "1px solid rgba(212,175,55,0.35)",
-                transition: "all 0.2s"
-              }}
-              title="Salon Dukandar Portal"
-            >
-              <span>🏪 DUKAN</span>
-            </a>
-          </div>
+          {/* Right Corner: Dukandar Portal Button */}
+          <a 
+            href="/master?storeId=nash-studio"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(212,175,55,0.12)",
+              color: "#b48c1e",
+              padding: "8px 16px",
+              borderRadius: 20,
+              fontSize: 11,
+              fontWeight: 800,
+              textDecoration: "none",
+              border: "1px solid rgba(212,175,55,0.4)",
+              transition: "all 0.2s"
+            }}
+            title="Salon Dukandar Portal"
+          >
+            <span>🏪 DUKAN</span>
+          </a>
+        </div>
       </nav>
 
       {/* ─── Video Hero Section (Strictly Preserving Video Player) ─── */}
@@ -830,16 +857,16 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         {/* Hero Content Stack */}
         <div style={S.heroContent}>
           <h1 style={S.heroStudioTitle}>
-            {settings.studioName || "Nash Studio"}
+            {settings.studioName || settings.name || "Nash Studio"}
           </h1>
 
           <p style={S.heroTaglineText}>
-            {settings.heroTagline || "PRECISION GROOMING. ZERO WAIT TIME."}
+            {settings.heroTagline || settings.tagline || "PRECISION GROOMING. ZERO WAIT TIME."}
           </p>
 
           <div style={{ ...S.heroActionRow, marginTop: 52 }}>
             <button onClick={scrollToBook} style={S.heroPrimaryBtn}>
-              <span>EXPLORE STYLES & BOOK</span>
+              <span>{settings.heroButtonText || "EXPLORE STYLES & BOOK"}</span>
               <ArrowUpRight size={15} strokeWidth={2} />
             </button>
           </div>
@@ -1809,9 +1836,9 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
 
               {/* Right Column: Founder Story & Craftsmanship Philosophy */}
               <div style={{display:"flex", flexDirection:"column", gap:16}}>
-                <span style={S.eyebrow}>THE MASTER CRAFTSMAN</span>
+                <span style={S.eyebrow}>{settings.ownerEyebrow || "THE MASTER CRAFTSMAN"}</span>
                 <h2 style={{fontFamily:"var(--display)", fontSize:"clamp(28px, 4vw, 42px)", fontWeight:900, color:"var(--paper)", margin:0, textTransform:"uppercase", lineHeight:1.15}}>
-                  Artistry in Every Cut, Precision in Every Fade.
+                  {settings.ownerHeadline || "Artistry in Every Cut, Precision in Every Fade."}
                 </h2>
                 <p style={{fontSize:15, color:"var(--muted)", lineHeight:1.8, margin:0, fontWeight:300}}>
                   {settings.ownerBio || "Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form."}
@@ -1866,9 +1893,9 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
                         ))}
                       </div>
                     </div>
-                    {r.comment && (
-                      <p style={{fontFamily:"var(--body)",fontSize:13,color:"var(--muted)",lineHeight:1.6,margin:0,fontWeight:300}}>"{r.comment}"</p>
-                    )}
+                    {r.comment && r.comment.trim() ? (
+                      <p style={{fontFamily:"var(--body)",fontSize:13,color:"var(--muted)",lineHeight:1.6,margin:0,fontWeight:300}}>"{r.comment.trim()}"</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -1982,9 +2009,9 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
             </div>
 
             <div style={S.footHours}>
-              <div><strong style={{color:"var(--paper)"}}>Mon-Sat:</strong> {settings.monSatHours || "11:00 AM to 11:00 PM"}</div>
-              <div><strong style={{color:"var(--paper)"}}>Sunday:</strong> {settings.sundayHours || "Closed"}</div>
-              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || "+91 70239 63189"}</div>
+              <div><strong style={{color:"var(--paper)"}}>Mon-Sat:</strong> {settings.weeklySchedule?.mon?.open && settings.weeklySchedule?.mon?.close ? `${settings.weeklySchedule.mon.open} to ${settings.weeklySchedule.mon.close}` : (settings.openTime && settings.closeTime ? `${settings.openTime} to ${settings.closeTime}` : "11:00 AM to 11:00 PM")}</div>
+              <div><strong style={{color:"var(--paper)"}}>Sunday:</strong> {settings.weeklySchedule?.sun ? (settings.weeklySchedule.sun.isOpen === false ? "Closed" : `${settings.weeklySchedule.sun.open || '11:00 AM'} to ${settings.weeklySchedule.sun.close || '11:00 PM'}`) : "11:00 AM to 11:00 PM"}</div>
+              <div><strong style={{color:"var(--paper)"}}>Helpline:</strong> {settings.phoneDisplay || settings.phone || "+91 70239 63189"}</div>
             </div>
 
             {/* Social Media & Direction Links */}
@@ -2169,9 +2196,6 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
         initialTab={legalTab}
         entity="nash-studio"
       />
-
-      {/* Instagram-style Bottom Navigation Bar */}
-      <BottomNavBar />
     </div>
   );
 }
@@ -2192,7 +2216,7 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
   const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
   const currentDayKey = dayKeys[selectedDate.getDay()];
   const currentDayConfig = schedule?.[currentDayKey] || { 
-    isOpen: selectedDate.getDay() !== 0, 
+    isOpen: true, 
     open: "11:00 AM", 
     close: "11:00 PM" 
   };
@@ -2241,7 +2265,7 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
         <div style={S.dateStrip}>
           {dates.map((d, i) => {
             const dKey = dayKeys[d.getDay()];
-            const dConfig = schedule?.[dKey] || { isOpen: d.getDay() !== 0 };
+            const dConfig = schedule?.[dKey] || { isOpen: true };
             const isDayWeeklyClosed = dConfig.isOpen === false;
             const isTodayClosed = (i === 0 && isStoreGloballyClosedToday);
             const isDayClosed = isDayWeeklyClosed || isTodayClosed;
@@ -2347,25 +2371,25 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
 const GLOBAL_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Inter:wght@200;300;400;500;600;700;800;900&display=swap');
 :root{
-  --ink:#080C14;
-  --surface:#0F1626;
-  --surface-hover:#151F34;
-  --paper:#FFFFFF;
-  --muted:#8C9DB5;
-  --line:#1E2B42;
+  --ink:#F5F7FA;
+  --surface:#FFFFFF;
+  --surface-hover:#EDF2F7;
+  --paper:#0A0F1A;
+  --muted:#5B6B7F;
+  --line:#E2E8F0;
   --display:"Cinzel",Georgia,serif;
   --body:"Inter",sans-serif;
-  --card-shadow:0 16px 40px rgba(0,0,0,0.5);
-  --prem-badge-bg:#000000;
-  --prem-badge-color:#d4af37;
+  --card-shadow:0 12px 36px rgba(0,0,0,0.06);
+  --prem-badge-bg:#0A0F1A;
+  --prem-badge-color:#ffffff;
   --std-badge-bg:rgba(255, 255, 255, 0.95);
   --std-badge-color:#0A0F1A;
-  --nav-bg:rgba(8,12,20,0.85);
+  --nav-bg:rgba(255,255,255,0.85);
   --star-color:#E5A93B;
-  --star-empty:#1E2B42;
+  --star-empty:#CBD5E1;
 }
 
-body[data-theme="light"]{
+body[data-theme="light"], body{
   --ink:#F5F7FA;
   --surface:#FFFFFF;
   --surface-hover:#EDF2F7;
@@ -2380,23 +2404,6 @@ body[data-theme="light"]{
   --nav-bg:rgba(255,255,255,0.85);
   --star-color:#E5A93B;
   --star-empty:#CBD5E1;
-}
-
-body[data-theme="dark"]{
-  --ink:#080C14;
-  --surface:#0F1626;
-  --surface-hover:#151F34;
-  --paper:#FFFFFF;
-  --muted:#8C9DB5;
-  --line:#1E2B42;
-  --card-shadow:0 20px 60px rgba(0,0,0,0.7);
-  --prem-badge-bg:#000000;
-  --prem-badge-color:#d4af37;
-  --std-badge-bg:rgba(15, 22, 38, 0.85);
-  --std-badge-color:#ffffff;
-  --nav-bg:rgba(8,12,20,0.85);
-  --star-color:#E5A93B;
-  --star-empty:#1E2B42;
 }
 
 *{box-sizing:border-box;margin:0;padding:0;}

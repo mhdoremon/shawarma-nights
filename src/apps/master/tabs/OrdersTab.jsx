@@ -582,7 +582,7 @@ export default function OrdersTab() {
                 const dayKey = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d.getDay()];
                 const dayConfig = storeInfo?.weeklySchedule?.[dayKey];
                 const isStoreClosedToday = storeInfo?.isOpen === false && iso === dateTabs[0];
-                const isDayClosed = (dayConfig ? !dayConfig.isOpen : (d.getDay() === 0)) || isStoreClosedToday;
+                const isDayClosed = (dayConfig ? dayConfig.isOpen === false : false) || isStoreClosedToday;
                 const isSel = iso === selectedDate;
                 const cnt = dayBookings.length > 0 && iso === selectedDate
                   ? dayBookings.length

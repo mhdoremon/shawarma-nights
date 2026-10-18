@@ -322,6 +322,8 @@ export function subscribeToSiteSettings(callback, defaultSettings) {
           heroButtonText: info.heroButtonText || setts.heroButtonText || defaultSettings.heroButtonText,
           heroVideoUrl: info.heroVideoUrl || setts.heroVideoUrl || defaultSettings.heroVideoUrl,
           aboutText: info.aboutText || setts.aboutText || defaultSettings.aboutText,
+          ownerEyebrow: info.ownerEyebrow || setts.ownerEyebrow || defaultSettings.ownerEyebrow || "THE MASTER CRAFTSMAN",
+          ownerHeadline: info.ownerHeadline || setts.ownerHeadline || defaultSettings.ownerHeadline || "Artistry in Every Cut, Precision in Every Fade.",
           ownerName: info.ownerName || setts.ownerName || "Naushad Ali",
           ownerRole: info.ownerRole || setts.ownerRole || "Master Stylist & Founder",
           ownerBio: info.ownerBio || setts.ownerBio || "Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form.",
@@ -541,7 +543,7 @@ export function subscribeToReviews(callback) {
   const loadReviews = async () => {
     try {
       const data = await getStoreData();
-      if (data && Array.isArray(data.reviews) && data.reviews.length > 0) {
+      if (data && Array.isArray(data.reviews)) {
         localStorage.setItem("nash_reviews", JSON.stringify(data.reviews));
         callback(data.reviews);
         return;
@@ -555,7 +557,7 @@ export function subscribeToReviews(callback) {
   loadReviews();
 
   const onWsEvent = (action) => {
-    if (action === 'REVIEW_ADDED') {
+    if (action === 'REVIEW_ADDED' || action === 'REVIEW_DELETED') {
       loadReviews();
     }
   };
