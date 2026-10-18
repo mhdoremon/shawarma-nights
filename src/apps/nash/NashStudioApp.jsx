@@ -79,6 +79,7 @@ const DEFAULT_SETTINGS = {
   sundayHours: "11:00 AM to 11:00 PM",
   ownerEyebrow: "THE MASTER CRAFTSMAN",
   ownerHeadline: "Artistry in Every Cut, Precision in Every Fade.",
+  ownerMediaUrl: "",
   weeklySchedule: {
     mon: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
     tue: { isOpen: true, open: "11:00 AM", close: "11:00 PM" },
@@ -1817,7 +1818,42 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
             <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:40, alignItems:"center"}}>
               {/* Left Column: Stylist Portrait / Badge Card */}
               <div style={{position:"relative", borderRadius:20, overflow:"hidden", border:"1.5px solid rgba(212,175,55,0.45)", boxShadow:"0 16px 40px rgba(0,0,0,0.6)", background:"#0a0d14", minHeight:340, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:28}}>
-                <div style={{position:"absolute", inset:0, background:"radial-gradient(circle at 50% 30%, rgba(212,175,55,0.18) 0%, rgba(0,0,0,0.92) 80%)"}} />
+                {/* Background Photo or Video (Configurable by Dukandar from Portal) */}
+                {settings.ownerMediaUrl ? (
+                  (() => {
+                    const lower = (settings.ownerMediaUrl || '').toLowerCase();
+                    const isVideo = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.startsWith('data:video');
+                    return isVideo ? (
+                      <video
+                        key={settings.ownerMediaUrl}
+                        src={settings.ownerMediaUrl}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover"}}
+                      />
+                    ) : (
+                      <img
+                        key={settings.ownerMediaUrl}
+                        src={settings.ownerMediaUrl}
+                        alt={settings.ownerName || "Master Stylist"}
+                        style={{position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover"}}
+                      />
+                    );
+                  })()
+                ) : null}
+
+                {/* Cinematic Vignette Overlay (Guarantees text contrast over any photo or video) */}
+                <div style={{
+                  position:"absolute", 
+                  inset:0, 
+                  background: settings.ownerMediaUrl 
+                    ? "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.2) 100%)" 
+                    : "radial-gradient(circle at 50% 30%, rgba(212,175,55,0.18) 0%, rgba(0,0,0,0.92) 80%)",
+                  zIndex:1
+                }} />
+
                 <div style={{position:"relative", zIndex:2}}>
                   <div style={{width:48, height:48, borderRadius:24, background:"rgba(212,175,55,0.15)", border:"1px solid rgba(212,175,55,0.4)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16}}>
                     <Scissors size={22} color="#d4af37" />

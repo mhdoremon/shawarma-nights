@@ -327,6 +327,7 @@ export function subscribeToSiteSettings(callback, defaultSettings) {
           ownerName: info.ownerName || setts.ownerName || "Naushad Ali",
           ownerRole: info.ownerRole || setts.ownerRole || "Master Stylist & Founder",
           ownerBio: info.ownerBio || setts.ownerBio || "Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form.",
+          ownerMediaUrl: info.ownerMediaUrl || setts.ownerMediaUrl || info.ownerPhoto || setts.ownerPhoto || info.ownerVideo || setts.ownerVideo || defaultSettings.ownerMediaUrl || "",
           foundedYear: info.foundedYear || setts.foundedYear || "2018",
           address: info.address || defaultSettings.address,
           phoneDisplay: info.phoneDisplay || defaultSettings.phoneDisplay,

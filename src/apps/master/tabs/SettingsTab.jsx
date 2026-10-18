@@ -27,7 +27,9 @@ import {
   Facebook,
   Twitter,
   Youtube,
-  Share2
+  Share2,
+  Scissors,
+  Image as ImageIcon
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
 
@@ -184,6 +186,7 @@ export default function SettingsTab() {
     ownerName: storeInfo?.ownerName || (isSalon ? 'Naushad Ali' : 'Furkan & Team'),
     ownerRole: storeInfo?.ownerRole || (isSalon ? 'Master Stylist & Founder' : 'Founder & Head Chef'),
     ownerBio: storeInfo?.ownerBio || (isSalon ? 'Over 12 years of craftsmanship in bespoke fades, beard blending, and luxury gentleman grooming. Every cut is treated as an art form.' : 'Dedicated to authentic slow-roasted charcoal shawarma, hand-carved rolls, and fresh garlic toum made daily in Churu.'),
+    ownerMediaUrl: storeInfo?.ownerMediaUrl || storeInfo?.ownerPhoto || storeInfo?.ownerVideo || '',
     foundedYear: storeInfo?.foundedYear || '2018',
     upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
     payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
@@ -273,6 +276,7 @@ export default function SettingsTab() {
         ownerName: storeInfo.ownerName || prev.ownerName,
         ownerRole: storeInfo.ownerRole || prev.ownerRole,
         ownerBio: storeInfo.ownerBio || prev.ownerBio,
+        ownerMediaUrl: storeInfo.ownerMediaUrl || storeInfo.ownerPhoto || storeInfo.ownerVideo || prev.ownerMediaUrl || '',
         foundedYear: storeInfo.foundedYear || prev.foundedYear,
         upiId: pay.upiId || storeInfo.upiId || prev.upiId,
         payeeName: pay.payeeName || prev.payeeName,
@@ -373,6 +377,46 @@ export default function SettingsTab() {
     reader.readAsDataURL(file);
   };
 
+  // Photo / Video file upload for Founder & Stylist card
+  const [isOwnerMediaUploading, setIsOwnerMediaUploading] = useState(false);
+  const handleOwnerMediaUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsOwnerMediaUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        const res = await fetch(`https://churuone-backend.onrender.com/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-store-id': storeId
+          },
+          body: JSON.stringify({
+            image: base64Data,
+            filename: file.name
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.url) {
+          setOperationalForm(prev => ({ ...prev, ownerMediaUrl: data.url }));
+          showToast('Founder photo/video uploaded successfully!', 'success');
+        } else {
+          setOperationalForm(prev => ({ ...prev, ownerMediaUrl: base64Data }));
+          showToast('Photo/video loaded from device', 'info');
+        }
+      } catch (err) {
+        setOperationalForm(prev => ({ ...prev, ownerMediaUrl: base64Data }));
+        showToast('Photo/video loaded from device', 'info');
+      } finally {
+        setIsOwnerMediaUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // 3. SAVE OPERATIONAL SETTINGS
   const handleSaveOperational = async (e) => {
     e.preventDefault();
@@ -413,6 +457,9 @@ export default function SettingsTab() {
       ownerName: operationalForm.ownerName,
       ownerRole: operationalForm.ownerRole,
       ownerBio: operationalForm.ownerBio,
+      ownerMediaUrl: operationalForm.ownerMediaUrl,
+      ownerPhoto: operationalForm.ownerMediaUrl,
+      ownerVideo: operationalForm.ownerMediaUrl,
       foundedYear: operationalForm.foundedYear,
       isOpen: operationalForm.isOpen,
       marketplaceVisible: operationalForm.marketplaceVisible,
@@ -1157,6 +1204,117 @@ export default function SettingsTab() {
               placeholder="Dukan ke safar aur authentic recipe ke baare me 1-2 line..."
               className="w-full bg-white rounded-xl p-3 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs resize-none"
             />
+          </div>
+
+          {/* FOUNDER / STYLIST CARD MEDIA (PHOTO & VIDEO CUSTOMIZER) */}
+          <div className="pt-3 border-t border-zinc-200/60 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <label className="block text-[11px] font-black text-zinc-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-[#DC2626]" />
+                  <span>FOUNDER / STYLIST CARD PHOTO YA VIDEO (कार्ड मीडिया)</span>
+                </label>
+                <p className="text-[10px] text-zinc-500 mt-0.5">
+                  Is black badge card ke andar apni ya apne master stylist ki portrait photo ya looping video lagayein.
+                </p>
+              </div>
+              {operationalForm.ownerMediaUrl && (
+                <button
+                  type="button"
+                  onClick={() => setOperationalForm(prev => ({ ...prev, ownerMediaUrl: '' }))}
+                  className="text-[10px] font-black text-red-600 hover:text-red-700 underline cursor-pointer border-0 bg-transparent uppercase tracking-wider"
+                >
+                  ✕ Remove Media (Default Gradient)
+                </button>
+              )}
+            </div>
+
+            {/* Live Interactive Preview of the Stylist Card */}
+            <div className="relative rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg bg-[#0a0d14] max-w-sm mx-auto aspect-[16/11] flex flex-col justify-end p-5">
+              {operationalForm.ownerMediaUrl ? (
+                (() => {
+                  const lower = (operationalForm.ownerMediaUrl || '').toLowerCase();
+                  const isVid = lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.startsWith('data:video');
+                  return isVid ? (
+                    <video
+                      key={operationalForm.ownerMediaUrl}
+                      src={operationalForm.ownerMediaUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      key={operationalForm.ownerMediaUrl}
+                      src={operationalForm.ownerMediaUrl}
+                      alt="Stylist Card Preview"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  );
+                })()
+              ) : null}
+
+              {/* Cinematic Vignette Overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none z-[1]"
+                style={{
+                  background: operationalForm.ownerMediaUrl
+                    ? "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.2) 100%)"
+                    : "radial-gradient(circle at 50% 30%, rgba(212,175,55,0.18) 0%, rgba(0,0,0,0.92) 80%)"
+                }}
+              />
+
+              {/* Badge Overlay Content */}
+              <div className="relative z-[2] text-left">
+                <div className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/40 flex items-center justify-center mb-2">
+                  <Scissors className="w-4 h-4 text-amber-400" />
+                </div>
+                <span className="text-[9px] font-extrabold tracking-widest uppercase text-amber-400 block">
+                  ESTABLISHED {operationalForm.foundedYear || "2023"}
+                </span>
+                <h4 className="text-base font-black text-white uppercase tracking-wide font-serif leading-tight my-0.5">
+                  {operationalForm.ownerName || "Naushad Ali"}
+                </h4>
+                <div className="text-[11px] text-zinc-300 font-semibold">
+                  {operationalForm.ownerRole || "Master Stylist & Founder"}
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Controls & URL Input */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                  Device se Upload karein (Photo ya Video):
+                </label>
+                <label className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-dashed border-zinc-300 hover:border-[#DC2626] text-zinc-700 hover:text-[#DC2626] text-xs font-bold cursor-pointer transition-colors shadow-2xs">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isOwnerMediaUploading ? "Uploading File..." : "Choose Photo or Video"}</span>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleOwnerMediaUpload}
+                    disabled={isOwnerMediaUploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-zinc-600 uppercase mb-1">
+                  Ya Direct Image/Video URL enter karein:
+                </label>
+                <input
+                  type="text"
+                  value={operationalForm.ownerMediaUrl || ''}
+                  onChange={(e) => setOperationalForm({ ...operationalForm, ownerMediaUrl: e.target.value })}
+                  placeholder="https://... photo.jpg ya video.mp4"
+                  className="w-full bg-white rounded-xl px-3.5 py-2.5 text-xs text-zinc-900 focus:ring-2 focus:ring-[#DC2626] border-0 shadow-2xs font-mono"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
