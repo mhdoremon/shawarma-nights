@@ -2606,23 +2606,113 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
   const currentMinutesToday = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
 
   if (!isCurrentDayClosed) {
-    // Generate slots every 30 minutes as requested
-    for (let t = dayWorkStart; t + totalMinutes <= dayWorkEnd; t += 30) {
-      let blocked = dateIndex === 0 && t <= currentMinutesToday;
-      if (!blocked) {
-        for (const b of realtimeBookings) {
-          const bStart = Number(b.startMin);
-          const bDuration = Number(b.totalMinutes || 30);
-          // 5-minute sanitization & buffer interval between salon appointments
-          const bEndWithBuffer = bStart + bDuration + 5;
-          if (Math.max(bStart, t) < Math.min(bEndWithBuffer, t + totalMinutes)) { 
-            blocked = true; 
-            break; 
-          }
+    const BUFFER = 5; // 5-minute sanitization & buffer interval between salon appointments
+
+    // 1. Filter and sort existing bookings for the selected date
+    const sortedBookings = (realtimeBookings || [])
+      .map(b => {
+        const start = Number(b.startMin);
+        const dur = Number(b.totalMinutes || 30);
+        const end = start + dur + BUFFER;
+        return { start, dur, end, raw: b };
+      })
+      .filter(b => !isNaN(b.start) && b.end > dayWorkStart && b.start < dayWorkEnd)
+      .sort((a, b) => a.start - b.start);
+
+    // 2. Merge overlapping busy blocks
+    const busyBlocks = [];
+    for (const b of sortedBookings) {
+      if (busyBlocks.length === 0) {
+        busyBlocks.push({
+          start: Math.max(dayWorkStart, b.start),
+          end: Math.min(dayWorkEnd, b.end),
+          bookings: [b]
+        });
+      } else {
+        const last = busyBlocks[busyBlocks.length - 1];
+        if (b.start <= last.end) {
+          last.end = Math.max(last.end, Math.min(dayWorkEnd, b.end));
+          last.bookings.push(b);
+        } else {
+          busyBlocks.push({
+            start: Math.max(dayWorkStart, b.start),
+            end: Math.min(dayWorkEnd, b.end),
+            bookings: [b]
+          });
         }
       }
-      slots.push({ t, label: formatTime(Math.floor(t/60), t%60), blocked });
     }
+
+    // 3. Determine Free Window Segments
+    const freeSegments = [];
+    let cursor = dayWorkStart;
+    for (const block of busyBlocks) {
+      if (block.start > cursor) {
+        freeSegments.push({ start: cursor, end: block.start, isAfterBooking: cursor > dayWorkStart });
+      }
+      cursor = Math.max(cursor, block.end);
+    }
+    if (cursor < dayWorkEnd) {
+      freeSegments.push({ start: cursor, end: dayWorkEnd, isAfterBooking: cursor > dayWorkStart });
+    }
+
+    // 4. Generate Contiguous Slots in Each Free Segment
+    // The very first slot in each segment begins at segment.start (e.g. 10:45 AM after a 10:40 AM + 5m booking)
+    // and subsequent slots step cleanly forward by 30 minutes!
+    for (const seg of freeSegments) {
+      let t = seg.start;
+      let isFirstInSegment = true;
+
+      while (t + totalMinutes <= seg.end) {
+        const isPast = dateIndex === 0 && t <= currentMinutesToday;
+        slots.push({
+          t,
+          label: formatTime(Math.floor(t / 60), t % 60),
+          blocked: isPast,
+          isOccupied: false,
+          isSmartContiguous: seg.isAfterBooking && isFirstInSegment,
+          endMin: t + totalMinutes
+        });
+        isFirstInSegment = false;
+        t += 30; // 30-minute interval from the new smart anchor!
+      }
+    }
+
+    // 5. Add Occupied Slots so the timeline visually displays booked appointments
+    for (const block of busyBlocks) {
+      for (const b of block.bookings) {
+        slots.push({
+          t: b.start,
+          label: formatTime(Math.floor(b.start / 60), b.start % 60),
+          blocked: true,
+          isOccupied: true,
+          occupiedUntil: formatTime(Math.floor(b.end / 60), b.end % 60),
+          endMin: b.end
+        });
+      }
+    }
+
+    // 6. Sort slots chronologically
+    slots.sort((a, b) => a.t - b.t);
+
+    // 7. Deduplicate identical start times
+    const uniqueSlots = [];
+    const seenTimes = new Map();
+    for (const s of slots) {
+      if (!seenTimes.has(s.t)) {
+        seenTimes.set(s.t, s);
+        uniqueSlots.push(s);
+      } else {
+        const existing = seenTimes.get(s.t);
+        if (existing.blocked && !s.blocked) {
+          const idx = uniqueSlots.indexOf(existing);
+          if (idx !== -1) uniqueSlots[idx] = s;
+          seenTimes.set(s.t, s);
+        }
+      }
+    }
+    slots.length = 0;
+    slots.push(...uniqueSlots);
   }
 
   return (
@@ -2703,26 +2793,71 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
       ) : (
         <>
           <div style={S.fieldGroup}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={S.fieldLabel}>Select Slot (Every 30 Mins)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={S.fieldLabel}>Select Appointment Slot</span>
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 900,
+                  background: 'rgba(212,175,55,0.15)',
+                  color: '#d4af37',
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase'
+                }}>
+                  ⚡ Smart Dynamic Grid
+                </span>
+              </div>
               <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
-                Operating Hours: {currentDayConfig.open} – {currentDayConfig.close}
+                {currentDayConfig.open} – {currentDayConfig.close}
               </span>
             </div>
+
             {slots.length === 0 ? (
               <div style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>
                 Is din ke sabhi slots fill ya out of business hours ho chuke hain. Kripya koi agla din select karein.
               </div>
             ) : (
               <div style={S.slotGrid}>
-                {slots.map((s, i) => (
-                  <button key={i} disabled={s.blocked}
-                    style={{...S.slot,...(s.blocked?S.slotTaken:{}),...(slot&&slot.startMin===s.t?S.slotSelected:{})}}
-                    className={!s.blocked?"nash-slot-hover":""}
-                    onClick={() => setSlot({label:s.label,startMin:s.t})}>
-                    {s.label}
-                  </button>
-                ))}
+                {slots.map((s, i) => {
+                  const isSel = slot && slot.startMin === s.t;
+                  const isTaken = s.blocked;
+                  const isContiguous = s.isSmartContiguous && !isTaken;
+
+                  return (
+                    <button 
+                      key={i} 
+                      disabled={isTaken}
+                      style={{
+                        ...S.slot,
+                        ...(isTaken ? S.slotTaken : {}),
+                        ...(isSel ? S.slotSelected : {}),
+                        ...(isContiguous ? { 
+                          border: isSel ? "1.5px solid #d4af37" : "1.5px solid rgba(212,175,55,0.6)",
+                          boxShadow: "0 0 12px rgba(212,175,55,0.18)"
+                        } : {})
+                      }}
+                      className={!isTaken ? "nash-slot-hover" : ""}
+                      onClick={() => setSlot({ label: s.label, startMin: s.t, endMin: s.endMin })}
+                      title={isTaken ? (s.isOccupied ? `Occupied until ${s.occupiedUntil}` : "Unavailable") : (isContiguous ? "Zero Dead-Time: Available immediately as chair gets sanitized" : "Available Slot")}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800 }}>{s.label}</span>
+                        {isContiguous && (
+                          <span style={{ fontSize: 8, color: '#d4af37', fontWeight: 900, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                            ⚡ ZERO GAP
+                          </span>
+                        )}
+                        {s.isOccupied && (
+                          <span style={{ fontSize: 8, color: '#EF4444', fontWeight: 700, textTransform: 'uppercase' }}>
+                            BOOKED
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
