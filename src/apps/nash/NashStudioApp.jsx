@@ -2660,7 +2660,7 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     const sortedBookings = (realtimeBookings || [])
       .map(b => {
         const start = Number(b.startMin);
-        const dur = Number(b.totalMinutes || 30);
+        const dur = Number(b.workMinutes || b.durationMinutes || (b.totalMinutes ? Math.max(30, b.totalMinutes - BUFFER) : 30));
         const end = start + dur + BUFFER;
         return { start, dur, end, raw: b };
       })
@@ -2709,13 +2709,23 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     for (const seg of freeSegments) {
       let t = seg.start;
       let isFirstInSegment = true;
+      const isLastSegmentOfDay = seg.end >= dayWorkEnd;
 
-      while (t + totalMinutes <= seg.end) {
+      while (true) {
         // Exclude past slots on today
         if (dateIndex === 0 && t <= currentMinutesToday) {
           isFirstInSegment = false;
           t += 30;
           continue;
+        }
+
+        // Slot boundary check:
+        // If between bookings: appointment cannot collide with next customer
+        // If final segment of day: slot can start right up to shop closing time (e.g. 10:00 PM, 10:30 PM, 10:40 PM before 11:00 PM close)
+        if (isLastSegmentOfDay) {
+          if (t > dayWorkEnd - 20) break;
+        } else {
+          if (t + Math.min(totalMinutes, 30) > seg.end) break;
         }
 
         slots.push({
