@@ -565,6 +565,32 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
   });
   const selectedDateISO = dates[dateIndex] ? fmtDateISO(dates[dateIndex]) : "";
 
+  // Auto-switch to first available open future date if Today is closed or today's operational hours have ended
+  useEffect(() => {
+    if (dateIndex === 0) {
+      const now = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istNow = new Date(now.getTime() + istOffset);
+      const curMin = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+      const schedule = settings?.weeklySchedule || DEFAULT_SETTINGS.weeklySchedule;
+      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const todayConfig = schedule?.[dayKeys[istNow.getUTCDay()]] || { isOpen: true, close: "11:00 PM" };
+      const closeMin = parseTimeToMinutes(todayConfig.close, 23 * 60);
+
+      const isTodayClosedOrPassed = settings?.isOpen === false || todayConfig.isOpen === false || curMin >= closeMin - 30;
+      if (isTodayClosedOrPassed) {
+        for (let i = 1; i < dates.length; i++) {
+          const dKey = dayKeys[dates[i].getDay()];
+          const cfg = schedule?.[dKey] || { isOpen: true };
+          if (cfg.isOpen !== false) {
+            setDateIndex(i);
+            break;
+          }
+        }
+      }
+    }
+  }, [settings]);
+
   useEffect(() => {
     if (!selectedDateISO) return;
     const unsub = subscribeToBookingsForDate(selectedDateISO, setRealtimeBookings);
@@ -735,6 +761,26 @@ function SiteView({ hairstyles, settings, user, setUser, deals = [] }) {
     }
     setSaving(true);
     const d = dates[dateIndex];
+
+    // Strict validation: Verify selected day is open and slot is not in the past
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const dKey = dayKeys[d.getDay()];
+    const dConfig = (settings?.weeklySchedule || DEFAULT_SETTINGS.weeklySchedule)?.[dKey] || { isOpen: true, close: "11:00 PM" };
+    const isDayWeeklyClosed = dConfig.isOpen === false;
+    const isTodayClosed = (dateIndex === 0 && settings?.isOpen === false);
+
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + istOffset);
+    const curMin = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+    const isSlotPast = dateIndex === 0 && slot && slot.startMin <= curMin;
+
+    if (isDayWeeklyClosed || isTodayClosed || isSlotPast) {
+      alert("Chune gaye din ya samay par booking uplabdh nahi hai (Slot passed or Salon closed). Kripya koi doosra open slot chunein.");
+      setSaving(false);
+      return;
+    }
+
     const bookingToken = "NS-" + Math.floor(100000 + Math.random() * 900000);
     const activeBookingFee = selectedStyle && selectedStyle.bookingFee !== undefined 
       ? Number(selectedStyle.bookingFee) 
@@ -2588,22 +2634,24 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     close: "11:00 PM" 
   };
 
-  // Store Closed Today logic:
-  // When Dukandar toggles store OFF (settings.isOpen === false), ONLY today (dateIndex === 0) is closed.
-  // All future dates remain 100% open and bookable!
-  const isStoreGloballyClosedToday = settings?.isOpen === false;
-  const isSelectedDateClosedToday = dateIndex === 0 && isStoreGloballyClosedToday;
-  const isCurrentDayClosed = currentDayConfig.isOpen === false || isSelectedDateClosedToday;
-
-  const dayWorkStart = parseTimeToMinutes(currentDayConfig.open, WORK_START);
-  const dayWorkEnd = parseTimeToMinutes(currentDayConfig.close, WORK_END);
-
-  const slots = [];
   // IST (Indian Standard Time UTC+5:30) current minutes calculation
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
   const istNow = new Date(now.getTime() + istOffset);
   const currentMinutesToday = istNow.getUTCHours() * 60 + istNow.getUTCMinutes();
+
+  const dayWorkStart = parseTimeToMinutes(currentDayConfig.open, WORK_START);
+  const dayWorkEnd = parseTimeToMinutes(currentDayConfig.close, WORK_END);
+
+  // Store Closed Today logic:
+  // When Dukandar toggles store OFF (settings.isOpen === false), ONLY today (dateIndex === 0) is closed.
+  // All future dates remain 100% open and bookable!
+  const isStoreGloballyClosedToday = settings?.isOpen === false;
+  const isSelectedDateClosedToday = dateIndex === 0 && isStoreGloballyClosedToday;
+  const isTodayOver = dateIndex === 0 && currentMinutesToday >= dayWorkEnd;
+  const isCurrentDayClosed = currentDayConfig.isOpen === false || isSelectedDateClosedToday || isTodayOver;
+
+  const slots = [];
 
   if (!isCurrentDayClosed) {
     const BUFFER = 5; // 5-minute sanitization & buffer interval between salon appointments
@@ -2657,18 +2705,23 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     }
 
     // 4. Generate Contiguous Slots in Each Free Segment
-    // The very first slot in each segment begins at segment.start (e.g. 10:45 AM after a 10:40 AM + 5m booking)
-    // and subsequent slots step cleanly forward by 30 minutes!
+    // HIDE PAST TIME SLOTS: If today and slot start time is already in the past, completely omit it!
     for (const seg of freeSegments) {
       let t = seg.start;
       let isFirstInSegment = true;
 
       while (t + totalMinutes <= seg.end) {
-        const isPast = dateIndex === 0 && t <= currentMinutesToday;
+        // Exclude past slots on today
+        if (dateIndex === 0 && t <= currentMinutesToday) {
+          isFirstInSegment = false;
+          t += 30;
+          continue;
+        }
+
         slots.push({
           t,
           label: formatTime(Math.floor(t / 60), t % 60),
-          blocked: isPast,
+          blocked: false,
           isOccupied: false,
           isSmartContiguous: seg.isAfterBooking && isFirstInSegment,
           endMin: t + totalMinutes
@@ -2678,9 +2731,13 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
       }
     }
 
-    // 5. Add Occupied Slots so the timeline visually displays booked appointments
+    // 5. Add Occupied Slots so the timeline visually displays future/current booked appointments
     for (const block of busyBlocks) {
       for (const b of block.bookings) {
+        // Exclude past bookings on today
+        if (dateIndex === 0 && b.start <= currentMinutesToday) {
+          continue;
+        }
         slots.push({
           t: b.start,
           label: formatTime(Math.floor(b.start / 60), b.start % 60),
@@ -2695,10 +2752,11 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
     // 6. Sort slots chronologically
     slots.sort((a, b) => a.t - b.t);
 
-    // 7. Deduplicate identical start times
+    // 7. Deduplicate identical start times and exclude any past times on today
     const uniqueSlots = [];
     const seenTimes = new Map();
     for (const s of slots) {
+      if (dateIndex === 0 && s.t <= currentMinutesToday) continue;
       if (!seenTimes.has(s.t)) {
         seenTimes.set(s.t, s);
         uniqueSlots.push(s);
@@ -2722,11 +2780,17 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
         <div style={S.dateStrip}>
           {dates.map((d, i) => {
             const dKey = dayKeys[d.getDay()];
-            const dConfig = schedule?.[dKey] || { isOpen: true };
+            const dConfig = schedule?.[dKey] || { isOpen: true, open: "11:00 AM", close: "11:00 PM" };
             const isDayWeeklyClosed = dConfig.isOpen === false;
             const isTodayClosed = (i === 0 && isStoreGloballyClosedToday);
-            const isDayClosed = isDayWeeklyClosed || isTodayClosed;
+            const isDayOver = (i === 0 && currentMinutesToday >= parseTimeToMinutes(dConfig.close, WORK_END));
+            const isDayClosed = isDayWeeklyClosed || isTodayClosed || isDayOver;
             const sel = i === dateIndex;
+
+            let badgeText = "";
+            if (isTodayClosed) badgeText = "CLOSED";
+            else if (isDayOver) badgeText = "DAY OVER";
+            else if (isDayWeeklyClosed) badgeText = "OFF";
 
             return (
               <button 
@@ -2734,20 +2798,20 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
                 style={{
                   ...S.dateChip,
                   ...(sel ? S.dateChipSelected : {}),
-                  ...(isDayClosed ? { ...S.dateChipDisabled, opacity: 0.6 } : {})
+                  ...(isDayClosed ? { ...S.dateChipDisabled, opacity: 0.55 } : {})
                 }}
                 disabled={isDayClosed} 
                 onClick={() => { setDateIndex(i); setSlot(null); }} 
                 className="nash-date-chip"
-                title={isTodayClosed ? "Nash Studio is closed today (Future dates open)" : isDayWeeklyClosed ? `${DOW[d.getDay()]} is Closed (Weekly Off)` : "Available"}
+                title={isDayOver ? "Today's salon operational hours have passed" : isTodayClosed ? "Nash Studio is closed today (Future dates open)" : isDayWeeklyClosed ? `${DOW[d.getDay()]} is Closed (Weekly Off)` : "Available"}
               >
                 <span style={S.dow}>{i === 0 ? "TODAY" : DOW[d.getDay()]}</span>
                 <span style={sel ? { ...S.dnum, color: "var(--ink)" } : { ...S.dnum, color: isDayClosed ? "var(--muted)" : "var(--paper)" }}>
                   {d.getDate()}
                 </span>
-                {isDayClosed && (
+                {badgeText && (
                   <span style={{ fontSize: 8, fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', marginTop: 2 }}>
-                    {isTodayClosed ? "CLOSED" : "OFF"}
+                    {badgeText}
                   </span>
                 )}
               </button>
@@ -2757,38 +2821,73 @@ function TimeStep({ dates, dateIndex, setDateIndex, totalMinutes, slot, setSlot,
       </div>
 
       {isCurrentDayClosed ? (
-        <div style={{
-          padding: '28px 20px',
-          background: 'rgba(239, 68, 68, 0.08)',
-          border: '1.5px dashed rgba(239, 68, 68, 0.4)',
-          borderRadius: 18,
-          textAlign: 'center',
-          marginTop: 18,
-          marginBottom: 18
-        }}>
+        <div>
           <div style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            background: 'rgba(239, 68, 68, 0.15)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#EF4444',
-            marginBottom: 10
+            padding: '28px 20px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1.5px dashed rgba(239, 68, 68, 0.4)',
+            borderRadius: 18,
+            textAlign: 'center',
+            marginTop: 18,
+            marginBottom: 18
           }}>
-            <Calendar size={22} strokeWidth={2.5} />
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#EF4444',
+              marginBottom: 10
+            }}>
+              <Calendar size={22} strokeWidth={2.5} />
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--paper)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              {isSelectedDateClosedToday 
+                ? "STUDIO IS CLOSED TODAY BY MANAGEMENT"
+                : isTodayOver
+                ? "TODAY'S OPERATIONAL HOURS COMPLETED"
+                : `SALON IS CLOSED ON THIS DAY (${DOW[selectedDate.getDay()]} WEEKLY OFF)`}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6, maxWidth: 420, margin: '8px auto 0' }}>
+              {isSelectedDateClosedToday
+                ? "Nash Studio management ne aaj ke liye bookings temporarily pause ki hui hain. Lekin kal aur aage ke sabhi dino ke liye appointment bookings bilkul open hain! Kripya upar calendar se koi agla open din chunein."
+                : isTodayOver
+                ? "Aaj ke salon working hours khatam ho chuke hain. Lekin kal aur aage ke sabhi dino ke slots open hain! Kripya upar date calendar se agla din select karein."
+                : `Nash Studio is observing its scheduled weekly off on ${selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}. Kripya upar date calendar se koi doosra open din chunein apna slot reserve karne ke liye.`}
+            </p>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--paper)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            {isSelectedDateClosedToday 
-              ? "STUDIO IS CLOSED TODAY BY MANAGEMENT"
-              : `SALON IS CLOSED ON THIS DAY (${DOW[selectedDate.getDay()]} WEEKLY OFF)`}
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.6, maxWidth: 420, margin: '8px auto 0' }}>
-            {isSelectedDateClosedToday
-              ? "Nash Studio management ne aaj ke liye bookings temporarily pause ki hui hain. Lekin kal aur aage ke sabhi dino ke liye appointment bookings bilkul open hain! Kripya upar calendar se koi agla din chunein."
-              : `Nash Studio is observing its scheduled weekly off on ${selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}. Kripya upar date calendar se koi doosra open din chunein apna slot reserve karne ke liye.`}
-          </p>
+          {onBack && (
+            <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+              <button
+                type="button"
+                onClick={onBack}
+                style={{
+                  flex: 1,
+                  padding: '14px 20px',
+                  background: 'var(--surface-hover)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 8,
+                  color: 'var(--paper)',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  cursor: 'pointer'
+                }}
+                className="nash-btn-confirm"
+              >
+                <ArrowLeft size={15} strokeWidth={2.2} />
+                <span>← CHANGE STYLE</span>
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <>

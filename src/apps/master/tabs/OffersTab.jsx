@@ -33,6 +33,11 @@ export default function OffersTab() {
   const [dealModalData, setDealModalData] = useState(null); // null (closed) | {} (add/edit)
   const [comboModalData, setComboModalData] = useState(null); // null (closed) | {} (add/edit combo package)
 
+  // Filter combo packages from menu catalog
+  const salonCombos = (menu || []).filter(item => 
+    item && (item.isCombo === true || item.categoryId === 'cat_combo' || item.category === 'Combo Packages' || (item.category && item.category.toLowerCase().includes('combo')))
+  );
+
   // Hero Offer Editor state
   const [heroOffer, setHeroOffer] = useState({
     studioName: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
