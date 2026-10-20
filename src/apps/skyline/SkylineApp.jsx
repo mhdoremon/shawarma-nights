@@ -178,6 +178,52 @@ function sanitizeClothesOnly(items) {
   );
 }
 
+// ─── MULTI-ANGLE & COLOR PHOTO AGGREGATOR HELPER ─────────────────
+export function getProductAllImages(product) {
+  if (!product) return [];
+  const set = new Set();
+  const list = [];
+  
+  const add = (url) => {
+    if (url && typeof url === 'string') {
+      const clean = url.trim();
+      if ((clean.startsWith('http') || clean.startsWith('/') || clean.startsWith('data:')) && !set.has(clean)) {
+        set.add(clean);
+        list.push(clean);
+      }
+    }
+  };
+
+  // 1. Primary photo
+  add(product.image);
+
+  // 2. Default color photo if specified
+  if (Array.isArray(product.colors)) {
+    const defColor = product.colors.find(c => typeof c === 'object' && (c.isDefault || c.name === product.defaultColor));
+    if (defColor?.image) add(defColor.image);
+  }
+
+  // 3. Secondary image (if present)
+  add(product.secondaryImage);
+
+  // 4. All gallery images
+  if (Array.isArray(product.images)) {
+    product.images.forEach(img => add(typeof img === 'string' ? img : img?.url));
+  }
+  if (Array.isArray(product.gallery)) {
+    product.gallery.forEach(img => add(typeof img === 'string' ? img : img?.url));
+  }
+
+  // 5. All color photos
+  if (Array.isArray(product.colors)) {
+    product.colors.forEach(c => {
+      if (typeof c === 'object' && c?.image) add(c.image);
+    });
+  }
+
+  return list.length > 0 ? list : (product.image ? [product.image] : []);
+}
+
 export default function SkylineApp() {
   // ─── STATE MANAGEMENT ──────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -188,6 +234,7 @@ export default function SkylineApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [heroActiveAngle, setHeroActiveAngle] = useState('primary'); // 'primary' | 'secondary'
+  const [heroActiveImage, setHeroActiveImage] = useState('');
   const [copiedCouponCode, setCopiedCouponCode] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -231,9 +278,16 @@ export default function SkylineApp() {
     if (!product) return;
     setSelectedProduct(product);
     setModalSize(product.availableSizes?.[0] || product.sizes?.[0] || 'M');
-    const defaultColor = product.colors?.[0];
-    setModalColor(typeof defaultColor === 'object' ? defaultColor.name : (defaultColor || 'Classic'));
-    setModalActiveImage(product.image || '');
+    
+    // Resolve default color
+    const defaultColor = (Array.isArray(product.colors) && product.colors.find(c => typeof c === 'object' && (c.isDefault || c.name === product.defaultColor)))
+      || (Array.isArray(product.colors) && product.colors[0]);
+    const defColorName = typeof defaultColor === 'object' ? defaultColor.name : (defaultColor || 'Classic');
+    setModalColor(defColorName);
+
+    // If default color has its own photo, show that! Otherwise product.image
+    const defColorImg = typeof defaultColor === 'object' ? defaultColor.image : null;
+    setModalActiveImage(defColorImg || product.image || (Array.isArray(product.images) && product.images[0]) || '');
   };
 
   // Checkout & Location State
@@ -550,21 +604,38 @@ export default function SkylineApp() {
     const parts = [];
     if (houseNo.trim()) parts.push(houseNo.trim());
     if (streetArea.trim()) parts.push(streetArea.trim());
-    if (landmark.trim()) parts.push(`Near ${landmark.trim()}`);
+    const effectiveLandmark = selectedLandmarkChip || landmark;
+    if (effectiveLandmark && effectiveLandmark.trim()) parts.push(`Near ${effectiveLandmark.trim()}`);
+    if (orderLiveGps) parts.push(`[GPS: ${orderLiveGps.lat.toFixed(4)}°N, ${orderLiveGps.lng.toFixed(4)}°E]`);
     parts.push(`Churu – ${pincode || '331001'}`);
     return parts.join(', ');
-  }, [deliveryType, houseNo, streetArea, landmark, pincode]);
+  }, [deliveryType, houseNo, streetArea, landmark, selectedLandmarkChip, orderLiveGps, pincode]);
 
   // ─── CART HANDLERS ─────────────────────────────────────────────
-  const addToCart = (product, selectedSize, selectedColor) => {
+  const addToCart = (product, selectedSize = null, selectedColor = null, selectedImage = null) => {
     if (!product) return;
     const size = selectedSize || 
       (Array.isArray(product.availableSizes) && product.availableSizes[0]) || 
       (Array.isArray(product.sizes) && product.sizes[0]) || 
       'M';
-    const color = selectedColor || 
-      (Array.isArray(product.colors) ? (typeof product.colors[0] === 'string' ? product.colors[0] : product.colors[0]?.name) : null) || 
-      'Classic';
+    
+    // Default color resolution
+    const defColObj = Array.isArray(product.colors) && product.colors.find(c => typeof c === 'object' && (c.isDefault || c.name === product.defaultColor));
+    const defaultColorName = defColObj?.name || (Array.isArray(product.colors) ? (typeof product.colors[0] === 'string' ? product.colors[0] : product.colors[0]?.name) : null) || 'Classic';
+    const color = selectedColor || defaultColorName;
+
+    // Resolve photo matching selected color or custom image
+    let chosenImg = selectedImage;
+    if (!chosenImg && Array.isArray(product.colors)) {
+      const match = product.colors.find(c => (typeof c === 'object' ? c.name : c) === color);
+      if (match && typeof match === 'object' && match.image) {
+        chosenImg = match.image;
+      }
+    }
+    if (!chosenImg) {
+      chosenImg = product.image || (Array.isArray(product.images) && product.images[0]) || '';
+    }
+
     const cartItemId = `${product.id}-${size}-${color}`;
 
     setCartItems(prev => {
@@ -582,7 +653,7 @@ export default function SkylineApp() {
         name: product.name || 'Skyline Outfits',
         price: Number(product.price) || 0,
         originalPrice: Number(product.originalPrice) || Number(product.price) || 0,
-        image: product.image || (Array.isArray(product.images) && product.images[0]) || '',
+        image: chosenImg,
         size,
         color,
         quantity: 1
@@ -703,8 +774,18 @@ export default function SkylineApp() {
       return;
     }
     if (deliveryType === 'delivery') {
-      if (!streetArea.trim() && !orderLiveGps) {
-        showToast('Please enter your street address or capture live GPS');
+      if (!houseNo.trim()) {
+        showToast('MANDATORY: Kripya apna House / Flat / Shop Number enter karein');
+        return;
+      }
+      if (!streetArea.trim()) {
+        showToast('MANDATORY: Kripya apna Street / Colony / Ward name enter karein');
+        return;
+      }
+      const hasGps = Boolean(orderLiveGps && orderLiveGps.lat && orderLiveGps.lng);
+      const hasLandmark = Boolean((selectedLandmarkChip && selectedLandmarkChip.trim()) || (landmark && landmark.trim()));
+      if (!hasGps && !hasLandmark) {
+        showToast('MANDATORY: Delivery ke liye "Detect GPS Location" karein ya nearest Landmark select karein');
         return;
       }
     }
@@ -1387,29 +1468,32 @@ export default function SkylineApp() {
                 SKYLINE
               </motion.div>
 
-              {/* Multi-angle Pill Switcher in Hero (If secondary image available) */}
-              {heroProduct.secondaryImage && (
-                <div className="absolute top-5 left-5 z-20 flex items-center gap-1.5 bg-white border border-stone-200 rounded-full p-1 shadow-xs">
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setHeroActiveAngle('primary'); }}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                      heroActiveAngle === 'primary' ? 'bg-black text-white shadow-xs' : 'text-stone-600 hover:text-black'
-                    }`}
-                  >
-                    01 Angle
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setHeroActiveAngle('secondary'); }}
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                      heroActiveAngle === 'secondary' ? 'bg-black text-white shadow-xs' : 'text-stone-600 hover:text-black'
-                    }`}
-                  >
-                    02 Studio
-                  </button>
-                </div>
-              )}
+              {/* Multi-angle Pill Switcher in Hero (Shows all angles available) */}
+              {(() => {
+                const heroImages = getProductAllImages(heroProduct);
+                if (heroImages.length <= 1) return null;
+                const activeImg = heroActiveImage || heroImages[0];
+                return (
+                  <div className="absolute top-5 left-5 z-20 flex items-center gap-1.5 bg-white border border-stone-200 rounded-full p-1 shadow-xs max-w-[85%] overflow-x-auto scrollbar-none">
+                    {heroImages.map((imgUrl, hIdx) => {
+                      const isActive = activeImg === imgUrl;
+                      const label = hIdx === 0 ? '01 Front' : hIdx === 1 ? '02 Studio' : `0${hIdx + 1} Angle`;
+                      return (
+                        <button
+                          key={hIdx}
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setHeroActiveImage(imgUrl); }}
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-mono font-bold uppercase transition-all cursor-pointer whitespace-nowrap ${
+                            isActive ? 'bg-black text-white shadow-xs' : 'text-stone-600 hover:text-black'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Floating Levitating Hero Garment */}
               <motion.div 
@@ -1420,7 +1504,7 @@ export default function SkylineApp() {
                 className="relative z-10 w-full max-w-md mx-auto cursor-pointer group select-none"
               >
                 <img
-                  src={heroActiveAngle === 'secondary' && heroProduct.secondaryImage ? heroProduct.secondaryImage : heroProduct.image}
+                  src={heroActiveImage || heroProduct.image || getProductAllImages(heroProduct)[0]}
                   alt={heroProduct.name}
                   className="w-full h-72 sm:h-96 object-contain drop-shadow-2xl transition-all duration-500"
                 />
@@ -1546,25 +1630,34 @@ export default function SkylineApp() {
                       </span>
                     </div>
 
-                    {/* Garment Image with Dual-Angle Crossfade on Hover */}
+                    {/* Garment Image with Multi-Angle Crossfade on Hover */}
                     <div 
                       onClick={() => openProductModal(item)}
                       className="relative h-44 sm:h-48 flex items-center justify-center cursor-pointer overflow-hidden p-2 select-none"
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-lg ${
-                          item.secondaryImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
-                        }`}
-                      />
-                      {item.secondaryImage && (
-                        <img
-                          src={item.secondaryImage}
-                          alt={`${item.name} studio angle`}
-                          className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-lg group-hover:scale-105"
-                        />
-                      )}
+                      {(() => {
+                        const imgs = getProductAllImages(item);
+                        const primary = item.image || imgs[0];
+                        const secondary = imgs[1] || item.secondaryImage || null;
+                        return (
+                          <>
+                            <img
+                              src={primary}
+                              alt={item.name}
+                              className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-lg ${
+                                secondary ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
+                              }`}
+                            />
+                            {secondary && (
+                              <img
+                                src={secondary}
+                                alt={`${item.name} studio angle`}
+                                className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-lg group-hover:scale-105"
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Sliding Quick View Action on Card Hover */}
@@ -1939,25 +2032,34 @@ export default function SkylineApp() {
                   </span>
                 </div>
 
-                {/* Garment Image with Dual-Angle Crossfade on Hover */}
+                {/* Garment Image with Multi-Angle Crossfade on Hover */}
                 <div
                   onClick={() => openProductModal(product)}
                   className="relative h-52 sm:h-60 flex items-center justify-center my-3 cursor-pointer overflow-hidden p-2 select-none"
                 >
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-xl ${
-                      product.secondaryImage ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
-                    }`}
-                  />
-                  {product.secondaryImage && (
-                    <img
-                      src={product.secondaryImage}
-                      alt={`${product.name} studio angle`}
-                      className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-xl group-hover:scale-105"
-                    />
-                  )}
+                  {(() => {
+                    const imgs = getProductAllImages(product);
+                    const primary = product.image || imgs[0];
+                    const secondary = imgs[1] || product.secondaryImage || null;
+                    return (
+                      <>
+                        <img
+                          src={primary}
+                          alt={product.name}
+                          className={`max-h-full max-w-full object-contain transition-all duration-500 drop-shadow-md rounded-xl ${
+                            secondary ? 'group-hover:opacity-0 group-hover:scale-105' : 'group-hover:scale-105'
+                          }`}
+                        />
+                        {secondary && (
+                          <img
+                            src={secondary}
+                            alt={`${product.name} studio angle`}
+                            className="absolute inset-0 m-auto max-h-full max-w-full object-contain opacity-0 group-hover:opacity-100 transition-all duration-500 drop-shadow-md rounded-xl group-hover:scale-105"
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Sliding Quick Action Pill on Hover */}
@@ -2076,7 +2178,7 @@ export default function SkylineApp() {
                 {storeData?.storeInfo?.ownerRole || 'Founder & Master Stylist'}
               </span>
               <h3 className="text-xl sm:text-2xl font-black text-stone-950 mt-1">
-                {storeData?.storeInfo?.ownerName || 'Skyline Atelier Guild'}
+                {storeData?.storeInfo?.ownerName || 'Furkan & Team • Skyline Atelier'}
               </h3>
             </div>
 
@@ -2115,33 +2217,95 @@ export default function SkylineApp() {
               </a>
             </div>
 
-            {/* 2. Dynamic Atelier Hours */}
-            <div className="bg-white rounded-2xl p-5 border border-stone-200/70 flex flex-col justify-between space-y-3 shadow-xs">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-stone-400">
-                    <Clock className="w-3.5 h-3.5 text-black shrink-0" />
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
-                      Atelier Hours
-                    </span>
+            {/* 2. Dynamic Atelier Hours & Schedule (Synced with Dukandar Portal) */}
+            {(() => {
+              const schedule = storeData?.storeInfo?.weeklySchedule || storeData?.weeklySchedule || null;
+              const daysMap = [
+                { key: 'mon', label: 'Mon' },
+                { key: 'tue', label: 'Tue' },
+                { key: 'wed', label: 'Wed' },
+                { key: 'thu', label: 'Thu' },
+                { key: 'fri', label: 'Fri' },
+                { key: 'sat', label: 'Sat' },
+                { key: 'sun', label: 'Sun' }
+              ];
+              const dayIndex = new Date().getDay(); // 0 is Sun, 1 is Mon...
+              const todayKey = dayIndex === 0 ? 'sun' : daysMap[dayIndex - 1]?.key || 'mon';
+              const todaySchedule = schedule ? schedule[todayKey] : null;
+              const isMasterOpen = storeData?.storeInfo?.isOpen !== false;
+              const isTodayOpen = isMasterOpen && (todaySchedule ? todaySchedule.isOpen !== false : true);
+
+              return (
+                <div className="bg-white rounded-2xl p-5 border border-stone-200/70 flex flex-col justify-between space-y-3 shadow-xs">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-stone-400">
+                        <Clock className="w-3.5 h-3.5 text-black shrink-0" />
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+                          Atelier Hours & Schedule
+                        </span>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                        isTodayOpen ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
+                      }`}>
+                        {isTodayOpen ? '● Open Today' : '○ Closed Today'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-stone-900">
+                        {todaySchedule && todaySchedule.isOpen
+                          ? `Today: ${todaySchedule.open || '10:30 AM'} – ${todaySchedule.close || '10:00 PM'}`
+                          : (storeData?.storeInfo?.timing || 'Mon–Sun: 10:30 AM – 10:00 PM')}
+                      </h4>
+                      <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
+                        {storeData?.storeInfo?.openTillText 
+                          ? `Store timings: ${storeData.storeInfo.openTillText}. Bespoke trials & collection trials available.` 
+                          : 'Dukandar portal se live synced schedule. Bespoke fittings & orders available.'}
+                      </p>
+                    </div>
+
+                    {/* 7-Day Live Weekly Schedule Breakdown */}
+                    {schedule && typeof schedule === 'object' && (
+                      <div className="pt-2 border-t border-stone-100">
+                        <span className="text-[9px] font-mono uppercase font-bold text-stone-400 block mb-1.5">
+                          Weekly Working Days:
+                        </span>
+                        <div className="grid grid-cols-7 gap-1 text-center">
+                          {daysMap.map(d => {
+                            const dayData = schedule[d.key];
+                            const dayOpen = dayData ? dayData.isOpen !== false : true;
+                            const isToday = d.key === todayKey;
+                            return (
+                              <div
+                                key={d.key}
+                                className={`py-1 px-0.5 rounded-lg text-[9px] font-mono transition-all ${
+                                  isToday
+                                    ? 'bg-black text-white font-black shadow-xs ring-1 ring-black'
+                                    : dayOpen
+                                      ? 'bg-stone-50 text-stone-700 border border-stone-100'
+                                      : 'bg-red-50 text-red-500 border border-red-100'
+                                }`}
+                              >
+                                <span className="block font-bold">{d.label}</span>
+                                <span className="block text-[8px] opacity-80 mt-0.5">
+                                  {dayOpen ? 'Open' : 'Off'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                    storeData?.storeInfo?.isOpen !== false ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'
-                  }`}>
-                    {storeData?.storeInfo?.isOpen !== false ? '● Open Today' : '○ Closed Today'}
-                  </span>
+
+                  <div className="text-[10px] font-mono text-stone-400 flex items-center justify-between">
+                    <span>Weekly Schedule Synced with Dukandar Portal</span>
+                    <span className="text-emerald-700 font-bold">● Live Sync</span>
+                  </div>
                 </div>
-                <h4 className="text-sm font-bold text-stone-900">
-                  {storeData?.storeInfo?.timing || (storeData?.storeInfo?.openTillText ? `Open Daily • ${storeData?.storeInfo?.openTillText}` : 'Mon–Sun: 10:30 AM – 10:00 PM')}
-                </h4>
-                <p className="text-xs text-stone-500 leading-relaxed">
-                  {storeData?.storeInfo?.openTillText ? `Store timings: ${storeData.storeInfo.openTillText}. Bespoke trials & collection trials available.` : 'Open all 7 days for custom bespoke trials, measurements and collection pick-ups.'}
-                </p>
-              </div>
-              <div className="text-[10px] font-mono text-stone-400">
-                Weekly Schedule Synced with Dukandar Portal
-              </div>
-            </div>
+              );
+            })()}
 
             {/* 3. Concierge & Multi-Channel Contact (Full Width) */}
             <div className="sm:col-span-2 bg-stone-900 text-white rounded-2xl p-5 space-y-3 shadow-md">
@@ -2360,34 +2524,32 @@ export default function SkylineApp() {
                         className="max-h-full max-w-full object-contain drop-shadow-xl"
                       />
                     </div>
-                    {selectedProduct.secondaryImage && (
-                      <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-200 w-full justify-center">
-                        <button
-                          type="button"
-                          onClick={() => setModalActiveImage(selectedProduct.image)}
-                          className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
-                            (!modalActiveImage || modalActiveImage === selectedProduct.image)
-                              ? 'border-black ring-1 ring-black'
-                              : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
-                          }`}
-                          title="Primary Angle"
-                        >
-                          <img src={selectedProduct.image} alt="Primary" className="w-full h-full object-contain" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setModalActiveImage(selectedProduct.secondaryImage)}
-                          className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all ${
-                            modalActiveImage === selectedProduct.secondaryImage
-                              ? 'border-black ring-1 ring-black'
-                              : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
-                          }`}
-                          title="Lookbook / Alternate Angle"
-                        >
-                          <img src={selectedProduct.secondaryImage} alt="Secondary" className="w-full h-full object-contain" />
-                        </button>
-                      </div>
-                    )}
+                    {(() => {
+                      const allImages = getProductAllImages(selectedProduct);
+                      if (allImages.length <= 1) return null;
+                      return (
+                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-stone-200 w-full justify-center overflow-x-auto pb-1 scrollbar-none max-w-full">
+                          {allImages.map((imgUrl, idx) => {
+                            const isCurrent = (modalActiveImage || selectedProduct.image) === imgUrl;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setModalActiveImage(imgUrl)}
+                                className={`w-11 h-11 rounded-lg border-2 overflow-hidden p-0.5 bg-white cursor-pointer transition-all shrink-0 ${
+                                  isCurrent
+                                    ? 'border-black ring-1 ring-black shadow-xs'
+                                    : 'border-stone-200 hover:border-stone-400 opacity-60 hover:opacity-100'
+                                }`}
+                                title={`Angle 0${idx + 1}`}
+                              >
+                                <img src={imgUrl} alt={`Angle ${idx + 1}`} className="w-full h-full object-contain" />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Product Details & Selection */}
@@ -2424,13 +2586,19 @@ export default function SkylineApp() {
                         <div className="flex items-center flex-wrap gap-2">
                           {selectedProduct.colors.map((c, idx) => {
                             const cName = typeof c === 'string' ? c : (c.name || 'Classic');
-                            const cHex = typeof c === 'object' && c.hex ? c.hex : '#111827';
+                            const cHex = typeof c === 'object' && c.hex ? c.hex : '#1A1A1A';
+                            const cImage = typeof c === 'object' ? c.image : null;
                             const isSelected = (modalColor || (typeof selectedProduct.colors[0] === 'string' ? selectedProduct.colors[0] : selectedProduct.colors[0]?.name)) === cName;
                             return (
                               <button
                                 key={idx}
                                 type="button"
-                                onClick={() => setModalColor(cName)}
+                                onClick={() => {
+                                  setModalColor(cName);
+                                  if (cImage) {
+                                    setModalActiveImage(cImage);
+                                  }
+                                }}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                                   isSelected
                                     ? 'bg-black text-white border-black shadow-xs'
@@ -2442,6 +2610,9 @@ export default function SkylineApp() {
                                   style={{ backgroundColor: cHex }}
                                 />
                                 <span>{cName}</span>
+                                {cImage && (
+                                  <span className="text-[9px] opacity-70 ml-0.5" title="Has dedicated color photo">📷</span>
+                                )}
                               </button>
                             );
                           })}
@@ -2479,7 +2650,7 @@ export default function SkylineApp() {
                         whileTap={{ scale: 0.97 }}
                         type="button"
                         onClick={() => {
-                          addToCart(selectedProduct, modalSize, modalColor);
+                          addToCart(selectedProduct, modalSize, modalColor, modalActiveImage);
                           setSelectedProduct(null);
                           setModalActiveImage('');
                           setModalColor('');
@@ -2976,16 +3147,30 @@ export default function SkylineApp() {
                       </button>
                     </div>
 
-                    {/* GPS Status / Error Message */}
-                    {orderLiveGps && (
+                    {/* GPS Status / Landmark Status / Warning */}
+                    {orderLiveGps ? (
                       <div className="bg-emerald-100/70 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-2 font-mono">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                         <span>
                           Live GPS Verified: {orderLiveGps.lat.toFixed(4)}°N, {orderLiveGps.lng.toFixed(4)}°E (Accuracy ~{Math.round(orderLiveGps.accuracy || 10)}m)
                         </span>
                       </div>
+                    ) : selectedLandmarkChip ? (
+                      <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                        <span className="font-semibold">
+                          Delivery Landmark Selected: {selectedLandmarkChip}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded-lg text-[10px] flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          <strong className="text-amber-950">Location Verification Mandatory:</strong> Kripya delivery ke liye "Detect GPS Location" dabayein ya neeche apna nearest landmark select karein.
+                        </span>
+                      </div>
                     )}
-                    {gpsError && (
+                    {gpsError && !orderLiveGps && (
                       <div className="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-1.5 rounded-lg text-[10px] flex items-center gap-1.5">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         <span>{gpsError}</span>
@@ -2995,7 +3180,7 @@ export default function SkylineApp() {
                     {/* Popular Churu Landmarks Quick Chips */}
                     <div>
                       <span className="block text-[10px] font-semibold text-stone-500 mb-1">
-                        Select Nearest Landmark in Churu:
+                        Select Nearest Landmark in Churu * (Mandatory agar GPS na ho):
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {CHURU_POPULAR_LANDMARKS.map((lm) => (
@@ -3005,7 +3190,7 @@ export default function SkylineApp() {
                             onClick={() => handleSelectLandmarkChip(lm)}
                             className={`text-[10px] px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                               selectedLandmarkChip === lm
-                                ? 'bg-black text-white font-bold'
+                                ? 'bg-black text-white font-bold shadow-xs'
                                 : 'bg-white border border-stone-200 text-stone-700 hover:border-black'
                             }`}
                           >
@@ -3019,10 +3204,11 @@ export default function SkylineApp() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
-                          House / Flat / Shop No.
+                          House / Flat / Shop No. <span className="text-red-600">* (Mandatory)</span>
                         </label>
                         <input
                           type="text"
+                          required
                           value={houseNo}
                           onChange={(e) => setHouseNo(e.target.value)}
                           placeholder="e.g. House No. 42, 2nd Floor"
@@ -3032,7 +3218,7 @@ export default function SkylineApp() {
 
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-stone-600 mb-1">
-                          Street / Colony / Ward *
+                          Street / Colony / Ward <span className="text-red-600">* (Mandatory)</span>
                         </label>
                         <input
                           type="text"

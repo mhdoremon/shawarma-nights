@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check, Package } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check, Package, Camera } from 'lucide-react';
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
 
 export default function MenuTab() {
@@ -40,8 +40,14 @@ export default function MenuTab() {
 
   const fileInputRef = useRef(null);
   const secondaryFileInputRef = useRef(null);
+  const angleFileInputRef = useRef(null);
+  const colorFileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingSecondary, setIsUploadingSecondary] = useState(false);
+  const [isUploadingAngle, setIsUploadingAngle] = useState(false);
+  const [isUploadingColorPhoto, setIsUploadingColorPhoto] = useState(false);
+  const [colorUploadIndex, setColorUploadIndex] = useState(null);
+  const [newAngleUrl, setNewAngleUrl] = useState('');
   const [customColorName, setCustomColorName] = useState('');
   const [customColorHex, setCustomColorHex] = useState('#0D0D0D');
 
@@ -176,13 +182,17 @@ export default function MenuTab() {
     });
   };
 
-  // Handle Image File Upload (Device / Gallery) for Primary & Secondary Angle
-  const handleImageUpload = async (e, targetField = 'image') => {
+  // Handle Image File Upload (Device / Gallery) for Primary, Multi-Angles & Colors
+  const handleImageUpload = async (e, targetField = 'image', extraIndex = null) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (targetField === 'secondaryImage') {
       setIsUploadingSecondary(true);
+    } else if (targetField === 'add_angle') {
+      setIsUploadingAngle(true);
+    } else if (targetField === 'color') {
+      setIsUploadingColorPhoto(true);
     } else {
       setIsUploading(true);
     }
@@ -191,6 +201,7 @@ export default function MenuTab() {
       const compressedBase64 = await compressImage(file);
       if (!compressedBase64) throw new Error('Compression failed');
 
+      let finalUrl = compressedBase64;
       try {
         const res = await fetch(`https://churuone-backend.onrender.com/api/upload`, {
           method: 'POST',
@@ -205,24 +216,62 @@ export default function MenuTab() {
         });
         const data = await res.json();
         if (data.success && data.url) {
-          setModalItem(prev => ({ ...prev, [targetField]: data.url }));
-          showToast(`${targetField === 'secondaryImage' ? 'Angle 2 (Lookbook) photo' : 'Primary photo'} uploaded successfully!`, 'success');
-        } else {
-          setModalItem(prev => ({ ...prev, [targetField]: compressedBase64 }));
-          showToast(`${targetField === 'secondaryImage' ? 'Angle 2 photo' : 'Photo'} loaded from device`, 'info');
+          finalUrl = data.url;
         }
       } catch (err) {
-        setModalItem(prev => ({ ...prev, [targetField]: compressedBase64 }));
-        showToast(`${targetField === 'secondaryImage' ? 'Angle 2 photo' : 'Photo'} loaded from device`, 'info');
+        console.warn('Backend upload fallback:', err);
+      }
+
+      if (targetField === 'add_angle') {
+        setModalItem(prev => {
+          const currentImgs = Array.isArray(prev.images) ? [...prev.images] : [];
+          if (!currentImgs.includes(finalUrl)) currentImgs.push(finalUrl);
+          return {
+            ...prev,
+            images: currentImgs,
+            secondaryImage: prev.secondaryImage || currentImgs[1] || finalUrl
+          };
+        });
+        showToast('Naya angle photo add ho gaya!', 'success');
+      } else if (targetField === 'color') {
+        const cIdx = extraIndex !== null ? extraIndex : colorUploadIndex;
+        if (cIdx !== null && cIdx !== undefined) {
+          setModalItem(prev => {
+            const currentColors = Array.isArray(prev.colors) ? [...prev.colors] : [];
+            if (currentColors[cIdx]) {
+              const updatedColor = typeof currentColors[cIdx] === 'string'
+                ? { name: currentColors[cIdx], hex: '#1A1A1A', image: finalUrl }
+                : { ...currentColors[cIdx], image: finalUrl };
+              currentColors[cIdx] = updatedColor;
+
+              // If default or marked front cover, sync with primary image
+              const isFront = updatedColor.isDefault || prev.defaultColor === updatedColor.name;
+              return {
+                ...prev,
+                colors: currentColors,
+                image: isFront ? finalUrl : prev.image
+              };
+            }
+            return prev;
+          });
+          showToast('Color photo upload ho gaya!', 'success');
+        }
+      } else if (targetField === 'secondaryImage') {
+        setModalItem(prev => ({ ...prev, secondaryImage: finalUrl }));
+        showToast('Angle 2 photo loaded!', 'success');
+      } else {
+        setModalItem(prev => ({ ...prev, image: finalUrl }));
+        showToast('Primary photo loaded!', 'success');
       }
     } catch (err) {
       showToast('Error processing image', 'error');
     } finally {
-      if (targetField === 'secondaryImage') {
-        setIsUploadingSecondary(false);
-      } else {
-        setIsUploading(false);
-      }
+      setIsUploading(false);
+      setIsUploadingSecondary(false);
+      setIsUploadingAngle(false);
+      setIsUploadingColorPhoto(false);
+      setColorUploadIndex(null);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -240,15 +289,43 @@ export default function MenuTab() {
       availableSizes = availableSizes.split(',').map(s => s.trim()).filter(Boolean);
     }
 
-    // Process colors
+    // Process colors with image & isDefault
     let colors = modalItem.colors;
     if (typeof colors === 'string') {
       colors = colors.split(',').map(c => {
         const trimmed = c.trim();
-        return { name: trimmed, hex: '#1A1A1A' };
+        return { name: trimmed, hex: '#1A1A1A', image: '', isDefault: false };
       }).filter(Boolean);
     } else if (Array.isArray(colors)) {
-      colors = colors.map(c => typeof c === 'string' ? { name: c.trim(), hex: '#1A1A1A' } : c).filter(c => c && c.name);
+      colors = colors.map((c, idx) => {
+        if (typeof c === 'string') {
+          return { name: c.trim(), hex: '#1A1A1A', image: '', isDefault: idx === 0 };
+        }
+        return {
+          name: c.name || '',
+          hex: c.hex || '#1A1A1A',
+          image: c.image || '',
+          isDefault: Boolean(c.isDefault || modalItem.defaultColor === c.name)
+        };
+      }).filter(c => c && c.name);
+    }
+
+    // Process images list (multi-angle gallery)
+    let imagesList = Array.isArray(modalItem.images) ? [...modalItem.images].filter(Boolean) : [];
+    if (modalItem.image && !imagesList.includes(modalItem.image)) {
+      imagesList.unshift(modalItem.image);
+    }
+    if (modalItem.secondaryImage && !imagesList.includes(modalItem.secondaryImage)) {
+      imagesList.push(modalItem.secondaryImage);
+    }
+
+    // Default color & primary cover image resolution
+    const defaultColorObj = (Array.isArray(colors) && colors.find(c => c.isDefault || c.name === modalItem.defaultColor)) || (colors && colors[0]);
+    const chosenDefaultColor = defaultColorObj?.name || modalItem.defaultColor || '';
+
+    let primaryImage = modalItem.image || imagesList[0] || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80';
+    if (defaultColorObj?.image && (modalItem.defaultColor === defaultColorObj.name || defaultColorObj.isDefault)) {
+      primaryImage = defaultColorObj.image;
     }
 
     // Process durationMinutes for salons & appointment services
@@ -305,10 +382,12 @@ export default function MenuTab() {
       time: durMins || modalItem.time,
       description: modalItem.description || '',
       available: modalItem.available !== false,
-      image: modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80',
+      image: primaryImage,
       availableSizes: hasSizes ? (Array.isArray(availableSizes) && availableSizes.length > 0 ? availableSizes : (modalItem.availableSizes || [])) : [],
       colors: hasColors ? (Array.isArray(colors) && colors.length > 0 ? colors : (modalItem.colors || [])) : [],
-      secondaryImage: hasLookbook ? (modalItem.secondaryImage || '') : '',
+      defaultColor: chosenDefaultColor,
+      images: imagesList,
+      secondaryImage: hasLookbook ? (imagesList[1] || modalItem.secondaryImage || '') : '',
       addons: hasFoodAddons ? addonsList : [],
       options: updatedOptions,
       bookingFee: hasServiceDuration ? (modalItem.bookingFee !== undefined ? Number(modalItem.bookingFee) : 50) : undefined
@@ -716,6 +795,11 @@ export default function MenuTab() {
                         } else {
                           setModalItem({ 
                             ...dish, 
+                            images: Array.isArray(dish.images) && dish.images.length > 0 
+                              ? dish.images 
+                              : [dish.image, dish.secondaryImage].filter(Boolean),
+                            colors: Array.isArray(dish.colors) ? dish.colors : [],
+                            defaultColor: dish.defaultColor || '',
                             type: dish.type || dish.tier || 'standard',
                             breadList: dish.options?.bread || [],
                             spicinessList: dish.options?.spiciness || ['Mild Herb', 'Spicy Garlic', 'Ghost Naga Fire'],
@@ -792,7 +876,21 @@ export default function MenuTab() {
                     <input
                       type="file"
                       ref={fileInputRef}
-                      onChange={handleImageUpload}
+                      onChange={(e) => handleImageUpload(e, 'image')}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <input
+                      type="file"
+                      ref={angleFileInputRef}
+                      onChange={(e) => handleImageUpload(e, 'add_angle')}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <input
+                      type="file"
+                      ref={colorFileInputRef}
+                      onChange={(e) => handleImageUpload(e, 'color', colorUploadIndex)}
                       accept="image/*"
                       className="hidden"
                     />
@@ -1113,48 +1211,150 @@ export default function MenuTab() {
                     </div>
                   )}
 
-                  {/* COLORS & SWATCH BUILDER (Fashion & Retail) */}
+                  {/* COLORS & SWATCH BUILDER (Har Color Ki Alag Photo & Front Color Selector) */}
                   {hasColors && (
-                    <div className="space-y-2.5 bg-white p-3.5 rounded-2xl border border-zinc-200/80">
+                    <div className="space-y-3 bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-2xs">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
-                          COLOR SWATCHES & SHADES (मल्टी-कलर विकल्प)
-                        </label>
-                        <span className="text-[10px] text-zinc-400 font-mono">
-                          {Array.isArray(modalItem.colors) ? modalItem.colors.length : 0} Colors Added
+                        <div>
+                          <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                            COLOR VARIANTS & SPECIFIC PHOTOS (कलर विकल्प व फोटो)
+                          </label>
+                          <span className="text-[10px] text-zinc-400">
+                            Har color ke liye alag photo upload karein aur front-facing default color chunein
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 font-mono font-bold bg-zinc-100 px-2 py-0.5 rounded-full">
+                          {Array.isArray(modalItem.colors) ? modalItem.colors.length : 0} Colors
                         </span>
                       </div>
 
-                      {/* Currently Selected Color Swatches List */}
+                      {/* Currently Selected Color Variants with Individual Photos */}
                       {Array.isArray(modalItem.colors) && modalItem.colors.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pb-1">
+                        <div className="space-y-2.5 pt-1">
                           {modalItem.colors.map((c, cIdx) => {
-                            const cName = typeof c === 'string' ? c : c.name;
+                            const cName = typeof c === 'string' ? c : (c.name || 'Color');
                             const cHex = typeof c === 'object' && c.hex ? c.hex : '#1A1A1A';
+                            const cImg = typeof c === 'object' ? c.image : '';
+                            const isFront = (modalItem.defaultColor === cName) || Boolean(c.isDefault) || (cIdx === 0 && !modalItem.defaultColor);
+
                             return (
-                              <span 
+                              <div 
                                 key={cIdx}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-100 text-zinc-800 text-xs font-bold border border-zinc-200 shadow-2xs"
+                                className={`p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${
+                                  isFront ? 'border-zinc-900 bg-stone-50/70 shadow-xs' : 'border-zinc-200 bg-white'
+                                }`}
                               >
-                                <span 
-                                  className="w-3.5 h-3.5 rounded-full border border-black/15 shadow-2xs shrink-0" 
-                                  style={{ backgroundColor: cHex }} 
-                                />
-                                <span>{cName}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setModalItem(prev => ({
-                                      ...prev,
-                                      colors: prev.colors.filter((_, i) => i !== cIdx)
-                                    }));
-                                  }}
-                                  className="w-4 h-4 rounded-full hover:bg-zinc-300 flex items-center justify-center text-zinc-500 hover:text-black cursor-pointer border-0 p-0 ml-0.5"
-                                  title="Remove color"
-                                >
-                                  ×
-                                </button>
-                              </span>
+                                {/* Left: Color Hex Swatch, Name and Default Pill */}
+                                <div className="flex items-center gap-2.5 min-w-[160px]">
+                                  <span 
+                                    className="w-5 h-5 rounded-full border border-black/20 shadow-2xs shrink-0" 
+                                    style={{ backgroundColor: cHex }} 
+                                  />
+                                  <div>
+                                    <span className="text-xs font-bold text-zinc-900 block">
+                                      {cName}
+                                    </span>
+                                    <span className="text-[9px] font-mono text-zinc-400">
+                                      {cHex}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Center: Color-Specific Photo Upload / Thumbnail */}
+                                <div className="flex items-center gap-2 flex-1 justify-start sm:justify-center">
+                                  {cImg ? (
+                                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-zinc-200">
+                                      <img 
+                                        src={cImg} 
+                                        alt={cName} 
+                                        className="w-8 h-8 rounded-md object-cover border border-zinc-200" 
+                                      />
+                                      <span className="text-[10px] text-zinc-600 font-medium truncate max-w-[100px]">Photo Added</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setColorUploadIndex(cIdx);
+                                          colorFileInputRef.current?.click();
+                                        }}
+                                        className="text-[10px] font-bold text-zinc-900 hover:underline cursor-pointer border-0 bg-transparent p-0"
+                                      >
+                                        Change
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setModalItem(prev => {
+                                            const updated = [...prev.colors];
+                                            updated[cIdx] = { ...updated[cIdx], image: '' };
+                                            return { ...prev, colors: updated };
+                                          });
+                                        }}
+                                        className="text-[10px] text-red-500 hover:text-red-700 cursor-pointer border-0 bg-transparent p-0"
+                                        title="Remove photo"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setColorUploadIndex(cIdx);
+                                        colorFileInputRef.current?.click();
+                                      }}
+                                      className="py-1 px-2.5 rounded-lg border border-dashed border-zinc-300 hover:border-black text-[10px] font-bold text-zinc-600 hover:text-black flex items-center gap-1.5 cursor-pointer bg-white transition-colors"
+                                    >
+                                      <Camera className="w-3 h-3 text-zinc-500" />
+                                      <span>+ Upload Photo for {cName}</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Right: Set as Front Cover & Delete Button */}
+                                <div className="flex items-center gap-2 justify-end">
+                                  {isFront ? (
+                                    <span className="px-2.5 py-1 rounded-full bg-black text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                                      ★ Front Cover
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setModalItem(prev => {
+                                          const updatedColors = prev.colors.map((item, i) => {
+                                            const itemObj = typeof item === 'string' ? { name: item, hex: '#1A1A1A' } : { ...item };
+                                            return { ...itemObj, isDefault: i === cIdx };
+                                          });
+                                          return {
+                                            ...prev,
+                                            defaultColor: cName,
+                                            colors: updatedColors,
+                                            image: cImg || prev.image
+                                          };
+                                        });
+                                        showToast(`"${cName}" ko front cover color set kiya gaya!`, 'info');
+                                      }}
+                                      className="px-2.5 py-1 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-[10px] font-bold cursor-pointer border-0 transition-colors"
+                                    >
+                                      Set as Front
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setModalItem(prev => ({
+                                        ...prev,
+                                        colors: prev.colors.filter((_, i) => i !== cIdx)
+                                      }));
+                                    }}
+                                    className="w-6 h-6 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-600 flex items-center justify-center cursor-pointer border-0 p-0 text-sm font-bold"
+                                    title="Delete this color"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              </div>
                             );
                           })}
                         </div>
@@ -1190,7 +1390,7 @@ export default function MenuTab() {
                                   if (!isAlready) {
                                     setModalItem({
                                       ...modalItem,
-                                      colors: [...current, preset]
+                                      colors: [...current, { ...preset, image: '', isDefault: current.length === 0 }]
                                     });
                                   }
                                 }}
@@ -1231,7 +1431,7 @@ export default function MenuTab() {
                                 const current = Array.isArray(modalItem.colors) ? [...modalItem.colors] : [];
                                 setModalItem({
                                   ...modalItem,
-                                  colors: [...current, { name: customColorName.trim(), hex: customColorHex }]
+                                  colors: [...current, { name: customColorName.trim(), hex: customColorHex, image: '', isDefault: current.length === 0 }]
                                 });
                                 setCustomColorName('');
                               }
@@ -1248,7 +1448,7 @@ export default function MenuTab() {
                             const current = Array.isArray(modalItem.colors) ? [...modalItem.colors] : [];
                             setModalItem({
                               ...modalItem,
-                              colors: [...current, { name: customColorName.trim(), hex: customColorHex }]
+                              colors: [...current, { name: customColorName.trim(), hex: customColorHex, image: '', isDefault: current.length === 0 }]
                             });
                             setCustomColorName('');
                           }}
@@ -1260,73 +1460,144 @@ export default function MenuTab() {
                     </div>
                   )}
 
-                  {/* DUAL-PHOTO: ANGLE 2 / STUDIO LOOKBOOK PHOTO */}
+                  {/* MULTI-ANGLE & LOOKBOOK PHOTO GALLERY (UNLIMITED ANGLES) */}
                   {hasLookbook && (
-                    <div className="space-y-2.5 bg-white p-3.5 rounded-2xl border border-zinc-200/80">
+                    <div className="space-y-3 bg-white p-4 rounded-2xl border border-zinc-200/80 shadow-2xs">
                       <div className="flex items-center justify-between">
-                        <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
-                          ANGLE 2: SECONDARY / LOOKBOOK PHOTO (2-ANGLE CROSSFADE)
-                        </label>
-                        {isUploadingSecondary && <span className="text-[10px] text-zinc-500 font-bold">Uploading Angle 2...</span>}
+                        <div>
+                          <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                            MULTI-ANGLE & LOOKBOOK GALLERY (अनलिमिटेड एंगल्स)
+                          </label>
+                          <span className="text-[10px] text-zinc-400">
+                            Jitne chahein angles (Front, Side, Studio, Detail) upload karein
+                          </span>
+                        </div>
+                        {isUploadingAngle && <span className="text-[10px] text-zinc-500 font-bold animate-pulse">Uploading Angle...</span>}
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <div className="w-18 h-18 rounded-2xl bg-zinc-100 overflow-hidden shrink-0 border border-zinc-200 flex items-center justify-center relative">
-                          {modalItem.secondaryImage ? (
-                            <img
-                              src={modalItem.secondaryImage}
-                              alt="Angle 2 Preview"
-                              className="w-full h-full object-cover"
-                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80'; }}
-                            />
-                          ) : (
-                            <div className="text-center p-1">
-                              <ImageIcon className="w-6 h-6 text-zinc-300 mx-auto" />
-                              <span className="text-[9px] text-zinc-400 font-bold block mt-0.5">No Angle 2</span>
-                            </div>
-                          )}
+                      {/* Existing Uploaded Angles Grid */}
+                      {Array.isArray(modalItem.images) && modalItem.images.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                          {modalItem.images.map((imgUrl, aIdx) => {
+                            const isMain = (modalItem.image === imgUrl) || (aIdx === 0 && !modalItem.image);
+                            return (
+                              <div 
+                                key={aIdx} 
+                                className={`relative group rounded-xl p-2 border flex flex-col justify-between transition-all bg-stone-50 ${
+                                  isMain ? 'border-zinc-900 ring-1 ring-zinc-900' : 'border-zinc-200 hover:border-zinc-400'
+                                }`}
+                              >
+                                <div className="h-28 w-full rounded-lg overflow-hidden bg-white border border-zinc-200 flex items-center justify-center relative mb-2">
+                                  <img 
+                                    src={imgUrl} 
+                                    alt={`Angle ${aIdx + 1}`} 
+                                    className="max-h-full max-w-full object-contain" 
+                                  />
+                                  <span className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
+                                    0{aIdx + 1}
+                                  </span>
+                                  {isMain && (
+                                    <span className="absolute bottom-1 right-1 bg-black text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                      Front Cover
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1.5 justify-between">
+                                  {!isMain ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setModalItem(prev => ({
+                                          ...prev,
+                                          image: imgUrl
+                                        }));
+                                        showToast(`Angle 0${aIdx + 1} ko Front Cover photo banaya gaya!`, 'info');
+                                      }}
+                                      className="flex-1 py-1 px-2 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[10px] font-bold border-0 cursor-pointer text-center"
+                                    >
+                                      Make Cover
+                                    </button>
+                                  ) : (
+                                    <span className="flex-1 py-1 px-2 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] font-bold text-center">
+                                      ✓ Cover Photo
+                                    </span>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setModalItem(prev => {
+                                        const updated = prev.images.filter((_, i) => i !== aIdx);
+                                        return {
+                                          ...prev,
+                                          images: updated,
+                                          secondaryImage: updated[1] || updated[0] || ''
+                                        };
+                                      });
+                                    }}
+                                    className="p-1 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 border-0 cursor-pointer"
+                                    title="Delete Angle"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Add New Angle Actions: Device Upload & URL input */}
+                      <div className="p-3 bg-stone-50 rounded-xl border border-dashed border-zinc-300 space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => angleFileInputRef.current?.click()}
+                            disabled={isUploadingAngle}
+                            className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>+ Naya Angle Device Se Upload Karein</span>
+                          </button>
                         </div>
 
-                        <div className="flex-1 space-y-2">
-                          <input
-                            type="file"
-                            ref={secondaryFileInputRef}
-                            onChange={(e) => handleImageUpload(e, 'secondaryImage')}
-                            accept="image/*"
-                            className="hidden"
-                          />
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => secondaryFileInputRef.current?.click()}
-                              className="flex-1 py-2 px-3 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0"
-                            >
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>Angle 2 Gallery Se Upload Karein</span>
-                            </button>
-                            {modalItem.secondaryImage && (
-                              <button
-                                type="button"
-                                onClick={() => setModalItem({ ...modalItem, secondaryImage: '' })}
-                                className="px-3 py-2 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 text-xs font-bold border-0 cursor-pointer"
-                                title="Remove Angle 2"
-                              >
-                                Clear
-                              </button>
-                            )}
-                          </div>
-
+                        <div className="flex items-center gap-2">
                           <input
                             type="url"
-                            value={modalItem.secondaryImage || ''}
-                            onChange={(e) => setModalItem({ ...modalItem, secondaryImage: e.target.value })}
-                            placeholder="Or enter Angle 2 Photo URL (Studio / Model Angle)"
-                            className="w-full bg-[#FFFBF7] rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-black shadow-2xs border-0 font-mono"
+                            value={newAngleUrl}
+                            onChange={(e) => setNewAngleUrl(e.target.value)}
+                            placeholder="Ya Naye Angle Ka Image URL Yahan Paste Karein..."
+                            className="flex-1 bg-white rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-black border border-zinc-200 font-mono"
                           />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newAngleUrl.trim()) {
+                                showToast('Pehle Image URL enter karein', 'warning');
+                                return;
+                              }
+                              setModalItem(prev => {
+                                const currentImgs = Array.isArray(prev.images) ? [...prev.images] : [];
+                                if (!currentImgs.includes(newAngleUrl.trim())) currentImgs.push(newAngleUrl.trim());
+                                return {
+                                  ...prev,
+                                  images: currentImgs,
+                                  secondaryImage: prev.secondaryImage || currentImgs[1] || newAngleUrl.trim()
+                                };
+                              });
+                              setNewAngleUrl('');
+                              showToast('Angle URL add ho gaya!', 'success');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 text-zinc-900 text-xs font-bold whitespace-nowrap cursor-pointer border-0"
+                          >
+                            + Add URL
+                          </button>
                         </div>
                       </div>
-                      <span className="text-[10px] text-zinc-400 block">
-                        💡 Website par product card ke upar mouse le jaane (hover karne) par ye Angle 2 photo crossfade transition ke sath smooth dikhegi.
+
+                      <span className="text-[10px] text-zinc-400 block leading-tight">
+                        💡 Website par product card hover karne par agla angle crossfade hoga, hero banner me multi-angle pills aayenge, aur quick view modal me horizontal thumbnail gallery dikhegi.
                       </span>
                     </div>
                   )}
