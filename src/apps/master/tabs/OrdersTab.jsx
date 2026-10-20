@@ -100,7 +100,8 @@ export default function OrdersTab() {
 
   // Capability-driven feature flags
   const hasAppointments = Boolean(capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
-  const hasKotPrinting = Boolean(capabilities?.orders?.hasKotPrinting ?? !hasAppointments);
+  const isFashion = Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || storeId === 'skyline');
+  const hasKotPrinting = Boolean(capabilities?.orders?.hasKotPrinting ?? (!hasAppointments && !isFashion));
   const hasRiderDispatch = Boolean(capabilities?.orders?.hasRiderDispatch ?? !hasAppointments);
   const hasOtpDelivery = Boolean(capabilities?.orders?.hasOtpDelivery ?? hasRiderDispatch);
   const hasTimelineMatrix = Boolean(capabilities?.orders?.hasTimelineMatrix ?? hasAppointments);
@@ -264,8 +265,18 @@ export default function OrdersTab() {
   const [activeOrderView, setActiveOrderView] = useState('today'); // 'today' | 'history'
   const [historyPeriod, setHistoryPeriod] = useState('week'); // 'week' | 'month' | 'year' | 'all'
 
-  // Helper to check if order was placed today
+  // Helper to check if order should be visible in Today's active pipeline
   const isOrderToday = (o) => {
+    if (!o) return false;
+    // CRITICAL UNIVERSAL FIX: Any active, unfulfilled order (new, pending, payment_pending, pending_upi, confirmed, preparing, packing, ready, out_for_delivery, dispatched, on_the_way)
+    // MUST ALWAYS be visible in today's active management pipeline!
+    // A Dukandar must NEVER lose sight of pending or active orders due to midnight rollover or server/local timezone offsets.
+    const activeStatuses = ['new', 'pending', 'payment_pending', 'pending_upi', 'confirmed', 'preparing', 'packing', 'ready', 'out_for_delivery', 'dispatched', 'on_the_way', 'placed'];
+    const st = (o.status || '').toLowerCase();
+    if (activeStatuses.includes(st)) {
+      return true;
+    }
+
     const rawDate = o.createdAt || o.date || o.dateISO;
     if (!rawDate) return true;
     const d = new Date(rawDate);
@@ -289,18 +300,23 @@ export default function OrdersTab() {
     });
   }, [orders]);
 
-  // Filtered Today's orders with 4 Pipeline Stages (NEW, KITCHEN, DISPATCHED, DELIVERED)
+  // Filtered Today's orders with 4 Pipeline Stages (NEW, KITCHEN/PACKING, DISPATCHED, DELIVERED)
   const todayOrders = useMemo(() => {
     let list = [...uniqueTodayOrders];
 
+    const isNew = (st) => ['new', 'pending', 'payment_pending', 'pending_upi', 'confirmed', 'placed'].includes(st) || !st;
+    const isKitchen = (st) => ['preparing', 'packing', 'ready', 'in_kitchen'].includes(st);
+    const isDispatched = (st) => ['out_for_delivery', 'dispatched', 'on_the_way', 'shipped'].includes(st);
+    const isDelivered = (st) => ['delivered', 'completed'].includes(st);
+
     if (statusFilter === 'NEW') {
-      list = list.filter(o => o.status === 'new' || o.status === 'pending' || o.status === 'payment_pending' || o.status === 'pending_upi');
+      list = list.filter(o => isNew((o.status || '').toLowerCase()));
     } else if (statusFilter === 'KITCHEN') {
-      list = list.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing');
+      list = list.filter(o => isKitchen((o.status || '').toLowerCase()));
     } else if (statusFilter === 'DISPATCHED') {
-      list = list.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way');
+      list = list.filter(o => isDispatched((o.status || '').toLowerCase()));
     } else if (statusFilter === 'DELIVERED') {
-      list = list.filter(o => o.status === 'delivered' || o.status === 'completed');
+      list = list.filter(o => isDelivered((o.status || '').toLowerCase()));
     }
 
     if (searchQuery.trim()) {
@@ -391,13 +407,13 @@ export default function OrdersTab() {
     return { totalOrders, totalRevenue, deliveredCount, aov };
   }, [historyOrders]);
 
-  // 4 Pipeline Stages requested: NEW, KITCHEN, DISPATCHED, DELIVERED
+  // 4 Pipeline Stages: NEW, KITCHEN/PACKING, DISPATCHED/SHIPPED, DELIVERED
   const filterTabs = [
     { id: 'ALL', label: "TODAY'S ALL" },
     { id: 'NEW', label: 'NEW' },
-    { id: 'KITCHEN', label: hasAppointments ? 'IN CHAIR' : 'KITCHEN' },
-    { id: 'DISPATCHED', label: hasAppointments ? 'IN SERVICE' : 'DISPATCHED' },
-    { id: 'DELIVERED', label: 'DELIVERED' }
+    { id: 'KITCHEN', label: hasAppointments ? 'IN CHAIR' : (isFashion ? 'PACKING' : 'KITCHEN') },
+    { id: 'DISPATCHED', label: hasAppointments ? 'IN SERVICE' : (isFashion ? 'SHIPPED' : 'DISPATCHED') },
+    { id: 'DELIVERED', label: hasAppointments ? 'COMPLETED' : 'DELIVERED' }
   ];
 
   // Handle Verify OTP submission
@@ -536,18 +552,18 @@ export default function OrdersTab() {
 
         {/* FILTER CHIPS ROW */}
         {activeOrderView === 'today' ? (
-          /* 4 Pipeline Stages: NEW, KITCHEN, DISPATCHED, DELIVERED */
+          /* 4 Pipeline Stages: NEW, KITCHEN/PACKING, DISPATCHED, DELIVERED */
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             {filterTabs.map(tab => {
               const count = tab.id === 'ALL' 
                 ? uniqueTodayOrders.length
                 : tab.id === 'NEW'
-                  ? uniqueTodayOrders.filter(o => o.status === 'new' || o.status === 'pending' || o.status === 'payment_pending' || o.status === 'pending_upi').length
+                  ? uniqueTodayOrders.filter(o => ['new', 'pending', 'payment_pending', 'pending_upi', 'confirmed', 'placed'].includes((o.status || '').toLowerCase()) || !o.status).length
                   : tab.id === 'KITCHEN'
-                    ? uniqueTodayOrders.filter(o => o.status === 'preparing' || o.status === 'confirmed' || o.status === 'ready' || o.status === 'packing').length
+                    ? uniqueTodayOrders.filter(o => ['preparing', 'packing', 'ready', 'in_kitchen'].includes((o.status || '').toLowerCase())).length
                     : tab.id === 'DISPATCHED'
-                      ? uniqueTodayOrders.filter(o => o.status === 'out_for_delivery' || o.status === 'dispatched' || o.status === 'on_the_way').length
-                      : uniqueTodayOrders.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+                      ? uniqueTodayOrders.filter(o => ['out_for_delivery', 'dispatched', 'on_the_way', 'shipped'].includes((o.status || '').toLowerCase())).length
+                      : uniqueTodayOrders.filter(o => ['delivered', 'completed'].includes((o.status || '').toLowerCase())).length;
 
               const active = statusFilter === tab.id;
 
@@ -978,15 +994,19 @@ export default function OrdersTab() {
 
                     {/* Status Pill */}
                     <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${statusStyle}`}>
-                      {status === 'new' || status === 'pending'
+                      {status === 'new' || status === 'pending' || status === 'placed'
                         ? (hasAppointments ? 'NEW BOOKING' : 'NEW ORDER')
-                        : (status === 'payment_pending' || status === 'pending_upi')
-                          ? 'PAYMENT PENDING (UPI)'
-                          : status === 'preparing'
-                            ? (hasAppointments ? 'IN CHAIR' : hasKotPrinting ? 'IN KITCHEN' : 'PACKING')
-                            : status === 'out_for_delivery'
-                              ? 'OUT FOR DELIVERY'
-                              : status.toUpperCase()}
+                        : status === 'confirmed'
+                          ? (order.paymentStatus === 'paid' ? 'PAID & CONFIRMED' : 'CONFIRMED')
+                          : (status === 'payment_pending' || status === 'pending_upi')
+                            ? 'PAYMENT PENDING (UPI)'
+                            : (status === 'preparing' || status === 'packing')
+                              ? (hasAppointments ? 'IN CHAIR' : hasKotPrinting ? 'IN KITCHEN' : 'PACKING')
+                              : (status === 'out_for_delivery' || status === 'dispatched' || status === 'on_the_way' || status === 'shipped')
+                                ? (hasAppointments ? 'IN SERVICE' : isFashion ? 'SHIPPED' : 'OUT FOR DELIVERY')
+                                : (status === 'delivered' || status === 'completed')
+                                  ? (hasAppointments ? 'COMPLETED' : 'DELIVERED')
+                                  : status.toUpperCase()}
                     </span>
                   </div>
                 </div>
@@ -1153,11 +1173,11 @@ export default function OrdersTab() {
                         </div>
                       )}
                     </>
-                  ) : hasKotPrinting || hasRiderDispatch ? (
-                    /* RESTAURANT WORKFLOW */
+                  ) : hasKotPrinting ? (
+                    /* RESTAURANT FOOD WORKFLOW */
                     <>
-                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING -> ACCEPT & SEND TO KITCHEN */}
-                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi') && (
+                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING / CONFIRMED -> ACCEPT & SEND TO KITCHEN */}
+                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi' || status === 'confirmed' || status === 'placed') && (
                         <>
                           {(status === 'payment_pending' || status === 'pending_upi' || (!isCOD && order.paymentStatus !== 'paid')) ? (
                             <button
@@ -1195,7 +1215,7 @@ export default function OrdersTab() {
                       )}
 
                       {/* STEP 2: IN KITCHEN / PREPARING -> DISPATCH OUT FOR DELIVERY */}
-                      {(status === 'preparing' || status === 'confirmed') && (
+                      {(status === 'preparing' || status === 'packing') && (
                         <button
                           onClick={() => updateOrderStatus(order.id, 'out_for_delivery', order.deliveryBoyId)}
                           className="w-full py-3 px-4 rounded-full bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
@@ -1206,7 +1226,7 @@ export default function OrdersTab() {
                       )}
 
                       {/* STEP 3: OUT FOR DELIVERY / READY -> VERIFY OTP & DELIVER */}
-                      {(status === 'out_for_delivery' || status === 'ready') && (
+                      {(status === 'out_for_delivery' || status === 'ready' || status === 'dispatched' || status === 'on_the_way') && (
                         <button
                           onClick={() => {
                             setDeliveryOtpModalOrder(order);
@@ -1222,7 +1242,7 @@ export default function OrdersTab() {
                       )}
 
                       {/* STEP 4: DELIVERED -> STATUS COMPLETED */}
-                      {status === 'delivered' && (
+                      {(status === 'delivered' || status === 'completed') && (
                         <div className="w-full py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
                           <Check className="w-4 h-4 stroke-[2.5]" />
                           <span>ORDER DELIVERED & COMPLETED</span>
@@ -1232,8 +1252,8 @@ export default function OrdersTab() {
                   ) : (
                     /* RETAIL / FASHION WORKFLOW */
                     <>
-                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING -> ACCEPT & PACK */}
-                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi') && (
+                      {/* STEP 1: NEW / PENDING / PAYMENT_PENDING / CONFIRMED -> ACCEPT & PACK */}
+                      {(status === 'new' || status === 'pending' || status === 'payment_pending' || status === 'pending_upi' || status === 'confirmed' || status === 'placed') && (
                         <>
                           {(status === 'payment_pending' || status === 'pending_upi' || (!isCOD && order.paymentStatus !== 'paid')) ? (
                             <button
@@ -1270,8 +1290,8 @@ export default function OrdersTab() {
                         </>
                       )}
 
-                      {/* STEP 2: PREPARING -> READY FOR DISPATCH / PICKUP */}
-                      {(status === 'preparing' || status === 'confirmed') && (
+                      {/* STEP 2: PREPARING / PACKING -> READY FOR DISPATCH / PICKUP */}
+                      {(status === 'preparing' || status === 'packing') && (
                         <button
                           onClick={() => updateOrderStatus(order.id, 'out_for_delivery', order.deliveryBoyId)}
                           className="w-full py-3 px-4 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
@@ -1281,19 +1301,34 @@ export default function OrdersTab() {
                         </button>
                       )}
 
-                      {/* STEP 3: OUT FOR DELIVERY -> MARK DELIVERED */}
-                      {(status === 'out_for_delivery' || status === 'ready') && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'delivered')}
-                          className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
-                        >
-                          <CheckCheck className="w-4 h-4 stroke-[2.5]" />
-                          <span>MARK DELIVERED / HANDED OVER</span>
-                        </button>
+                      {/* STEP 3: OUT FOR DELIVERY / SHIPPED -> VERIFY OTP OR MARK DELIVERED */}
+                      {(status === 'out_for_delivery' || status === 'ready' || status === 'dispatched' || status === 'on_the_way' || status === 'shipped') && (
+                        hasOtpDelivery && deliveryOtp ? (
+                          <button
+                            onClick={() => {
+                              setDeliveryOtpModalOrder(order);
+                              setEnteredOtp('');
+                              setCashConfirmed(false);
+                              setOtpError('');
+                            }}
+                            className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          >
+                            <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                            <span>VERIFY OTP & DELIVER</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, 'delivered')}
+                            className="w-full py-3 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl border-0 active:scale-98 transition-all"
+                          >
+                            <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                            <span>MARK DELIVERED / HANDED OVER</span>
+                          </button>
+                        )
                       )}
 
                       {/* STEP 4: DELIVERED */}
-                      {status === 'delivered' && (
+                      {(status === 'delivered' || status === 'completed') && (
                         <div className="w-full py-2.5 px-3 rounded-full bg-emerald-50 text-emerald-700 text-xs font-black text-center flex items-center justify-center gap-1.5">
                           <Check className="w-4 h-4 stroke-[2.5]" />
                           <span>ORDER COMPLETED</span>

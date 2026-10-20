@@ -858,7 +858,7 @@ export default function SkylineApp() {
             id: created.id,
             orderNumber: created.orderNumber,
             total: created.total || grandTotal,
-            status: created.status || 'confirmed',
+            status: created.status || 'new',
             paymentStatus: 'pending',
             phone: cleanPhone,
             items: cartItems,
@@ -959,6 +959,12 @@ export default function SkylineApp() {
             const matchById = specificOrder && (String(o.id) === String(specificOrder.id) || (o.orderNumber && String(o.orderNumber) === String(specificOrder.orderNumber)));
             return ph.endsWith(cleanPhone) || matchById;
           });
+          matches.sort((a, b) => {
+            const tA = new Date(a.createdAt || a.date || 0).getTime();
+            const tB = new Date(b.createdAt || b.date || 0).getTime();
+            if (tB !== tA) return tB - tA;
+            return String(b.orderNumber || b.id || '').localeCompare(String(a.orderNumber || a.id || ''), undefined, { numeric: true });
+          });
           if (matches.length > 0) {
             setTrackedOrders(matches);
           } else if (specificOrder) {
@@ -994,6 +1000,12 @@ export default function SkylineApp() {
       const matches = allOrders.filter(o => {
         const ph = String(o.customer?.phone || '').replace(/\D/g, '');
         return ph.endsWith(cleanPhone);
+      });
+      matches.sort((a, b) => {
+        const tA = new Date(a.createdAt || a.date || 0).getTime();
+        const tB = new Date(b.createdAt || b.date || 0).getTime();
+        if (tB !== tA) return tB - tA;
+        return String(b.orderNumber || b.id || '').localeCompare(String(a.orderNumber || a.id || ''), undefined, { numeric: true });
       });
       setTrackedOrders(matches);
       if (matches.length === 0) {
@@ -3921,14 +3933,24 @@ export default function SkylineApp() {
                 ) : trackedOrders.length > 0 ? (
                   <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                     {trackedOrders.map((ord) => {
-                      const st = (ord.status || 'confirmed').toLowerCase();
-                      const statusColor = st === 'delivered' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : st === 'out_for_delivery' ? 'text-sky-700 bg-sky-50 border-sky-200' : 'text-amber-700 bg-amber-50 border-amber-200';
+                      const st = (ord.status || 'new').toLowerCase();
+                      const statusLabel = 
+                        st === 'new' || st === 'pending' ? 'ORDER PLACED' :
+                        st === 'payment_pending' || st === 'pending_upi' ? 'PAYMENT PENDING' :
+                        st === 'confirmed' ? 'CONFIRMED' :
+                        st === 'preparing' || st === 'packing' ? 'PACKING' :
+                        st === 'out_for_delivery' || st === 'shipped' || st === 'dispatched' ? 'OUT FOR DELIVERY' :
+                        st === 'delivered' || st === 'completed' ? 'DELIVERED' : st.replace(/_/g, ' ').toUpperCase();
+                      const statusColor = 
+                        st === 'delivered' || st === 'completed' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 
+                        st === 'out_for_delivery' || st === 'shipped' || st === 'dispatched' ? 'text-sky-700 bg-sky-50 border-sky-200' : 
+                        'text-amber-700 bg-amber-50 border-amber-200';
                       return (
                         <div key={ord.id} className="bg-stone-50 rounded-2xl p-4 border border-stone-200 text-xs space-y-2.5">
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-sm text-stone-950">Order #{ord.orderNumber || ord.id?.slice(-5) || ord.id}</span>
                             <span className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border ${statusColor}`}>
-                              {st === 'preparing' ? 'PACKING' : st.replace(/_/g, ' ')}
+                              {statusLabel}
                             </span>
                           </div>
 
