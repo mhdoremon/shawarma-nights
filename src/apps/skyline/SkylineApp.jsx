@@ -2306,7 +2306,7 @@ export default function SkylineApp() {
                     <div>
                       <h4 className="text-sm font-bold text-stone-900">
                         {todaySchedule && todaySchedule.isOpen
-                          ? `Today: ${todaySchedule.open || '10:30 AM'} – ${todaySchedule.close || '10:00 PM'}`
+                          ? `Today: ${todaySchedule.open || liveStoreStatus.openStr || '10:30 AM'} – ${todaySchedule.close || liveStoreStatus.closeStr || '10:00 PM'}`
                           : (storeData?.storeInfo?.timing || 'Mon–Sun: 10:30 AM – 10:00 PM')}
                       </h4>
                       <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
@@ -3366,7 +3366,7 @@ export default function SkylineApp() {
                     </div>
                     <p className="text-[11px] text-emerald-800 leading-relaxed">
                       Subhash Chowk, Station Road, Churu, Rajasthan – 331001.<br />
-                      Timings: Daily 10:30 AM – 10:00 PM. Package will be ready in 30 minutes!
+                      Timings: {storeData?.storeInfo?.timing || `Daily ${liveStoreStatus.openStr || '10:30 AM'} – ${liveStoreStatus.closeStr || '10:00 PM'}`}. Package will be ready in 30 minutes!
                     </p>
                   </div>
                 )}
@@ -3596,7 +3596,7 @@ export default function SkylineApp() {
                           </span>
                           <span className="text-[10px] font-mono">
                             {isOpen
-                              ? `${daySched?.open || '10:30 AM'} - ${daySched?.close || '10:00 PM'}`
+                              ? `${daySched?.open || liveStoreStatus.openStr || '10:30 AM'} - ${daySched?.close || liveStoreStatus.closeStr || '10:00 PM'}`
                               : '🔴 WEEKLY OFF'}
                           </span>
                         </div>

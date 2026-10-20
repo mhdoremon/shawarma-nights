@@ -32,6 +32,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
+import { parseTimeFromText } from '../../../utils/storeTimingHelper';
 
 const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000'
@@ -135,14 +136,17 @@ export default function SettingsTab() {
     { key: 'sun', label: 'Sunday (रविवार)' }
   ];
 
+  const initialOpenTime = parseTimeFromText(storeInfo?.timing?.split(/–|-|to/i)?.[0]) || storeInfo?.openTime || (isSalon ? '11:00 AM' : '12:00 PM');
+  const initialCloseTime = parseTimeFromText(storeInfo?.openTillText) || parseTimeFromText(storeInfo?.timing?.split(/–|-|to/i)?.[1]) || storeInfo?.closeTime || (isSalon ? '11:00 PM' : '04:00 AM');
+
   const DEFAULT_SCHEDULE = {
-    mon: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    tue: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    wed: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    thu: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    fri: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    sat: { isOpen: true, open: '11:00 AM', close: '11:00 PM' },
-    sun: { isOpen: true, open: '11:00 AM', close: '11:00 PM' }
+    mon: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    tue: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    wed: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    thu: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    fri: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    sat: { isOpen: true, open: initialOpenTime, close: initialCloseTime },
+    sun: { isOpen: true, open: initialOpenTime, close: initialCloseTime }
   };
 
   const [weeklySchedule, setWeeklySchedule] = useState(() => {
@@ -152,8 +156,8 @@ export default function SettingsTab() {
     return DEFAULT_SCHEDULE;
   });
 
-  const [defaultOpenTime, setDefaultOpenTime] = useState('12:00 PM');
-  const [defaultCloseTime, setDefaultCloseTime] = useState('04:00 AM');
+  const [defaultOpenTime, setDefaultOpenTime] = useState(initialOpenTime);
+  const [defaultCloseTime, setDefaultCloseTime] = useState(initialCloseTime);
 
   // Free Delivery Threshold State
   const [freeDeliveryInput, setFreeDeliveryInput] = useState(
@@ -436,13 +440,16 @@ export default function SettingsTab() {
     // Auto-generate timing string for backwards compatibility
     const openDays = DAYS_OF_WEEK.filter(d => weeklySchedule[d.key]?.isOpen);
     const closedDays = DAYS_OF_WEEK.filter(d => !weeklySchedule[d.key]?.isOpen);
+    const sampleDay = Object.values(weeklySchedule).find(s => s?.isOpen) || { open: defaultOpenTime, close: defaultCloseTime };
+    const curOpen = sampleDay.open || defaultOpenTime || '11:00 AM';
+    const curClose = sampleDay.close || defaultCloseTime || (isSalon ? '11:00 PM' : '04:00 AM');
     let autoTiming = '';
     if (closedDays.length === 0) {
-      autoTiming = 'Open All 7 Days: 11:00 AM – 11:00 PM';
+      autoTiming = `Open All 7 Days: ${curOpen} – ${curClose}`;
     } else if (closedDays.length === 1 && closedDays[0].key === 'sun') {
-      autoTiming = 'Mon-Sat: 11:00 AM – 11:00 PM | Sun: Closed';
+      autoTiming = `Mon-Sat: ${curOpen} – ${curClose} | Sun: Closed`;
     } else {
-      autoTiming = `${openDays.map(d => d.label.split(' ')[0]).join(', ')} Open | ${closedDays.map(d => d.label.split(' ')[0]).join(', ')} Closed`;
+      autoTiming = `${openDays.map(d => d.label.split(' ')[0]).join(', ')} Open (${curOpen} – ${curClose}) | ${closedDays.map(d => d.label.split(' ')[0]).join(', ')} Closed`;
     }
 
     const payload = {
@@ -880,7 +887,7 @@ export default function SettingsTab() {
           {/* 7 Days Row List */}
           <div className="grid grid-cols-1 gap-2 pt-1">
             {DAYS_OF_WEEK.map(day => {
-              const sched = weeklySchedule[day.key] || { isOpen: true, open: '11:00 AM', close: '11:00 PM' };
+              const sched = weeklySchedule[day.key] || { isOpen: true, open: defaultOpenTime, close: defaultCloseTime };
               return (
                 <div
                   key={day.key}
@@ -919,7 +926,7 @@ export default function SettingsTab() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">From:</span>
                         <TimeSelectPicker
-                          value={sched.open || '11:00 AM'}
+                          value={sched.open || defaultOpenTime}
                           onChange={(val) => {
                             setWeeklySchedule(prev => ({
                               ...prev,
@@ -931,7 +938,7 @@ export default function SettingsTab() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px] font-bold text-zinc-400 uppercase">To:</span>
                         <TimeSelectPicker
-                          value={sched.close || '11:00 PM'}
+                          value={sched.close || defaultCloseTime}
                           onChange={(val) => {
                             setWeeklySchedule(prev => ({
                               ...prev,

@@ -16,6 +16,17 @@ export const DAYS_LIST = [
 ];
 
 /**
+ * Extracts a 12-hour or 24-hour time string from arbitrary text
+ * e.g. "OPEN TILL 04:00 AM" -> "04:00 AM"
+ *      "Daily: 09:00 PM – 04:00 AM" -> "04:00 AM"
+ */
+export function parseTimeFromText(text) {
+  if (!text || typeof text !== 'string') return null;
+  const match = text.match(/(\d{1,2}(?::\d{2})?\s*(?:AM|PM))/i);
+  return match ? match[1].trim() : null;
+}
+
+/**
  * Converts time string like "12:00 PM" or "4:00 AM" or "23:30" to minutes from midnight (0 - 1439)
  */
 export function parseTimeToMinutes(timeStr) {
@@ -72,20 +83,37 @@ export function extractStoreHours(storeInfo) {
   let openStr = todaySched?.open || storeInfo?.openTime;
   let closeStr = todaySched?.close || storeInfo?.closeTime;
 
-  // Fallback to parsing timing string e.g. "Open Daily: 12:00 PM – 04:00 AM"
-  if ((!openStr || !closeStr) && storeInfo?.timing) {
+  // Extract from timing string if present, e.g. "Open Daily: 09:00 PM – 04:00 AM" or "10:30 AM – 10:00 PM"
+  let timingOpen = null;
+  let timingClose = null;
+  if (storeInfo?.timing) {
     const parts = storeInfo.timing.split(/–|-|to/i);
     if (parts.length >= 2) {
-      const p1 = parts[0].replace(/open daily:?/i, '').replace(/daily:?/i, '').trim();
-      const p2 = parts[1].trim();
-      if (!openStr) openStr = p1;
-      if (!closeStr) closeStr = p2;
+      const p1 = parts[0].replace(/open daily:?/i, '').replace(/daily:?/i, '').replace(/open all 7 days:?/i, '').replace(/mon\s*-\s*sun:?/i, '').trim();
+      const p2 = parts[1].split('|')[0].trim();
+      timingOpen = parseTimeFromText(p1);
+      timingClose = parseTimeFromText(p2);
     }
   }
 
+  // Extract explicit closing time from openTillText, e.g. "OPEN TILL 04:00 AM"
+  const openTillClose = parseTimeFromText(storeInfo?.openTillText);
+
+  // If merchant explicitly wrote openTillText (e.g. "OPEN TILL 04:00 AM"), prioritize it as the active closing time
+  if (openTillClose) {
+    closeStr = openTillClose;
+  } else if (timingClose && (!closeStr || closeStr === '11:00 PM' || closeStr === '10:00 PM')) {
+    closeStr = timingClose;
+  }
+
+  // If timing has explicit open time and todaySched open was default/fallback
+  if (timingOpen && (!openStr || openStr === '11:00 AM' || openStr === '09:00 AM')) {
+    openStr = timingOpen;
+  }
+
   return {
-    openStr: openStr || '12:00 PM',
-    closeStr: closeStr || '04:00 AM',
+    openStr: openStr || timingOpen || '12:00 PM',
+    closeStr: closeStr || timingClose || openTillClose || '04:00 AM',
     todaySched,
     todayKey
   };
@@ -96,7 +124,7 @@ export function extractStoreHours(storeInfo) {
  * Evaluates master toggle, weekly off day, and real-time operational clock.
  */
 export function getStoreLiveStatus(storeInfo, customDate = new Date()) {
-  // 1. Master toggle check
+  // 1. Master toggle check (Dukandar turned off store manually)
   if (storeInfo?.isOpen === false) {
     return {
       isOpen: false,
@@ -128,42 +156,55 @@ export function getStoreLiveStatus(storeInfo, customDate = new Date()) {
   const openMins = parseTimeToMinutes(openStr);
   const closeMins = parseTimeToMinutes(closeStr);
 
+  const isFashionOrRetail = storeInfo?.type === 'fashion' || 
+                            storeInfo?.vertical === 'fashion' || 
+                            storeInfo?.vertical === 'clothing' || 
+                            storeInfo?.capabilities?.catalog?.hasSizes ||
+                            storeInfo?.capabilities?.storeType === 'fashion';
+
   if (openMins !== null && closeMins !== null) {
     const currentMins = customDate.getHours() * 60 + customDate.getMinutes();
 
+    let isWithinHours = true;
     if (openMins < closeMins) {
       // Normal Daytime: e.g. 10:00 AM (600) to 10:00 PM (1320)
-      if (currentMins < openMins || currentMins >= closeMins) {
-        return {
-          isOpen: false,
-          reason: `Abhi dukan band hai • ${openStr} par khulegi`,
-          statusBadge: '🔴 CLOSED NOW',
-          openTillText: `OPENS AT ${openStr}`,
-          isWeeklyOff: false,
-          openStr,
-          closeStr
-        };
-      }
+      isWithinHours = currentMins >= openMins && currentMins < closeMins;
     } else {
-      // Overnight Window: e.g. 12:00 PM (720) to 04:00 AM (240) next day
-      // Valid if currentMins >= 720 (afternoon/evening) OR currentMins < 240 (midnight/early morning)
-      const isWithinHours = currentMins >= openMins || currentMins < closeMins;
-      if (!isWithinHours) {
+      // Overnight Window: e.g. 12:00 PM (720) or 09:00 PM (1260) to 04:00 AM (240) next day
+      isWithinHours = currentMins >= openMins || currentMins < closeMins;
+    }
+
+    if (!isWithinHours) {
+      // If it's a fashion/retail online store and merchant has master toggle ON,
+      // online ordering remains 24/7 active while displaying physical boutique hours
+      if (isFashionOrRetail) {
+        const computedOpenTill = storeInfo?.openTillText?.trim() || `OPEN TILL ${closeStr}`;
         return {
-          isOpen: false,
-          reason: `Abhi dukan band hai • ${openStr} par khulegi`,
-          statusBadge: '🔴 CLOSED NOW',
-          openTillText: `OPENS AT ${openStr}`,
+          isOpen: true,
+          reason: `Atelier hours: ${openStr} – ${closeStr} • 24/7 Online Shopping Active`,
+          statusBadge: '🟢 OPEN NOW',
+          openTillText: computedOpenTill,
           isWeeklyOff: false,
           openStr,
-          closeStr
+          closeStr,
+          isOnline24x7: true
         };
       }
+
+      return {
+        isOpen: false,
+        reason: `Abhi dukan band hai • ${openStr} par khulegi`,
+        statusBadge: '🔴 CLOSED NOW',
+        openTillText: `OPENS AT ${openStr}`,
+        isWeeklyOff: false,
+        openStr,
+        closeStr
+      };
     }
   }
 
   // Active Open
-  const computedOpenTill = storeInfo?.openTillText?.trim() || `OPEN TILL ${closeStr || '4:00 AM'}`;
+  const computedOpenTill = storeInfo?.openTillText?.trim() || `OPEN TILL ${closeStr || '04:00 AM'}`;
   return {
     isOpen: true,
     reason: `Dukan abhi khuli hai (${computedOpenTill})`,
@@ -174,3 +215,4 @@ export function getStoreLiveStatus(storeInfo, customDate = new Date()) {
     closeStr
   };
 }
+
