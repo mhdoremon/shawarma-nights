@@ -657,12 +657,14 @@ export default function MenuTab() {
                 
                 {/* Dish Card Top: Image + Info */}
                 <div className="flex items-start gap-3.5">
-                  <img
-                    src={getImageUrl(dish.image)}
-                    alt={dish.name}
-                    onError={handleImageError}
-                    className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl object-cover bg-zinc-100 shrink-0 shadow-sm border border-zinc-100"
-                  />
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 max-w-[80px] max-h-[80px] sm:max-w-[96px] sm:max-h-[96px] aspect-square rounded-2xl overflow-hidden bg-zinc-100 shrink-0 shadow-sm border border-zinc-100 flex items-center justify-center">
+                    <img
+                      src={getImageUrl(dish.image)}
+                      alt={dish.name}
+                      onError={handleImageError}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
@@ -866,13 +868,15 @@ export default function MenuTab() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <img
-                    src={modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'}
-                    alt="Preview"
-                    className="w-20 h-20 rounded-2xl object-cover bg-zinc-200 shrink-0 shadow-sm"
-                  />
+                  <div className="w-20 h-20 max-w-[80px] max-h-[80px] aspect-square rounded-2xl overflow-hidden shrink-0 bg-zinc-200 shadow-sm border border-zinc-200 flex items-center justify-center">
+                    <img
+                      src={modalItem.image || 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800&auto=format&fit=crop&q=80'}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-                  <div className="flex-1 space-y-2">
+                  <div className="flex-1 min-w-0 space-y-2">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -1263,12 +1267,14 @@ export default function MenuTab() {
                                 {/* Center: Color-Specific Photo Upload / Thumbnail */}
                                 <div className="flex items-center gap-2 flex-1 justify-start sm:justify-center">
                                   {cImg ? (
-                                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-zinc-200">
-                                      <img 
-                                        src={cImg} 
-                                        alt={cName} 
-                                        className="w-8 h-8 rounded-md object-cover border border-zinc-200" 
-                                      />
+                                    <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-lg border border-zinc-200 shrink-0">
+                                      <div className="w-8 h-8 max-w-[32px] max-h-[32px] aspect-square rounded-md overflow-hidden bg-zinc-100 shrink-0 border border-zinc-200 flex items-center justify-center">
+                                        <img 
+                                          src={cImg} 
+                                          alt={cName} 
+                                          className="w-full h-full object-cover" 
+                                        />
+                                      </div>
                                       <span className="text-[10px] text-zinc-600 font-medium truncate max-w-[100px]">Photo Added</span>
                                       <button
                                         type="button"
@@ -1456,6 +1462,101 @@ export default function MenuTab() {
                         >
                           + Add Color
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DUAL-PHOTO: ANGLE 2 / SECONDARY LOOKBOOK PHOTO */}
+                  {hasLookbook && (
+                    <div className="space-y-2.5 bg-white p-3.5 rounded-2xl border border-zinc-200/80 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="block text-[11px] font-black text-zinc-900 uppercase tracking-wider">
+                            ANGLE 2: SECONDARY / LOOKBOOK PHOTO (2-ANGLE HOVER CROSSFADE)
+                          </label>
+                          <span className="text-[10px] text-zinc-400">
+                            Product card hover karne par agla angle crossfade transition ke sath smooth dikhega
+                          </span>
+                        </div>
+                        {isUploadingSecondary && <span className="text-[10px] text-zinc-500 font-bold animate-pulse">Uploading Angle 2...</span>}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-20 max-w-[80px] max-h-[80px] aspect-square rounded-2xl bg-zinc-100 overflow-hidden shrink-0 border border-zinc-200 flex items-center justify-center relative shadow-xs">
+                          {modalItem.secondaryImage ? (
+                            <img
+                              src={modalItem.secondaryImage}
+                              alt="Angle 2 Preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80'; }}
+                            />
+                          ) : (
+                            <div className="text-center p-1">
+                              <ImageIcon className="w-6 h-6 text-zinc-300 mx-auto" />
+                              <span className="text-[9px] text-zinc-400 font-bold block mt-0.5">No Angle 2</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <input
+                            type="file"
+                            ref={secondaryFileInputRef}
+                            onChange={(e) => handleImageUpload(e, 'secondaryImage')}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => secondaryFileInputRef.current?.click()}
+                              disabled={isUploadingSecondary}
+                              className="flex-1 py-2 px-3 rounded-full bg-zinc-900 hover:bg-black text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border-0"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Angle 2 Device Se Upload Karein</span>
+                            </button>
+                            {modalItem.secondaryImage && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setModalItem(prev => {
+                                    const filtered = (prev.images || []).filter(img => img !== prev.secondaryImage);
+                                    return {
+                                      ...prev,
+                                      secondaryImage: '',
+                                      images: filtered
+                                    };
+                                  });
+                                  showToast('Angle 2 photo removed', 'info');
+                                }}
+                                className="px-3 py-2 rounded-full bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 text-xs font-bold border-0 cursor-pointer"
+                                title="Remove Angle 2"
+                              >
+                                Clear
+                              </button>
+                            )}
+                          </div>
+
+                          <input
+                            type="url"
+                            value={modalItem.secondaryImage || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setModalItem(prev => {
+                                const currentImgs = Array.isArray(prev.images) ? [...prev.images] : [];
+                                if (val && !currentImgs.includes(val)) currentImgs.push(val);
+                                return {
+                                  ...prev,
+                                  secondaryImage: val,
+                                  images: currentImgs
+                                };
+                              });
+                            }}
+                            placeholder="Or enter Angle 2 Photo URL (Studio / Model Angle)"
+                            className="w-full bg-[#FFFBF7] rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-1 focus:ring-black shadow-2xs border-0 font-mono"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2289,13 +2390,15 @@ export default function MenuTab() {
             </div>
 
             {/* Dish Preview Box */}
-            <div className="flex items-center gap-3 bg-[#FFFBF7] p-3.5 rounded-2xl shadow-xs">
-              <img
-                src={getImageUrl(heroModalDish.image)}
-                alt={heroModalDish.name}
-                className="w-16 h-16 rounded-2xl object-cover bg-zinc-200 shrink-0 shadow-xs"
-              />
-              <div>
+            <div className="flex items-center gap-3 bg-[#FFFBF7] p-3.5 rounded-2xl shadow-xs border border-zinc-100">
+              <div className="w-16 h-16 max-w-[64px] max-h-[64px] aspect-square rounded-2xl overflow-hidden bg-zinc-200 shrink-0 shadow-xs border border-zinc-200 flex items-center justify-center">
+                <img
+                  src={getImageUrl(heroModalDish.image)}
+                  alt={heroModalDish.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-black text-zinc-900">{heroModalDish.name}</h4>
                 <div className="text-xs text-zinc-500 mt-0.5">
                   Menu Price: <strong className="text-zinc-900">₹{heroModalDish.price}</strong> • Rating: 4.9

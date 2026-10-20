@@ -711,20 +711,22 @@ export default function OffersTab() {
 
         {/* Live Active Hero Offer Box */}
         {selectedHeroDish && (
-          <div className="flex items-center gap-4 bg-[#FFFBF7] p-4 rounded-2xl shadow-xs">
-            <img
-              src={getImageUrl(selectedHeroDish.image)}
-              alt={selectedHeroDish.name}
-              className="w-18 h-18 rounded-2xl object-cover bg-zinc-200 shrink-0 shadow-sm"
-            />
+          <div className="flex items-center gap-4 bg-[#FFFBF7] p-4 rounded-2xl shadow-xs border border-zinc-100">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 max-w-[80px] max-h-[80px] sm:max-w-[96px] sm:max-h-[96px] aspect-square rounded-2xl overflow-hidden shrink-0 bg-zinc-200 shadow-sm border border-zinc-200 flex items-center justify-center">
+              <img
+                src={getImageUrl(selectedHeroDish.image)}
+                alt={selectedHeroDish.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+              <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md bg-amber-100 text-amber-800 inline-block">
                 ACTIVE HERO OFFER DISH
               </span>
               <h4 className="text-base font-black text-zinc-900 truncate mt-1">
                 {selectedHeroDish.name}
               </h4>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-500 mt-0.5">
                 Menu Price: <strong className="text-zinc-900">₹{selectedHeroDish.price}</strong> • Display Prefix: <strong>{heroOffer.priceText} ₹{heroOffer.priceValue}</strong>
               </p>
             </div>
