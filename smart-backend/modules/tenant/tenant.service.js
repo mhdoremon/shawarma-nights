@@ -217,7 +217,7 @@ export const updateStoreSettings = (req, res) => {
             DataLayer.write(req.storeId, 'store_info', combined);
         } catch (e) {}
 
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
         return res.json({ success: true, message: 'Updated', storeInfo: combined });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
@@ -236,7 +236,7 @@ export const getHero = (req, res) => {
 export const updateHero = (req, res) => {
     try {
         DataLayer.updateStoreConfig(req.storeId, { heroBanner: req.body });
-        WebSocketHub.broadcastToGateway(req.storeId, { action: 'HERO_UPDATED', payload: req.body });
+        WebSocketHub.broadcastToAll(req.storeId, { action: 'HERO_UPDATED', payload: req.body });
         return res.json({ success: true, message: 'Updated' });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
@@ -284,12 +284,12 @@ export function handleStoreWsMessage(data, ws, storeId, source) {
         try {
             DataLayer.write(storeId, 'store_info', combined);
         } catch (e) {}
-        WebSocketHub.broadcastToGateway(storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
+        WebSocketHub.broadcastToAll(storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
     }
     if (data.action === 'UPDATE_HERO_BANNER') {
         const hero = data.payload || data.heroBanner || {};
         DataLayer.updateStoreConfig(storeId, { heroBanner: hero });
-        WebSocketHub.broadcastToGateway(storeId, { action: 'HERO_UPDATED', payload: hero });
+        WebSocketHub.broadcastToAll(storeId, { action: 'HERO_UPDATED', payload: hero });
     }
 }
 
@@ -321,13 +321,13 @@ export const getMarketplaceFeed = (req, res) => {
             ...storeDirIds
         ])).filter(Boolean);
 
-        const showAll = req.query.all === 'true';
+        const showAll = req?.query?.all === 'true';
         const validStoreIds = allStoreIds.filter(id => {
             const clean = String(id).toLowerCase().trim();
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
             if (clean.length < 3 || /^\d+$/.test(clean)) return false;
             
-            // Dynamic marketplace visibility
+            // Check dynamic store visibility
             const reg = registeredStores.find(s => (s.id || s.slug) === clean);
             const cfg = DataLayer.getStoreConfig(clean) || {};
             const sInfo = DataLayer.read(clean, 'store_info') || {};
@@ -489,8 +489,23 @@ export const getMarketplaceFeed = (req, res) => {
             ];
         }
 
+        const platformConfig = DataLayer.getStoreConfig('churuone') || {};
+        const platformBranding = platformConfig.branding || {};
+        const platformSettings = platformConfig.settings || {};
+
         return res.json({
             success: true,
+            platform: {
+                name: platformConfig.name || 'ChuruOne Marketplace',
+                branding: {
+                    tagline: platformBranding.tagline || 'Churu Ki Apni Digital Market • Social Commerce Hub',
+                    heroTitle: platformBranding.heroTitle || 'Social Commerce Churu',
+                    heroSubtitle: platformBranding.heroSubtitle || 'Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.',
+                    marqueeText: platformBranding.marqueeText || '★ LIVE ORDERS DISPATCHING ACROSS CHURU • SHAWARMA NIGHTS 25 MIN EXPRESS • SKYLINE BESPOKE APPAREL • NASH STUDIO PRIVATE SALON • 0% COMMISSION DIRECT PRICING ★',
+                    cityTag: platformBranding.cityTag || 'Churu, Rajasthan'
+                },
+                settings: platformSettings
+            },
             stores: marketplaceStores,
             items: allItems,
             trending: trendingItems,
@@ -551,9 +566,14 @@ export const toggleStoreMarketplaceVisibility = (req, res) => {
 
         DataLayer.writePlatform('stores', { stores });
 
-        WebSocketHub.broadcastToGateway(cleanId, {
+        WebSocketHub.broadcastToAll(cleanId, {
             action: 'STORE_INFO_UPDATED',
             payload: { ...(cfg.settings || {}), marketplaceVisible: newStatus }
+        });
+        WebSocketHub.broadcastToAll('platform', {
+            action: 'MARKETPLACE_STATUS_UPDATED',
+            storeId: cleanId,
+            marketplaceVisible: newStatus
         });
 
         return res.json({

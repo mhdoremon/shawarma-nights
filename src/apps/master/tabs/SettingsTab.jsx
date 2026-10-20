@@ -115,13 +115,14 @@ export default function SettingsTab() {
     user
   } = useMaster();
 
-  // Domain Capability-driven feature guards (Strict separation for Salon vs Fashion vs Food)
-  const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
-  const isFashion = capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
-  const hasFood = !isSalon && !isFashion && (capabilities?.storeType === 'restaurant' || capabilities?.vertical === 'restaurant');
+  // Domain Capability-driven feature guards (Strict separation for Marketplace vs Salon vs Fashion vs Food)
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const isSalon = !isMarketplace && (capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const isFashion = !isMarketplace && (capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline')));
+  const hasFood = !isMarketplace && !isSalon && !isFashion && (capabilities?.storeType === 'restaurant' || capabilities?.vertical === 'restaurant');
   const hasFreeDeliveryThreshold = !isSalon && Boolean(capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
   const hasDeliveryFee = !isSalon && Boolean(capabilities?.settings?.hasDeliveryFee ?? hasFreeDeliveryThreshold);
-  const hasTaxesAndPackaging = !isSalon && Boolean(capabilities?.settings?.hasTaxesAndPackaging ?? true);
+  const hasTaxesAndPackaging = !isMarketplace && !isSalon && Boolean(capabilities?.settings?.hasTaxesAndPackaging ?? true);
   const hasHeroBannerFeature = !isSalon && Boolean(capabilities?.settings?.hasHeroBanner ?? true);
   const hasHeroVideo = Boolean(capabilities?.settings?.hasHeroVideo || isSalon);
 

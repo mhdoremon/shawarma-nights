@@ -321,7 +321,7 @@ export const getMarketplaceFeed = (req, res) => {
             ...storeDirIds
         ])).filter(Boolean);
 
-        const showAll = req.query.all === 'true';
+        const showAll = req?.query?.all === 'true';
         const validStoreIds = allStoreIds.filter(id => {
             const clean = String(id).toLowerCase().trim();
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
@@ -489,8 +489,23 @@ export const getMarketplaceFeed = (req, res) => {
             ];
         }
 
+        const platformConfig = DataLayer.getStoreConfig('churuone') || {};
+        const platformBranding = platformConfig.branding || {};
+        const platformSettings = platformConfig.settings || {};
+
         return res.json({
             success: true,
+            platform: {
+                name: platformConfig.name || 'ChuruOne Marketplace',
+                branding: {
+                    tagline: platformBranding.tagline || 'Churu Ki Apni Digital Market • Social Commerce Hub',
+                    heroTitle: platformBranding.heroTitle || 'Social Commerce Churu',
+                    heroSubtitle: platformBranding.heroSubtitle || 'Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.',
+                    marqueeText: platformBranding.marqueeText || '★ LIVE ORDERS DISPATCHING ACROSS CHURU • SHAWARMA NIGHTS 25 MIN EXPRESS • SKYLINE BESPOKE APPAREL • NASH STUDIO PRIVATE SALON • 0% COMMISSION DIRECT PRICING ★',
+                    cityTag: platformBranding.cityTag || 'Churu, Rajasthan'
+                },
+                settings: platformSettings
+            },
             stores: marketplaceStores,
             items: allItems,
             trending: trendingItems,

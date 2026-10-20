@@ -1,6 +1,46 @@
 {
   "stores": [
     {
+      "id": "churuone",
+      "slug": "churuone",
+      "name": "ChuruOne Platform & Marketplace",
+      "type": "marketplace",
+      "vertical": "marketplace",
+      "status": "active",
+      "subdomain": "churuone",
+      "isSuperAdmin": true,
+      "marketplaceVisible": true,
+      "capabilities": {
+        "storeType": "marketplace",
+        "catalog": {
+          "hasVegNonVeg": false,
+          "hasFoodAddons": false,
+          "hasSizes": false,
+          "hasColors": false,
+          "hasLookbook": false,
+          "hasServiceDuration": false,
+          "hasUnitWeights": false,
+          "isAggregator": true
+        },
+        "orders": {
+          "hasKotPrinting": false,
+          "hasRiderDispatch": true,
+          "hasAppointments": false,
+          "hasAdvanceToken": false,
+          "hasDeliveryOtp": true,
+          "isCrossStore": true
+        },
+        "settings": {
+          "hasDeliveryRadius": true,
+          "hasFreeDeliveryThreshold": true,
+          "hasAdvanceTokenFee": false,
+          "hasTableBooking": false,
+          "hasPartnerStoresManagement": true,
+          "hasPlatformMarquee": true
+        }
+      }
+    },
+    {
       "id": "shawarma",
       "slug": "shawarma",
       "name": "Shawarma Nights",

@@ -379,6 +379,14 @@ export default function MasterAuth() {
         {/* ========================================================= */}
         {authRole === 'dukandar' ? (
           <form onSubmit={handleDukandarLogin} className="space-y-4">
+            {storeIdInput === 'churuone' && (
+              <div className="bg-amber-50 border border-amber-300 p-2.5 rounded-xl text-amber-950 text-xs flex items-center gap-2">
+                <Lock className="w-4 h-4 text-amber-700 shrink-0" />
+                <span className="font-bold">
+                  👑 ChuruOne Platform Master Control — Super Admin credentials required.
+                </span>
+              </div>
+            )}
             
             {/* Store Code */}
             <div>
@@ -400,7 +408,8 @@ export default function MasterAuth() {
                 {[
                   { id: 'shawarma', label: 'Shawarma' },
                   { id: 'nash-studio', label: 'Nash Studio' },
-                  { id: 'skyline', label: 'Skyline Outfits' }
+                  { id: 'skyline', label: 'Skyline Outfits' },
+                  { id: 'churuone', label: '👑 ChuruOne Platform' }
                 ].map(s => (
                   <button
                     key={s.id}

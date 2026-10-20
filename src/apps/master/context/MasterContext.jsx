@@ -34,6 +34,11 @@ export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
 
   let vertical = 'food';
   if (
+    ['marketplace', 'platform', 'churuone', 'aggregator'].includes(rawVertical) ||
+    sId === 'churuone' || sId === 'platform'
+  ) {
+    vertical = 'marketplace';
+  } else if (
     ['salon', 'barbershop', 'clinic', 'doctor', 'appointment', 'spa', 'dentist'].includes(rawVertical) ||
     sId.includes('nash') || sId.includes('salon') || sId.includes('barber') || sId.includes('beard') || sId.includes('clinic') || sId.includes('doctor')
   ) {
@@ -46,6 +51,42 @@ export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
   }
 
   const profiles = {
+    marketplace: {
+      vertical: 'marketplace',
+      storeType: 'marketplace',
+      catalog: {
+        hasVegNonVeg: false,
+        hasSizes: false,
+        hasColors: false,
+        hasLookbook: false,
+        hasServiceDuration: false,
+        hasFoodAddons: false,
+        itemNoun: 'Partner Store',
+        itemNounPlural: 'Partner Stores',
+        isAggregator: true
+      },
+      orders: {
+        hasKotPrinting: false,
+        hasRiderDispatch: true,
+        hasDeliveryOtp: true,
+        hasAppointments: false,
+        hasAdvanceToken: false,
+        hasTicketPrinting: false,
+        isCrossStore: true
+      },
+      settings: {
+        hasAdvanceTokenFee: false,
+        hasFreeDeliveryThreshold: true,
+        hasDeliveryFee: true,
+        hasTaxesAndPackaging: false,
+        hasHeroBanner: true,
+        hasHeroVideo: false,
+        hasFranchise: false,
+        hasDayWiseHours: false,
+        hasPartnerStoresManagement: true,
+        hasPlatformMarquee: true
+      }
+    },
     salon: {
       vertical: 'salon',
       catalog: {
@@ -984,17 +1025,42 @@ export const MasterProvider = ({ children }) => {
 
   const switchStoreId = (newId) => {
     const cleanId = (newId || 'shawarma').trim().toLowerCase();
+    if (cleanId === 'churuone' && !user?.isSuperAdmin && storeId !== 'churuone') {
+      showToast('Access Denied: ChuruOne Platform control requires Super Admin authorization.', 'error');
+      return;
+    }
     setStoreId(cleanId);
     setCapabilities(resolveClientCapabilities(cleanId, {}));
     localStorage.setItem('churuone_master_store_id', cleanId);
     showToast(`Switched to Store: ${cleanId}`, 'success');
   };
 
+  const toggleStoreMarketplaceVisibility = async (targetStoreId, visible) => {
+    playClickSound();
+    try {
+      const res = await apiFetch(`/api/platform/stores/${targetStoreId}/toggle-marketplace`, {
+        method: 'POST',
+        body: JSON.stringify({ visible })
+      });
+      if (res?.success) {
+        showToast(`Store ${targetStoreId} marketplace visibility updated!`, 'success');
+        return { success: true };
+      }
+      return { success: false, message: res?.message || 'Update failed' };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  };
+
+  const isSuperAdmin = Boolean(user?.isSuperAdmin || storeId === 'churuone');
+
   return (
     <MasterContext.Provider value={{
       storeId,
       setStoreId,
       switchStoreId,
+      isSuperAdmin,
+      toggleStoreMarketplaceVisibility,
       capabilities,
       setCapabilities,
       deliveryBoys,

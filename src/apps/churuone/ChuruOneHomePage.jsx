@@ -927,6 +927,7 @@ export default function ChuruOneHomePage() {
     { id: 'deals', name: 'Special Offers', count: 12 }
   ]);
   const [deals, setDeals] = useState([]);
+  const [platformData, setPlatformData] = useState(null);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
 
   // ─── STORE VISIBILITY ENGINE (Managed via Backend & AI Controller) ─
@@ -1068,6 +1069,9 @@ export default function ChuruOneHomePage() {
           }
           if (Array.isArray(data.deals)) {
             setDeals(data.deals);
+          }
+          if (data.platform) {
+            setPlatformData(data.platform);
           }
         }
       } catch (err) {
@@ -1800,10 +1804,14 @@ export default function ChuruOneHomePage() {
                 transition={{ duration: 0.6 }}
                 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-950 leading-[1.02]"
               >
-                Social Commerce<br />Churu
+                {platformData?.branding?.heroTitle ? (
+                  platformData.branding.heroTitle
+                ) : (
+                  <>Social Commerce<br />Churu</>
+                )}
               </motion.h1>
               <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-600 max-w-md">
-                Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.
+                {platformData?.branding?.heroSubtitle || 'Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.'}
               </p>
             </div>
 
@@ -1842,23 +1850,36 @@ export default function ChuruOneHomePage() {
             className="flex gap-10 items-center animate-marquee w-max text-xs sm:text-sm font-mono font-bold uppercase tracking-widest text-stone-300"
             style={{ animationDuration: '65s' }}
           >
-            {[...Array(6)].map((_, i) => (
+            {[...Array(4)].map((_, i) => (
               <div key={i} className="flex items-center gap-10">
-                <span className="flex items-center gap-2 text-emerald-400 font-sans font-black tracking-wider text-sm sm:text-base">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  LIVE ORDERS DISPATCHING ACROSS CHURU
-                </span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-amber-400 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-white font-sans font-bold">SKYLINE PREMIUM OUTFITS • BESPOKE APPAREL</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-indigo-300 font-sans font-bold">NASH STUDIO • PRIVATE SALON GROOMING</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-stone-300">0% PLATFORM COMMISSIONS • DIRECT PRICING</span>
-                <span className="text-stone-700">✦</span>
-                <span className="text-emerald-400 font-sans font-bold">INSTANT UPI SMARTPAY SETTLEMENTS</span>
-                <span className="text-stone-700">✦</span>
+                {platformData?.branding?.marqueeText ? (
+                  platformData.branding.marqueeText.split(/•|✦|★/).filter(s => s && s.trim()).map((chunk, cIdx) => (
+                    <React.Fragment key={cIdx}>
+                      <span className="font-sans font-bold text-stone-200">
+                        {chunk.trim()}
+                      </span>
+                      <span className="text-stone-700">✦</span>
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <>
+                    <span className="flex items-center gap-2 text-emerald-400 font-sans font-black tracking-wider text-sm sm:text-base">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                      LIVE ORDERS DISPATCHING ACROSS CHURU
+                    </span>
+                    <span className="text-stone-700">✦</span>
+                    <span className="text-amber-400 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
+                    <span className="text-stone-700">✦</span>
+                    <span className="text-white font-sans font-bold">SKYLINE PREMIUM OUTFITS • BESPOKE APPAREL</span>
+                    <span className="text-stone-700">✦</span>
+                    <span className="text-indigo-300 font-sans font-bold">NASH STUDIO • PRIVATE SALON GROOMING</span>
+                    <span className="text-stone-700">✦</span>
+                    <span className="text-stone-300">0% PLATFORM COMMISSIONS • DIRECT PRICING</span>
+                    <span className="text-stone-700">✦</span>
+                    <span className="text-emerald-400 font-sans font-bold">INSTANT UPI SMARTPAY SETTLEMENTS</span>
+                    <span className="text-stone-700">✦</span>
+                  </>
+                )}
               </div>
             ))}
           </div>

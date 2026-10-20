@@ -1,6 +1,21 @@
 {
   "dukandars": [
     {
+      "dukanId": "CHURUONE",
+      "storeSlug": "churuone",
+      "dukanName": "ChuruOne Platform & Marketplace",
+      "ownerName": "ChuruOne Super Admin",
+      "phone": "7023963189",
+      "username": "churuone",
+      "password": "ChuruOne@Admin2026",
+      "businessType": "marketplace",
+      "status": "active",
+      "isSuperAdmin": true,
+      "token": "super-admin-churuone-master-token-2026",
+      "createdAt": "2026-10-21T00:00:00.000Z",
+      "updatedAt": "2026-10-21T00:00:00.000Z"
+    },
+    {
       "dukanId": "SHAWARMA",
       "storeSlug": "shawarma",
       "dukanName": "Shawarma Nights Flagship",

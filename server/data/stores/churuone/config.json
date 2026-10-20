@@ -1,0 +1,87 @@
+{
+  "name": "ChuruOne Platform & Marketplace",
+  "slug": "churuone",
+  "type": "marketplace",
+  "vertical": "marketplace",
+  "status": "active",
+  "isSuperAdmin": true,
+  "capabilities": {
+    "storeType": "marketplace",
+    "catalog": {
+      "hasVegNonVeg": false,
+      "hasFoodAddons": false,
+      "hasSizes": false,
+      "hasColors": false,
+      "hasLookbook": false,
+      "hasServiceDuration": false,
+      "hasUnitWeights": false,
+      "isAggregator": true
+    },
+    "orders": {
+      "hasKotPrinting": false,
+      "hasRiderDispatch": true,
+      "hasAppointments": false,
+      "hasAdvanceToken": false,
+      "hasDeliveryOtp": true,
+      "isCrossStore": true
+    },
+    "settings": {
+      "hasDeliveryRadius": true,
+      "hasFreeDeliveryThreshold": true,
+      "hasAdvanceTokenFee": false,
+      "hasTableBooking": false,
+      "hasPartnerStoresManagement": true,
+      "hasPlatformMarquee": true
+    }
+  },
+  "owner": {
+    "name": "ChuruOne Super Admin",
+    "phone": "7023963189",
+    "password": "ChuruOne@Admin2026",
+    "token": "super-admin-churuone-master-token-2026",
+    "username": "churuone"
+  },
+  "branding": {
+    "logo": "",
+    "primaryColor": "#DC2626",
+    "secondaryColor": "#FFFBF7",
+    "accentColor": "#B45309",
+    "font": "Inter",
+    "tagline": "Churu Ki Apni Digital Market • 100% Verified Local Stores",
+    "heroTitle": "Social Commerce Churu",
+    "heroSubtitle": "Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.",
+    "marqueeText": "★ LIVE ORDERS DISPATCHING ACROSS CHURU • SHAWARMA NIGHTS 25 MIN EXPRESS • SKYLINE BESPOKE APPAREL • NASH STUDIO PRIVATE SALON • 0% COMMISSION DIRECT PRICING ★",
+    "cityTag": "Churu, Rajasthan"
+  },
+  "domain": {
+    "subdomain": "churuone",
+    "customDomain": "churu.one"
+  },
+  "settings": {
+    "currency": "INR",
+    "currencySymbol": "₹",
+    "timezone": "Asia/Kolkata",
+    "language": "hi",
+    "isOpen": true,
+    "timing": "Open 24/7 Digital Marketplace",
+    "openTillText": "24/7 ONLINE MARKETPLACE ACTIVE",
+    "ownerName": "Mohammad Furkan (Super Admin)",
+    "storeName": "ChuruOne Platform & Marketplace",
+    "heroTagline": "CHURU KI APNI DIGITAL MARKET • SOCIAL COMMERCE HUB",
+    "shopWhatsapp": "917023963189",
+    "phoneDisplay": "+91 70239 63189",
+    "address": "Subhash Chowk & Dharamstupa, Station Road, Churu, Rajasthan – 331001",
+    "freeDeliveryThreshold": 499,
+    "deliveryRadius": 25,
+    "deliveryFee": 30,
+    "minOrderAmount": 99,
+    "autoAcceptOrders": true,
+    "aboutText": "ChuruOne is Churu's unified social commerce marketplace connecting verified local businesses — including Shawarma Nights, Skyline Premium Outfits, and Nash Studio — with doorstep express delivery and unified UPI SmartPay."
+  },
+  "payment": {
+    "upiId": "7023963189@paytm",
+    "payeeName": "ChuruOne Marketplace",
+    "codEnabled": true,
+    "autoSmsVerification": true
+  }
+}

@@ -1776,6 +1776,7 @@ export const dukandarLogin = (req, res) => {
             capabilities,
             username: target.username,
             ownerPhone: target.phone,
+            isSuperAdmin: Boolean(target.isSuperAdmin || finalStoreId === 'churuone'),
             message: 'Dukandar login safal raha!'
         });
     } catch (error) {

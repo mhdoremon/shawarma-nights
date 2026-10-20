@@ -22,7 +22,8 @@ import {
   X,
   Check,
   Lock,
-  ExternalLink
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import DashboardTab from './tabs/DashboardTab';
 import OrdersTab from './tabs/OrdersTab';
 import MenuTab from './tabs/MenuTab';
+import PartnerStoresTab from './tabs/PartnerStoresTab';
 import OffersTab from './tabs/OffersTab';
 import CustomersTab from './tabs/CustomersTab';
 import ReviewsTab from './tabs/ReviewsTab';
@@ -59,7 +61,9 @@ export default function MasterLayout() {
     franchiseInquiries,
     toast,
     updateStoreSettings,
-    showToast 
+    showToast,
+    isSuperAdmin,
+    switchStoreId
   } = useMaster();
 
   // If logged in as Delivery Boy, show Delivery Partner View directly
@@ -77,19 +81,26 @@ export default function MasterLayout() {
 
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
-  const hasAppointments = capabilities?.orders?.hasAppointments ?? isSalon;
-  const hasFranchise = capabilities?.settings?.hasFranchise ?? (!isSalon);
-  const catalogTabLabel = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : 'Menu');
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const isSalon = !isMarketplace && (capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const hasAppointments = !isMarketplace && (capabilities?.orders?.hasAppointments ?? isSalon);
+  const hasFranchise = !isMarketplace && (capabilities?.settings?.hasFranchise ?? (!isSalon));
+  const catalogTabLabel = isMarketplace ? 'Partner Stores' : (capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : 'Menu'));
 
   // Active / pending orders count
   const activeOrdersCount = (orders || []).filter(o => 
     ['new', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'dispatched'].includes(o.status)
   ).length;
 
-  const showOffers = true; // Always enabled so Dukandar can manage vouchers and packages
-
-  const tabsConfig = [
+  const tabsConfig = isMarketplace ? [
+    { id: 0, label: 'Platform Dashboard', icon: LayoutDashboard },
+    { id: 1, label: 'City Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
+    { id: 2, label: 'Partner Stores', icon: Store },
+    { id: 3, label: 'Platform Offers', icon: Tag, badge: deals?.length || 0 },
+    { id: 4, label: 'ChuruOne Users', icon: Users, badge: customers?.length || 0 },
+    { id: 5, label: 'Platform Reviews', icon: Star, badge: reviews?.length || 0 },
+    { id: 8, label: 'Platform Settings', icon: Settings },
+  ] : [
     { id: 0, label: isPendingReview ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
     { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: isPendingReview },
     { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: isPendingReview },
@@ -104,22 +115,51 @@ export default function MasterLayout() {
     <div className="min-h-screen bg-[#FFFBF7] text-zinc-900 font-sans selection:bg-[#DC2626] selection:text-white flex flex-col pb-24">
       
       {/* 1. TOP BRAND NAVBAR */}
-      <header className={`sticky top-0 z-40 ${isSalon ? 'bg-zinc-950 border-b border-zinc-800' : 'bg-[#DC2626]'} text-white shadow-md px-4 sm:px-6 py-3`}>
+      <header className={`sticky top-0 z-40 ${
+        isMarketplace 
+          ? 'bg-gradient-to-r from-stone-950 via-zinc-900 to-black border-b border-stone-800' 
+          : isSalon 
+            ? 'bg-zinc-950 border-b border-zinc-800' 
+            : 'bg-[#DC2626]'
+      } text-white shadow-md px-4 sm:px-6 py-3`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           
-          {/* Left: Brand + Active Store Pill */}
+          {/* Left: Brand + Active Store Switcher / Badge */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => setActiveTab(0)}>
               <span className="text-base sm:text-lg font-black tracking-tight text-white">CHURUONE</span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full ${isSalon ? 'bg-[#d4af37] text-zinc-950 font-black' : 'bg-zinc-900 text-white font-extrabold'} uppercase tracking-wider ml-1`}>
-                {isSalon ? 'SALON OS' : 'MASTER OS'}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                isMarketplace
+                  ? 'bg-amber-400 text-stone-950 font-black'
+                  : isSalon 
+                    ? 'bg-[#d4af37] text-zinc-950 font-black' 
+                    : 'bg-zinc-900 text-white font-extrabold'
+              } uppercase tracking-wider ml-1`}>
+                {isMarketplace ? 'SUPER ADMIN' : isSalon ? 'SALON OS' : 'MASTER OS'}
               </span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-zinc-900 text-xs font-black shadow-sm">
-              <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
-              <span className="capitalize">{storeInfo?.name || storeId}</span>
-            </div>
+            {/* Store Switcher: Interactive dropdown for Super Admin, static for regular merchants */}
+            {isSuperAdmin ? (
+              <div className="relative flex items-center">
+                <select
+                  value={storeId}
+                  onChange={(e) => switchStoreId(e.target.value)}
+                  className="bg-white text-zinc-900 text-xs font-black px-3.5 py-1.5 rounded-full shadow-md cursor-pointer border border-zinc-200 focus:outline-none pr-7 appearance-none"
+                >
+                  <option value="churuone">👑 ChuruOne Platform</option>
+                  <option value="shawarma">🌯 Shawarma Nights</option>
+                  <option value="skyline">👔 Skyline Premium Outfits</option>
+                  <option value="nash-studio">✂️ Nash Studio</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-600 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-zinc-900 text-xs font-black shadow-sm">
+                <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
+                <span className="capitalize">{storeInfo?.name || storeId}</span>
+              </div>
+            )}
 
             {/* Live Store Status 1-Click Toggle */}
             <button
@@ -256,7 +296,7 @@ export default function MasterLayout() {
             ) : (
               <>
                 {activeTab === 1 && <OrdersTab />}
-                {activeTab === 2 && <MenuTab />}
+                {activeTab === 2 && (isMarketplace ? <PartnerStoresTab /> : <MenuTab />)}
                 {activeTab === 3 && <OffersTab />}
                 {activeTab === 4 && <CustomersTab />}
                 {activeTab === 5 && <ReviewsTab />}

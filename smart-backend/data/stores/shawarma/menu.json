@@ -83,7 +83,7 @@
       ],
       "options": {
         "bread": [
-          { "name": "Toasted Rumali Roti (Included)", "price: 0 },
+          { "name": "Toasted Rumali Roti (Included)", "price": 0 },
           { "name": "Fluffy Lebanese Pita", "price": 20 },
           { "name": "Crispy Arabian Saj Bread", "price": 30 }
         ],
@@ -118,7 +118,7 @@
       ],
       "options": {
         "bread": [
-          { "name": "Toasted Rumali Roti (Included)", "price: 0 },
+          { "name": "Toasted Rumali Roti (Included)", "price": 0 },
           { "name": "Fluffy Lebanese Pita", "price": 20 },
           { "name": "Crispy Arabian Saj Bread", "price": 30 }
         ],

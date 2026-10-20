@@ -111,6 +111,36 @@ export const CAPABILITY_PROFILES = {
       hasAdvanceTokenFee: false,
       hasTableBooking: false
     }
+  },
+
+  marketplace: {
+    storeType: 'marketplace',
+    catalog: {
+      hasVegNonVeg: false,
+      hasFoodAddons: false,
+      hasSizes: false,
+      hasColors: false,
+      hasLookbook: false,
+      hasServiceDuration: false,
+      hasUnitWeights: false,
+      isAggregator: true
+    },
+    orders: {
+      hasKotPrinting: false,
+      hasRiderDispatch: true,
+      hasAppointments: false,
+      hasAdvanceToken: false,
+      hasDeliveryOtp: true,
+      isCrossStore: true
+    },
+    settings: {
+      hasDeliveryRadius: true,
+      hasFreeDeliveryThreshold: true,
+      hasAdvanceTokenFee: false,
+      hasTableBooking: false,
+      hasPartnerStores: true,
+      hasPlatformMarquee: true
+    }
   }
 };
 
@@ -136,9 +166,15 @@ export function inferStoreType(storeId, storeConfig = {}) {
     if (['grocery', 'retail', 'supermarket', 'kirana', 'general', 'store'].includes(explicitType)) {
       return 'grocery';
     }
+    if (['marketplace', 'platform', 'churuone', 'aggregator', 'mall'].includes(explicitType)) {
+      return 'marketplace';
+    }
   }
 
   // 2. Known storeId inference
+  if (normalizedStoreId === 'churuone' || normalizedStoreId === 'platform') {
+    return 'marketplace';
+  }
   if (normalizedStoreId === 'shawarma' || normalizedStoreId.includes('shawarma')) {
     return 'restaurant';
   }
