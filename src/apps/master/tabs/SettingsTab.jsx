@@ -33,6 +33,10 @@ import {
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
 
+const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : 'https://churuone-backend.onrender.com';
+
 function parseTimeComponents(timeStr) {
   if (!timeStr || typeof timeStr !== 'string') {
     return { hour: '11', minute: '00', period: 'AM' };
@@ -681,7 +685,12 @@ export default function SettingsTab() {
               <input
                 type="checkbox"
                 checked={operationalForm.isOpen}
-                onChange={(e) => setOperationalForm({ ...operationalForm, isOpen: e.target.checked })}
+                onChange={(e) => {
+                  const nextVal = e.target.checked;
+                  setOperationalForm(prev => ({ ...prev, isOpen: nextVal }));
+                  updateStoreSettings({ isOpen: nextVal });
+                  showToast(nextVal ? '🟢 Dukan abhi LIVE OPEN kar di gayi!' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.', nextVal ? 'success' : 'warning');
+                }}
                 className="sr-only peer"
               />
               <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
@@ -697,15 +706,17 @@ export default function SettingsTab() {
                 checked={operationalForm.marketplaceVisible}
                 onChange={async (e) => {
                   const nextVal = e.target.checked;
-                  setOperationalForm({ ...operationalForm, marketplaceVisible: nextVal });
+                  setOperationalForm(prev => ({ ...prev, marketplaceVisible: nextVal }));
                   try {
-                    await fetch(`/api/platform/stores/${storeId}/toggle-marketplace`, {
+                    await fetch(`${API_BASE}/api/platform/stores/${storeId}/toggle-marketplace`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ visible: nextVal })
                     });
+                    await updateStoreSettings({ marketplaceVisible: nextVal });
                     showToast(nextVal ? '✅ Dukan ChuruOne par LIVE kar di gayi!' : '⚪ Dukan ChuruOne se HIDE kar di gayi.', 'success');
                   } catch (err) {
+                    console.error('Marketplace visibility toggle error:', err);
                     showToast('Error syncing marketplace visibility', 'error');
                   }
                 }}
@@ -881,10 +892,14 @@ export default function SettingsTab() {
                     <button
                       type="button"
                       onClick={() => {
-                        setWeeklySchedule(prev => ({
-                          ...prev,
-                          [day.key]: { ...sched, isOpen: !sched.isOpen }
-                        }));
+                        const nextOpen = !sched.isOpen;
+                        const nextSched = {
+                          ...weeklySchedule,
+                          [day.key]: { ...sched, isOpen: nextOpen }
+                        };
+                        setWeeklySchedule(nextSched);
+                        updateStoreSettings({ weeklySchedule: nextSched });
+                        showToast(`${day.label} ab ${nextOpen ? 'OPEN' : 'OFF (CLOSED)'} set kar diya gaya!`, 'info');
                       }}
                       className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 ${
                         sched.isOpen

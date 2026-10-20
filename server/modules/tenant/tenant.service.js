@@ -152,6 +152,47 @@ export const updateStoreSettings = (req, res) => {
             config.settings.phone = phoneVal;
         }
 
+        if (updates.isOpen !== undefined) {
+            const openBool = Boolean(updates.isOpen);
+            config.isOpen = openBool;
+            config.settings.isOpen = openBool;
+        }
+
+        if (updates.weeklySchedule !== undefined) {
+            config.weeklySchedule = updates.weeklySchedule;
+            config.settings.weeklySchedule = updates.weeklySchedule;
+        }
+
+        if (updates.timing !== undefined) {
+            config.timing = updates.timing;
+            config.settings.timing = updates.timing;
+        }
+
+        if (updates.marketplaceVisible !== undefined) {
+            const mvBool = Boolean(updates.marketplaceVisible);
+            config.marketplaceVisible = mvBool;
+            config.settings.marketplaceVisible = mvBool;
+            try {
+                const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+                const stores = storesData.stores || [];
+                const targetStore = stores.find(s => (s.id || s.slug) === req.storeId);
+                if (targetStore) {
+                    targetStore.marketplaceVisible = mvBool;
+                } else {
+                    stores.push({
+                        id: req.storeId,
+                        slug: req.storeId,
+                        name: config.name || req.storeId,
+                        status: 'active',
+                        marketplaceVisible: mvBool
+                    });
+                }
+                DataLayer.writePlatform('stores', { stores });
+            } catch (err) {
+                console.warn('Could not sync stores.json:', err);
+            }
+        }
+
         if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
         if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
         if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
@@ -160,6 +201,9 @@ export const updateStoreSettings = (req, res) => {
         const activeName = config.name || config.settings?.name || config.settings?.studioName;
         const combined = {
             ...(config.settings || {}),
+            isOpen: config.settings.isOpen !== false,
+            weeklySchedule: config.settings.weeklySchedule || config.weeklySchedule || {},
+            marketplaceVisible: config.settings.marketplaceVisible !== false,
             name: activeName,
             studioName: activeName,
             storeName: activeName,
@@ -169,6 +213,10 @@ export const updateStoreSettings = (req, res) => {
             socials: config.socials || {},
             taxesAndCharges: config.taxesAndCharges || {}
         };
+        try {
+            DataLayer.write(req.storeId, 'store_info', combined);
+        } catch (e) {}
+
         WebSocketHub.broadcastToAll(req.storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
         return res.json({ success: true, message: 'Updated', storeInfo: combined });
     } catch (e) {
@@ -200,16 +248,42 @@ export function handleStoreWsMessage(data, ws, storeId, source) {
         const updates = data.payload || data.storeInfo || {};
         const config = DataLayer.getStoreConfig(storeId) || {};
         config.settings = { ...(config.settings || {}), ...updates };
+        if (updates.isOpen !== undefined) {
+            config.isOpen = Boolean(updates.isOpen);
+            config.settings.isOpen = Boolean(updates.isOpen);
+        }
+        if (updates.weeklySchedule !== undefined) {
+            config.weeklySchedule = updates.weeklySchedule;
+            config.settings.weeklySchedule = updates.weeklySchedule;
+        }
+        if (updates.marketplaceVisible !== undefined) {
+            const mvBool = Boolean(updates.marketplaceVisible);
+            config.marketplaceVisible = mvBool;
+            config.settings.marketplaceVisible = mvBool;
+            try {
+                const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+                const stores = storesData.stores || [];
+                const targetStore = stores.find(s => (s.id || s.slug) === storeId);
+                if (targetStore) targetStore.marketplaceVisible = mvBool;
+                DataLayer.writePlatform('stores', { stores });
+            } catch (e) {}
+        }
         if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
         if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
         if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
         DataLayer.updateStoreConfig(storeId, config);
         const combined = {
             ...(config.settings || {}),
+            isOpen: config.settings.isOpen !== false,
+            weeklySchedule: config.settings.weeklySchedule || config.weeklySchedule || {},
+            marketplaceVisible: config.settings.marketplaceVisible !== false,
             payment: config.payment || {},
             socials: config.socials || {},
             taxesAndCharges: config.taxesAndCharges || {}
         };
+        try {
+            DataLayer.write(storeId, 'store_info', combined);
+        } catch (e) {}
         WebSocketHub.broadcastToAll(storeId, { action: 'STORE_INFO_UPDATED', payload: combined });
     }
     if (data.action === 'UPDATE_HERO_BANNER') {
@@ -256,8 +330,13 @@ export const getMarketplaceFeed = (req, res) => {
             // Check dynamic store visibility
             const reg = registeredStores.find(s => (s.id || s.slug) === clean);
             const cfg = DataLayer.getStoreConfig(clean) || {};
-            // If explicitly set to false, hide from marketplace feed
-            if (!showAll && (reg?.marketplaceVisible === false || cfg?.marketplaceVisible === false)) {
+            const sInfo = DataLayer.read(clean, 'store_info') || {};
+            // If explicitly set to false in any config layer, hide from marketplace feed
+            const isStoreHidden = reg?.marketplaceVisible === false || 
+                                  cfg?.marketplaceVisible === false || 
+                                  cfg?.settings?.marketplaceVisible === false ||
+                                  sInfo?.marketplaceVisible === false;
+            if (!showAll && isStoreHidden) {
                 return false;
             }
             return true;
@@ -461,9 +540,26 @@ export const toggleStoreMarketplaceVisibility = (req, res) => {
 
         const cfg = DataLayer.getStoreConfig(cleanId) || {};
         cfg.marketplaceVisible = newStatus;
-        DataLayer.setStoreConfig(cleanId, cfg);
+        if (!cfg.settings) cfg.settings = {};
+        cfg.settings.marketplaceVisible = newStatus;
+        DataLayer.updateStoreConfig(cleanId, cfg);
+
+        try {
+            const existingInfo = DataLayer.read(cleanId, 'store_info') || {};
+            DataLayer.write(cleanId, 'store_info', { ...existingInfo, marketplaceVisible: newStatus });
+        } catch (e) {}
 
         DataLayer.writePlatform('stores', { stores });
+
+        WebSocketHub.broadcastToAll(cleanId, {
+            action: 'STORE_INFO_UPDATED',
+            payload: { ...(cfg.settings || {}), marketplaceVisible: newStatus }
+        });
+        WebSocketHub.broadcastToAll('platform', {
+            action: 'MARKETPLACE_STATUS_UPDATED',
+            storeId: cleanId,
+            marketplaceVisible: newStatus
+        });
 
         return res.json({
             success: true,

@@ -57,7 +57,9 @@ export default function MasterLayout() {
     customers, 
     reviews, 
     franchiseInquiries,
-    toast 
+    toast,
+    updateStoreSettings,
+    showToast 
   } = useMaster();
 
   // If logged in as Delivery Boy, show Delivery Partner View directly
@@ -118,6 +120,30 @@ export default function MasterLayout() {
               <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
               <span className="capitalize">{storeInfo?.name || storeId}</span>
             </div>
+
+            {/* Live Store Status 1-Click Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextOpen = !(storeInfo?.isOpen !== false);
+                updateStoreSettings({ isOpen: nextOpen });
+                showToast(
+                  nextOpen 
+                    ? '🟢 Dukan abhi LIVE OPEN kar di gayi! Website par Store Open ho gaya hai.' 
+                    : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.',
+                  nextOpen ? 'success' : 'warning'
+                );
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all cursor-pointer border-0 active:scale-95 ${
+                storeInfo?.isOpen !== false
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+              }`}
+              title={storeInfo?.isOpen !== false ? 'Click to Close Store (Dukan Band Karein)' : 'Click to Open Store (Dukan Kholein)'}
+            >
+              <span className={`w-2 h-2 rounded-full ${storeInfo?.isOpen !== false ? 'bg-white animate-pulse' : 'bg-white'}`} />
+              <span>{storeInfo?.isOpen !== false ? 'DUKAN OPEN' : 'DUKAN CLOSED (CLICK TO OPEN)'}</span>
+            </button>
 
             {isPendingReview && (
               <span className="hidden md:inline-flex items-center gap-1 text-[10px] bg-amber-400 text-amber-950 font-black px-2 py-0.5 rounded-full uppercase">

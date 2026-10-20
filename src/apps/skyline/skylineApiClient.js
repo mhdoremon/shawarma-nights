@@ -6,16 +6,23 @@
 export const SKYLINE_CONFIG = {
   storeId: 'skyline',
   primaryUrl: typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:5001'
-    : 'https://churuone.in',
+    ? 'http://localhost:5000'
+    : 'https://churuone-backend.onrender.com',
   fallbackUrl: 'https://churuone-backend.onrender.com'
 };
 
 function getApiBase() {
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:5001';
+    return 'http://localhost:5000';
   }
   return SKYLINE_CONFIG.primaryUrl;
+}
+
+function getWsUrl() {
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const wsHost = isLocal ? 'localhost:5000' : 'churuone-backend.onrender.com';
+  const proto = isLocal ? 'ws:' : 'wss:';
+  return `${proto}//${wsHost}/ws?storeId=${SKYLINE_CONFIG.storeId}`;
 }
 
 export async function skylineFetch(endpoint, options = {}) {
@@ -169,10 +176,7 @@ export function connectSkylineWebSocket(onEvent) {
 
   function connect() {
     if (isClosed) return;
-    const base = getApiBase();
-    const wsProto = base.startsWith('https') ? 'wss:' : 'ws:';
-    const host = base.replace(/^https?:\/\//, '');
-    const wsUrl = `${wsProto}//${host}/ws?storeId=${SKYLINE_CONFIG.storeId}`;
+    const wsUrl = getWsUrl();
 
     try {
       ws = new WebSocket(wsUrl);

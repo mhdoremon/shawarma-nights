@@ -902,6 +902,11 @@ const FALLBACK_REAL_ITEMS = [
   }
 ];
 
+// API Base resolution for ChuruOne Marketplace
+const CHURUONE_API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
+  : 'https://churuone-backend.onrender.com';
+
 export default function ChuruOneHomePage() {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState('terms');
@@ -928,7 +933,9 @@ export default function ChuruOneHomePage() {
   const isStoreVisible = (storeId) => {
     const clean = String(storeId || '').toLowerCase().trim();
     const st = stores.find(s => String(s.id || '').toLowerCase().trim() === clean);
-    if (st && st.marketplaceVisible === false) return false;
+    if (st && (st.marketplaceVisible === false || st.hiddenFromMarketplace === true)) return false;
+    // If feed loaded and store is not in active stores list returned by backend, it's hidden
+    if (!isLoadingFeed && !st) return false;
     return true;
   };
 
@@ -1039,14 +1046,14 @@ export default function ChuruOneHomePage() {
     async function loadFeed() {
       try {
         setIsLoadingFeed(true);
-        const res = await fetch('/api/platform/marketplace');
+        const res = await fetch(`${CHURUONE_API_BASE}/api/platform/marketplace`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (isMounted && data.success) {
-          if (Array.isArray(data.stores) && data.stores.length > 0) {
+          if (Array.isArray(data.stores)) {
             setStores(data.stores);
           }
-          if (Array.isArray(data.items) && data.items.length > 0) {
+          if (Array.isArray(data.items)) {
             const validItems = data.items.filter(it => 
               it.category !== 'footwear' &&
               !it.id?.startsWith('slick-shoe') &&
@@ -1070,7 +1077,11 @@ export default function ChuruOneHomePage() {
       }
     }
     loadFeed();
-    return () => { isMounted = false; };
+    const pollTimer = setInterval(loadFeed, 20000);
+    return () => {
+      isMounted = false;
+      clearInterval(pollTimer);
+    };
   }, []);
 
   // Sync SSO session on mount & subscribe to cross-app auth changes

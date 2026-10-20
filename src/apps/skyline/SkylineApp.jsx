@@ -66,6 +66,7 @@ import {
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 import BottomNavBar from '../../components/BottomNavBar';
 import { PHONEPE_REVIEW_MODE } from '../../config/siteMode';
+import { getStoreLiveStatus, DAYS_LIST } from '../../utils/storeTimingHelper';
 
 const CHURU_POPULAR_LANDMARKS = [
   'Subhash Chowk',
@@ -334,6 +335,12 @@ export default function SkylineApp() {
   const [newReviewName, setNewReviewName] = useState('');
   const [newReviewSubmitting, setNewReviewSubmitting] = useState(false);
 
+  // Store Closed Modal State & Real-time Live Status
+  const [isClosedModalOpen, setIsClosedModalOpen] = useState(false);
+  const liveStoreStatus = useMemo(() => {
+    return getStoreLiveStatus(storeData?.storeInfo);
+  }, [storeData?.storeInfo]);
+
   // Toast Notification
   const [toastMessage, setToastMessage] = useState('');
 
@@ -466,10 +473,14 @@ export default function SkylineApp() {
       }
     });
 
+    // 6. Background polling fallback every 25 seconds for guaranteed live sync
+    const pollInterval = setInterval(loadStoreData, 25000);
+
     return () => {
       window.removeEventListener('message', handleSsoMessage);
       unsubscribeSso();
       if (typeof unsubWs === 'function') unsubWs();
+      clearInterval(pollInterval);
     };
   }, []);
 
@@ -758,6 +769,11 @@ export default function SkylineApp() {
   // ─── CHECKOUT & ORDER SUBMISSION ──────────────────────────────
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
+    if (!liveStoreStatus.isOpen) {
+      showToast(`⚠️ Dukan filhal band hai: ${liveStoreStatus.reason}. Order abhi submit nahi kiya ja sakta.`);
+      setIsClosedModalOpen(true);
+      return;
+    }
     if (!currentUser || !isUserPhoneVerified) {
       showToast('Skyline orders ke liye verified mobile number anivarya hai');
       setIsCheckoutOpen(false);
@@ -1251,6 +1267,30 @@ export default function SkylineApp() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ─── 0. STORE CLOSED TOP ALERT NOTIFICATION BANNER ─── */}
+      {!liveStoreStatus.isOpen && (
+        <div className="bg-stone-950 text-white px-4 py-2.5 border-b border-red-900/60 shadow-md sticky top-0 z-50 animate-in fade-in slide-in-from-top-1">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <div className="flex items-center gap-2.5 justify-center sm:justify-start">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-amber-400 uppercase tracking-wide">
+                ⚠️ {liveStoreStatus.statusBadge}: {liveStoreStatus.reason}
+              </span>
+            </div>
+            <div className="flex items-center justify-center gap-3 text-xs text-stone-300">
+              <span className="hidden md:inline">Abhi store orders paused hain. Pieces explore karein!</span>
+              <button
+                type="button"
+                onClick={() => setIsClosedModalOpen(true)}
+                className="px-3 py-1 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-200 text-[11px] font-bold border border-stone-700 cursor-pointer transition-all"
+              >
+                Timings & Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── 1. MINIMALIST HEADER / NAVBAR (SOLID LUXURY LIGHT) ────── */}
       <header className="sticky top-0 z-50 bg-white border-b border-stone-200 shadow-sm transition-all">
@@ -2232,8 +2272,7 @@ export default function SkylineApp() {
               const dayIndex = new Date().getDay(); // 0 is Sun, 1 is Mon...
               const todayKey = dayIndex === 0 ? 'sun' : daysMap[dayIndex - 1]?.key || 'mon';
               const todaySchedule = schedule ? schedule[todayKey] : null;
-              const isMasterOpen = storeData?.storeInfo?.isOpen !== false;
-              const isTodayOpen = isMasterOpen && (todaySchedule ? todaySchedule.isOpen !== false : true);
+              const isTodayOpen = liveStoreStatus.isOpen;
 
               return (
                 <div className="bg-white rounded-2xl p-5 border border-stone-200/70 flex flex-col justify-between space-y-3 shadow-xs">
@@ -2259,9 +2298,11 @@ export default function SkylineApp() {
                           : (storeData?.storeInfo?.timing || 'Mon–Sun: 10:30 AM – 10:00 PM')}
                       </h4>
                       <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
-                        {storeData?.storeInfo?.openTillText 
-                          ? `Store timings: ${storeData.storeInfo.openTillText}. Bespoke trials & collection trials available.` 
-                          : 'Dukandar portal se live synced schedule. Bespoke fittings & orders available.'}
+                        {!isTodayOpen
+                          ? `⚠️ ${liveStoreStatus.reason}. Dukan khulne par trials & new orders accept honge.`
+                          : storeData?.storeInfo?.openTillText 
+                            ? `Store timings: ${storeData.storeInfo.openTillText}. Bespoke trials & collection trials available.` 
+                            : 'Dukandar portal se live synced schedule. Bespoke fittings & orders available.'}
                       </p>
                     </div>
 
@@ -2893,11 +2934,29 @@ export default function SkylineApp() {
                       </div>
                     </div>
 
+                    {/* Store Closed Warning in Cart Drawer */}
+                    {!liveStoreStatus.isOpen && (
+                      <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-xs text-red-900 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-red-700">
+                          <AlertCircle className="w-4 h-4 shrink-0" />
+                          <span>Dukan Abhi Band Hai ({liveStoreStatus.statusBadge})</span>
+                        </div>
+                        <p className="text-[11px] text-red-700 leading-tight">
+                          {liveStoreStatus.reason}. Dukan open hone par aapke orders accept kiye jayenge.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Checkout Button */}
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ scale: liveStoreStatus.isOpen ? 1.02 : 1 }}
+                      whileTap={{ scale: liveStoreStatus.isOpen ? 0.98 : 1 }}
                       onClick={() => {
+                        if (!liveStoreStatus.isOpen) {
+                          showToast(`⚠️ Dukan filhal band hai: ${liveStoreStatus.reason}`);
+                          setIsClosedModalOpen(true);
+                          return;
+                        }
                         if (!currentUser || !isUserPhoneVerified) {
                           showToast('Order karne ke liye verified mobile number se sign in karein');
                           setIsCartOpen(false);
@@ -2907,10 +2966,23 @@ export default function SkylineApp() {
                         setIsCartOpen(false);
                         setIsCheckoutOpen(true);
                       }}
-                      className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2"
+                      className={`w-full py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg transition-all flex items-center justify-center gap-2 ${
+                        liveStoreStatus.isOpen
+                          ? 'bg-black hover:bg-stone-800 text-white'
+                          : 'bg-stone-800 text-amber-300 border border-stone-700'
+                      }`}
                     >
-                      <span>Proceed to Checkout</span>
-                      <ArrowRight className="w-4 h-4" />
+                      {liveStoreStatus.isOpen ? (
+                        <>
+                          <span>Proceed to Checkout</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-4 h-4" />
+                          <span>Dukan Band Hai • View Timings</span>
+                        </>
+                      )}
                     </motion.button>
 
                   </div>
@@ -2958,6 +3030,21 @@ export default function SkylineApp() {
                   Delivery Details & Payment Method
                 </h3>
               </div>
+
+              {/* Store Closed Warning Banner in Checkout */}
+              {!liveStoreStatus.isOpen && (
+                <div className="bg-red-50 border border-red-300 p-3.5 rounded-xl text-xs text-red-950 flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold text-red-800">
+                      {liveStoreStatus.statusBadge}: Dukan Filhal Band Hai
+                    </strong>
+                    <span className="text-[11px] text-red-700 leading-tight block">
+                      {liveStoreStatus.reason}. Dukan band hone ke doran orders accept nahi kiye ja rahe hain. Kripya dukan khulne par order place karein.
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* ChuruOne SSO Authentication Gate & Verification */}
               {!isUserPhoneVerified ? (
@@ -3397,17 +3484,23 @@ export default function SkylineApp() {
 
                   <button
                     type="submit"
-                    disabled={orderSubmitting}
-                    className="w-full bg-black hover:bg-stone-800 text-white py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={orderSubmitting || !liveStoreStatus.isOpen}
+                    className={`w-full py-3.5 rounded-xl text-xs uppercase tracking-widest font-semibold cursor-pointer shadow-lg active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${
+                      !liveStoreStatus.isOpen
+                        ? 'bg-stone-800 text-amber-300 border border-stone-700 cursor-not-allowed'
+                        : 'bg-black hover:bg-stone-800 text-white'
+                    }`}
                   >
                     <span>
-                      {orderSubmitting 
-                        ? 'Recording Order...' 
-                        : paymentMethod === 'upi' 
-                          ? `Pay ₹${grandTotal}.00 with Instant UPI / SmartPay` 
-                          : `Confirm Order with Cash on Delivery (₹${grandTotal})`}
+                      {!liveStoreStatus.isOpen
+                        ? `🔒 Dukan Filhal Band Hai (${liveStoreStatus.statusBadge})`
+                        : orderSubmitting 
+                          ? 'Recording Order...' 
+                          : paymentMethod === 'upi' 
+                            ? `Pay ₹${grandTotal}.00 with Instant UPI / SmartPay` 
+                            : `Confirm Order with Cash on Delivery (₹${grandTotal})`}
                     </span>
-                    <ArrowRight className="w-4 h-4" />
+                    {liveStoreStatus.isOpen && <ArrowRight className="w-4 h-4" />}
                   </button>
                 </div>
 
@@ -3415,6 +3508,108 @@ export default function SkylineApp() {
                 </>
               )}
 
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── 10.5 STORE CLOSED POPUP MODAL ───────────────────────── */}
+      <AnimatePresence>
+        {isClosedModalOpen && (
+          <div className="fixed inset-0 z-[9999] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity" onClick={() => setIsClosedModalOpen(false)} />
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                className="relative bg-white max-w-md w-full rounded-3xl shadow-2xl border border-stone-200 p-6 sm:p-7 space-y-5 my-8 text-stone-900"
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsClosedModalOpen(false)}
+                  className="absolute right-4 top-4 text-stone-400 hover:text-black p-1 rounded-full cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <Clock className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block">
+                      STORE STATUS NOTIFICATION
+                    </span>
+                    <h3 className="text-lg font-black text-stone-950">
+                      Skyline Atelier Is Closed Right Now
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl text-xs text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    <span>{liveStoreStatus.statusBadge}</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 leading-relaxed">
+                    {liveStoreStatus.reason}. Dukan band hone ke dauran orders paused rahenge.
+                  </p>
+                </div>
+
+                {/* Atelier Weekly Schedule Overview */}
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-stone-500 block">
+                    Weekly Working Schedule (समय सारणी):
+                  </span>
+                  <div className="grid grid-cols-1 gap-1 bg-stone-50 p-2.5 rounded-2xl border border-stone-200/70 text-xs">
+                    {DAYS_LIST.map((d) => {
+                      const daySched = storeData?.storeInfo?.weeklySchedule?.[d.key];
+                      const isOpen = daySched ? daySched.isOpen !== false : true;
+                      const now = new Date();
+                      const daysKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+                      const isToday = daysKeys[now.getDay()] === d.key;
+
+                      return (
+                        <div
+                          key={d.key}
+                          className={`flex items-center justify-between px-3 py-1.5 rounded-xl transition-all ${
+                            isToday ? 'bg-black text-white font-bold shadow-xs' : 'text-stone-700'
+                          }`}
+                        >
+                          <span className="text-[11px] flex items-center gap-1.5">
+                            {isToday && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                            <span>{d.label.split(' ')[0]}</span>
+                          </span>
+                          <span className="text-[10px] font-mono">
+                            {isOpen
+                              ? `${daySched?.open || '10:30 AM'} - ${daySched?.close || '10:00 PM'}`
+                              : '🔴 WEEKLY OFF'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsClosedModalOpen(false)}
+                    className="w-full bg-black hover:bg-stone-800 text-white py-3 rounded-xl text-xs uppercase tracking-wider font-bold cursor-pointer transition-all shadow-md"
+                  >
+                    Continue Browsing Pieces
+                  </button>
+                  <a
+                    href="https://wa.me/917023963189?text=Hello%20Skyline%20Atelier,%20I%20wanted%20to%20inquire%20about%20your%20pieces."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full border border-stone-300 hover:border-black text-stone-800 py-2.5 rounded-xl text-xs font-bold text-center block no-underline transition-all"
+                  >
+                    💬 Contact Furkan on WhatsApp
+                  </a>
+                </div>
               </motion.div>
             </div>
           </div>

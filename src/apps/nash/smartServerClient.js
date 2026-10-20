@@ -5,16 +5,24 @@
 
 export const SMART_CONFIG = {
   storeId: 'nash-studio',
-  primaryUrl: 'https://churuone.in',
-  fallbackUrl: 'https://churuone-backend.onrender.com',
-  localUrl: 'http://localhost:5001'
+  primaryUrl: typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:5000'
+    : 'https://churuone-backend.onrender.com',
+  fallbackUrl: 'https://churuone-backend.onrender.com'
 };
 
 function getApiBase() {
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && window.location.port === '5001') {
-    return SMART_CONFIG.localUrl;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000';
   }
   return SMART_CONFIG.primaryUrl;
+}
+
+function getWsUrl() {
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const wsHost = isLocal ? 'localhost:5000' : 'churuone-backend.onrender.com';
+  const proto = isLocal ? 'ws:' : 'wss:';
+  return `${proto}//${wsHost}/ws?storeId=${SMART_CONFIG.storeId}`;
 }
 
 /**
@@ -232,10 +240,7 @@ export function connectSmartWebSocket(onEvent) {
 
   function connect() {
     if (isClosed) return;
-    const base = getApiBase();
-    const wsProto = base.startsWith('https') ? 'wss:' : 'ws:';
-    const host = base.replace(/^https?:\/\//, '');
-    const wsUrl = `${wsProto}//${host}/ws?storeId=${SMART_CONFIG.storeId}`;
+    const wsUrl = getWsUrl();
 
     try {
       ws = new WebSocket(wsUrl);
