@@ -48,6 +48,7 @@ import {
   sanitizeChuruOneUser,
   subscribeToChuruOneAuth
 } from '../../utils/ssoHelper';
+import { getStoreLiveStatus, extractStoreHours } from '../../utils/storeTimingHelper';
 
 // Popular Churu Landmarks for Fast Accurate City Delivery
 export const CHURU_POPULAR_LANDMARKS = [
@@ -1214,7 +1215,7 @@ export default function ChuruOneHomePage() {
   };
 
   // ─── CART OPERATIONS ──────────────────────────────────────────────
-  const addToCart = (product) => {
+  const addToCart = (product, isPreOrder = false, nextOpenTime = null) => {
     setCartItems(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
@@ -1235,10 +1236,16 @@ export default function ChuruOneHomePage() {
         price: Number(product.price) || 0,
         mrp: Number(product.originalPrice || product.mrp) || Math.round((Number(product.price) || 0) * 1.25),
         image: product.image,
-        qty: 1
+        qty: 1,
+        isPreOrder,
+        nextOpenTime
       }];
     });
-    showToast(`Added ${product.name} to bag!`);
+    if (isPreOrder) {
+      showToast(`Pre-order added! Will be fulfilled when store opens ${nextOpenTime ? `at ${nextOpenTime}` : 'tomorrow'}.`, 'info');
+    } else {
+      showToast(`Added ${product.name} to bag!`);
+    }
     // Do not auto-open cart drawer: let customer shop smoothly without interruption!
   };
 
@@ -1446,6 +1453,8 @@ export default function ChuruOneHomePage() {
           paymentStatus: isOnline ? 'pending_upi' : 'pending',
           status: isOnline ? 'payment_pending' : 'confirmed',
           couponCode: appliedCoupon?.code || null,
+          channel: 'churuone',
+          fromChuruOne: true,
           discount: storeDiscount,
           subtotal: storeSubtotal,
           total: storeTotal,
@@ -1648,6 +1657,8 @@ export default function ChuruOneHomePage() {
         },
         body: JSON.stringify({
           storeId: 'nash-studio',
+          channel: 'churuone',
+          fromChuruOne: true,
           customer: { name: bookingCustomerName.trim(), phone: `+91${cleanPhone}` },
           customerName: bookingCustomerName.trim(),
           customerPhone: `+91${cleanPhone}`,
@@ -2033,97 +2044,128 @@ export default function ChuruOneHomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
-              {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Item Image */}
-                    <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-stone-100">
-                      <img
-                        src={item.image || FALLBACK_PRODUCT_IMAGE}
-                        alt={item.name}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      />
+              {filteredItems.map((item) => {
+                const itemStore = stores.find(s => s.id === item.storeId);
+                const liveStatus = itemStore ? getStoreLiveStatus(itemStore) : { isOpen: true };
+                const isStoreLive = liveStatus.isOpen !== false;
+                const storeHours = itemStore ? extractStoreHours(itemStore) : { openStr: '11:00 AM' };
 
-                      {/* Discount Pill */}
-                      {item.originalPrice > item.price && (
-                        <span className="absolute top-2 left-2 bg-stone-950 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
-                          {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
-                        </span>
-                      )}
-
-                      {/* Service vs Delivery Tag */}
-                      <span className={`absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                        item.type === 'service' 
-                          ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                          : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                      }`}>
-                        {item.type === 'service' ? 'Salon Slot' : 'Express Delivery'}
-                      </span>
-                    </div>
-
-                    {/* Item Info */}
-                    <div className="p-3 sm:p-3.5 space-y-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800 truncate">
-                        {item.storeName}
-                      </div>
-                      <h4 className="font-bold text-xs sm:text-sm text-stone-950 line-clamp-1 group-hover:text-stone-700">
-                        {item.name}
-                      </h4>
-                      {item.description && (
-                        <p className="text-[11px] text-stone-500 line-clamp-2 leading-relaxed">
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Pricing & Intelligent Action Button */}
-                  <div className="p-3 sm:p-3.5 pt-0 flex items-center justify-between">
+                return (
+                  <div
+                    key={item.id}
+                    className={`group bg-white rounded-2xl overflow-hidden border shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between ${
+                      !isStoreLive ? 'border-amber-200/90' : 'border-stone-200/80'
+                    }`}
+                  >
                     <div>
-                      <div className="font-black text-sm sm:text-base text-stone-950">
-                        ₹{item.price}
+                      {/* Item Image */}
+                      <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-stone-100">
+                        <img
+                          src={item.image || FALLBACK_PRODUCT_IMAGE}
+                          alt={item.name}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
+                          }}
+                          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out ${
+                            !isStoreLive ? 'brightness-95' : ''
+                          }`}
+                        />
+
+                        {/* Discount Pill */}
+                        {item.originalPrice > item.price && (
+                          <span className="absolute top-2 left-2 bg-stone-950 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
+                            {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
+                          </span>
+                        )}
+
+                        {/* Service vs Delivery Tag */}
+                        <span className={`absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          item.type === 'service' 
+                            ? 'bg-amber-100 text-amber-900 border border-amber-200' 
+                            : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                        }`}>
+                          {item.type === 'service' ? 'Salon Slot' : 'Express Delivery'}
+                        </span>
                       </div>
-                      {item.originalPrice && item.originalPrice > item.price && (
-                        <div className="text-[10px] sm:text-xs text-stone-400 line-through">
-                          ₹{item.originalPrice}
+
+                      {/* Item Info */}
+                      <div className="p-3 sm:p-3.5 space-y-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800 truncate">
+                          {item.storeName}
                         </div>
+                        <h4 className="font-bold text-xs sm:text-sm text-stone-950 line-clamp-1 group-hover:text-stone-700">
+                          {item.name}
+                        </h4>
+
+                        {/* Store Timing Status Indicator */}
+                        {!isStoreLive && (
+                          <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Closed • Next open {storeHours.openStr || 'tomorrow'}</span>
+                          </div>
+                        )}
+
+                        {item.description && (
+                          <p className="text-[11px] text-stone-500 line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Pricing & Intelligent Action Button */}
+                    <div className="p-3 sm:p-3.5 pt-0 flex items-center justify-between">
+                      <div>
+                        <div className="font-black text-sm sm:text-base text-stone-950">
+                          ₹{item.price}
+                        </div>
+                        {item.originalPrice && item.originalPrice > item.price && (
+                          <div className="text-[10px] sm:text-xs text-stone-400 line-through">
+                            ₹{item.originalPrice}
+                          </div>
+                        )}
+                      </div>
+
+                      {item.type === 'service' ? (
+                        /* Salon Service: Book Appointment Button */
+                        <button
+                          type="button"
+                          onClick={() => openBookingModal(item)}
+                          className="bg-stone-950 hover:bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                          title="Book Salon Slot"
+                        >
+                          <Scissors className="w-3 h-3" />
+                          <span>{isStoreLive ? 'Book Slot' : 'Advance Slot'}</span>
+                        </button>
+                      ) : !isStoreLive ? (
+                        /* Store Closed: Pre-order for Tomorrow */
+                        <button
+                          type="button"
+                          onClick={() => addToCart(item, true, storeHours.openStr)}
+                          className="h-8 px-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                          title={`Store Closed. Pre-Order for tomorrow.`}
+                        >
+                          <Calendar className="w-3 h-3" />
+                          <span>Order for Tomorrow</span>
+                        </button>
+                      ) : (
+                        /* Deliverable Product: Add to Cart Button */
+                        <button
+                          type="button"
+                          onClick={() => addToCart(item)}
+                          className="h-8 px-3 rounded-full bg-stone-950 hover:bg-stone-800 text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
+                          title="Add to ChuruOne Bag"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                          <span>Add</span>
+                        </button>
                       )}
                     </div>
 
-                    {item.type === 'service' ? (
-                      /* Salon Service: Book Appointment Button */
-                      <button
-                        type="button"
-                        onClick={() => openBookingModal(item)}
-                        className="bg-stone-950 hover:bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-                        title="Book Salon Slot"
-                      >
-                        <Scissors className="w-3 h-3" />
-                        <span>Book Slot</span>
-                      </button>
-                    ) : (
-                      /* Deliverable Product: Add to Cart Button */
-                      <button
-                        type="button"
-                        onClick={() => addToCart(item)}
-                        className="h-8 px-3 rounded-full bg-stone-950 hover:bg-stone-800 text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-                        title="Add to ChuruOne Bag"
-                      >
-                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>Add</span>
-                      </button>
-                    )}
                   </div>
-
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

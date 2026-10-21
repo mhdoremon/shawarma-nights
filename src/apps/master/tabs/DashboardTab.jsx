@@ -1,9 +1,54 @@
 import React, { useMemo, useState } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { TrendingUp, ShoppingBag, Clock, CheckCircle2, IndianRupee, Store, Plus, Tag, Users, Building2, ShieldCheck, Lock, Phone, MessageSquare, ExternalLink, AlertTriangle, Copy, Check } from 'lucide-react';
+import { 
+  TrendingUp, 
+  ShoppingBag, 
+  Clock, 
+  CheckCircle2, 
+  IndianRupee, 
+  Store, 
+  Plus, 
+  Tag, 
+  Users, 
+  Building2, 
+  ShieldCheck, 
+  Lock, 
+  Phone, 
+  MessageSquare, 
+  ExternalLink, 
+  AlertTriangle, 
+  Copy, 
+  Check,
+  Flame,
+  ThumbsDown,
+  BarChart3,
+  Calendar,
+  RefreshCw,
+  Sparkles,
+  Layers,
+  Eye,
+  ArrowUpRight
+} from 'lucide-react';
+import { getImageUrl } from '../../../utils/imageHelper';
 
 export default function DashboardTab() {
-  const { orders, menu, deals, customers, franchiseInquiries, setActiveTab, storeInfo, storeId, capabilities, user } = useMaster();
+  const { 
+    orders, 
+    menu, 
+    deals, 
+    customers, 
+    franchiseInquiries, 
+    setActiveTab, 
+    storeInfo, 
+    storeId, 
+    capabilities, 
+    user,
+    cityProducts,
+    isHistoricalOrdersLoaded,
+    isLoadingHistoricalOrders,
+    loadHistoricalOrders,
+    refreshData
+  } = useMaster();
   const [copiedId, setCopiedId] = useState(false);
 
   const handleCopyDukanId = (id) => {
@@ -341,7 +386,131 @@ export default function DashboardTab() {
   const itemNoun = capabilities?.catalog?.itemNoun || (hasAppointments ? 'Service' : isFashion ? 'Product' : isMarketplace ? 'Partner Store' : 'Dish');
   const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : isFashion ? 'Products' : isMarketplace ? 'Partner Stores' : 'Dishes');
 
-  // Metrics calculation
+  // ─── SUPER ADMIN: MARKETPLACE EXECUTIVE ANALYTICS ───
+  const marketplaceAnalytics = useMemo(() => {
+    if (!isMarketplace) return null;
+    const list = Array.isArray(orders) ? orders : [];
+    const validOrders = list.filter(o => o.status !== 'cancelled' && o.status !== 'rejected');
+
+    const churuoneOrders = validOrders.filter(o => o.channel === 'churuone' || o.fromChuruOne === true);
+    const storefrontOrders = validOrders.filter(o => o.channel !== 'churuone' && !o.fromChuruOne);
+
+    const churuoneRevenue = churuoneOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
+    const storefrontRevenue = storefrontOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
+    const totalRevenue = churuoneRevenue + storefrontRevenue;
+
+    // Time-of-day slots for ChuruOne orders
+    const timeSlots = [
+      { key: 'morning', label: 'Morning', hours: '6 AM - 12 PM', count: 0, revenue: 0, color: 'text-amber-500', bg: 'bg-amber-50 border-amber-200' },
+      { key: 'afternoon', label: 'Afternoon', hours: '12 PM - 5 PM', count: 0, revenue: 0, color: 'text-orange-500', bg: 'bg-orange-50 border-orange-200' },
+      { key: 'evening', label: 'Evening', hours: '5 PM - 9 PM', count: 0, revenue: 0, color: 'text-indigo-500', bg: 'bg-indigo-50 border-indigo-200' },
+      { key: 'night', label: 'Late Night', hours: '9 PM - 4 AM', count: 0, revenue: 0, color: 'text-purple-500', bg: 'bg-purple-50 border-purple-200' }
+    ];
+
+    churuoneOrders.forEach(o => {
+      const d = o.createdAt || o.placedAt || o.timestamp ? new Date(o.createdAt || o.placedAt || o.timestamp) : new Date();
+      const h = d.getHours();
+      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
+
+      if (h >= 6 && h < 12) {
+        timeSlots[0].count += 1;
+        timeSlots[0].revenue += rev;
+      } else if (h >= 12 && h < 17) {
+        timeSlots[1].count += 1;
+        timeSlots[1].revenue += rev;
+      } else if (h >= 17 && h < 21) {
+        timeSlots[2].count += 1;
+        timeSlots[2].revenue += rev;
+      } else {
+        timeSlots[3].count += 1;
+        timeSlots[3].revenue += rev;
+      }
+    });
+
+    // Store breakdown
+    const storeMap = {
+      shawarma: { name: 'Shawarma Nights', vertical: 'food', badge: '🌯 Food Delivery', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
+      skyline: { name: 'Skyline Premium Outfits', vertical: 'fashion', badge: '👔 Fashion & Footwear', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
+      'nash-studio': { name: 'Nash Studio', vertical: 'salon', badge: '✂️ Salon & Grooming', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 }
+    };
+
+    validOrders.forEach(o => {
+      const sId = o.storeId || 'shawarma';
+      if (!storeMap[sId]) {
+        storeMap[sId] = { name: o.storeName || sId, vertical: 'general', badge: '🏬 Partner Store', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 };
+      }
+      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
+      if (o.channel === 'churuone' || o.fromChuruOne === true) {
+        storeMap[sId].churuoneOrders += 1;
+        storeMap[sId].churuoneRev += rev;
+      } else {
+        storeMap[sId].directOrders += 1;
+        storeMap[sId].directRev += rev;
+      }
+    });
+
+    // Product frequency and sales calculation
+    const salesMap = new Map();
+    validOrders.forEach(o => {
+      if (Array.isArray(o.items)) {
+        o.items.forEach(it => {
+          const key = it.id || it.name;
+          const current = salesMap.get(key) || {
+            id: key,
+            name: it.name,
+            storeId: o.storeId,
+            storeName: o.storeName,
+            units: 0,
+            revenue: 0,
+            image: it.image
+          };
+          const qty = Number(it.quantity || it.qty || 1);
+          const price = Number(it.price || 0);
+          current.units += qty;
+          current.revenue += (price * qty);
+          salesMap.set(key, current);
+        });
+      }
+    });
+
+    const orderedProducts = Array.from(salesMap.values()).sort((a, b) => b.units - a.units);
+    const topProducts = orderedProducts.slice(0, 5);
+
+    // Identify Slow / "Bekr" (low velocity or 0 sales) products from catalog
+    const allKnown = (cityProducts && cityProducts.length > 0) ? cityProducts : [];
+    const slowProducts = allKnown
+      .map(p => {
+        const stats = salesMap.get(p.id) || salesMap.get(p.name);
+        return {
+          id: p.id,
+          name: p.name,
+          storeId: p.storeId,
+          storeName: p.storeName,
+          category: p.category,
+          price: p.price,
+          image: p.image || p.img,
+          units: stats?.units || 0,
+          revenue: stats?.revenue || 0
+        };
+      })
+      .sort((a, b) => a.units - b.units)
+      .slice(0, 5);
+
+    return {
+      churuoneOrdersCount: churuoneOrders.length,
+      churuoneRevenue,
+      storefrontOrdersCount: storefrontOrders.length,
+      storefrontRevenue,
+      totalRevenue,
+      totalOrdersCount: validOrders.length,
+      timeSlots,
+      stores: Object.entries(storeMap).map(([id, d]) => ({ id, ...d })),
+      topProducts,
+      slowProducts
+    };
+  }, [isMarketplace, orders, cityProducts]);
+
+  // Metrics calculation for normal stores
   const metrics = useMemo(() => {
     const list = Array.isArray(orders) ? orders : [];
     const totalOrders = list.length;
@@ -366,6 +535,317 @@ export default function DashboardTab() {
     const list = Array.isArray(orders) ? [...orders] : [];
     return list.slice(0, 6);
   }, [orders]);
+
+  // ─── IF MARKETPLACE (CHURUONE SUPER ADMIN), RENDER PLATFORM COMMAND CENTER ───
+  if (isMarketplace && marketplaceAnalytics) {
+    const ma = marketplaceAnalytics;
+    return (
+      <div className="space-y-6 pb-16 max-w-7xl mx-auto font-sans">
+        
+        {/* Top Header Card */}
+        <div className="bg-gradient-to-r from-stone-900 via-zinc-900 to-black text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-amber-500/20 to-transparent pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400 text-stone-950 text-xs font-black uppercase tracking-wider shadow-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Super Admin Central Terminal</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                CHURUONE PLATFORM & ECOSYSTEM DASHBOARD
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-300 max-w-2xl leading-relaxed">
+                Platform-wide sales metrics, time-of-day orders velocity, dukan-wise cross-channel performance, aur catalog insights.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => refreshData()}
+                className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/20 active:scale-95"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Sync</span>
+              </button>
+
+              {!isHistoricalOrdersLoaded ? (
+                <button
+                  onClick={() => loadHistoricalOrders()}
+                  disabled={isLoadingHistoricalOrders}
+                  className="px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-95"
+                >
+                  {isLoadingHistoricalOrders ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+                  <span>Load All Archive</span>
+                </button>
+              ) : (
+                <span className="px-4 py-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                  ✓ Full Archive
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 1. SALES VIA CHURUONE VS TOTAL ECOSYSTEM SALES (DUAL COMMAND TILES) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          
+          {/* Card A: Sales Via ChuruOne Marketplace Page */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border-2 border-amber-200/80 flex flex-col justify-between space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-mono tracking-widest uppercase bg-amber-100 text-amber-950 px-3 py-1 rounded-full font-black">
+                  👑 CHURUONE MARKETPLACE SALES
+                </span>
+                <span className="text-xs font-bold text-zinc-400">
+                  churu.one feed checkout
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-3 my-2">
+                <span className="text-3xl sm:text-4xl font-black text-zinc-950">
+                  ₹{ma.churuoneRevenue.toLocaleString()}
+                </span>
+                <span className="text-sm font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full">
+                  {ma.churuoneOrdersCount} orders placed
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Gross sales generated directly through ChuruOne marketplace checkout.
+              </p>
+            </div>
+
+            {/* Time of Day Velocity Breakdown */}
+            <div className="pt-4 border-t border-zinc-100 space-y-3">
+              <span className="text-[11px] font-black text-zinc-400 uppercase tracking-wider block">
+                🕒 Time-of-Day Order Velocity (Din me kis time orders aa rahe hain)
+              </span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {ma.timeSlots.map((slot) => (
+                  <div key={slot.key} className={`p-3 rounded-2xl border ${slot.bg} text-center`}>
+                    <span className="text-[10px] font-bold text-zinc-500 block">{slot.label}</span>
+                    <span className="text-[9px] text-zinc-400 block mb-1">{slot.hours}</span>
+                    <span className="text-lg font-black text-zinc-900 block">{slot.count}</span>
+                    <span className="text-[10px] font-bold text-zinc-600 block">₹{slot.revenue}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Card B: Total Platform Ecosystem Gross Sales */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-zinc-200 flex flex-col justify-between space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-mono tracking-widest uppercase bg-emerald-100 text-emerald-950 px-3 py-1 rounded-full font-black">
+                  🌐 TOTAL ECOSYSTEM PLATFORM SALES
+                </span>
+                <span className="text-xs font-bold text-zinc-400">
+                  ChuruOne + All Direct Storefronts
+                </span>
+              </div>
+
+              <div className="flex items-baseline gap-3 my-2">
+                <span className="text-3xl sm:text-4xl font-black text-zinc-950">
+                  ₹{ma.totalRevenue.toLocaleString()}
+                </span>
+                <span className="text-sm font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                  {ma.totalOrdersCount} total platform orders
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500">
+                Combined gross transaction volume across Shawarma Nights, Skyline Outfits, Nash Studio, and ChuruOne.
+              </p>
+            </div>
+
+            {/* Direct vs ChuruOne Ratio */}
+            <div className="pt-4 border-t border-zinc-100 space-y-2">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-amber-800">👑 ChuruOne: ₹{ma.churuoneRevenue.toLocaleString()} ({ma.totalRevenue > 0 ? Math.round((ma.churuoneRevenue / ma.totalRevenue) * 100) : 0}%)</span>
+                <span className="text-zinc-600">🏬 Direct Stores: ₹{ma.storefrontRevenue.toLocaleString()} ({ma.totalRevenue > 0 ? Math.round((ma.storefrontRevenue / ma.totalRevenue) * 100) : 0}%)</span>
+              </div>
+
+              <div className="w-full bg-zinc-100 h-3 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-amber-400 h-full transition-all" 
+                  style={{ width: `${ma.totalRevenue > 0 ? Math.round((ma.churuoneRevenue / ma.totalRevenue) * 100) : 0}%` }}
+                />
+                <div 
+                  className="bg-zinc-800 h-full transition-all" 
+                  style={{ width: `${ma.totalRevenue > 0 ? Math.round((ma.storefrontRevenue / ma.totalRevenue) * 100) : 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* 2. DUKAN-WISE SALES CLASSIFICATION */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-0 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="text-lg font-black text-zinc-900 flex items-center gap-2">
+                <Store className="w-5 h-5 text-amber-500" />
+                <span>Dukan-Wise Sales Classification</span>
+              </h3>
+              <p className="text-xs text-zinc-500">
+                Har dukan ki direct storefront sales vs ChuruOne page ke through aane wali sales ka alag-alag hisab.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto pt-2">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
+                  <th className="py-3 px-4">Partner Store</th>
+                  <th className="py-3 px-4">Direct Storefront Sales</th>
+                  <th className="py-3 px-4">ChuruOne Page Sales</th>
+                  <th className="py-3 px-4">Total Combined Sales</th>
+                  <th className="py-3 px-4">Share of Platform</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100 font-medium">
+                {ma.stores.map((st) => {
+                  const combinedRev = st.directRev + st.churuoneRev;
+                  const combinedOrders = st.directOrders + st.churuoneOrders;
+                  const sharePct = ma.totalRevenue > 0 ? Math.round((combinedRev / ma.totalRevenue) * 100) : 0;
+
+                  return (
+                    <tr key={st.id} className="hover:bg-zinc-50/50 transition-colors">
+                      <td className="py-4 px-4 font-black text-zinc-900">
+                        <div className="text-sm font-black">{st.name}</div>
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">{st.badge}</div>
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <div className="font-bold text-zinc-900 text-sm">₹{st.directRev.toLocaleString()}</div>
+                        <div className="text-[11px] text-zinc-500">{st.directOrders} direct orders</div>
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <div className="font-black text-amber-800 text-sm">₹{st.churuoneRev.toLocaleString()}</div>
+                        <div className="text-[11px] text-amber-900">{st.churuoneOrders} ChuruOne orders</div>
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <div className="font-black text-emerald-700 text-base">₹{combinedRev.toLocaleString()}</div>
+                        <div className="text-[11px] text-zinc-500">{combinedOrders} total orders</div>
+                      </td>
+
+                      <td className="py-4 px-4">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-black bg-zinc-100 text-zinc-800">
+                          {sharePct}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 3. PRODUCT ANALYTICS: TOP BESTSELLERS VS TOP "BEKR" (SLOWEST) PRODUCTS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          
+          {/* Left: Top Best-Selling Products */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+                  <Flame className="w-5 h-5 text-red-500" />
+                  <span>Top Best-Selling Products</span>
+                </h3>
+                <p className="text-xs text-zinc-500">Sabse zyada bikne wale items aur unki demand</p>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 px-2.5 py-1 rounded-full">
+                🔥 Hot Demand
+              </span>
+            </div>
+
+            {ma.topProducts.length === 0 ? (
+              <div className="py-8 text-center text-zinc-400 text-xs">
+                Abhi koi product sales record nahi hai.
+              </div>
+            ) : (
+              <div className="space-y-2.5 pt-1">
+                {ma.topProducts.map((p, idx) => (
+                  <div key={p.id || idx} className="p-3.5 rounded-2xl bg-[#FFFBF7] flex items-center justify-between gap-3 border border-zinc-100">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-black shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-xs font-black text-zinc-900 line-clamp-1">{p.name}</h4>
+                        <span className="text-[10px] text-zinc-500 capitalize">{p.storeName || p.storeId}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-black text-emerald-700 block">{p.units} units sold</span>
+                      <span className="text-[11px] font-bold text-zinc-600">₹{p.revenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Top "Bekr" / Slowest Selling Products */}
+          <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border-0 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+                  <ThumbsDown className="w-5 h-5 text-zinc-400" />
+                  <span>Slowest / "Top Bekr" Products</span>
+                </h3>
+                <p className="text-xs text-zinc-500">Dukandaro dwara listed items jin par orders nahi aa rahe</p>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-zinc-100 text-zinc-600 px-2.5 py-1 rounded-full">
+                Needs Attention
+              </span>
+            </div>
+
+            {ma.slowProducts.length === 0 ? (
+              <div className="py-8 text-center text-zinc-400 text-xs">
+                Sabhi products acchi tarah sell ho rahe hain.
+              </div>
+            ) : (
+              <div className="space-y-2.5 pt-1">
+                {ma.slowProducts.map((p, idx) => (
+                  <div key={p.id || idx} className="p-3.5 rounded-2xl bg-zinc-50 flex items-center justify-between gap-3 border border-zinc-200">
+                    <div>
+                      <h4 className="text-xs font-black text-zinc-900 line-clamp-1">{p.name}</h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-zinc-500 capitalize">{p.storeName || p.storeId}</span>
+                        <span className="text-[10px] font-bold text-zinc-700">• ₹{p.price}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-md inline-block mb-1">
+                        {p.units} sold (0 velocity)
+                      </span>
+                      <button
+                        onClick={() => setActiveTab(3)}
+                        className="text-[10px] font-black text-amber-800 hover:underline block cursor-pointer"
+                      >
+                        Create Promo Offer →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">

@@ -2,27 +2,57 @@ import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
 import { generateId, generateOtp, generateUUID, now, safeNum, money, isNonEmpty, normalizePhone } from '../../utils/helpers.js';
 
+export const isOrderFromToday = (order) => {
+    if (!order) return false;
+    // Always keep active/pending orders in live view
+    if (['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'payment_pending', 'in_chair', 'booked'].includes(order.status)) {
+        return true;
+    }
+    const dateStr = order.createdAt || order.placedAt || order.dateISO;
+    if (!dateStr) return true;
+    try {
+        const orderDate = new Date(dateStr);
+        const now = new Date();
+        const oDateStr = orderDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        const nowDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+        return oDateStr === nowDateStr;
+    } catch {
+        return true;
+    }
+};
+
 export const getOrders = async (req, res) => {
     try {
         const storeId = req.storeId;
+        const wantHistory = req.query.history === 'true' || req.query.all === 'true';
+
+        let ordersList = [];
         if (storeId === 'churuone') {
             const allStores = ['shawarma', 'skyline', 'nash-studio'];
-            const allOrders = [];
             allStores.forEach(sId => {
                 const list = DataLayer.read(sId, 'orders') || [];
+                const cfg = DataLayer.getStoreConfig(sId) || {};
                 list.forEach(o => {
-                    allOrders.push({
+                    ordersList.push({
                         ...o,
                         storeId: o.storeId || sId,
-                        storeName: o.storeName || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio')
+                        storeName: o.storeName || o.sourceStoreName || cfg.settings?.name || cfg.name || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio'),
+                        channel: o.channel || o.source || (o.fromChuruOne ? 'churuone' : 'storefront')
                     });
                 });
             });
-            allOrders.sort((a, b) => new Date(b.createdAt || b.dateISO || 0) - new Date(a.createdAt || a.dateISO || 0));
-            return res.json({ success: true, orders: allOrders });
+        } else {
+            ordersList = DataLayer.read(storeId, 'orders') || [];
         }
-        const orders = DataLayer.read(storeId, 'orders') || [];
-        res.json({ success: true, orders });
+
+        ordersList.sort((a, b) => new Date(b.createdAt || b.dateISO || 0) - new Date(a.createdAt || a.dateISO || 0));
+
+        if (!wantHistory) {
+            // Default: Only today's orders or active orders to optimize performance!
+            ordersList = ordersList.filter(o => isOrderFromToday(o));
+        }
+
+        res.json({ success: true, orders: ordersList, isTodayOnly: !wantHistory });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -263,6 +293,9 @@ export const placeOrder = async (req, res) => {
             remainingDue: storeId === 'nash-studio' ? Math.max(0, (safeNum(payload.totalPrice) || safeNum(payload.total) || 0) - 50) : (safeNum(payload.remainingDue) || 0),
             deliveryBoyId: null,
             deliveryOtp,
+            channel: payload.channel || payload.orderOrigin || payload.source || (payload.fromChuruOne ? 'churuone' : 'storefront'),
+            sourceStoreId: storeId,
+            sourceStoreName: storeConfig?.settings?.name || storeConfig?.name || storeId,
             createdAt: now(),
             updatedAt: now()
         };

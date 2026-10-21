@@ -30,7 +30,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Tab Components
 import DashboardTab from './tabs/DashboardTab';
 import OrdersTab from './tabs/OrdersTab';
+import CityOrdersLedgerTab from './tabs/CityOrdersLedgerTab';
 import MenuTab from './tabs/MenuTab';
+import CityProductsTab from './tabs/CityProductsTab';
 import PartnerStoresTab from './tabs/PartnerStoresTab';
 import OffersTab from './tabs/OffersTab';
 import CustomersTab from './tabs/CustomersTab';
@@ -57,6 +59,7 @@ export default function MasterLayout() {
     menu, 
     deals, 
     customers, 
+    cityProducts,
     reviews, 
     franchiseInquiries,
     toast,
@@ -94,11 +97,12 @@ export default function MasterLayout() {
 
   const tabsConfig = isMarketplace ? [
     { id: 0, label: 'Platform Dashboard', icon: LayoutDashboard },
-    { id: 1, label: 'City Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
-    { id: 2, label: 'Partner Stores', icon: Store },
-    { id: 3, label: 'Platform Offers', icon: Tag, badge: deals?.length || 0 },
-    { id: 4, label: 'ChuruOne Users', icon: Users, badge: customers?.length || 0 },
-    { id: 5, label: 'Platform Reviews', icon: Star, badge: reviews?.length || 0 },
+    { id: 1, label: 'City Orders Ledger', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0 },
+    { id: 2, label: 'City Products Catalog', icon: UtensilsCrossed, badge: cityProducts?.length || 0 },
+    { id: 6, label: 'Partner Stores', icon: Store },
+    { id: 3, label: 'Platform Offers & Combos', icon: Tag, badge: deals?.length || 0 },
+    { id: 4, label: 'Customers CRM', icon: Users, badge: customers?.length || 0 },
+    { id: 5, label: 'Reviews & Permissions', icon: Star, badge: reviews?.length || 0 },
     { id: 8, label: 'Platform Settings', icon: Settings },
   ] : [
     { id: 0, label: isPendingReview ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
@@ -295,8 +299,9 @@ export default function MasterLayout() {
               <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} />
             ) : (
               <>
-                {activeTab === 1 && <OrdersTab />}
-                {activeTab === 2 && (isMarketplace ? <PartnerStoresTab /> : <MenuTab />)}
+                {activeTab === 1 && (isMarketplace ? <CityOrdersLedgerTab /> : <OrdersTab />)}
+                {activeTab === 2 && (isMarketplace ? <CityProductsTab /> : <MenuTab />)}
+                {activeTab === 6 && <PartnerStoresTab />}
                 {activeTab === 3 && <OffersTab />}
                 {activeTab === 4 && <CustomersTab />}
                 {activeTab === 5 && <ReviewsTab />}

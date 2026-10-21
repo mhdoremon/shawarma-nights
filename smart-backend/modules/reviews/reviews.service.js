@@ -56,7 +56,17 @@ export const addReview = (req, res) => {
 export const deleteReview = (req, res) => {
     try {
         const { id } = req.params;
-        let reviews = DataLayer.read(req.storeId, 'reviews') || [];
+        const storeId = req.storeId;
+
+        // Super Admin (churuone) can always moderate; check permission for merchants
+        if (storeId !== 'churuone') {
+            const cfg = DataLayer.getStoreConfig(storeId) || {};
+            if (cfg.settings?.canEditReviews === false) {
+                return res.status(403).json({ success: false, message: 'Review moderation is locked by ChuruOne Super Admin for this store.' });
+            }
+        }
+
+        let reviews = DataLayer.read(storeId, 'reviews') || [];
         const review = reviews.find(r => r.id === id);
         
         if (!review) {

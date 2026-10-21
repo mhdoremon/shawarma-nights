@@ -287,6 +287,19 @@ export const MasterProvider = ({ children }) => {
   const [orders, setOrders] = useState(() => getLocalCache(`churuone_cache_orders_${storeId}`, []));
   const [deals, setDeals] = useState(() => getLocalCache(`churuone_cache_deals_${storeId}`, []));
   const [customers, setCustomers] = useState(() => getLocalCache(`churuone_cache_customers_${storeId}`, []));
+  const [isCustomersLoaded, setIsCustomersLoaded] = useState(false);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [isHistoricalOrdersLoaded, setIsHistoricalOrdersLoaded] = useState(false);
+  const [isLoadingHistoricalOrders, setIsLoadingHistoricalOrders] = useState(false);
+
+  // Super Admin: City Products Platform Curation
+  const [cityProducts, setCityProducts] = useState([]);
+  const [isLoadingCityProducts, setIsLoadingCityProducts] = useState(false);
+
+  // Super Admin: City Reviews & Store Permissions
+  const [cityReviewsData, setCityReviewsData] = useState({ platformReviews: [], storeReviews: [], permissions: {} });
+  const [isLoadingCityReviews, setIsLoadingCityReviews] = useState(false);
+
   const [reviews, setReviews] = useState(() => getLocalCache(`churuone_cache_reviews_${storeId}`, []));
   const [franchise, setFranchise] = useState(() => getLocalCache(`churuone_cache_franchise_${storeId}`, {
     enabled: true,
@@ -426,11 +439,10 @@ export const MasterProvider = ({ children }) => {
         }
       };
 
-      // Parallel fetch with Promise.allSettled
-      const [dataRes, ordersRes, custRes, franRes] = await Promise.allSettled([
+      // Parallel fetch with Promise.allSettled (Lightweight & Fast - Customers loaded on demand!)
+      const [dataRes, ordersRes, franRes] = await Promise.allSettled([
         fetchWithTimeout(`${API_BASE}/api/data?storeId=${storeId}`),
         apiFetch('/api/orders'),
-        apiFetch('/api/auth/admin/customers'),
         isMarketplace ? Promise.resolve(null) : apiFetch('/api/franchise/config')
       ]);
 
@@ -489,14 +501,9 @@ export const MasterProvider = ({ children }) => {
         setOrders(finalOrders);
         setLocalCache(`churuone_cache_orders_${storeId}`, finalOrders);
       }
+      // Note: Customers are intentionally NOT loaded automatically to minimize load!
 
-      // 3. Process Customers
-      if (custRes.status === 'fulfilled' && custRes.value?.customers) {
-        setCustomers(custRes.value.customers);
-        setLocalCache(`churuone_cache_customers_${storeId}`, custRes.value.customers);
-      }
-
-      // 4. Process Franchise
+      // 3. Process Franchise
       if (franRes.status === 'fulfilled' && franRes.value) {
         if (franRes.value?.config) {
           setFranchise(franRes.value.config);
@@ -509,6 +516,142 @@ export const MasterProvider = ({ children }) => {
       console.warn('Initial data REST fetch error:', err);
     }
   }, [apiFetch, storeId]);
+
+  // ─── HIGH PERFORMANCE: ON-DEMAND CUSTOMER LOADER ───
+  const loadCustomersOnDemand = useCallback(async (force = false) => {
+    if (isCustomersLoaded && !force && customers.length > 0) return customers;
+    setIsLoadingCustomers(true);
+    try {
+      const res = await apiFetch('/api/auth/admin/customers');
+      if (res?.customers && Array.isArray(res.customers)) {
+        setCustomers(res.customers);
+        setIsCustomersLoaded(true);
+        setLocalCache(`churuone_cache_customers_${storeId}`, res.customers);
+        return res.customers;
+      }
+    } catch (e) {
+      console.warn('Failed loading customers on demand:', e);
+    } finally {
+      setIsLoadingCustomers(false);
+    }
+    return [];
+  }, [apiFetch, isCustomersLoaded, customers, storeId]);
+
+  // ─── HIGH PERFORMANCE: ON-DEMAND HISTORICAL ORDERS ARCHIVE LOADER ───
+  const loadHistoricalOrders = useCallback(async () => {
+    setIsLoadingHistoricalOrders(true);
+    try {
+      const res = await apiFetch('/api/orders?history=true');
+      const raw = Array.isArray(res) ? res : (res?.orders || []);
+      const dedupedMap = new Map();
+      raw.forEach(o => {
+        if (!o) return;
+        const key = o.id || o.orderNumber;
+        if (key && !dedupedMap.has(key)) {
+          dedupedMap.set(key, o);
+        }
+      });
+      const finalOrders = Array.from(dedupedMap.values());
+      setOrders(finalOrders);
+      setIsHistoricalOrdersLoaded(true);
+      showToast(`Loaded ${finalOrders.length} orders archive!`, 'success');
+      return finalOrders;
+    } catch (e) {
+      showToast('Failed to load historical archive', 'error');
+    } finally {
+      setIsLoadingHistoricalOrders(false);
+    }
+    return [];
+  }, [apiFetch, showToast]);
+
+  // ─── SUPER ADMIN: CITY PRODUCTS PLATFORM CURATION ───
+  const loadCityProducts = useCallback(async () => {
+    setIsLoadingCityProducts(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/products`);
+      const data = await res.json().catch(() => null);
+      if (data?.success && Array.isArray(data.products)) {
+        setCityProducts(data.products);
+        return data.products;
+      }
+    } catch (e) {
+      console.warn('Failed to load city products:', e);
+    } finally {
+      setIsLoadingCityProducts(false);
+    }
+    return [];
+  }, []);
+
+  const toggleProductMarketplaceVisibility = useCallback(async (targetStoreId, itemId, visible) => {
+    playClickSound();
+    try {
+      setCityProducts(prev => prev.map(p => {
+        if (p.storeId === targetStoreId && String(p.id) === String(itemId)) {
+          return { ...p, visibleOnChuruOne: visible, marketplaceVisible: visible };
+        }
+        return p;
+      }));
+
+      const res = await apiFetch(`/api/platform/products/${targetStoreId}/${itemId}/toggle-marketplace`, {
+        method: 'POST',
+        body: JSON.stringify({ visible })
+      });
+      if (res?.success) {
+        showToast(res.message || 'Product visibility updated!', 'success');
+        return { success: true };
+      }
+      return { success: false };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  }, [apiFetch, showToast]);
+
+  // ─── SUPER ADMIN: CITY REVIEWS & STORE MODERATION PERMISSIONS ───
+  const loadCityReviews = useCallback(async () => {
+    setIsLoadingCityReviews(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/reviews`);
+      const data = await res.json().catch(() => null);
+      if (data?.success) {
+        setCityReviewsData({
+          platformReviews: data.platformReviews || [],
+          storeReviews: data.storeReviews || [],
+          permissions: data.permissions || {}
+        });
+        return data;
+      }
+    } catch (e) {
+      console.warn('Failed to load city reviews:', e);
+    } finally {
+      setIsLoadingCityReviews(false);
+    }
+    return null;
+  }, []);
+
+  const toggleStoreReviewPermission = useCallback(async (targetStoreId, canEdit) => {
+    playClickSound();
+    try {
+      setCityReviewsData(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [targetStoreId]: canEdit
+        }
+      }));
+
+      const res = await apiFetch(`/api/platform/stores/${targetStoreId}/toggle-review-permission`, {
+        method: 'POST',
+        body: JSON.stringify({ canEditReviews: canEdit })
+      });
+      if (res?.success) {
+        showToast(res.message || 'Permission updated!', 'success');
+        return { success: true };
+      }
+      return { success: false };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  }, [apiFetch, showToast]);
 
   // Connect WebSocket to Smart Gateway
   const connectWebSocket = useCallback(() => {
@@ -1228,6 +1371,22 @@ export const MasterProvider = ({ children }) => {
       setOrders,
       deals,
       customers,
+      isCustomersLoaded,
+      isLoadingCustomers,
+      loadCustomersOnDemand,
+      isHistoricalOrdersLoaded,
+      isLoadingHistoricalOrders,
+      loadHistoricalOrders,
+      // Super Admin: City Products
+      cityProducts,
+      isLoadingCityProducts,
+      loadCityProducts,
+      toggleProductMarketplaceVisibility,
+      // Super Admin: City Reviews & Permissions
+      cityReviewsData,
+      isLoadingCityReviews,
+      loadCityReviews,
+      toggleStoreReviewPermission,
       reviews,
       franchise,
       franchiseInquiries,

@@ -412,7 +412,7 @@ export const getMarketplaceFeed = (req, res) => {
 
             // Add catalog items
             menuItems.forEach(item => {
-                if (item.available !== false) {
+                if (item.available !== false && item.visibleOnChuruOne !== false && item.marketplaceVisible !== false) {
                     const isService = vertical === 'salon';
                     const itemPrice = Number(item.price) || 0;
                     const itemMrp = Number(item.originalPrice || item.mrp) || Math.round(itemPrice * 1.25);
@@ -598,6 +598,146 @@ export const getStoreMarketplaceStatuses = (req, res) => {
             marketplaceVisible: s.marketplaceVisible ?? true
         }));
         return res.json({ success: true, stores });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── SUPER ADMIN: GET ALL PRODUCTS ACROSS ALL PARTNER STORES ───
+ */
+export const getCityProducts = (req, res) => {
+    try {
+        const merchantStores = ['shawarma', 'skyline', 'nash-studio'];
+        const allProducts = [];
+
+        merchantStores.forEach(sId => {
+            const config = DataLayer.getStoreConfig(sId) || {};
+            const storeName = config.settings?.name || config.name || sId;
+            const vertical = config.vertical || config.type || 'food';
+            const menuData = DataLayer.read(sId, 'menu') || { menu: [] };
+            const items = menuData.menu || [];
+
+            items.forEach(item => {
+                allProducts.push({
+                    ...item,
+                    storeId: sId,
+                    storeName,
+                    storeVertical: vertical,
+                    visibleOnChuruOne: item.visibleOnChuruOne !== false && item.marketplaceVisible !== false,
+                    marketplaceVisible: item.visibleOnChuruOne !== false && item.marketplaceVisible !== false
+                });
+            });
+        });
+
+        return res.json({ success: true, products: allProducts, total: allProducts.length });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── SUPER ADMIN: TOGGLE PRODUCT VISIBILITY ON CHURUONE ───
+ */
+export const toggleProductMarketplaceVisibility = (req, res) => {
+    try {
+        const { storeId, itemId } = req.params;
+        const { visible } = req.body;
+        const cleanStoreId = (storeId || '').trim().toLowerCase();
+
+        const menuData = DataLayer.read(cleanStoreId, 'menu') || { menu: [], categories: [] };
+        const items = menuData.menu || [];
+        const item = items.find(i => String(i.id) === String(itemId));
+
+        if (!item) {
+            return res.status(404).json({ success: false, message: `Product #${itemId} not found in store ${cleanStoreId}` });
+        }
+
+        const newVisible = typeof visible === 'boolean' ? visible : !(item.visibleOnChuruOne !== false && item.marketplaceVisible !== false);
+        item.visibleOnChuruOne = newVisible;
+        item.marketplaceVisible = newVisible;
+
+        DataLayer.writeSync(cleanStoreId, 'menu', menuData);
+
+        // Broadcast to merchants and marketplace
+        WebSocketHub.broadcastToAll(cleanStoreId, {
+            action: 'MENU_UPDATED',
+            payload: menuData
+        });
+        WebSocketHub.broadcastToAll('platform', {
+            action: 'MARKETPLACE_PRODUCT_VISIBILITY_CHANGED',
+            storeId: cleanStoreId,
+            itemId,
+            visible: newVisible
+        });
+
+        return res.json({
+            success: true,
+            storeId: cleanStoreId,
+            itemId,
+            visible: newVisible,
+            message: `Product "${item.name}" is now ${newVisible ? 'VISIBLE' : 'HIDDEN'} on ChuruOne.`
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── SUPER ADMIN: TOGGLE DUKANDAR REVIEW MODERATION PERMISSIONS ───
+ */
+export const toggleStoreReviewPermission = (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const { canEditReviews } = req.body;
+        const cleanStoreId = (storeId || '').trim().toLowerCase();
+
+        const cfg = DataLayer.getStoreConfig(cleanStoreId) || {};
+        if (!cfg.settings) cfg.settings = {};
+        const newStatus = typeof canEditReviews === 'boolean' ? canEditReviews : !(cfg.settings.canEditReviews ?? true);
+        cfg.settings.canEditReviews = newStatus;
+        DataLayer.updateStoreConfig(cleanStoreId, cfg);
+
+        return res.json({
+            success: true,
+            storeId: cleanStoreId,
+            canEditReviews: newStatus,
+            message: `Dukandar review edit rights for ${cleanStoreId} are now ${newStatus ? 'ALLOWED' : 'LOCKED'}.`
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── SUPER ADMIN: GET ALL CITY REVIEWS & PERMISSIONS ───
+ */
+export const getCityReviews = (req, res) => {
+    try {
+        const merchantStores = ['shawarma', 'skyline', 'nash-studio'];
+        const platformReviews = DataLayer.read('churuone', 'reviews') || [];
+        const storeReviews = [];
+        const permissions = {};
+
+        merchantStores.forEach(sId => {
+            const cfg = DataLayer.getStoreConfig(sId) || {};
+            permissions[sId] = cfg.settings?.canEditReviews ?? true;
+            const revs = DataLayer.read(sId, 'reviews') || [];
+            revs.forEach(r => {
+                storeReviews.push({
+                    ...r,
+                    storeId: sId,
+                    storeName: cfg.settings?.name || cfg.name || sId
+                });
+            });
+        });
+
+        return res.json({
+            success: true,
+            platformReviews,
+            storeReviews,
+            permissions
+        });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
     }

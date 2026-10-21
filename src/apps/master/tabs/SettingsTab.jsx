@@ -683,59 +683,61 @@ export default function SettingsTab() {
       <form onSubmit={handleSaveOperational} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3.5">
           <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
-            <Store className="w-4 h-4 text-[#DC2626]" />
-            <span>Store Operational & Social Info</span>
+            <Store className={`w-4 h-4 ${isMarketplace ? 'text-amber-500' : 'text-[#DC2626]'}`} />
+            <span>{isMarketplace ? 'ChuruOne Marketplace Operational Profile & Branding' : 'Store Operational & Social Info'}</span>
           </h3>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Dukan Open/Close Switch */}
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={operationalForm.isOpen}
-                onChange={(e) => {
-                  const nextVal = e.target.checked;
-                  setOperationalForm(prev => ({ ...prev, isOpen: nextVal }));
-                  updateStoreSettings({ isOpen: nextVal });
-                  showToast(nextVal ? '🟢 Dukan abhi LIVE OPEN kar di gayi!' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.', nextVal ? 'success' : 'warning');
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
-              <span className={`text-xs font-black ${operationalForm.isOpen ? 'text-emerald-700' : 'text-zinc-400'}`}>
-                {operationalForm.isOpen ? 'STORE OPEN' : 'STORE CLOSED'}
-              </span>
-            </label>
+          {!isMarketplace && (
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Dukan Open/Close Switch */}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={operationalForm.isOpen}
+                  onChange={(e) => {
+                    const nextVal = e.target.checked;
+                    setOperationalForm(prev => ({ ...prev, isOpen: nextVal }));
+                    updateStoreSettings({ isOpen: nextVal });
+                    showToast(nextVal ? '🟢 Dukan abhi LIVE OPEN kar di gayi!' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.', nextVal ? 'success' : 'warning');
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600 relative"></div>
+                <span className={`text-xs font-black ${operationalForm.isOpen ? 'text-emerald-700' : 'text-zinc-400'}`}>
+                  {operationalForm.isOpen ? 'STORE OPEN' : 'STORE CLOSED'}
+                </span>
+              </label>
 
-            {/* ChuruOne Marketplace Visibility Toggle */}
-            <label className="flex items-center gap-2 cursor-pointer select-none bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200">
-              <input
-                type="checkbox"
-                checked={operationalForm.marketplaceVisible}
-                onChange={async (e) => {
-                  const nextVal = e.target.checked;
-                  setOperationalForm(prev => ({ ...prev, marketplaceVisible: nextVal }));
-                  try {
-                    await fetch(`${API_BASE}/api/platform/stores/${storeId}/toggle-marketplace`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ visible: nextVal })
-                    });
-                    await updateStoreSettings({ marketplaceVisible: nextVal });
-                    showToast(nextVal ? '✅ Dukan ChuruOne par LIVE kar di gayi!' : '⚪ Dukan ChuruOne se HIDE kar di gayi.', 'success');
-                  } catch (err) {
-                    console.error('Marketplace visibility toggle error:', err);
-                    showToast('Error syncing marketplace visibility', 'error');
-                  }
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600 relative"></div>
-              <span className={`text-xs font-black ${operationalForm.marketplaceVisible ? 'text-indigo-700' : 'text-zinc-400'}`}>
-                {operationalForm.marketplaceVisible ? 'LIVE ON CHURUONE' : 'HIDDEN FROM CHURUONE'}
-              </span>
-            </label>
-          </div>
+              {/* ChuruOne Marketplace Visibility Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer select-none bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200">
+                <input
+                  type="checkbox"
+                  checked={operationalForm.marketplaceVisible}
+                  onChange={async (e) => {
+                    const nextVal = e.target.checked;
+                    setOperationalForm(prev => ({ ...prev, marketplaceVisible: nextVal }));
+                    try {
+                      await fetch(`${API_BASE}/api/platform/stores/${storeId}/toggle-marketplace`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ visible: nextVal })
+                      });
+                      await updateStoreSettings({ marketplaceVisible: nextVal });
+                      showToast(nextVal ? '✅ Dukan ChuruOne par LIVE kar di gayi!' : '⚪ Dukan ChuruOne se HIDE kar di gayi.', 'success');
+                    } catch (err) {
+                      console.error('Marketplace visibility toggle error:', err);
+                      showToast('Error syncing marketplace visibility', 'error');
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5.5 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                <span className={`text-xs font-black ${operationalForm.marketplaceVisible ? 'text-indigo-700' : 'text-zinc-400'}`}>
+                  {operationalForm.marketplaceVisible ? 'LIVE ON CHURUONE' : 'HIDDEN FROM CHURUONE'}
+                </span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -796,7 +798,36 @@ export default function SettingsTab() {
           </div>
         </div>
 
-        {/* 7-DAY WEEKLY SCHEDULE & TIMING MANAGER (With Dropdown Pickers & Auto-Sync) */}
+        {/* 7-DAY WEEKLY SCHEDULE & TIMING MANAGER (Only for physical partner stores; ChuruOne Platform runs 24/7) */}
+        {isMarketplace ? (
+          <div className="space-y-4 bg-gradient-to-br from-stone-900 to-zinc-900 text-white p-5 sm:p-6 rounded-3xl shadow-xl border border-stone-800">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                  24/7
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-white">ChuruOne Marketplace 24/7 Always-On Platform Core</h4>
+                  <p className="text-xs text-stone-300 mt-0.5">
+                    ChuruOne platform 24 ghante, 365 din online rehti hai. Kisi individual kitchen timing ki zaroorat nahi hai.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ● 100% ONLINE
+              </span>
+            </div>
+
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-xs text-stone-300 space-y-2">
+              <span className="font-bold text-amber-300 block text-[11px] uppercase tracking-wider">
+                ⚡ Automatic Partner Store Coordination & Pre-Order Logic:
+              </span>
+              <p className="leading-relaxed">
+                Jese-jese koi partner store (Shawarma Nights, Skyline Outfits, Nash Studio) apne tay samay ya weekly off ke mutabik band hota hai, us dukan ke products ChuruOne homepage par automatically <strong>"Store Closed • Next Open at [Time]"</strong> aur <strong>"Pre-Order for Tomorrow"</strong> mode me chale jaate hain. Dukandaron ke apne dashboard se set kiye gaye schedule ke mutabik yeh sab automatically synchronize hota hai.
+              </p>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-4 bg-[#FFFBF7] p-4 sm:p-5 rounded-2xl border border-zinc-200/70 shadow-2xs">
           
           {/* Header */}
@@ -959,6 +990,7 @@ export default function SettingsTab() {
             })}
           </div>
         </div>
+        )}
 
         {/* Store Physical Address & Customer Helpline Phone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

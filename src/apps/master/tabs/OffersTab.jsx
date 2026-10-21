@@ -26,7 +26,7 @@ export default function OffersTab() {
   const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
   const isSalon = !isMarketplace && (capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon' || capabilities?.catalog?.hasServiceDuration);
   const isFashion = !isMarketplace && Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
-  const hasFreeDelivery = !isSalon && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
+  const hasFreeDelivery = !isSalon && !isMarketplace && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
 
   // Free delivery threshold state
   const [fdLimit, setFdLimit] = useState(String(storeInfo?.freeDeliveryThreshold ?? 499));
@@ -313,24 +313,28 @@ export default function OffersTab() {
 
 
 
-      {/* 1. VIP PACKAGES & COMBOS SECTION (Salon & Fashion stores) */}
-      {(isSalon || isFashion) && (
+      {/* 1. VIP PACKAGES & COMBOS SECTION (Salon, Fashion & Marketplace) */}
+      {(isSalon || isFashion || isMarketplace) && (
         <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl space-y-5 border-0">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-black uppercase tracking-wider mb-2">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                <span>{isSalon ? 'Bespoke Packages • बंडल कॉम्बो' : 'Curated Outfits • बंडल कॉम्बो'}</span>
+                <span>{isMarketplace ? 'Cross-Store Bundles • मल्टी-स्टोर कॉम्बो' : isSalon ? 'Bespoke Packages • बंडल कॉम्बो' : 'Curated Outfits • बंडल कॉम्बो'}</span>
               </div>
               <h2 className="text-xl font-black text-zinc-900">
-                {isSalon 
-                  ? `VIP SALON PACKAGES & COMBOS (${availableCombos.length})` 
-                  : `CURATED WARDROBE SETS & COMBOS (${availableCombos.length})`}
+                {isMarketplace
+                  ? `CROSS-STORE COMBOS & PACKAGES (${availableCombos.length})`
+                  : isSalon 
+                    ? `VIP SALON PACKAGES & COMBOS (${availableCombos.length})` 
+                    : `CURATED WARDROBE SETS & COMBOS (${availableCombos.length})`}
               </h2>
               <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-                {isSalon 
-                  ? 'Haircut + Daadi + Shave + Facial ke multi-service package bundles yahan se banayein aur website par live showcase karein.'
-                  : 'Shirt + Trouser + Jacket ke coordinated outfits & matching sets yahan se banayein aur website par live showcase karein.'}
+                {isMarketplace
+                  ? 'Shawarma Nights + Skyline Outfits + Nash Studio ke cross-store combos yahan se banayein aur ChuruOne par promote karein.'
+                  : isSalon 
+                    ? 'Haircut + Daadi + Shave + Facial ke multi-service package bundles yahan se banayein aur website par live showcase karein.'
+                    : 'Shirt + Trouser + Jacket ke coordinated outfits & matching sets yahan se banayein aur website par live showcase karein.'}
               </p>
             </div>
 
@@ -338,10 +342,10 @@ export default function OffersTab() {
               type="button"
               onClick={() => setComboModalData({
                 name: '',
-                price: isFashion ? 2999 : 599,
-                originalPrice: isFashion ? 4499 : 850,
+                price: isMarketplace ? 499 : isFashion ? 2999 : 599,
+                originalPrice: isMarketplace ? 799 : isFashion ? 4499 : 850,
                 time: 50,
-                badge: isFashion ? 'CURATED ENSEMBLE' : 'BESTSELLER COMBO',
+                badge: isMarketplace ? 'PLATFORM SPECIAL' : isFashion ? 'CURATED ENSEMBLE' : 'BESTSELLER COMBO',
                 selectedDishIds: [],
                 image: isFashion ? (menu?.[0]?.image || '') : '/images/hs_scissor_sculpt.jpg',
                 description: '',
@@ -350,7 +354,7 @@ export default function OffersTab() {
               className="px-5 py-3 rounded-full bg-amber-500 hover:bg-amber-600 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0"
             >
               <Package className="w-4 h-4 stroke-[2.5]" />
-              <span>{isSalon ? '+ CREATE NEW COMBO PACKAGE' : '+ CREATE WARDROBE COMBO SET'}</span>
+              <span>{isMarketplace ? '+ CREATE CROSS-STORE COMBO' : isSalon ? '+ CREATE NEW COMBO PACKAGE' : '+ CREATE WARDROBE COMBO SET'}</span>
             </button>
           </div>
 
@@ -533,10 +537,10 @@ export default function OffersTab() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-zinc-100 pb-4">
           <div>
             <h2 className="text-xl font-black text-zinc-900">
-              {isSalon ? `PROMO VOUCHER CODES (${deals?.length || 0})` : `PROMO CODES & DEALS (${deals?.length || 0})`}
+              {isMarketplace ? `PLATFORM PROMO COUPONS (${deals?.length || 0})` : isSalon ? `PROMO VOUCHER CODES (${deals?.length || 0})` : `PROMO CODES & DEALS (${deals?.length || 0})`}
             </h2>
             <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">
-              {isSalon ? 'Manage salon appointment checkout discount promo vouchers (e.g. NASH20, ROYAL100)' : 'Manage discount codes, checkout vouchers, and auto-applied offers'}
+              {isMarketplace ? 'Manage universal platform promo coupons valid across ChuruOne Marketplace checkout' : isSalon ? 'Manage salon appointment checkout discount promo vouchers (e.g. NASH20, ROYAL100)' : 'Manage discount codes, checkout vouchers, and auto-applied offers'}
             </p>
           </div>
 
@@ -698,7 +702,7 @@ export default function OffersTab() {
       </div>
 
       {/* 2. HOMEPAGE HERO BANNER & OFFER LIVE EDITOR (Restaurant food dish offer) */}
-      {!isSalon && (
+      {!isSalon && !isMarketplace && (
         <form onSubmit={handleSaveHeroOffer} className="bg-white rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl border-0">
         <div className="border-b border-zinc-100 pb-4">
           <div className="flex items-center gap-2">
