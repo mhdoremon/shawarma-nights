@@ -328,17 +328,18 @@ export default function DashboardTab() {
     );
   }
 
-  const isSalon = capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash'));
-  const isFashion = capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
-  const hasAppointments = capabilities?.orders?.hasAppointments ?? isSalon;
-  const hasFranchise = capabilities?.settings?.hasFranchise ?? (!isSalon);
-  const showOffers = storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const isSalon = !isMarketplace && (capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const isFashion = !isMarketplace && (capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline')));
+  const hasAppointments = !isMarketplace && (capabilities?.orders?.hasAppointments ?? isSalon);
+  const hasFranchise = !isMarketplace && (capabilities?.settings?.hasFranchise ?? (!isSalon));
+  const showOffers = !isMarketplace && storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
 
-  const storeDisplayName = storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights');
-  const orderNoun = hasAppointments ? 'Booking' : 'Order';
-  const orderNounPlural = hasAppointments ? 'Bookings' : 'Orders';
-  const itemNoun = capabilities?.catalog?.itemNoun || (hasAppointments ? 'Service' : isFashion ? 'Product' : 'Dish');
-  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : isFashion ? 'Products' : 'Dishes');
+  const storeDisplayName = storeInfo?.name || storeInfo?.storeName || storeInfo?.studioName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights');
+  const orderNoun = hasAppointments ? 'Booking' : isMarketplace ? 'City Order' : 'Order';
+  const orderNounPlural = hasAppointments ? 'Bookings' : isMarketplace ? 'City Orders' : 'Orders';
+  const itemNoun = capabilities?.catalog?.itemNoun || (hasAppointments ? 'Service' : isFashion ? 'Product' : isMarketplace ? 'Partner Store' : 'Dish');
+  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : isFashion ? 'Products' : isMarketplace ? 'Partner Stores' : 'Dishes');
 
   // Metrics calculation
   const metrics = useMemo(() => {
@@ -373,13 +374,19 @@ export default function DashboardTab() {
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-0">
         <div>
           <div className="inline-block bg-zinc-900 text-white px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm mb-2">
-            TERMINAL ACTIVE
+            {isMarketplace ? 'SUPER ADMIN TERMINAL' : 'TERMINAL ACTIVE'}
           </div>
           <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 leading-tight">
             {storeDisplayName}
           </h2>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
-            Realtime Dukan Terminal • ChuruOne Universal Backend Connected
+            {isMarketplace 
+              ? 'Central Multi-Store Command Hub • Live City Network Status' 
+              : hasAppointments 
+                ? 'Salon Appointments & Client Operations' 
+                : isFashion 
+                  ? 'Bespoke Apparel & Footwear Operations' 
+                  : 'Realtime Dukan Terminal • ChuruOne Universal Backend Connected'}
           </p>
         </div>
 

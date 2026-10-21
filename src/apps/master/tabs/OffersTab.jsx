@@ -23,8 +23,9 @@ export default function OffersTab() {
     showToast 
   } = useMaster();
 
-  const isSalon = capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon' || capabilities?.catalog?.hasServiceDuration;
-  const isFashion = Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const isSalon = !isMarketplace && (capabilities?.vertical === 'salon' || (storeId || '').includes('nash') || storeInfo?.vertical === 'salon' || capabilities?.catalog?.hasServiceDuration);
+  const isFashion = !isMarketplace && Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline'));
   const hasFreeDelivery = !isSalon && (capabilities?.settings?.hasFreeDeliveryThreshold ?? true);
 
   // Free delivery threshold state
@@ -41,14 +42,14 @@ export default function OffersTab() {
 
   // Hero Offer Editor state
   const [heroOffer, setHeroOffer] = useState({
-    studioName: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
+    studioName: storeInfo?.name || storeInfo?.storeName || storeInfo?.studioName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
     featuredItemId: heroBanner?.featuredItemId || (menu?.[0]?.id || ''),
     priceText: heroBanner?.priceText || (isFashion ? 'Starting at' : isSalon ? 'Starts from' : 'Starts from'),
     priceValue: heroBanner?.priceValue || (isSalon ? '500' : isFashion ? '1799' : '179'),
-    badgeText: heroBanner?.badgeText || (isSalon ? 'VIP GROOMING LOUNGE' : isFashion ? 'CHURU FLAGSHIP' : '50% OFF — NIGHT50'),
-    titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : isFashion ? 'SKYLINE' : 'REAL'),
-    titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : isFashion ? 'PREMIUM' : 'CHARCOAL'),
-    titleHighlight: heroBanner?.titleHighlight || (isSalon ? 'NASH STUDIO' : isFashion ? 'OUTFITS' : 'SHAWARMA'),
+    badgeText: heroBanner?.badgeText || (isSalon ? 'VIP GROOMING LOUNGE' : isFashion ? 'CHURU FLAGSHIP' : isMarketplace ? 'CHURU SOCIAL COMMERCE' : '50% OFF — NIGHT50'),
+    titleLine1: heroBanner?.titleLine1 || (isSalon ? 'PRECISION' : isFashion ? 'SKYLINE' : isMarketplace ? 'SOCIAL' : 'REAL'),
+    titleLine2: heroBanner?.titleLine2 || (isSalon ? 'GROOMING' : isFashion ? 'PREMIUM' : isMarketplace ? 'COMMERCE' : 'CHARCOAL'),
+    titleHighlight: heroBanner?.titleHighlight || (isMarketplace ? 'CHURUONE' : isSalon ? 'NASH STUDIO' : isFashion ? 'OUTFITS' : 'SHAWARMA'),
     subtitle: heroBanner?.subtitle || storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : isFashion ? 'Architectural luxury menswear, Italian linen shirts, pleated Gurkha trousers, Japanese selvedge denim & bespoke outfits curated in Churu.' : 'Slow-turned on glowing coals. Carved fresh. Wrapped in toasted saj bread with our legendary garlic toum.'),
     heroVideoUrl: heroBanner?.heroVideoUrl || storeInfo?.heroVideoUrl || '/video/hero.mp4',
     heroButtonText: heroBanner?.heroButtonText || storeInfo?.heroButtonText || (isFashion ? 'SHOP COLLECTION' : isSalon ? 'EXPLORE STYLES & BOOK' : 'ORDER NOW'),

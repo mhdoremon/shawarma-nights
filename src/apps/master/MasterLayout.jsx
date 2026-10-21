@@ -157,7 +157,7 @@ export default function MasterLayout() {
             ) : (
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-zinc-900 text-xs font-black shadow-sm">
                 <Store className={`w-3.5 h-3.5 ${isSalon ? 'text-[#d4af37]' : 'text-[#DC2626]'}`} />
-                <span className="capitalize">{storeInfo?.name || storeId}</span>
+                <span className="capitalize">{storeInfo?.name || storeInfo?.storeName || storeId}</span>
               </div>
             )}
 
@@ -169,8 +169,8 @@ export default function MasterLayout() {
                 updateStoreSettings({ isOpen: nextOpen });
                 showToast(
                   nextOpen 
-                    ? '🟢 Dukan abhi LIVE OPEN kar di gayi! Website par Store Open ho gaya hai.' 
-                    : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.',
+                    ? (isMarketplace ? '🟢 ChuruOne Platform abhi LIVE OPEN kar diya gaya!' : '🟢 Dukan abhi LIVE OPEN kar di gayi! Website par Store Open ho gaya hai.')
+                    : (isMarketplace ? '🔴 ChuruOne Platform abhi PAUSED mark kar diya gaya!' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.'),
                   nextOpen ? 'success' : 'warning'
                 );
               }}
@@ -179,10 +179,10 @@ export default function MasterLayout() {
                   ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
               }`}
-              title={storeInfo?.isOpen !== false ? 'Click to Close Store (Dukan Band Karein)' : 'Click to Open Store (Dukan Kholein)'}
+              title={storeInfo?.isOpen !== false ? 'Click to Pause/Close' : 'Click to Open/Resume'}
             >
               <span className={`w-2 h-2 rounded-full ${storeInfo?.isOpen !== false ? 'bg-white animate-pulse' : 'bg-white'}`} />
-              <span>{storeInfo?.isOpen !== false ? 'DUKAN OPEN' : 'DUKAN CLOSED (CLICK TO OPEN)'}</span>
+              <span>{storeInfo?.isOpen !== false ? (isMarketplace ? 'PLATFORM LIVE' : 'DUKAN OPEN') : (isMarketplace ? 'PLATFORM PAUSED' : 'DUKAN CLOSED (CLICK TO OPEN)')}</span>
             </button>
 
             {isPendingReview && (

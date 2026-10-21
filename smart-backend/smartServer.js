@@ -139,11 +139,49 @@ app.use('/api', storeInfoRouter);
 app.get('/api/data', (req, res) => {
   const storeId = req.storeId;
   const storeConfig = DataLayer.getStoreConfig(storeId);
-  const menuData = DataLayer.read(storeId, 'menu') || { menu: [], categories: [] };
-  const orders = DataLayer.read(storeId, 'orders') || [];
+  const isMarketplace = storeId === 'churuone';
+
+  const menuData = isMarketplace ? { menu: [], categories: [] } : (DataLayer.read(storeId, 'menu') || { menu: [], categories: [] });
+  
+  let orders = [];
+  if (isMarketplace) {
+    const allStores = ['shawarma', 'skyline', 'nash-studio'];
+    allStores.forEach(sId => {
+      const list = DataLayer.read(sId, 'orders') || [];
+      list.forEach(o => {
+        orders.push({
+          ...o,
+          storeId: o.storeId || sId,
+          storeName: o.storeName || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio')
+        });
+      });
+    });
+    orders.sort((a, b) => new Date(b.createdAt || b.dateISO || 0) - new Date(a.createdAt || a.dateISO || 0));
+  } else {
+    orders = DataLayer.read(storeId, 'orders') || [];
+  }
+
   const deals = DataLayer.read(storeId, 'deals') || [];
   const reviews = DataLayer.read(storeId, 'reviews') || [];
-  const rawCustomers = DataLayer.read(storeId, 'customers') || [];
+  
+  let rawCustomers = [];
+  if (isMarketplace) {
+    const allStores = ['shawarma', 'skyline', 'nash-studio'];
+    const custMap = new Map();
+    allStores.forEach(sId => {
+      const list = DataLayer.read(sId, 'customers') || [];
+      list.forEach(c => {
+        const key = c.phone || c.id;
+        if (key && !custMap.has(key)) {
+          custMap.set(key, c);
+        }
+      });
+    });
+    rawCustomers = Array.from(custMap.values());
+  } else {
+    rawCustomers = DataLayer.read(storeId, 'customers') || [];
+  }
+
   const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
   const franchiseData = DataLayer.read(storeId, 'franchise') || {};
 
@@ -165,11 +203,12 @@ app.get('/api/data', (req, res) => {
       ...(storeConfig?.payment || {}),
       socials: storeConfig?.socials || {},
       taxesAndCharges: storeConfig?.taxesAndCharges || storeConfig?.tax || {},
-      name: storeConfig?.settings?.name || storeConfig?.settings?.studioName || storeConfig?.name || storeConfig?.settings?.storeName || (storeId ? `Dukan ${storeId.toUpperCase()}` : 'ChuruOne Store'),
+      name: storeConfig?.settings?.name || storeConfig?.settings?.studioName || storeConfig?.name || storeConfig?.settings?.storeName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : (storeId ? `Dukan ${storeId.toUpperCase()}` : 'ChuruOne Store')),
+      storeName: storeConfig?.settings?.storeName || storeConfig?.settings?.name || storeConfig?.name || (isMarketplace ? 'ChuruOne Platform & Marketplace' : (storeId ? `Dukan ${storeId.toUpperCase()}` : 'ChuruOne Store')),
       studioName: storeConfig?.settings?.studioName || storeConfig?.settings?.name || storeConfig?.name || '',
       phone: storeConfig?.settings?.phoneDisplay || storeConfig?.settings?.phone || storeConfig?.phone || '',
       phoneDisplay: storeConfig?.settings?.phoneDisplay || storeConfig?.settings?.phone || storeConfig?.phone || '',
-      vertical: storeConfig?.vertical || storeConfig?.type || 'retail',
+      vertical: storeConfig?.vertical || storeConfig?.type || (isMarketplace ? 'marketplace' : 'retail'),
       branding: storeConfig?.branding || {},
       address: storeConfig?.settings?.address || '',
       timing: storeConfig?.settings?.timing || '',

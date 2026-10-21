@@ -213,6 +213,32 @@ export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
   };
 }
 
+// Local cache helpers for instant (0ms) UI load & Stale-While-Revalidate
+const getLocalCache = (key, fallback) => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const setLocalCache = (key, val) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+};
+
+export function getStoreDefaultName(id) {
+  const clean = (id || '').toLowerCase().trim();
+  if (clean === 'churuone' || clean === 'platform') return 'ChuruOne Platform & Marketplace';
+  if (clean.includes('skyline')) return 'Skyline Premium Outfits';
+  if (clean.includes('nash')) return 'Nash Studio';
+  return 'Shawarma Nights';
+}
+
 export const MasterProvider = ({ children }) => {
   const [storeId, setStoreId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -228,7 +254,10 @@ export const MasterProvider = ({ children }) => {
         localStorage.setItem('churuone_master_store_id', 'nash-studio');
         return 'nash-studio';
       }
-      return localStorage.getItem('churuone_master_store_id') || 'shawarma';
+      const savedUser = (() => {
+        try { return JSON.parse(localStorage.getItem('churuone_master_user') || 'null'); } catch { return null; }
+      })();
+      return localStorage.getItem('churuone_master_store_id') || savedUser?.storeId || 'shawarma';
     }
     return 'shawarma';
   });
@@ -236,7 +265,11 @@ export const MasterProvider = ({ children }) => {
   const [role, setRole] = useState(() => localStorage.getItem('churuone_master_role') || 'dukandar'); // 'dukandar' | 'delivery_boy'
   const [user, setUser] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('churuone_master_user') || 'null');
+      const u = JSON.parse(localStorage.getItem('churuone_master_user') || 'null');
+      if (u && (u.storeId === 'churuone' || u.username === 'churuone' || u.dukanId === 'CHURUONE')) {
+        u.isSuperAdmin = true;
+      }
+      return u;
     } catch {
       return null;
     }
@@ -248,28 +281,33 @@ export const MasterProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState(0); // 0 to 8
   const [toast, setToast] = useState(null); // { message, type: 'info'|'success'|'error' }
 
-  // Store Realtime Data States
-  const [menu, setMenu] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [deals, setDeals] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [reviews, setReviews] = useState([]);
-  const [franchise, setFranchise] = useState({
+  // Store Realtime Data States (Hydrated from cache for instant 0ms load)
+  const [menu, setMenu] = useState(() => getLocalCache(`churuone_cache_menu_${storeId}`, []));
+  const [categories, setCategories] = useState(() => getLocalCache(`churuone_cache_categories_${storeId}`, []));
+  const [orders, setOrders] = useState(() => getLocalCache(`churuone_cache_orders_${storeId}`, []));
+  const [deals, setDeals] = useState(() => getLocalCache(`churuone_cache_deals_${storeId}`, []));
+  const [customers, setCustomers] = useState(() => getLocalCache(`churuone_cache_customers_${storeId}`, []));
+  const [reviews, setReviews] = useState(() => getLocalCache(`churuone_cache_reviews_${storeId}`, []));
+  const [franchise, setFranchise] = useState(() => getLocalCache(`churuone_cache_franchise_${storeId}`, {
     enabled: true,
     investmentRange: '₹3.5L – ₹6.5L',
     roiMonths: '3 to 6 Months',
     grossMargin: '50% – 60%',
     setupDays: '14 Days'
-  });
+  }));
   const [franchiseInquiries, setFranchiseInquiries] = useState([]);
-  const [storeInfo, setStoreInfo] = useState({});
+  const [storeInfo, setStoreInfo] = useState(() => getLocalCache(`churuone_cache_storeInfo_${storeId}`, {
+    name: getStoreDefaultName(storeId),
+    storeName: getStoreDefaultName(storeId),
+    vertical: storeId === 'churuone' ? 'marketplace' : storeId.includes('nash') ? 'salon' : storeId.includes('skyline') ? 'fashion' : 'food',
+    isOpen: true
+  }));
   const [heroBanner, setHeroBanner] = useState({});
   const [smsLogs, setSmsLogs] = useState([]);
   const [assignedOrders, setAssignedOrders] = useState([]);
 
   // Capabilities Matrix state dynamically resolved for the active store
-  const [capabilities, setCapabilities] = useState(() => resolveClientCapabilities(storeId, {}));
+  const [capabilities, setCapabilities] = useState(() => resolveClientCapabilities(storeId, storeInfo || {}));
 
   // Registered / Available Delivery Riders
   const [deliveryBoys, setDeliveryBoys] = useState([
@@ -337,18 +375,28 @@ export const MasterProvider = ({ children }) => {
 
   // REST API fetch wrapper with store ID and auth token headers
   const apiFetch = useCallback(async (endpoint, options = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-store-id': storeId,
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    };
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-store-id': storeId,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {})
+      };
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers
-    });
-    return res.json();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+        signal: controller.signal
+      }).catch(() => null);
+      clearTimeout(timer);
+
+      if (!res || !res.ok) return null;
+      return await res.json().catch(() => null);
+    } catch {
+      return null;
+    }
   }, [storeId, token]);
 
   // Send message through WebSocket or fallback to HTTP
@@ -360,48 +408,102 @@ export const MasterProvider = ({ children }) => {
     return false;
   }, []);
 
-  // Fetch initial state via REST fallback
+  // Fetch initial state via REST fallback in PARALLEL with timeouts
   const fetchInitialDataViaRest = useCallback(async () => {
     try {
-      // 1. Catalog & Store
-      const storeRes = await fetch(`${API_BASE}/api/data?storeId=${storeId}`).catch(() => null);
-      if (storeRes && storeRes.ok) {
-        const data = await storeRes.json();
-        if (data.menu) setMenu(data.menu);
-        if (data.categories) setCategories(data.categories);
-        if (data.deals) setDeals(data.deals);
-        if (data.storeInfo) {
-          setStoreInfo(data.storeInfo);
-          const resolved = resolveClientCapabilities(storeId, { ...data.storeInfo, capabilities: data.capabilities || data.storeInfo.capabilities });
-          setCapabilities(resolved);
-        } else if (data.capabilities) {
-          setCapabilities(resolveClientCapabilities(storeId, { capabilities: data.capabilities }));
+      const isMarketplace = storeId === 'churuone';
+
+      const fetchWithTimeout = async (url, options = {}, timeoutMs = 8000) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const res = await fetch(url, { ...options, signal: controller.signal });
+          clearTimeout(timer);
+          return res;
+        } catch (e) {
+          clearTimeout(timer);
+          return null;
         }
-        if (data.heroBanner) setHeroBanner(data.heroBanner);
-        if (data.reviews) setReviews(data.reviews);
+      };
+
+      // Parallel fetch with Promise.allSettled
+      const [dataRes, ordersRes, custRes, franRes] = await Promise.allSettled([
+        fetchWithTimeout(`${API_BASE}/api/data?storeId=${storeId}`),
+        apiFetch('/api/orders'),
+        apiFetch('/api/auth/admin/customers'),
+        isMarketplace ? Promise.resolve(null) : apiFetch('/api/franchise/config')
+      ]);
+
+      // 1. Process Store Data
+      if (dataRes.status === 'fulfilled' && dataRes.value && dataRes.value.ok) {
+        try {
+          const data = await dataRes.value.json();
+          if (data.menu) {
+            setMenu(data.menu);
+            setLocalCache(`churuone_cache_menu_${storeId}`, data.menu);
+          }
+          if (data.categories) {
+            setCategories(data.categories);
+            setLocalCache(`churuone_cache_categories_${storeId}`, data.categories);
+          }
+          if (data.deals) {
+            setDeals(data.deals);
+            setLocalCache(`churuone_cache_deals_${storeId}`, data.deals);
+          }
+          if (data.storeInfo) {
+            const mergedInfo = {
+              ...data.storeInfo,
+              name: data.storeInfo.name || data.storeInfo.storeName || getStoreDefaultName(storeId),
+              storeName: data.storeInfo.storeName || data.storeInfo.name || getStoreDefaultName(storeId),
+              vertical: data.storeInfo.vertical || (storeId === 'churuone' ? 'marketplace' : 'retail')
+            };
+            setStoreInfo(mergedInfo);
+            setLocalCache(`churuone_cache_storeInfo_${storeId}`, mergedInfo);
+            const resolved = resolveClientCapabilities(storeId, { ...mergedInfo, capabilities: data.capabilities || mergedInfo.capabilities });
+            setCapabilities(resolved);
+          } else if (data.capabilities) {
+            setCapabilities(resolveClientCapabilities(storeId, { capabilities: data.capabilities }));
+          }
+          if (data.heroBanner) setHeroBanner(data.heroBanner);
+          if (data.reviews) {
+            setReviews(data.reviews);
+            setLocalCache(`churuone_cache_reviews_${storeId}`, data.reviews);
+          }
+        } catch (e) {
+          console.warn('Failed parsing /api/data response:', e);
+        }
       }
 
-      // 2. Orders
-      const ordersRes = await apiFetch('/api/orders').catch(() => null);
-      const rawOrders = Array.isArray(ordersRes) ? ordersRes : (ordersRes?.orders || []);
-      const dedupedMap = new Map();
-      rawOrders.forEach(o => {
-        if (!o) return;
-        const key = o.id || o.orderNumber;
-        if (key && !dedupedMap.has(key)) {
-          dedupedMap.set(key, o);
+      // 2. Process Orders
+      if (ordersRes.status === 'fulfilled' && ordersRes.value) {
+        const rawOrders = Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value?.orders || []);
+        const dedupedMap = new Map();
+        rawOrders.forEach(o => {
+          if (!o) return;
+          const key = o.id || o.orderNumber;
+          if (key && !dedupedMap.has(key)) {
+            dedupedMap.set(key, o);
+          }
+        });
+        const finalOrders = Array.from(dedupedMap.values());
+        setOrders(finalOrders);
+        setLocalCache(`churuone_cache_orders_${storeId}`, finalOrders);
+      }
+
+      // 3. Process Customers
+      if (custRes.status === 'fulfilled' && custRes.value?.customers) {
+        setCustomers(custRes.value.customers);
+        setLocalCache(`churuone_cache_customers_${storeId}`, custRes.value.customers);
+      }
+
+      // 4. Process Franchise
+      if (franRes.status === 'fulfilled' && franRes.value) {
+        if (franRes.value?.config) {
+          setFranchise(franRes.value.config);
+          setLocalCache(`churuone_cache_franchise_${storeId}`, franRes.value.config);
         }
-      });
-      setOrders(Array.from(dedupedMap.values()));
-
-      // 3. Customers (admin only)
-      const custRes = await apiFetch('/api/auth/admin/customers').catch(() => null);
-      if (custRes?.customers) setCustomers(custRes.customers);
-
-      // 4. Franchise
-      const franRes = await apiFetch('/api/franchise/config').catch(() => null);
-      if (franRes?.config) setFranchise(franRes.config);
-      if (franRes?.inquiries) setFranchiseInquiries(franRes.inquiries);
+        if (franRes.value?.inquiries) setFranchiseInquiries(franRes.value.inquiries);
+      }
 
     } catch (err) {
       console.warn('Initial data REST fetch error:', err);
@@ -444,17 +546,51 @@ export const MasterProvider = ({ children }) => {
           switch (action) {
             case 'INIT_STATE':
             case 'INITIAL_STATE': {
-              if (payload.menu) setMenu(payload.menu);
-              if (payload.categories) setCategories(payload.categories);
-              if (payload.orders) setOrders(payload.orders);
-              if (payload.deals) setDeals(payload.deals);
-              if (payload.customers) setCustomers(payload.customers);
-              if (payload.reviews) setReviews(payload.reviews);
-              if (payload.franchise) setFranchise(payload.franchise);
+              if (payload.menu) {
+                setMenu(payload.menu);
+                setLocalCache(`churuone_cache_menu_${storeId}`, payload.menu);
+              }
+              if (payload.categories) {
+                setCategories(payload.categories);
+                setLocalCache(`churuone_cache_categories_${storeId}`, payload.categories);
+              }
+              if (payload.orders) {
+                setOrders(payload.orders);
+                setLocalCache(`churuone_cache_orders_${storeId}`, payload.orders);
+              }
+              if (payload.deals) {
+                setDeals(payload.deals);
+                setLocalCache(`churuone_cache_deals_${storeId}`, payload.deals);
+              }
+              if (payload.customers) {
+                setCustomers(payload.customers);
+                setLocalCache(`churuone_cache_customers_${storeId}`, payload.customers);
+              }
+              if (payload.reviews) {
+                setReviews(payload.reviews);
+                setLocalCache(`churuone_cache_reviews_${storeId}`, payload.reviews);
+              }
+              if (payload.franchise) {
+                setFranchise(payload.franchise);
+                setLocalCache(`churuone_cache_franchise_${storeId}`, payload.franchise);
+              }
               if (payload.franchiseInquiries) setFranchiseInquiries(payload.franchiseInquiries);
               if (payload.storeInfo) {
-                setStoreInfo(payload.storeInfo);
-                const resolved = resolveClientCapabilities(storeId, { ...payload.storeInfo, capabilities: payload.capabilities || payload.storeInfo.capabilities });
+                setStoreInfo(prev => {
+                  const updated = {
+                    ...prev,
+                    ...payload.storeInfo,
+                    name: payload.storeInfo.name || payload.storeInfo.storeName || prev.name || getStoreDefaultName(storeId),
+                    storeName: payload.storeInfo.storeName || payload.storeInfo.name || prev.storeName || getStoreDefaultName(storeId),
+                    vertical: payload.storeInfo.vertical || prev.vertical || (storeId === 'churuone' ? 'marketplace' : 'retail')
+                  };
+                  setLocalCache(`churuone_cache_storeInfo_${storeId}`, updated);
+                  return updated;
+                });
+                const resolved = resolveClientCapabilities(storeId, {
+                  ...payload.storeInfo,
+                  capabilities: payload.capabilities || payload.storeInfo.capabilities
+                });
                 setCapabilities(resolved);
               } else if (payload.capabilities) {
                 setCapabilities(resolveClientCapabilities(storeId, { capabilities: payload.capabilities }));
@@ -642,7 +778,8 @@ export const MasterProvider = ({ children }) => {
           phone: data.ownerPhone || '',
           businessType: data.businessType || 'retail',
           status: data.status || 'active',
-          websiteUrl: data.websiteUrl || ''
+          websiteUrl: data.websiteUrl || '',
+          isSuperAdmin: Boolean(data.isSuperAdmin || storeIdClean === 'churuone')
         };
         saveAuthSession(storeIdClean, data.token, 'dukandar', userData);
         const storeConf = data.storeInfo || data.storeConfig || { name: data.dukanName, status: data.status };
@@ -1030,9 +1167,16 @@ export const MasterProvider = ({ children }) => {
       return;
     }
     setStoreId(cleanId);
-    setCapabilities(resolveClientCapabilities(cleanId, {}));
+    const cachedStoreInfo = getLocalCache(`churuone_cache_storeInfo_${cleanId}`, {
+      name: getStoreDefaultName(cleanId),
+      storeName: getStoreDefaultName(cleanId),
+      vertical: cleanId === 'churuone' ? 'marketplace' : cleanId.includes('nash') ? 'salon' : cleanId.includes('skyline') ? 'fashion' : 'food',
+      isOpen: true
+    });
+    setStoreInfo(cachedStoreInfo);
+    setCapabilities(resolveClientCapabilities(cleanId, cachedStoreInfo));
     localStorage.setItem('churuone_master_store_id', cleanId);
-    showToast(`Switched to Store: ${cleanId}`, 'success');
+    showToast(`Switched to Store: ${getStoreDefaultName(cleanId)}`, 'success');
   };
 
   const toggleStoreMarketplaceVisibility = async (targetStoreId, visible) => {

@@ -180,8 +180,8 @@ export default function SettingsTab() {
   const socialsObj = storeInfo?.socials || {};
 
   const [operationalForm, setOperationalForm] = useState({
-    name: storeInfo?.name || storeInfo?.studioName || (isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
-    tagline: storeInfo?.tagline || (isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
+    name: storeInfo?.name || storeInfo?.storeName || storeInfo?.studioName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights'),
+    tagline: storeInfo?.tagline || (isMarketplace ? 'Churu Ki Apni Digital Market • 100% Verified Local Stores' : isSalon ? 'PRECISION GROOMING. BINA INTEZAAR KE.' : 'Original Charcoal Shawarma & Rolls'),
     heroVideoUrl: storeInfo?.heroVideoUrl || '/video/hero.mp4',
     timing: storeInfo?.timing || (isSalon ? 'Open All 7 Days: 11:00 AM – 11:00 PM' : 'Open Daily: 12:00 PM – 04:00 AM'),
     openTillText: storeInfo?.openTillText || 'OPEN TILL 11:00 PM',
@@ -199,7 +199,7 @@ export default function SettingsTab() {
     ownerMediaUrl: storeInfo?.ownerMediaUrl || storeInfo?.ownerPhoto || storeInfo?.ownerVideo || '',
     foundedYear: storeInfo?.foundedYear || '2018',
     upiId: paymentObj.upiId || storeInfo?.upiId || (isSalon ? 'nashstudio@upi' : '7023963189@paytm'),
-    payeeName: paymentObj.payeeName || (isSalon ? 'Nash Studio' : 'Shawarma Nights'),
+    payeeName: paymentObj.payeeName || (isMarketplace ? 'ChuruOne Marketplace' : isSalon ? 'Nash Studio' : 'Shawarma Nights'),
     codEnabled: paymentObj.codEnabled !== false,
     onlineEnabled: paymentObj.onlineEnabled !== false,
     whatsapp: socialsObj.whatsapp || (isSalon ? '917023963189' : '7023963189'),

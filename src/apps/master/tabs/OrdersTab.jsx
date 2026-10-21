@@ -99,9 +99,10 @@ export default function OrdersTab() {
   };
 
   // Capability-driven feature flags
-  const hasAppointments = Boolean(capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
-  const isFashion = Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || storeId === 'skyline');
-  const hasKotPrinting = Boolean(capabilities?.orders?.hasKotPrinting ?? (!hasAppointments && !isFashion));
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const hasAppointments = !isMarketplace && Boolean(capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const isFashion = !isMarketplace && Boolean(capabilities?.catalog?.hasSizes || storeInfo?.vertical === 'fashion' || storeId === 'skyline');
+  const hasKotPrinting = !isMarketplace && Boolean(capabilities?.orders?.hasKotPrinting ?? (!hasAppointments && !isFashion));
   const hasRiderDispatch = Boolean(capabilities?.orders?.hasRiderDispatch ?? !hasAppointments);
   const hasOtpDelivery = Boolean(capabilities?.orders?.hasOtpDelivery ?? hasRiderDispatch);
   const hasTimelineMatrix = Boolean(capabilities?.orders?.hasTimelineMatrix ?? hasAppointments);
@@ -972,8 +973,13 @@ export default function OrdersTab() {
                 {/* Header: Order ID, Time, Status Pill & OTP badge */}
                 <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3.5">
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-base font-black text-zinc-900">#{orderNum}</span>
+                      {(order.sourceStoreName || order.storeName) && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-black bg-stone-900 text-stone-100 uppercase tracking-wider">
+                          {order.sourceStoreName || order.storeName}
+                        </span>
+                      )}
                       <span className="text-xs text-zinc-400 font-medium">
                         {order.createdAt ? new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                       </span>
@@ -1127,7 +1133,7 @@ export default function OrdersTab() {
                       href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
                         hasAppointments
                           ? `Namaste ${customerName}, aapka ${storeInfo?.name || 'Nash Studio'} salon appointment #${orderNum} confirm ho gaya hai. Time: ${order.timeLabel || order.slot || 'Scheduled'}.`
-                          : `Namaste ${customerName}, aapka ${storeInfo?.name || 'Shawarma Nights'} order #${orderNum} process ho raha hai.`
+                          : `Namaste ${customerName}, aapka ${order.sourceStoreName || order.storeName || storeInfo?.name || 'ChuruOne'} order #${orderNum} process ho raha hai.`
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"

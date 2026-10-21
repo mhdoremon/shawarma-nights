@@ -58,6 +58,8 @@
     "customDomain": "churu.one"
   },
   "settings": {
+    "name": "ChuruOne Platform & Marketplace",
+    "storeName": "ChuruOne Platform & Marketplace",
     "currency": "INR",
     "currencySymbol": "₹",
     "timezone": "Asia/Kolkata",

@@ -4,7 +4,24 @@ import { generateId, generateOtp, generateUUID, now, safeNum, money, isNonEmpty,
 
 export const getOrders = async (req, res) => {
     try {
-        const orders = DataLayer.read(req.storeId, 'orders') || [];
+        const storeId = req.storeId;
+        if (storeId === 'churuone') {
+            const allStores = ['shawarma', 'skyline', 'nash-studio'];
+            const allOrders = [];
+            allStores.forEach(sId => {
+                const list = DataLayer.read(sId, 'orders') || [];
+                list.forEach(o => {
+                    allOrders.push({
+                        ...o,
+                        storeId: o.storeId || sId,
+                        storeName: o.storeName || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio')
+                    });
+                });
+            });
+            allOrders.sort((a, b) => new Date(b.createdAt || b.dateISO || 0) - new Date(a.createdAt || a.dateISO || 0));
+            return res.json({ success: true, orders: allOrders });
+        }
+        const orders = DataLayer.read(storeId, 'orders') || [];
         res.json({ success: true, orders });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

@@ -6,13 +6,61 @@ export function handleGatewayMessage(data, ws, storeId, source) {
   const action = data.action || data.type;
   switch (action) {
     case 'GET_INITIAL_STATE': {
-      const menuData = DataLayer.read(storeId, 'menu') || { menu: [], categories: [] };
-      const orders = DataLayer.read(storeId, 'orders') || [];
+      const isMarketplace = storeId === 'churuone';
+      const menuData = isMarketplace ? { menu: [], categories: [] } : (DataLayer.read(storeId, 'menu') || { menu: [], categories: [] });
+      
+      let orders = [];
+      if (isMarketplace) {
+        const allStores = ['shawarma', 'skyline', 'nash-studio'];
+        allStores.forEach(sId => {
+          const list = DataLayer.read(sId, 'orders') || [];
+          list.forEach(o => {
+            orders.push({
+              ...o,
+              storeId: o.storeId || sId,
+              storeName: o.storeName || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio')
+            });
+          });
+        });
+        orders.sort((a, b) => new Date(b.createdAt || b.dateISO || 0) - new Date(a.createdAt || a.dateISO || 0));
+      } else {
+        orders = DataLayer.read(storeId, 'orders') || [];
+      }
+
       const deals = DataLayer.read(storeId, 'deals') || [];
       const storeConfig = DataLayer.getStoreConfig(storeId) || {};
-      const rawCustomers = DataLayer.read(storeId, 'customers') || [];
+      
+      let rawCustomers = [];
+      if (isMarketplace) {
+        const allStores = ['shawarma', 'skyline', 'nash-studio'];
+        const custMap = new Map();
+        allStores.forEach(sId => {
+          const list = DataLayer.read(sId, 'customers') || [];
+          list.forEach(c => {
+            const key = c.phone || c.id;
+            if (key && !custMap.has(key)) {
+              custMap.set(key, c);
+            }
+          });
+        });
+        rawCustomers = Array.from(custMap.values());
+      } else {
+        rawCustomers = DataLayer.read(storeId, 'customers') || [];
+      }
       const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
       const franchiseData = DataLayer.read(storeId, 'franchise') || {};
+
+      const fullStoreInfo = {
+        name: storeConfig.name || storeConfig.settings?.name || storeConfig.settings?.storeName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : `Dukan ${storeId.toUpperCase()}`),
+        storeName: storeConfig.name || storeConfig.settings?.name || storeConfig.settings?.storeName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : `Dukan ${storeId.toUpperCase()}`),
+        vertical: storeConfig.vertical || storeConfig.type || (isMarketplace ? 'marketplace' : 'retail'),
+        type: storeConfig.type || storeConfig.vertical || (isMarketplace ? 'marketplace' : 'retail'),
+        status: storeConfig.status || 'active',
+        capabilities: storeConfig.capabilities,
+        branding: storeConfig.branding || {},
+        ...(storeConfig.settings || {})
+      };
+
       WebSocketHub.sendTo(ws, {
         action: 'INIT_STATE',
         payload: { 
@@ -23,7 +71,8 @@ export function handleGatewayMessage(data, ws, storeId, source) {
           customers,
           franchise: franchiseData.config || {},
           franchiseInquiries: franchiseData.inquiries || [],
-          storeInfo: storeConfig.settings || {}, 
+          storeInfo: fullStoreInfo, 
+          capabilities: storeConfig.capabilities,
           heroBanner: storeConfig.heroBanner || {} 
         }
       });
