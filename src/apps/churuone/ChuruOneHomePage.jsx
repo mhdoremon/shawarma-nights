@@ -10,8 +10,6 @@ import {
   Carrot,
   Croissant,
   Sandwich,
-  Home,
-  Compass,
   User,
   ChevronDown,
   ArrowRight,
@@ -49,6 +47,7 @@ import {
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import LegalPoliciesModal from '../../components/LegalPoliciesModal';
+import BottomNavBar from '../../components/BottomNavBar';
 import UpiPaymentModal from '../../components/UpiPaymentModal';
 
 import { 
@@ -2423,54 +2422,32 @@ export default function ChuruOneHomePage() {
         </div>
       </footer>
 
-      {/* ─── LOVABLE FLOATING BOTTOM: CART BAR & DOCK NAVIGATION ───── */}
-      <div className="fixed inset-x-0 bottom-4 z-20 mx-auto max-w-3xl px-4 pointer-events-none">
-        {cartCount > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            className="pointer-events-auto mb-2 flex w-full items-center justify-between rounded-2xl bg-amber-400 hover:bg-amber-300 px-4 py-3 text-stone-950 shadow-lg font-bold transition active:scale-[0.99] cursor-pointer"
+      {/* ─── FLOATING AMBER CART BAR (above nav, appears when items in bag) ── */}
+      <AnimatePresence>
+        {cartCount > 0 && !isCartOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="fixed bottom-[80px] inset-x-0 z-[60] flex justify-center px-4 pointer-events-none"
           >
-            <span className="text-sm font-black">{cartCount} items · ₹{finalCartTotal}</span>
-            <span className="flex items-center gap-1.5 text-sm font-black">
-              View Cart <ShoppingBag className="h-4 w-4 stroke-[2.5]" />
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="pointer-events-auto w-full max-w-sm flex items-center justify-between rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-[0.98] px-5 py-3 shadow-xl transition-all cursor-pointer"
+            >
+              <span className="text-sm font-black text-stone-950">{cartCount} item{cartCount > 1 ? 's' : ''} · ₹{finalCartTotal}</span>
+              <span className="flex items-center gap-1.5 text-sm font-black text-stone-950">
+                View Bag <ShoppingBag className="h-4 w-4 stroke-[2.5]" />
+              </span>
+            </button>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        <nav className="pointer-events-auto flex items-center justify-around rounded-full bg-stone-950/95 p-1.5 text-white shadow-xl backdrop-blur-md border border-stone-800">
-          <button 
-            type="button" 
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold bg-white text-stone-950 shadow-sm cursor-pointer"
-          >
-            <Home className="h-4 w-4" /> <span>Feed</span>
-          </button>
-
-          <button 
-            type="button" 
-            onClick={() => setIsCartOpen(true)}
-            className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-stone-300 hover:text-white cursor-pointer"
-          >
-            <ShoppingBag className="h-4 w-4" /> <span>Bag ({cartCount})</span>
-          </button>
-
-          <button 
-            type="button" 
-            onClick={() => {
-              if (currentUser) {
-                setIsCartOpen(true);
-              } else {
-                navigateToChuruOneAuth('login');
-              }
-            }}
-            aria-label="Profile" 
-            className="grid h-9 w-9 place-items-center rounded-full bg-amber-400 font-display text-sm font-black text-stone-950 hover:scale-105 transition cursor-pointer"
-          >
-            {(currentUser?.name || currentUser?.phone || 'U').charAt(0).toUpperCase()}
-          </button>
-        </nav>
-      </div>
+      {/* ─── UNIVERSAL BOTTOM NAV (white pill) ───────────────────── */}
+      <BottomNavBar />
 
       {/* Floating Toast Notification */}
       <AnimatePresence>
