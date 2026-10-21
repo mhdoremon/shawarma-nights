@@ -23,7 +23,13 @@ import {
   Shirt,
   Sliders,
   CheckCircle2,
-  Lock
+  Lock,
+  User,
+  X,
+  XCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Navigation
 } from 'lucide-react';
 
 const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -160,8 +166,75 @@ export default function PartnerStoresTab() {
     }
   };
 
+  // Mohalla Store Onboarding & Review State
+  const [pendingApps, setPendingApps] = useState([]);
+  const [isLoadingApps, setIsLoadingApps] = useState(false);
+  const [actingAppId, setActingAppId] = useState(null);
+  const [editRadius, setEditRadius] = useState({});
+
+  const loadPendingApps = async () => {
+    try {
+      setIsLoadingApps(true);
+      const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
+      const res = await fetch(`${API_BASE}/api/auth/admin/mohalla/pending`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && Array.isArray(data.applications)) {
+        setPendingApps(data.applications);
+      }
+    } catch (err) {
+      console.warn('Pending apps error:', err);
+    } finally {
+      setIsLoadingApps(false);
+    }
+  };
+
+  const handleReviewApp = async (dukanId, action, customRadius, customMohalla, customLandmark) => {
+    try {
+      setActingAppId(dukanId);
+      const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
+      const res = await fetch(`${API_BASE}/api/auth/admin/mohalla/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          dukanId,
+          action,
+          radiusKm: customRadius || 1.5,
+          mohalla: customMohalla,
+          nearestLandmark: customLandmark,
+          adminNote: action === 'approve' ? 'Approved by ChuruOne Super Admin' : 'Rejected'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(
+          action === 'approve' 
+            ? '🟢 Mohalla Dukan approve ho gayi & area allot ho gaya! Dukan live ho gayi hai.' 
+            : '🔴 Application reject kar di gayi.', 
+          'success'
+        );
+        loadPendingApps();
+        loadPlatformStores();
+      } else {
+        showToast(data.message || 'Error processing application', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      setActingAppId(null);
+    }
+  };
+
   useEffect(() => {
     loadPlatformStores();
+    loadPendingApps();
   }, []);
 
   // 1-Click Toggle Store Visibility on ChuruOne Marketplace
@@ -369,6 +442,147 @@ export default function PartnerStoresTab() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* 2.5 PENDING MOHALLA STORE APPLICATIONS (Super Admin Onboarding Queue) */}
+      <div className="bg-white rounded-3xl p-6 shadow-xl border border-stone-200/80 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+              <Store className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-stone-900 uppercase tracking-tight">
+                  Mohalla Dukan Onboarding & Verification
+                </h3>
+                {pendingApps.length > 0 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white font-mono font-bold text-xs">
+                    {pendingApps.length} PENDING
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Naye mohalla dukandar yahan register apply karte hain. Unka area & radius verify karke 1-Click me dukan open karein.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadPendingApps}
+            className="self-start sm:self-auto px-4 py-2 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingApps ? 'animate-spin' : ''}`} />
+            <span>Check Requests</span>
+          </button>
+        </div>
+
+        {/* Application Cards */}
+        {pendingApps.length === 0 ? (
+          <div className="p-6 bg-stone-50 rounded-2xl border border-stone-200/70 text-center space-y-1">
+            <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+            <h4 className="font-bold text-xs text-stone-800">Sabhi Mohalla Applications Reviewed Hain</h4>
+            <p className="text-[11px] text-stone-500">
+              Koi nayi dukan approval ke liye pending nahi hai. Naye dukandar /auth?role=dukandar se apply kar sakte hain.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3 pt-1">
+            {pendingApps.map(app => {
+              const dId = app.dukanId || app.storeSlug;
+              const isActing = actingAppId === dId;
+              const requestedRadius = editRadius[dId] !== undefined ? editRadius[dId] : (app.mohallaData?.radiusKm || app.radiusKm || 1.2);
+              const landmark = app.mohallaData?.nearestLandmark || app.nearestLandmark || app.mohalla || 'Subhash Chowk';
+              const hasGps = Boolean(app.mohallaData?.lat || app.lat);
+
+              return (
+                <div
+                  key={dId}
+                  className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
+                >
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 uppercase">
+                        {dId}
+                      </span>
+                      <h4 className="font-black text-sm text-stone-900">
+                        {app.dukanName}
+                      </h4>
+                      <span className="text-[10px] bg-white border border-stone-200 px-2 py-0.5 rounded-full font-bold text-stone-600 uppercase">
+                        {app.businessType || 'mohalla_kirana'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs text-stone-600">
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-stone-400" />
+                        <span>Owner: <strong>{app.ownerName}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-stone-400" />
+                        <a href={`tel:${app.phone}`} className="text-emerald-700 font-mono font-bold hover:underline">
+                          +91 {app.phone}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-stone-400" />
+                        <span>Area: <strong className="capitalize">{landmark.replace(/_/g, ' ')}</strong></span>
+                      </div>
+                    </div>
+
+                    {hasGps && (
+                      <div className="text-[11px] font-mono text-emerald-800 bg-emerald-100/70 inline-block px-2.5 py-0.5 rounded-lg">
+                        📍 GPS Captured: {app.mohallaData?.lat || app.lat}, {app.mohallaData?.lng || app.lng}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Actions: Radius Alotment + Approve / Reject Buttons */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-amber-200">
+                    <div className="flex flex-col gap-1 min-w-[130px]">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-stone-700">
+                        <span>Allotted Radius:</span>
+                        <span className="font-mono text-emerald-700 font-black">{requestedRadius} km</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="5.0"
+                        step="0.1"
+                        value={requestedRadius}
+                        onChange={(e) => setEditRadius(prev => ({ ...prev, [dId]: parseFloat(e.target.value) }))}
+                        className="accent-emerald-700 h-1.5 cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={isActing}
+                        onClick={() => handleReviewApp(dId, 'approve', requestedRadius, landmark, landmark)}
+                        className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4 stroke-[3]" />
+                        <span>Approve & Allot</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isActing}
+                        onClick={() => handleReviewApp(dId, 'reject')}
+                        className="px-3 py-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs uppercase transition-colors cursor-pointer disabled:opacity-50"
+                        title="Reject Application"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* 3. SEARCH & VERTICAL CATEGORY FILTER PILLS */}

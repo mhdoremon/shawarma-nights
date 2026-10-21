@@ -25,7 +25,9 @@ import {
   Copy,
   Info,
   RefreshCw,
-  MessageSquare
+  MessageSquare,
+  MapPin,
+  LocateFixed
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { firebaseConfig } from '../nash/firebase';
@@ -204,6 +206,13 @@ export default function ChuruOneAuthPage() {
 
   // Step 5 Locked Dashboard Details
   const [lockedDukanData, setLockedDukanData] = useState(null);
+
+  // Mohalla Kirana Location Sub-Step (Step 2.5)
+  const [dukanMohallaLat, setDukanMohallaLat] = useState('');
+  const [dukanMohallaLng, setDukanMohallaLng] = useState('');
+  const [dukanMohallaNearestLandmark, setDukanMohallaNearestLandmark] = useState('');
+  const [dukanMohallaRadius, setDukanMohallaRadius] = useState(1.2);
+  const [dukanLocationStep, setDukanLocationStep] = useState(false); // true = in location sub-step
 
   // Dukandar Forgot Password State
   const [dukanForgotDukanId, setDukanForgotDukanId] = useState('');
@@ -1056,7 +1065,11 @@ export default function ChuruOneAuthPage() {
       if (data.success && data.dukanId) {
         setDukanGeneratedId(data.dukanId);
         setDukanUsername(dukanStoreName.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 15));
-        setDukanStep(3);
+        if (dukanBusinessType === 'mohalla_kirana') {
+          setDukanLocationStep(true);
+        } else {
+          setDukanStep(3);
+        }
         setSuccessMsg(`Aapke liye permanent Dukan ID (${data.dukanId}) generate ho gayi hai!`);
       } else {
         setErrorMsg('Dukan ID generate karne mein error aaya.');
@@ -1153,7 +1166,14 @@ export default function ChuruOneAuthPage() {
           username: dukanUsername.trim().toLowerCase(),
           password: dukanPassword.trim(),
           signingOtp: dukanSigningOtp.trim(),
-          preVerified: isVerified || true
+          preVerified: isVerified || true,
+          mohallaData: dukanBusinessType === 'mohalla_kirana' ? {
+            lat: parseFloat(dukanMohallaLat) || null,
+            lng: parseFloat(dukanMohallaLng) || null,
+            nearestLandmark: dukanMohallaNearestLandmark,
+            radiusKm: dukanMohallaRadius,
+            isMohallaStore: true
+          } : null
         })
       });
       const data = await res.json();
@@ -2549,7 +2569,7 @@ export default function ChuruOneAuthPage() {
                 )}
 
                 {/* Step 2: Dukandar & Store Details */}
-                {dukanStep === 2 && (
+                {dukanStep === 2 && !dukanLocationStep && (
                   <form onSubmit={handleDukanProceedToCredentials} className="space-y-3.5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -2653,6 +2673,7 @@ export default function ChuruOneAuthPage() {
                         <option value="grocery">🛒 Grocery / Kirana & Daily Needs</option>
                         <option value="electronics">📱 Electronics & Accessories</option>
                         <option value="retail">🏷️ General Store / Retail</option>
+                        <option value="mohalla_kirana">🏘️ Mohalla Kirana / Daily Needs (Neighbourhood Store)</option>
                       </select>
                     </div>
 
@@ -2680,8 +2701,112 @@ export default function ChuruOneAuthPage() {
                   </form>
                 )}
 
+                {/* Step 2.5: Mohalla Location Sub-Step (only for mohalla_kirana) */}
+                {dukanStep === 2 && dukanLocationStep && (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                        <MapPin className="w-6 h-6 text-emerald-700" />
+                      </div>
+                      <h3 className="font-black text-lg text-zinc-950">Apni Dukan Ki Location</h3>
+                      <p className="text-xs text-zinc-500 mt-1">Yeh location aapke delivery area ko determine karegi</p>
+                    </div>
+
+                    {/* GPS Detect Button */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const pos = await new Promise((resolve, reject) =>
+                            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+                          );
+                          setDukanMohallaLat(pos.coords.latitude.toFixed(6));
+                          setDukanMohallaLng(pos.coords.longitude.toFixed(6));
+                          setSuccessMsg('GPS location detect ho gayi!');
+                        } catch {
+                          setErrorMsg('GPS access nahi mila. Manual coordinates dalein ya landmark chunein.');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <LocateFixed className="w-4 h-4" /> GPS se Detect Karein
+                    </button>
+
+                    {/* Or manual landmark */}
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
+                        Nearest Landmark / Mohalla *
+                      </label>
+                      <select
+                        value={dukanMohallaNearestLandmark}
+                        onChange={e => setDukanMohallaNearestLandmark(e.target.value)}
+                        className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
+                      >
+                        <option value="">-- Apna area chunein --</option>
+                        <option value="subhash_chowk">Subhash Chowk</option>
+                        <option value="station_road">Station Road</option>
+                        <option value="nai_sarak">Nai Sarak</option>
+                        <option value="naya_bass">Naya Bass</option>
+                        <option value="dharamstupa">Dharamstupa / Kotwali</option>
+                        <option value="collectorate_road">Collectorate Road</option>
+                        <option value="pankha_circle">Pankha Circle</option>
+                        <option value="lohiya_college">Lohiya College Area</option>
+                        <option value="purani_abadi">Purani Abadi</option>
+                        <option value="raj_colony">Raj Colony</option>
+                        <option value="gandhi_nagar">Gandhi Nagar</option>
+                        <option value="adarsh_nagar">Adarsh Nagar</option>
+                      </select>
+                    </div>
+
+                    {/* Show lat/lng if GPS detected */}
+                    {dukanMohallaLat && dukanMohallaLng && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-mono">
+                        GPS: {dukanMohallaLat}, {dukanMohallaLng}
+                      </div>
+                    )}
+
+                    {/* Delivery Radius */}
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
+                        Delivery Radius (km): {dukanMohallaRadius} km
+                      </label>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3"
+                        step="0.1"
+                        value={dukanMohallaRadius}
+                        onChange={e => setDukanMohallaRadius(parseFloat(e.target.value))}
+                        className="w-full accent-emerald-700"
+                      />
+                      <div className="flex justify-between text-[10px] text-zinc-400 mt-0.5">
+                        <span>0.5 km (micro)</span><span>3 km (extended)</span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                      Note: Final delivery area ChuruOne admin verify karke confirm karega. Aapki actual dukan location aur performance ke hisab se area milega.
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!dukanMohallaNearestLandmark}
+                      onClick={() => {
+                        setDukanLocationStep(false);
+                        setDukanStep(3);
+                      }}
+                      className="w-full py-3 bg-zinc-950 hover:bg-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-40"
+                    >
+                      Confirm Location &amp; Continue <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Step 3: Dukan ID Preview & Credentials */}
-                {dukanStep === 3 && (
+                {dukanStep === 3 && !dukanLocationStep && (
                   <form onSubmit={handleDukanProceedToContract} className="space-y-4">
                     <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between">
                       <div>
