@@ -1168,155 +1168,164 @@ export default function ChuruOneHomePage() {
     return item.isCombo || item.category === 'combos';
   });
 
+  // ─── CALCULATED DYNAMIC DELIVERY TIME & BRAND NAME ──────────────
+  const nearestMohallaStore = servingMohallaStores[0] || null;
+  const calculatedDistanceKm = nearestMohallaStore?.calculatedDistanceKm ?? 0.8;
+  
+  // High-precision Urban ETA: 6 mins packing + 4 mins per km (assuming ~15 km/h urban speed in Churu)
+  const dynamicDeliveryMins = marketplaceView === 'mohalla'
+    ? Math.max(10, Math.min(25, Math.round(6 + (calculatedDistanceKm * 4))))
+    : 25;
+
+  const brandName = platformData?.branding?.heroTitle || platformData?.settings?.storeName || platformData?.name || 'ChuruOne';
+
   return (
     <div className="min-h-screen bg-[#FDFCF9] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
       
       {/* ─── PREMIUM BLINKIT-INSPIRED QUICK COMMERCE HEADER ───────────────── */}
-      <header className="sticky top-0 z-40 bg-gradient-to-b from-[#FCD34D] via-[#FDE68A]/65 to-[#FDFCF9] backdrop-blur-md border-b border-amber-200/60 shadow-xs transition-all">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-3 pb-2.5 space-y-2.5">
+      <header className="sticky top-0 z-40 bg-white border-b border-stone-200/90 shadow-2xs transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 space-y-3">
           
-          {/* Top Row: Delivery Time & Location + Logo + Profile + Cart */}
+          {/* Top Row: Brand + Dynamic ETA + Mohalla Location Pill + Light Mode Cart */}
           <div className="flex items-center justify-between gap-3">
             
-            {/* Left: Blinkit-style Delivery Counter & Interactive Location Dropdown */}
+            {/* Left: Brand & Calculated Delivery ETA */}
             <div className="flex items-center gap-3">
-              <Link to="/" className="hidden sm:flex items-center gap-2 shrink-0 group" aria-label="ChuruOne Home">
-                <div className="w-10 h-10 rounded-2xl bg-stone-950 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <Link to="/" className="flex items-center gap-2.5 group" aria-label="ChuruOne Home">
+                <div className="w-10 h-10 rounded-xl bg-stone-950 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
                   <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
                 </div>
-              </Link>
-
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-950/80">
-                    ChuruOne in
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2 py-0.2 rounded-full shadow-2xs">
-                    <span>⚡</span>
-                    <span>1.5 km away</span>
-                  </span>
-                </div>
-                
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-black text-stone-950 tracking-tight leading-tight">
-                    15 minutes
-                  </span>
-                </div>
-
-                {/* Clickable Location Picker (Blinkit Style) */}
-                <button
-                  type="button"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="flex items-center gap-1 text-xs font-extrabold text-stone-900 hover:text-amber-900 cursor-pointer group text-left mt-0.5"
-                  title="Click to detect GPS or change area"
-                >
-                  <MapPin className="w-3.5 h-3.5 text-amber-800 shrink-0 group-hover:scale-110 transition-transform" />
-                  <span className="truncate max-w-[170px] sm:max-w-xs border-b border-dotted border-stone-600 font-bold">
-                    {customerLocation?.name || 'Naya Bass'}, Churu
-                  </span>
-                  <ChevronDown className="w-3.5 h-3.5 text-stone-700 shrink-0" />
-                </button>
-              </div>
-            </div>
-
-            {/* Right: Blinkit-Style Emerald Cart Pill */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <button 
-                type="button"
-                onClick={() => setIsCartOpen(true)}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-md shadow-emerald-700/20 font-black text-xs sm:text-sm cursor-pointer transition-all"
-                title="Open ChuruOne Cart"
-              >
-                <ShoppingCart className="w-4.5 h-4.5 stroke-[2.4]" />
-                {cartCount > 0 ? (
+                <div className="flex flex-col text-left">
                   <div className="flex items-center gap-1.5">
-                    <span>{cartCount} item{cartCount > 1 ? 's' : ''}</span>
-                    <span className="opacity-70">|</span>
-                    <span className="font-mono">₹{finalCartTotal}</span>
+                    <span className="text-base sm:text-lg font-black text-stone-950 tracking-tight leading-tight">
+                      {brandName}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      <Clock className="w-3 h-3 text-emerald-600" />
+                      <span>{dynamicDeliveryMins} MINS</span>
+                    </span>
                   </div>
-                ) : (
-                  <span>Cart</span>
-                )}
-              </button>
+                  
+                  {/* Clickable Address / Mohalla Location Pill */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-stone-950 cursor-pointer text-left transition-colors mt-0.5"
+                    title="Click to change delivery area or detect GPS"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                    <span className="truncate max-w-[160px] sm:max-w-xs font-bold text-stone-900 border-b border-stone-300">
+                      {customerLocation?.name || 'Naya Bass'}, Churu
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                  </button>
+                </div>
+              </Link>
             </div>
+
+            {/* Right: Modern Crisp Light-Mode Cart Pill */}
+            <motion.button 
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm cursor-pointer shadow-xs transition-colors"
+              title="Open Cart"
+            >
+              <ShoppingCart className="w-4.5 h-4.5 stroke-[2.2]" />
+              {cartCount > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <span>{cartCount} item{cartCount > 1 ? 's' : ''}</span>
+                  <span className="opacity-60">•</span>
+                  <span className="font-mono">₹{finalCartTotal}</span>
+                </div>
+              ) : (
+                <span>Cart</span>
+              )}
+            </motion.button>
 
           </div>
 
-          {/* Floating Search Bar (Blinkit Style with Soft Shadow) */}
-          <div className="relative pt-0.5">
-            <div className="flex items-center bg-white rounded-2xl border border-stone-200/90 shadow-sm hover:shadow-md focus-within:shadow-md focus-within:border-stone-950 transition-all p-2.5 pl-4">
-              <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
+          {/* Instant Search Bar */}
+          <div className="relative">
+            <div className="flex items-center bg-stone-50 rounded-xl border border-stone-200 hover:border-stone-300 focus-within:border-emerald-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-500/15 transition-all p-2.5 pl-3.5">
+              <Search className="w-4.5 h-4.5 text-stone-400 shrink-0 mr-2.5" />
               <input
                 type="text"
-                placeholder='Search "milk", "atta", "shawarma", "shirt", "haircut", "combos"...'
+                placeholder='Search "milk", "atta", "bread", "shawarma", "shirt", "haircut"...'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent text-sm sm:text-base text-stone-950 placeholder:text-stone-400 font-medium outline-none"
+                className="w-full bg-transparent text-sm text-stone-900 placeholder:text-stone-400 font-medium outline-none"
               />
-              {searchQuery ? (
+              {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-800 mr-1 cursor-pointer"
+                  className="p-1 rounded-full hover:bg-stone-200/70 text-stone-400 hover:text-stone-700 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
-              ) : (
-                <span className="text-stone-400 text-xs px-2 select-none">🎙️</span>
               )}
             </div>
           </div>
 
-          {/* ─── BOLD PREMIUM 2-WAY VIEW SWITCHER (MOHALLA VS FLAGSHIPS) ──── */}
-          <div className="pt-0.5">
-            <div className="bg-stone-900/95 backdrop-blur-sm p-1 rounded-2xl shadow-inner flex items-center gap-1 border border-stone-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setMarketplaceView('mohalla');
-                  setSelectedCategory('all');
-                }}
-                className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  marketplaceView === 'mohalla'
-                    ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-950/40 scale-[1.01]'
-                    : 'text-stone-400 hover:text-white hover:bg-stone-800/60'
-                }`}
-              >
-                <Store className="w-4 h-4 shrink-0" />
-                <span className="tracking-wide">⚡ 15-MIN MOHALLA</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
-                  marketplaceView === 'mohalla' ? 'bg-white/20 text-white' : 'bg-stone-800 text-emerald-400'
-                }`}>
-                  1.5 km
+          {/* Motion Animated Split Switcher (Mohalla 15-Min Express vs City Brands) */}
+          <div className="bg-stone-100 p-1 rounded-xl flex items-center gap-1 border border-stone-200/70">
+            <button
+              type="button"
+              onClick={() => {
+                setMarketplaceView('mohalla');
+                setSelectedCategory('all');
+              }}
+              className={`relative flex-1 py-2 px-3 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                marketplaceView === 'mohalla' ? 'text-stone-950 font-black' : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              {marketplaceView === 'mohalla' && (
+                <motion.div
+                  layoutId="qcommerce-active-tab"
+                  className="absolute inset-0 bg-white rounded-lg shadow-xs border border-stone-200/80"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.35 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Store className="w-3.5 h-3.5 text-emerald-600" />
+                <span>MOHALLA 15-MIN EXPRESS</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                  {calculatedDistanceKm} km
                 </span>
-              </button>
+              </span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setMarketplaceView('flagship');
-                  setSelectedCategory('all');
-                }}
-                className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  marketplaceView === 'flagship'
-                    ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 text-stone-950 shadow-md shadow-amber-950/40 scale-[1.01]'
-                    : 'text-stone-400 hover:text-white hover:bg-stone-800/60'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 shrink-0 fill-current" />
-                <span className="tracking-wide">👑 CITY FLAGSHIPS</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold ${
-                  marketplaceView === 'flagship' ? 'bg-stone-950/20 text-stone-950' : 'bg-stone-800 text-amber-400'
-                }`}>
+            <button
+              type="button"
+              onClick={() => {
+                setMarketplaceView('flagship');
+                setSelectedCategory('all');
+              }}
+              className={`relative flex-1 py-2 px-3 rounded-lg font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                marketplaceView === 'flagship' ? 'text-stone-950 font-black' : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              {marketplaceView === 'flagship' && (
+                <motion.div
+                  layoutId="qcommerce-active-tab"
+                  className="absolute inset-0 bg-white rounded-lg shadow-xs border border-stone-200/80"
+                  transition={{ type: 'spring', bounce: 0.18, duration: 0.35 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>CITY BRANDS</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-50 text-amber-700 border border-amber-200 font-bold">
                   City-wide
                 </span>
-              </button>
-            </div>
+              </span>
+            </button>
           </div>
 
-          {/* Quick Category Text Ribbon (Clean Text Names Only - No Emojis) */}
+          {/* Minimal Text Category Navigation (Pure Text, Zero Emojis) */}
           <div className="overflow-x-auto no-scrollbar pt-0.5 pb-0.5">
-            <div className="flex items-center gap-1.5 sm:gap-2 w-max min-w-full">
+            <div className="flex items-center gap-2 w-max min-w-full">
               {categories.map((cat) => {
                 const isSelected = selectedCategory === cat.id;
                 const cleanName = (cat.name || '').replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
@@ -1328,16 +1337,16 @@ export default function ChuruOneHomePage() {
                       const el = document.getElementById('catalog-grid');
                       if (el) el.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className={`px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap border ${
                       isSelected
-                        ? 'bg-stone-950 text-white border-stone-950 shadow-sm font-black'
-                        : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border-stone-200/80 shadow-2xs'
+                        ? 'bg-stone-900 text-white border-stone-900 shadow-2xs font-bold'
+                        : 'bg-white hover:bg-stone-50 text-stone-600 hover:text-stone-950 border-stone-200/80'
                     }`}
                   >
                     <span>{cleanName}</span>
                     {cat.count !== undefined && (
-                      <span className={`ml-1.5 text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
+                      <span className={`ml-1.5 text-[10px] font-mono ${
+                        isSelected ? 'text-stone-300' : 'text-stone-400'
                       }`}>
                         {cat.count}
                       </span>
@@ -1351,212 +1360,162 @@ export default function ChuruOneHomePage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-8 sm:space-y-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-6">
         
-        {/* ─── VERIFIED CHURU OUTLETS ROW ──────────────────────────── */}
-        <section id="stores-grid" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950 flex items-center gap-2">
-                {marketplaceView === 'mohalla' ? (
-                  <>
-                    <Store className="w-6 h-6 text-emerald-600 inline" />
-                    <span>Mohalla Stores & Express Daily Needs</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6 text-amber-500 inline" />
-                    <span>Churu Famous Flagship Brands</span>
-                  </>
-                )}
-              </h2>
-              <p className="text-xs text-stone-500 mt-0.5">
-                {marketplaceView === 'mohalla'
-                  ? `⚡ Express 15-minute delivery • Showing stores serving within 1.5 km of ${customerLocation?.name || 'Subhash Chowk'}`
-                  : 'Shawarma Nights • Skyline Premium Outfits • Nash Studio • 100% City-Wide Delivery'}
-              </p>
-            </div>
-            <a 
-              href="#catalog-grid" 
-              className="text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-950 flex items-center gap-1 transition-colors"
-            >
-              <span>Explore All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+        {/* In Mohalla View: Show Nearest Store Fulfillment Notice or Viral Referral */}
+        {marketplaceView === 'mohalla' && (
+          <div>
+            {servingMohallaStores.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 sm:p-8 border border-amber-200 text-center space-y-3 max-w-xl mx-auto shadow-2xs my-2">
+                <div className="w-12 h-12 bg-amber-50 text-amber-700 rounded-xl flex items-center justify-center mx-auto">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-stone-900">
+                    Aapke Mohalle ({customerLocation?.name || 'Churu'}) me abhi dukan live nahi hai
+                  </h3>
+                  <p className="text-xs text-stone-500 max-w-md mx-auto">
+                    Apne paas ke kirana ya daily needs wale dukandar ko ChuruOne se jodein aur apne area me 15-min express delivery shuru karein.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      `Namaste! ChuruOne par apne mohalle ${customerLocation?.name} ki dukan register karein aur 15 minute express delivery shuru karein: https://churuone.in/master/auth`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>WhatsApp par Dukandar ko Jodein</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs cursor-pointer transition-colors"
+                  >
+                    Dusra Area Chunein
+                  </button>
+                </div>
+              </div>
+            ) : nearestMohallaStore && (
+              <div className="flex items-center justify-between bg-white border border-stone-200/90 rounded-xl px-4 py-3 shadow-2xs">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span className="font-bold text-stone-950">{nearestMohallaStore.name}</span>
+                  <span className="text-stone-300">•</span>
+                  <span className="text-stone-500">{nearestMohallaStore.calculatedDistanceKm || 0.8} km away</span>
+                  <span className="text-stone-300">•</span>
+                  <span className="text-emerald-700 font-semibold">{dynamicDeliveryMins} mins express</span>
+                </div>
+                <div className="text-[11px] font-mono text-stone-400">
+                  {filteredItems.length} items ready
+                </div>
+              </div>
+            )}
           </div>
+        )}
 
-          {/* Conditional Rendering: Stores Grid vs Viral Referral Card */}
-          {filteredStores.length === 0 ? (
-            <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-3xl p-6 sm:p-8 border-2 border-dashed border-amber-300 text-center space-y-4 max-w-xl mx-auto shadow-xs my-4">
-              <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
-                <Store className="w-7 h-7" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base sm:text-lg font-black text-stone-900">
-                  Aapke Mohalle ({customerLocation?.name}) me abhi koi Kirana dukan nahi judi hai!
-                </h3>
-                <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
-                  Apne paas ke kirana ya daily needs wale dukandar ko ChuruOne se jodein. Unki dukan 2 minute me live hogi aur aapko har order par express delivery milegi!
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    `Namaste bhaiya! ChuruOne par apne mohalle ${customerLocation?.name} ki dukan register karein aur 15 minute express delivery shuru karein: https://churuone.in/master/auth`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border-0"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>📲 WhatsApp par Dukandar ko Jodein</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="w-full sm:w-auto px-5 py-3 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs cursor-pointer transition-all border-0"
-                >
-                  Dusra Area Chunein
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredStores.map((store) => (
-                <a
-                  key={store.id}
-                  href={getStoreUrl(store.id)}
-                  className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-2xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="h-40 sm:h-44 w-full overflow-hidden bg-stone-100 relative">
-                      <img
-                        src={store.image || FALLBACK_STORE_IMAGE}
-                        alt={store.name}
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = FALLBACK_STORE_IMAGE;
-                        }}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      />
-                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="bg-stone-950/85 backdrop-blur-xs text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                          {store.tag}
-                        </span>
-                        {store.calculatedDistanceKm !== undefined && (
-                          <span className="bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                            📍 {store.calculatedDistanceKm} km away
-                          </span>
-                        )}
-                        {store.isOpen && (
-                          <span className="bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            Open
-                          </span>
-                        )}
-                      </div>
-                    </div>
+        {/* In City Brands View: Show 3 Flagship Store Cards Strip */}
+        {marketplaceView === 'flagship' && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { id: 'shawarma', name: 'Shawarma Nights', category: 'Charcoal Kitchen & Dining', timing: '20-25 mins', url: getStoreUrl('shawarma'), tag: 'Food Delivery' },
+              { id: 'skyline', name: 'Skyline Premium Outfits', category: 'Luxury Menswear & Outfits', timing: 'Same Day Dispatch', url: getStoreUrl('skyline'), tag: 'Bespoke Apparel' },
+              { id: 'nash-studio', name: 'Nash Studio', category: 'Salon & Grooming Services', timing: '15 min slot', url: getStoreUrl('nash-studio'), tag: 'Salon Booking' }
+            ].map(store => (
+              <a
+                key={store.id}
+                href={store.url}
+                className="bg-white hover:bg-stone-50 rounded-xl p-3.5 border border-stone-200/90 shadow-2xs transition-all flex items-center justify-between group cursor-pointer"
+              >
+                <div className="space-y-0.5">
+                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                    {store.tag}
+                  </span>
+                  <h4 className="font-extrabold text-sm text-stone-950 group-hover:text-emerald-700 transition-colors">
+                    {store.name}
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    {store.category}
+                  </p>
+                </div>
+                <div className="text-stone-400 group-hover:text-stone-950 transition-colors p-1">
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
 
-                    <div className="p-4 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-extrabold text-base text-stone-950 group-hover:text-amber-800 transition-colors truncate">
-                          {store.name}
-                        </h3>
-                        <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
-                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                          {store.rating}
-                        </span>
-                      </div>
-                      <p className="text-xs text-stone-500 truncate">
-                        {store.category} • {store.address}
-                      </p>
-                      <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1 border-t border-stone-100">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-stone-400" />
-                          {store.timing}
-                        </span>
-                        <span className="text-stone-800 font-semibold group-hover:underline flex items-center gap-0.5">
-                          Visit Store <ExternalLink className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ─── LIVE PRODUCT & SERVICES CATALOG ─────────────────────── */}
-        <section id="catalog-grid" className="space-y-4">
+        {/* ─── COMPONENT 5 & 6: DIRECT QUICK COMMERCE PRODUCT CATALOG ── */}
+        <section id="catalog-grid" className="space-y-3.5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950 flex items-center gap-2">
-                {marketplaceView === 'mohalla' ? (
-                  <>
-                    <ShoppingBag className="w-6 h-6 text-emerald-600 inline" />
-                    <span>Mohalla Daily Essentials & Kirana</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6 text-amber-500 inline" />
-                    <span>Citywide Flagship Catalog & Direct Ordering</span>
-                  </>
-                )}
+              <h2 className="text-lg sm:text-xl font-black text-stone-950 tracking-tight flex items-center gap-2">
+                <span>{marketplaceView === 'mohalla' ? 'Daily Essentials & Groceries' : 'City Brands Catalog'}</span>
               </h2>
-              <p className="text-xs text-stone-500 mt-0.5">
-                {marketplaceView === 'mohalla'
-                  ? `Fresh milk, atta, bread, oil, spices & daily needs from nearby verified stores`
-                  : 'Food & outfits go directly to ChuruOne Bag • Salon grooming slots book instantly'}
+              <p className="text-xs text-stone-500">
+                {marketplaceView === 'mohalla' 
+                  ? 'Doorstep express delivery directly from your nearest store' 
+                  : 'Shawarma, luxury outfits & salon bookings directly from flagship stores'}
               </p>
             </div>
-            <div className="text-xs font-mono text-stone-500">
-              Showing {filteredItems.length} items
+            <div className="text-xs font-mono text-stone-400">
+              {filteredItems.length} items
             </div>
           </div>
 
           {isLoadingFeed && items.length === 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                <div key={n} className="bg-white rounded-2xl overflow-hidden border border-stone-200/80 p-3 space-y-3 animate-pulse">
-                  <div className="h-36 sm:h-44 bg-stone-100 rounded-xl" />
-                  <div className="h-3.5 bg-stone-100 rounded-md w-3/4" />
-                  <div className="h-3 bg-stone-100 rounded-md w-1/2" />
-                  <div className="h-8 bg-stone-100 rounded-xl w-full" />
+                <div key={n} className="bg-white rounded-2xl border border-stone-200 p-3 space-y-3 animate-pulse">
+                  <div className="aspect-square bg-stone-100 rounded-xl" />
+                  <div className="h-3.5 bg-stone-100 rounded w-3/4" />
+                  <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  <div className="h-7 bg-stone-100 rounded-lg w-full" />
                 </div>
               ))}
             </div>
           ) : filteredItems.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-stone-200 space-y-3">
-              <ShoppingBag className="w-10 h-10 text-stone-300 mx-auto" />
-              <h4 className="font-bold text-stone-800">No items match your filter</h4>
-              <p className="text-xs text-stone-500">Try changing your search term or category filter</p>
+            <div className="p-10 text-center bg-white rounded-2xl border border-stone-200/90 space-y-2">
+              <ShoppingBag className="w-8 h-8 text-stone-300 mx-auto" />
+              <h4 className="font-bold text-sm text-stone-800">No products match your filter</h4>
+              <p className="text-xs text-stone-400">Try searching for other items or resetting the category filter</p>
               <button
                 type="button"
                 onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
-                className="text-xs font-bold text-stone-950 underline cursor-pointer"
+                className="text-xs font-bold text-emerald-700 hover:underline cursor-pointer pt-1"
               >
                 Reset filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {filteredItems.map((item) => {
                 const itemStore = stores.find(s => s.id === item.storeId);
                 const liveStatus = itemStore ? getStoreLiveStatus(itemStore) : { isOpen: true };
                 const isStoreLive = liveStatus.isOpen !== false;
                 const storeHours = itemStore ? extractStoreHours(itemStore) : { openStr: '11:00 AM' };
+                const hasDiscount = item.originalPrice && item.originalPrice > item.price;
+                const discountAmount = hasDiscount ? item.originalPrice - item.price : 0;
+                
+                const cartEntry = cartItems.find(ci => ci.id === item.id);
+                const inCartQty = cartEntry ? cartEntry.qty : 0;
 
                 return (
-                  <div
+                  <motion.div
                     key={item.id}
-                    className={`group bg-white rounded-2xl overflow-hidden border shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between ${
-                      !isStoreLive ? 'border-amber-200/90' : 'border-stone-200/80'
-                    }`}
+                    layout
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="group bg-white rounded-2xl border border-stone-200/80 p-2.5 sm:p-3 flex flex-col justify-between hover:border-stone-300 hover:shadow-xs transition-all"
                   >
                     <div>
-                      {/* Item Image */}
-                      <div className="relative h-36 sm:h-44 w-full overflow-hidden bg-stone-100">
+                      {/* Product Image 1:1 Aspect Ratio */}
+                      <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-stone-50 mb-2">
                         <img
                           src={item.image || FALLBACK_PRODUCT_IMAGE}
                           alt={item.name}
@@ -1564,148 +1523,134 @@ export default function ChuruOneHomePage() {
                             e.currentTarget.onerror = null;
                             e.currentTarget.src = FALLBACK_PRODUCT_IMAGE;
                           }}
-                          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out ${
-                            !isStoreLive ? 'brightness-95' : ''
-                          }`}
+                          className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-300"
+                          loading="lazy"
                         />
 
-                        {/* Discount Pill */}
-                        {item.originalPrice > item.price && (
-                          <span className="absolute top-2 left-2 bg-stone-950 text-white text-[10px] font-black px-2 py-0.5 rounded-md">
-                            {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
+                        {/* Discount Badge */}
+                        {hasDiscount && (
+                          <span className="absolute top-1.5 left-1.5 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-2xs">
+                            SAVE ₹{discountAmount}
                           </span>
                         )}
 
-                        {/* Service vs Delivery Tag */}
-                        <span className={`absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                          item.type === 'service' 
-                            ? 'bg-amber-100 text-amber-900 border border-amber-200' 
-                            : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
-                        }`}>
-                          {item.type === 'service' ? 'Salon Slot' : 'Express Delivery'}
-                        </span>
+                        {/* Store Tag if in Flagship view */}
+                        {marketplaceView === 'flagship' && item.storeName && (
+                          <span className="absolute bottom-1.5 left-1.5 bg-stone-950/80 text-white text-[9px] font-medium px-1.5 py-0.2 rounded backdrop-blur-xs truncate max-w-[90%]">
+                            {item.storeName}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Item Info */}
-                      <div className="p-3 sm:p-3.5 space-y-1">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-amber-800 truncate">
-                          {item.storeName}
-                        </div>
-                        <h4 className="font-bold text-xs sm:text-sm text-stone-950 line-clamp-1 group-hover:text-stone-700">
+                      {/* Name & Unit */}
+                      <div className="space-y-0.5">
+                        <h4 className="font-bold text-xs sm:text-sm text-stone-900 line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
                           {item.name}
                         </h4>
-
-                        {/* Store Timing Status Indicator */}
-                        {!isStoreLive && (
-                          <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-amber-600" />
-                            <span>Closed • Next open {storeHours.openStr || 'tomorrow'}</span>
-                          </div>
-                        )}
-
-                        {item.description && (
-                          <p className="text-[11px] text-stone-500 line-clamp-2 leading-relaxed">
-                            {item.description}
+                        {item.unit && (
+                          <p className="text-[11px] font-medium text-stone-500">
+                            {item.unit}
                           </p>
+                        )}
+                        {!isStoreLive && (
+                          <div className="text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded inline-block mt-0.5">
+                            Closed • Opens {storeHours.openStr || 'tomorrow'}
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Pricing & Intelligent Action Button */}
-                    <div className="p-3 sm:p-3.5 pt-0 flex items-center justify-between">
+                    {/* Price & Interactive Stepper / Add Row */}
+                    <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
                       <div>
                         <div className="font-black text-sm sm:text-base text-stone-950">
                           ₹{item.price}
                         </div>
-                        {item.originalPrice && item.originalPrice > item.price && (
-                          <div className="text-[10px] sm:text-xs text-stone-400 line-through">
+                        {hasDiscount && (
+                          <div className="text-[10px] text-stone-400 line-through">
                             ₹{item.originalPrice}
                           </div>
                         )}
                       </div>
 
                       {item.type === 'service' ? (
-                        /* Salon Service: Book Appointment Button */
                         <button
                           type="button"
                           onClick={() => openBookingModal(item)}
-                          className="bg-stone-950 hover:bg-black text-white text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-                          title="Book Salon Slot"
+                          className="bg-stone-950 hover:bg-black text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
                         >
                           <Scissors className="w-3 h-3" />
-                          <span>{isStoreLive ? 'Book Slot' : 'Advance Slot'}</span>
+                          <span>Book</span>
                         </button>
                       ) : !isStoreLive ? (
-                        /* Store Closed: Pre-order for Tomorrow */
                         <button
                           type="button"
                           onClick={() => addToCart(item, true, storeHours.openStr)}
-                          className="h-8 px-2.5 rounded-full bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-black flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-                          title={`Store Closed. Pre-Order for tomorrow.`}
+                          className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold cursor-pointer"
                         >
-                          <Calendar className="w-3 h-3" />
-                          <span>Order for Tomorrow</span>
+                          Pre-Order
                         </button>
                       ) : (
-                        /* Deliverable Product: Add to Cart Button */
-                        <button
-                          type="button"
-                          onClick={() => addToCart(item)}
-                          className="h-8 px-3 rounded-full bg-stone-950 hover:bg-stone-800 text-white text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs active:scale-95"
-                          title="Add to ChuruOne Bag"
-                        >
-                          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                          <span>Add</span>
-                        </button>
-                      )}
-                    </div>
+                        <div>
+                          <AnimatePresence mode="wait">
+                            {inCartQty === 0 ? (
+                              <motion.button
+                                key="add-btn"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                whileTap={{ scale: 0.94 }}
+                                type="button"
+                                onClick={() => addToCart(item)}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold text-xs transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                              >
+                                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                <span>ADD</span>
+                              </motion.button>
+                            ) : (
+                              <motion.div
+                                key="stepper"
+                                initial={{ opacity: 0, scale: 0.85 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.85 }}
+                                transition={{ type: 'spring', bounce: 0.25, duration: 0.25 }}
+                                className="flex items-center gap-2 bg-emerald-600 text-white rounded-xl px-2 py-1 shadow-2xs"
+                              >
+                                <motion.button
+                                  whileTap={{ scale: 0.8 }}
+                                  type="button"
+                                  onClick={() => updateCartQty(item.id, -1)}
+                                  className="w-5 h-5 flex items-center justify-center hover:bg-emerald-700 rounded cursor-pointer"
+                                  title="Decrease"
+                                >
+                                  <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </motion.button>
 
-                  </div>
+                                <span className="font-mono font-bold text-xs min-w-[14px] text-center">
+                                  {inCartQty}
+                                </span>
+
+                                <motion.button
+                                  whileTap={{ scale: 0.8 }}
+                                  type="button"
+                                  onClick={() => updateCartQty(item.id, 1)}
+                                  className="w-5 h-5 flex items-center justify-center hover:bg-emerald-700 rounded cursor-pointer"
+                                  title="Increase"
+                                >
+                                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                                </motion.button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
+
+                    </div>
+                  </motion.div>
                 );
               })}
             </div>
           )}
-        </section>
-
-        {/* ─── ABOUT CHURUONE MARKETPLACE ───────────────────────────── */}
-        <section id="about" className="pt-8 pb-4 border-t border-stone-200/80">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start bg-white rounded-3xl p-6 sm:p-9 border border-stone-200/80 shadow-2xs">
-            
-            <div className="md:col-span-7 space-y-3">
-              <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-stone-400 block">
-                ABOUT CHURUONE MARKETPLACE
-              </span>
-              <h3 className="text-xl sm:text-2xl font-black text-stone-950 tracking-tight">
-                Churu ki Apni Digital Market. Direct Store Pricing.
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal">
-                ChuruOne connects citizens directly with verified local businesses — featuring Skyline Outfits for premium menswear, luxury shirts, trousers, denim and bespoke outfits.
-              </p>
-              <p className="text-xs text-stone-500 leading-relaxed font-normal">
-                Zero middleman commissions. Direct merchant payments with express 20–30 minute local city delivery.
-              </p>
-            </div>
-
-            <div className="md:col-span-5 grid grid-cols-2 gap-3 sm:gap-4 font-mono text-xs">
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100 space-y-1">
-                <span className="text-2xl font-black text-stone-950 block">0%</span>
-                <span className="text-stone-500 text-[11px] leading-tight block">Platform Commission Markup</span>
-              </div>
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100 space-y-1">
-                <span className="text-2xl font-black text-stone-950 block">25m</span>
-                <span className="text-stone-500 text-[11px] leading-tight block">Avg. City Delivery Time</span>
-              </div>
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100 space-y-1">
-                <span className="text-2xl font-black text-stone-950 block">UPI</span>
-                <span className="text-stone-500 text-[11px] leading-tight block">Direct Dukandar SmartPay</span>
-              </div>
-              <div className="bg-stone-50 rounded-2xl p-4 border border-stone-100 space-y-1">
-                <span className="text-2xl font-black text-stone-950 block">SSO</span>
-                <span className="text-stone-500 text-[11px] leading-tight block">Unified Account Across All Stores</span>
-              </div>
-            </div>
-
-          </div>
         </section>
 
       </main>
@@ -2489,66 +2434,100 @@ export default function ChuruOneHomePage() {
       </AnimatePresence>
 
       {/* ─── FOOTER & LEGAL LINKS ─────────────────────────────────── */}
-      <footer className="border-t border-stone-200/80 bg-white py-10 mt-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6">
+      <footer className="border-t border-stone-200/90 bg-white py-12 mt-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8">
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-stone-600">
-            <div>
-              <div className="font-black text-lg tracking-tight uppercase text-stone-950">
-                ChuruOne
+          {/* Top Row: Mission & Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start pb-8 border-b border-stone-100">
+            <div className="md:col-span-6 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="font-black text-xl tracking-tight uppercase text-stone-950">
+                  {brandName}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  VERIFIED LOCAL COMMERCE
+                </span>
               </div>
-              <p className="text-xs text-stone-500 mt-0.5 font-mono">
-                Churu ki har dukaan ab online • Rajasthan 331001
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed font-normal max-w-md">
+                Churu ki apni digital market. Direct store pricing, zero commission markup, aur 15–25 minute local city delivery.
               </p>
             </div>
 
-            <div className="flex items-center flex-wrap gap-5 text-stone-600 text-xs font-semibold">
-              <a href="#stores-grid" className="hover:text-stone-950 transition-colors">
-                Popular Stores
-              </a>
-              <a href={getStoreUrl('shawarma')} className="hover:text-stone-950 transition-colors">
-                Shawarma Nights
-              </a>
-              <a href={getStoreUrl('skyline')} className="hover:text-stone-950 transition-colors">
-                Skyline Outfits
-              </a>
-              <a href={getStoreUrl('nash-studio')} className="hover:text-stone-950 transition-colors">
-                Nash Studio
-              </a>
-              <Link to="/admin" className="hover:text-stone-950 transition-colors">
-                Merchant OS
-              </Link>
+            <div className="md:col-span-6 grid grid-cols-3 gap-3 font-mono text-center">
+              <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
+                <span className="text-xl font-black text-stone-950 block">0%</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">Middleman Commission</span>
+              </div>
+              <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
+                <span className="text-xl font-black text-stone-950 block">15m</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">Express Dispatch</span>
+              </div>
+              <div className="bg-stone-50 rounded-xl p-3 border border-stone-100">
+                <span className="text-xl font-black text-stone-950 block">UPI</span>
+                <span className="text-stone-500 text-[10px] block mt-0.5">Direct SmartPay</span>
+              </div>
             </div>
           </div>
 
-          {/* All 5 Mandatory Legal Policy Links for Payment Gateway Compliance */}
+          {/* Middle Row: Quick Navigation & Verified Stores */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-stone-600">
+            <div className="flex items-center flex-wrap gap-4 font-semibold">
+              <button 
+                type="button" 
+                onClick={() => { setMarketplaceView('mohalla'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="hover:text-stone-950 cursor-pointer"
+              >
+                Mohalla Express
+              </button>
+              <button 
+                type="button" 
+                onClick={() => { setMarketplaceView('flagship'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="hover:text-stone-950 cursor-pointer"
+              >
+                City Brands
+              </button>
+              <a href={getStoreUrl('shawarma')} className="hover:text-stone-950">
+                Shawarma Nights
+              </a>
+              <a href={getStoreUrl('skyline')} className="hover:text-stone-950">
+                Skyline Outfits
+              </a>
+              <a href={getStoreUrl('nash-studio')} className="hover:text-stone-950">
+                Nash Studio
+              </a>
+              <Link to="/master/auth" className="text-emerald-700 hover:text-emerald-800 font-bold">
+                Dukandar Master Portal →
+              </Link>
+            </div>
+
+            <div className="text-stone-400 text-xs">
+              Delivering to <span className="font-semibold text-stone-700">{customerLocation?.name || 'Churu'}</span>
+            </div>
+          </div>
+
+          {/* Bottom Row: Legal Policy Links & Official Registration */}
           <div className="pt-4 border-t border-stone-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs text-stone-500">
-            <div className="flex items-center flex-wrap gap-4 sm:gap-5 font-medium">
-              <a href="/contact-us" className="hover:text-stone-900 transition-colors">
-                Contact Us
-              </a>
-              <a href="/terms-and-conditions" className="hover:text-stone-900 transition-colors">
+            <div className="flex items-center flex-wrap gap-4 font-medium">
+              <button type="button" onClick={() => { setLegalTab('terms'); setLegalModalOpen(true); }} className="hover:text-stone-900 cursor-pointer">
                 Terms & Conditions
-              </a>
-              <a href="/privacy-policy" className="hover:text-stone-900 transition-colors">
+              </button>
+              <button type="button" onClick={() => { setLegalTab('privacy'); setLegalModalOpen(true); }} className="hover:text-stone-900 cursor-pointer">
                 Privacy Policy
-              </a>
-              <a href="/refund-policy" className="hover:text-stone-900 transition-colors">
+              </button>
+              <button type="button" onClick={() => { setLegalTab('refund'); setLegalModalOpen(true); }} className="hover:text-stone-900 cursor-pointer">
                 Refund & Cancellation
-              </a>
-              <a href="/shipping-policy" className="hover:text-stone-900 transition-colors">
-                Shipping Policy
-              </a>
+              </button>
+              <button type="button" onClick={() => { setLegalTab('shipping'); setLegalModalOpen(true); }} className="hover:text-stone-900 cursor-pointer">
+                Shipping & Delivery
+              </button>
+              <button type="button" onClick={() => { setLegalTab('contact'); setLegalModalOpen(true); }} className="hover:text-stone-900 cursor-pointer">
+                Contact Us
+              </button>
             </div>
 
             <div className="text-stone-400 text-[11px] font-mono">
-              Delivery in 20–35 mins • Direct In-Store Pricing
+              © 2026 ChuruOne. Verified Local Q-Commerce • Churu, Rajasthan 331001
             </div>
-          </div>
-
-          <div className="pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-400">
-            <span>© 2026 ChuruOne. A unit of Vasudhaiva Kutumbakam Robotics. All rights reserved.</span>
-            <span>50, Churu bhaiji chowk, Churu, Rajasthan 331001</span>
           </div>
 
         </div>
