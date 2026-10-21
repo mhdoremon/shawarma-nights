@@ -458,33 +458,15 @@ export const getMarketplaceFeed = (req, res) => {
                         description: item.description || '',
                         rating: Number(item.rating || storeRating),
                         reviews: Number(item.reviews || 24),
-                        destination: isMohallaStore ? `/churuone?store=${sId}` : destination
+                        isVeg: item.isVeg,
+                        durationMinutes: item.durationMinutes || item.time || 30,
+                        sizes: item.sizes || (vertical === 'fashion' ? ['UK 7', 'UK 8', 'UK 9', 'UK 10'] : null),
+                        colors: item.colors || null,
+                        destination: isMohallaStore ? `/churuone?store=${sId}` : destination,
+                        destinationStoreId: sId
                     });
                 }
             });
-                    allItems.push({
-                        id: item.id || `${sId}-${item.name?.toLowerCase().replace(/\s+/g, '-')}`,
-                        storeId: sId,
-                        storeName,
-                        storeVertical: vertical,
-                        name: item.name,
-                            type: isService ? 'service' : 'product',
-                            category: (item.category || item.categoryId || vertical).toLowerCase(),
-                            price: itemPrice,
-                            originalPrice: itemMrp,
-                            image: item.image || item.img || storeImg,
-                            description: item.description || item.desc || '',
-                            rating: item.rating || 4.8,
-                            reviews: item.reviews || 25,
-                            isVeg: item.isVeg,
-                            durationMinutes: item.durationMinutes || item.time || 30,
-                            sizes: item.sizes || (vertical === 'fashion' ? ['UK 7', 'UK 8', 'UK 9', 'UK 10'] : null),
-                            colors: item.colors || null,
-                            destination,
-                            destinationStoreId: sId
-                        });
-                    }
-                });
         }
 
         // ─── CHURUONE CITY DISCOVERY & RANKING ALGORITHM (CDRA-v1) ────

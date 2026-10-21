@@ -356,11 +356,30 @@ function deepMerge(target, source) {
  */
 function readPlatform(fileName) {
   ensureDir(config.PLATFORM_DIR);
-  const filePath = path.join(config.PLATFORM_DIR, fileName.endsWith('.json') ? fileName : `${fileName}.json`);
+  const cleanName = fileName.endsWith('.json') ? fileName.replace('.json', '') : fileName;
+  const filePath = path.join(config.PLATFORM_DIR, `${cleanName}.json`);
+  const rootDataPath = path.join(config.DATA_DIR, `${cleanName}.json`);
+
   try {
+    let data = null;
     if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
+    // Also merge with root data directory (e.g. server/data/stores.json)
+    if (fs.existsSync(rootDataPath)) {
+      const rootData = JSON.parse(fs.readFileSync(rootDataPath, 'utf-8'));
+      if (!data) {
+        data = rootData;
+      } else if (cleanName === 'stores' && Array.isArray(rootData?.stores)) {
+        const existingIds = new Set((data.stores || []).map(s => s.id));
+        rootData.stores.forEach(s => {
+          if (!existingIds.has(s.id)) {
+            data.stores.push(s);
+          }
+        });
+      }
+    }
+    return data;
   } catch (err) {
     console.error(`❌ [DataLayer] Platform read error: ${fileName}:`, err.message);
   }

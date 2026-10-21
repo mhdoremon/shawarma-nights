@@ -356,11 +356,30 @@ function deepMerge(target, source) {
  */
 function readPlatform(fileName) {
   ensureDir(config.PLATFORM_DIR);
-  const filePath = path.join(config.PLATFORM_DIR, fileName.endsWith('.json') ? fileName : `${fileName}.json`);
+  const cleanName = fileName.endsWith('.json') ? fileName.replace('.json', '') : fileName;
+  const filePath = path.join(config.PLATFORM_DIR, `${cleanName}.json`);
+  const rootDataPath = path.join(config.DATA_DIR, `${cleanName}.json`);
+
   try {
+    let data = null;
     if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
+    // Also merge with root data directory (e.g. server/data/stores.json)
+    if (fs.existsSync(rootDataPath)) {
+      const rootData = JSON.parse(fs.readFileSync(rootDataPath, 'utf-8'));
+      if (!data) {
+        data = rootData;
+      } else if (cleanName === 'stores' && Array.isArray(rootData?.stores)) {
+        const existingIds = new Set((data.stores || []).map(s => s.id));
+        rootData.stores.forEach(s => {
+          if (!existingIds.has(s.id)) {
+            data.stores.push(s);
+          }
+        });
+      }
+    }
+    return data;
   } catch (err) {
     console.error(`❌ [DataLayer] Platform read error: ${fileName}:`, err.message);
   }
@@ -589,13 +608,15 @@ async function syncMongoData() {
       console.error('Mongo dukandars sync error:', err.message);
     }
 
-    if (docs.length === 0) {
-      // MongoDB is completely fresh — seed all local stores into MongoDB Atlas!
-      console.log('🌱 [MongoDB Atlas] Empty database detected. Seeding local files into MongoDB Atlas...');
-      const localStoreIds = listStoreIds();
-      let seeded = 0;
+    // Seed any new local store directories that do not exist in MongoDB Atlas yet
+    const localStoreIds = listStoreIds();
+    const mongoStoreIds = new Set((docs || []).map(d => d.storeId));
+    let seeded = 0;
 
-      for (const storeId of localStoreIds) {
+    for (const storeId of localStoreIds) {
+      if (['churuone', 'platform', 'admin'].includes(storeId)) continue;
+      // If store is not in Mongo or has 0 docs in Mongo, seed it
+      if (!mongoStoreIds.has(storeId) || docs.length === 0) {
         const storeDir = getStorePath(storeId);
         if (!fs.existsSync(storeDir)) continue;
 
@@ -613,7 +634,10 @@ async function syncMongoData() {
             seeded++;
           } catch {}
         }
+        console.log(`🌱 [MongoDB Atlas] Seeded new store "${storeId}" into MongoDB Atlas.`);
       }
+    }
+    if (seeded > 0) {
       console.log(`✨ [MongoDB Atlas] Successfully seeded ${seeded} collection(s) to MongoDB Atlas.`);
     }
   } catch (err) {
