@@ -447,10 +447,13 @@ export const getMarketplaceFeed = (req, res) => {
                         storeVertical: vertical,
                         name: item.name,
                         type: isService ? 'service' : 'product',
-                        category: isMohallaStore ? 'grocery' : (item.category || vertical),
-                        subCategory: item.category || (isMohallaStore ? 'dairy' : ''),
+                        category: item.category === 'combos' ? 'combos' : (isMohallaStore ? 'grocery' : (item.category || vertical)),
+                        subCategory: item.subCategory || item.category || (isMohallaStore ? 'dairy' : ''),
                         unit: item.unit || '',
                         isMohallaProduct: isMohallaStore,
+                        isCombo: Boolean(item.isCombo || item.category === 'combos'),
+                        comboItems: item.comboItems || [],
+                        badge: item.badge || item.discountBadge || '',
                         price: itemPrice,
                         originalPrice: itemMrp,
                         discount: itemMrp > itemPrice ? `-${Math.round(((itemMrp - itemPrice) / itemMrp) * 100)}%` : null,
@@ -494,28 +497,18 @@ export const getMarketplaceFeed = (req, res) => {
         const hasFood = allItems.some(i => i.storeVertical === 'food');
         const hasSalon = allItems.some(i => i.storeVertical === 'salon');
         const hasFashion = allItems.some(i => i.storeVertical === 'fashion');
+        const hasMohalla = marketplaceStores.some(s => s.isMohallaStore || s.vertical === 'mohalla_kirana' || s.vertical === 'grocery');
+        const hasCombos = allItems.some(i => i.isCombo || i.category === 'combos');
 
-        let categories = [];
-        if (hasFood || hasSalon) {
-            categories = [
-                { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
-                ...(hasFood ? [{ id: 'food', name: 'Food & Dining', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length }] : []),
-                ...(hasFashion ? [{ id: 'fashion', name: 'Fashion & Outfits', emoji: '👔', count: allItems.filter(i => i.storeVertical === 'fashion').length }] : []),
-                ...(hasSalon ? [{ id: 'salon', name: 'Salon & Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length }] : []),
-                { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
-            ];
-        } else {
-            categories = [
-                { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
-                { id: 'shirts', name: 'Shirts', emoji: '👔', count: countFor('shirts') },
-                { id: 'pants', name: 'Pants & Chinos', emoji: '👖', count: countFor('pants') },
-                { id: 'jeans', name: 'Jeans & Denim', emoji: '👖', count: countFor('jeans') },
-                { id: 'tshirts', name: 'T-Shirts & Polos', emoji: '👕', count: countFor('tshirts') },
-                { id: 'footwear', name: 'Sneakers & Shoes', emoji: '👟', count: countFor('footwear') },
-                { id: 'jackets', name: 'Jackets & Outerwear', emoji: '🧥', count: countFor('jackets') },
-                { id: 'deals', name: 'Special Offers', emoji: '🎁', count: topDeals.length }
-            ];
-        }
+        let categories = [
+            { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
+            ...(hasCombos ? [{ id: 'combos', name: 'Combos & Savers', emoji: '🎁', count: allItems.filter(i => i.isCombo || i.category === 'combos').length }] : []),
+            ...(hasMohalla ? [{ id: 'grocery', name: 'Daily & Kirana', emoji: '🥛', count: allItems.filter(i => i.isMohallaProduct || i.category === 'grocery' || i.category === 'dairy' || i.category === 'staples' || i.category === 'snacks').length }] : []),
+            ...(hasFood ? [{ id: 'food', name: 'Shawarma & Food', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length }] : []),
+            ...(hasFashion ? [{ id: 'fashion', name: 'Fashion & Outfits', emoji: '👔', count: allItems.filter(i => i.storeVertical === 'fashion').length }] : []),
+            ...(hasSalon ? [{ id: 'salon', name: 'Salon Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length }] : []),
+            { id: 'deals', name: 'Deals & Coupons', emoji: '🏷️', count: allDeals.length }
+        ];
 
         const platformConfig = DataLayer.getStoreConfig('churuone') || {};
         const platformBranding = platformConfig.branding || {};

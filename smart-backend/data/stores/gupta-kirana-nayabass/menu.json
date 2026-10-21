@@ -1,5 +1,85 @@
 [
   {
+    "id": "combo-gk-01",
+    "name": "Subah Ki Chai & Nashta Super Combo",
+    "category": "combos",
+    "subCategory": "dairy",
+    "price": 159,
+    "originalPrice": 185,
+    "unit": "3 Items Breakfast Pack",
+    "available": true,
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹26",
+    "image": "https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&w=500&q=80",
+    "description": "Amul Taaza Milk (500ml) + English Oven Sandwich Bread (400g) + Parle-G Gold Family Pack (1kg). Everything for a refreshing morning tea and breakfast.",
+    "comboItems": [
+      { "name": "1x Amul Taaza Milk 500ml", "price": 27 },
+      { "name": "1x English Oven Bread 400g", "price": 43 },
+      { "name": "1x Parle-G Gold 1kg", "price": 115 }
+    ]
+  },
+  {
+    "id": "combo-gk-02",
+    "name": "Ration Mahina Bachat Starter Kit",
+    "category": "combos",
+    "subCategory": "staples",
+    "price": 389,
+    "originalPrice": 438,
+    "unit": "Kitchen Staples Bundle",
+    "available": true,
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹49",
+    "image": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    "description": "Aashirvaad Shudh Chakki Atta (5kg) + Fortune Sunlite Sunflower Oil (1L) + Tata Salt (1kg). Pure, high quality kitchen essentials.",
+    "comboItems": [
+      { "name": "1x Aashirvaad Chakki Atta 5kg", "price": 235 },
+      { "name": "1x Fortune Sunflower Oil 1L", "price": 142 },
+      { "name": "1x Tata Salt 1kg", "price": 27 }
+    ]
+  },
+  {
+    "id": "combo-gk-03",
+    "name": "Midnight Maggi & Cola Chill Cravings",
+    "category": "combos",
+    "subCategory": "snacks",
+    "price": 109,
+    "originalPrice": 132,
+    "unit": "Late Night Munchies",
+    "available": true,
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹23",
+    "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=500&q=80",
+    "description": "Maggi 2-Minute Masala 4-Pack + Chilled Coca-Cola 750ml + Kurkure Masala Munch 80g.",
+    "comboItems": [
+      { "name": "1x Maggi Masala 4-Pack", "price": 54 },
+      { "name": "1x Coca-Cola 750ml", "price": 40 },
+      { "name": "1x Kurkure Munch 80g", "price": 20 }
+    ]
+  },
+  {
+    "id": "combo-gk-04",
+    "name": "Churu Ghar Mandir Pooja Kit",
+    "category": "combos",
+    "subCategory": "staples",
+    "price": 129,
+    "originalPrice": 160,
+    "unit": "Daily Pooja Essentials",
+    "available": true,
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹31",
+    "image": "https://images.unsplash.com/photo-1609803384069-1cac59b3f3b9?auto=format&fit=crop&w=500&q=80",
+    "description": "Pure Ghee 200ml + Bhimseni Camphor Kapoor + Mangaldeep Sandalwood Agarbatti 50 sticks.",
+    "comboItems": [
+      { "name": "1x Pure Desi Ghee 200ml", "price": 110 },
+      { "name": "1x Camphor Tablets Pack", "price": 30 },
+      { "name": "1x Agarbatti Dhoop Pack", "price": 20 }
+    ]
+  },
+  {
     "id": "gkn-item-01",
     "name": "Amul Taaza Homogenised Toned Milk 500ml",
     "category": "dairy",
@@ -94,5 +174,53 @@
     "isVeg": true,
     "image": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80",
     "description": "Unique blend of badipatti and chotipatti for taste and kadak strength."
+  },
+  {
+    "id": "gkn-item-09",
+    "name": "Amul Butter Pasteurised 100g",
+    "category": "dairy",
+    "price": 56,
+    "originalPrice": 58,
+    "unit": "100 g",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=400&q=80",
+    "description": "Utterly butterly delicious fresh Amul butter."
+  },
+  {
+    "id": "gkn-item-10",
+    "name": "Maggi 2-Minute Masala Noodles 4-Pack",
+    "category": "snacks",
+    "price": 54,
+    "originalPrice": 58,
+    "unit": "280 g (4x70g)",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=400&q=80",
+    "description": "Favorite masala noodles with roasted spice mix."
+  },
+  {
+    "id": "gkn-item-11",
+    "name": "Lay's India's Magic Masala 50g",
+    "category": "snacks",
+    "price": 20,
+    "originalPrice": 20,
+    "unit": "50 g",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=400&q=80",
+    "description": "Spicy ribbed potato chips with authentic Indian masala blend."
+  },
+  {
+    "id": "gkn-item-12",
+    "name": "Coca-Cola 750ml Chilled Bottle",
+    "category": "beverages",
+    "price": 40,
+    "originalPrice": 40,
+    "unit": "750 ml",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80",
+    "description": "Refreshing original taste Coca-Cola, delivered chilled."
   }
 ]

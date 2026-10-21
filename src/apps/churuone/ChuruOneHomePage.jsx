@@ -219,6 +219,153 @@ const FALLBACK_REAL_STORES = [
 
 // Fallback Real Catalog Items (Multi-Store: Shawarma Nights, Skyline Outfits, Nash Studio, Gupta Kirana)
 const FALLBACK_REAL_ITEMS = [
+  // ─── MOHALLA & FLAGSHIP SUPER SAVER COMBOS ───
+  {
+    "id": "combo-gk-01",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Subah Ki Chai & Nashta Super Combo",
+    "type": "product",
+    "category": "combos",
+    "subCategory": "dairy",
+    "price": 159,
+    "originalPrice": 185,
+    "discount": "-14%",
+    "unit": "3 Items Breakfast Pack",
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹26",
+    "image": "https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&w=500&q=80",
+    "description": "Amul Taaza Milk 500ml + English Oven Bread 400g + Parle-G Gold 1kg Family Pack.",
+    "comboItems": ["1x Amul Taaza Milk 500ml", "1x English Oven Bread 400g", "1x Parle-G Gold 1kg"],
+    "rating": 4.9,
+    "reviews": 46,
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "combo-gk-02",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Ration Mahina Bachat Starter Kit",
+    "type": "product",
+    "category": "combos",
+    "subCategory": "staples",
+    "price": 389,
+    "originalPrice": 438,
+    "discount": "-11%",
+    "unit": "Kitchen Staples Bundle",
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹49",
+    "image": "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80",
+    "description": "Aashirvaad Shudh Chakki Atta 5kg + Fortune Sunflower Oil 1L + Tata Salt 1kg.",
+    "comboItems": ["1x Aashirvaad Atta 5kg", "1x Fortune Sunflower Oil 1L", "1x Tata Salt 1kg"],
+    "rating": 4.9,
+    "reviews": 52,
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "combo-gk-03",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Midnight Maggi & Cola Chill Cravings",
+    "type": "product",
+    "category": "combos",
+    "subCategory": "snacks",
+    "price": 109,
+    "originalPrice": 132,
+    "discount": "-17%",
+    "unit": "Late Night Munchies",
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹23",
+    "image": "https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=500&q=80",
+    "description": "Maggi 2-Minute Masala 4-Pack + Chilled Coca-Cola 750ml + Kurkure Masala Munch 80g.",
+    "comboItems": ["1x Maggi Masala 4-Pack", "1x Coca-Cola 750ml", "1x Kurkure Munch 80g"],
+    "rating": 4.8,
+    "reviews": 39,
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "combo-sn-01",
+    "storeId": "shawarma",
+    "storeName": "Shawarma Nights",
+    "storeVertical": "food",
+    "name": "Midnight Sultan Duo Craving Box",
+    "type": "product",
+    "category": "combos",
+    "subCategory": "food",
+    "price": 399,
+    "originalPrice": 559,
+    "discount": "-29%",
+    "unit": "2 Persons Feast Box",
+    "isVeg": false,
+    "isCombo": true,
+    "badge": "SAVE ₹160",
+    "image": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=80",
+    "description": "2x Midnight Sultan Charcoal Shawarmas + 1x Peri-Peri Loaded Golden Fries + 2x Chilled Cold Drinks.",
+    "comboItems": ["2x Sultan Charcoal Shawarmas", "1x Peri-Peri Loaded Fries", "2x Chilled Cokes"],
+    "rating": 4.9,
+    "reviews": 112,
+    "destination": "/shawarma"
+  },
+  {
+    "id": "combo-sky-01",
+    "storeId": "skyline",
+    "storeName": "Skyline Premium Outfits",
+    "storeVertical": "fashion",
+    "name": "Royal Weekend Linen & Denim Lookbook",
+    "type": "product",
+    "category": "combos",
+    "subCategory": "fashion",
+    "price": 1699,
+    "originalPrice": 2199,
+    "discount": "-23%",
+    "unit": "Full Outfit Bundle",
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹500",
+    "image": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80",
+    "description": "Premium Normandy Linen Shirt + Slim-Fit Stretch Denim Jeans.",
+    "comboItems": ["1x Normandy Long-Staple Linen Shirt", "1x Skyline Premium Denim Jeans"],
+    "rating": 4.9,
+    "reviews": 48,
+    "destination": "/skyline"
+  },
+  {
+    "id": "combo-nash-01",
+    "storeId": "nash-studio",
+    "storeName": "Nash Studio",
+    "storeVertical": "salon",
+    "name": "Royal Grooming & Spa Bespoke Package",
+    "type": "service",
+    "category": "combos",
+    "subCategory": "salon",
+    "price": 499,
+    "originalPrice": 750,
+    "discount": "-33%",
+    "unit": "Complete Salon Package",
+    "isVeg": true,
+    "isCombo": true,
+    "badge": "SAVE ₹251",
+    "image": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=800&q=80",
+    "description": "Precision Skin Fade Haircut + Hot Towel Royal Beard Blend + Charcoal Deep De-tan Facial.",
+    "comboItems": ["Skin Fade Cut", "Royal Hot Towel Beard", "Charcoal De-tan Face Pack"],
+    "rating": 4.9,
+    "reviews": 68,
+    "durationMinutes": 60,
+    "destination": "/nash"
+  },
+
   // ─── GUPTA KIRANA & DAILY NEEDS (MOHALLA 15-MIN EXPRESS) ───
   {
     "id": "gkn-milk-01",
@@ -1035,6 +1182,82 @@ const FALLBACK_REAL_ITEMS = [
 const CHURUONE_API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
   ? 'http://localhost:5000'
   : 'https://churuone-backend.onrender.com';
+
+// ─── BLINKIT-STYLE 4-IN-1 BESTSELLER COLLECTIONS ──────────────────
+export const BESTSELLER_COLLECTIONS = [
+  {
+    id: 'snacks',
+    title: 'Chips & Namkeen',
+    badge: '+25 more',
+    targetCategory: 'grocery',
+    images: [
+      'https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1612927601601-6638404737ce?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?auto=format&fit=crop&w=300&q=80'
+    ]
+  },
+  {
+    id: 'dairy',
+    title: 'Dairy & Breakfast',
+    badge: '+18 more',
+    targetCategory: 'grocery',
+    images: [
+      'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=300&q=80'
+    ]
+  },
+  {
+    id: 'drinks',
+    title: 'Drinks & Juices',
+    badge: '+15 more',
+    targetCategory: 'grocery',
+    images: [
+      'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=300&q=80'
+    ]
+  },
+  {
+    id: 'shawarma',
+    title: 'Shawarma Feasts',
+    badge: '+12 more',
+    targetCategory: 'food',
+    images: [
+      'https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=300&q=80'
+    ]
+  },
+  {
+    id: 'fashion',
+    title: 'Menswear & Outfits',
+    badge: '+40 more',
+    targetCategory: 'fashion',
+    images: [
+      'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=300&q=80'
+    ]
+  },
+  {
+    id: 'salon',
+    title: 'Salon & Grooming',
+    badge: '+23 more',
+    targetCategory: 'salon',
+    images: [
+      'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1512290900672-1f41d916bbbe?auto=format&fit=crop&w=300&q=80',
+      'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=300&q=80'
+    ]
+  }
+];
 
 export default function ChuruOneHomePage() {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
@@ -1945,17 +2168,27 @@ export default function ChuruOneHomePage() {
       if (item.storeId && !servingMohallaStoreIds.has(sId)) return false;
     }
 
-    // Multi-vertical category matching (handles grocery, food, fashion, salon, and granular categories)
-    const matchCat = selectedCategory === 'all' 
-      ? true 
-      : (selectedCategory === 'deals' 
-          ? ((item.originalPrice || 0) > item.price) 
-          : (selectedCategory === 'grocery' || selectedCategory === 'kirana' || selectedCategory === 'daily'
-              ? (item.category === 'grocery' || item.isMohallaProduct || ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.category) || ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.subCategory))
-              : (selectedCategory === 'food' ? (item.storeVertical === 'food' || item.category === 'food' || ['shawarmas', 'platters', 'fries'].includes(item.category))
-                : selectedCategory === 'fashion' ? (item.storeVertical === 'fashion' || item.category === 'fashion' || ['shirts', 'pants', 'jeans', 'tshirts', 'jackets'].includes(item.category))
-                : selectedCategory === 'salon' ? (item.storeVertical === 'salon' || item.category === 'salon')
-                : item.category === selectedCategory)));
+    // Multi-vertical category matching (handles grocery, combos, food, fashion, salon, and granular categories)
+    let matchCat = true;
+    if (selectedCategory === 'all') {
+      matchCat = true;
+    } else if (selectedCategory === 'deals') {
+      matchCat = (item.originalPrice || 0) > item.price;
+    } else if (selectedCategory === 'combos') {
+      matchCat = Boolean(item.isCombo || item.category === 'combos');
+    } else if (selectedCategory === 'grocery' || selectedCategory === 'kirana' || selectedCategory === 'daily') {
+      matchCat = item.category === 'grocery' || item.isMohallaProduct || 
+        ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.category) || 
+        ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.subCategory);
+    } else if (selectedCategory === 'food') {
+      matchCat = item.storeVertical === 'food' || item.category === 'food' || ['shawarmas', 'platters', 'fries'].includes(item.category);
+    } else if (selectedCategory === 'fashion') {
+      matchCat = item.storeVertical === 'fashion' || item.category === 'fashion' || ['shirts', 'pants', 'jeans', 'tshirts', 'jackets'].includes(item.category);
+    } else if (selectedCategory === 'salon') {
+      matchCat = item.storeVertical === 'salon' || item.category === 'salon';
+    } else {
+      matchCat = item.category === selectedCategory;
+    }
 
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = !q || 
@@ -1966,307 +2199,470 @@ export default function ChuruOneHomePage() {
     return matchCat && matchQuery;
   });
 
+  // Extract all high-value combos for the featured showcase
+  const comboItems = (items || []).filter(item => {
+    const sId = String(item.storeId || '').toLowerCase().trim();
+    if (!isStoreVisible(sId)) return false;
+    return item.isCombo || item.category === 'combos';
+  });
+
   return (
     <div className="min-h-screen bg-[#FDFCF9] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
       
-      {/* ─── Ultra-Clean Header (NO Top Search Bar) ───────────────── */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
+      {/* ─── PREMIUM BLINKIT-INSPIRED QUICK COMMERCE HEADER ───────────────── */}
+      <header className="sticky top-0 z-40 bg-gradient-to-b from-[#FCD34D] via-[#FDE68A]/65 to-[#FDFCF9] backdrop-blur-md border-b border-amber-200/60 shadow-xs transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-3 pb-2.5 space-y-2.5">
           
-          {/* Logo & Interactive Geo-Location Pill */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-            <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="ChuruOne Home">
-              <div className="w-9 h-9 rounded-xl bg-stone-950 text-white flex items-center justify-center shadow-xs">
-                <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
-              </div>
-              <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-stone-950">
-                ChuruOne
-              </span>
-            </Link>
+          {/* Top Row: Delivery Time & Location + Logo + Profile + Cart */}
+          <div className="flex items-center justify-between gap-3">
+            
+            {/* Left: Blinkit-style Delivery Counter & Interactive Location Dropdown */}
+            <div className="flex items-center gap-3">
+              <Link to="/" className="hidden sm:flex items-center gap-2 shrink-0 group" aria-label="ChuruOne Home">
+                <div className="w-10 h-10 rounded-2xl bg-stone-950 text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                  <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
+                </div>
+              </Link>
 
-            {/* Interactive Geo-Location Selector Pill */}
-            <button
-              type="button"
-              onClick={() => setIsLocationModalOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-700 bg-amber-50 hover:bg-amber-100/90 px-3 py-1.5 rounded-full border border-amber-200/80 transition-all cursor-pointer shadow-xs active:scale-98"
-              title="Click to change delivery area or detect GPS"
-            >
-              <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-              <div className="flex items-center gap-1 text-left">
-                <span className="hidden sm:inline text-[10px] uppercase font-bold text-amber-900/70">Delivering to</span>
-                <span className="font-extrabold text-stone-900 truncate max-w-[110px] sm:max-w-[160px]">
-                  {customerLocation?.name || 'Subhash Chowk'}
-                </span>
-                {customerLocation?.isGpsVerified && (
-                  <span className="text-[10px] text-emerald-600 font-bold" title="GPS Verified">🛰️</span>
-                )}
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-950/80">
+                    ChuruOne in
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2 py-0.2 rounded-full shadow-2xs">
+                    <span>⚡</span>
+                    <span>1.5 km away</span>
+                  </span>
+                </div>
+                
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl sm:text-3xl font-black text-stone-950 tracking-tight leading-tight">
+                    15 minutes
+                  </span>
+                </div>
+
+                {/* Clickable Location Picker (Blinkit Style) */}
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="flex items-center gap-1 text-xs font-extrabold text-stone-900 hover:text-amber-900 cursor-pointer group text-left mt-0.5"
+                  title="Click to detect GPS or change area"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-amber-800 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="truncate max-w-[170px] sm:max-w-xs border-b border-dotted border-stone-600 font-bold">
+                    {customerLocation?.name || 'Naya Bass'}, Churu
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-stone-700 shrink-0" />
+                </button>
               </div>
-              <ChevronDown className="w-3 h-3 text-stone-400 shrink-0" />
-            </button>
+            </div>
+
+            {/* Right: User SSO Avatar & Blinkit-Style Emerald Cart Pill */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0" ref={accountMenuRef}>
+              {/* User Profile / SSO Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentUser) {
+                      setIsAccountMenuOpen(!isAccountMenuOpen);
+                    } else {
+                      navigateToChuruOneAuth('login');
+                    }
+                  }}
+                  className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-stone-900 border border-amber-300/80 shadow-xs flex items-center justify-center cursor-pointer transition-all active:scale-95"
+                  title={currentUser ? `Logged in as ${currentUser.name || currentUser.phone}` : "Sign In / ChuruOne Account"}
+                >
+                  {currentUser ? (
+                    <div className="w-7 h-7 rounded-full bg-stone-950 text-white font-black text-xs flex items-center justify-center">
+                      {(currentUser.name || currentUser.phone || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  ) : (
+                    <User className="w-5 h-5 text-stone-800" />
+                  )}
+                </button>
+
+                {/* Account Dropdown Menu if Logged in */}
+                <AnimatePresence>
+                  {isAccountMenuOpen && currentUser && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -6 }}
+                      className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-stone-200/90 p-4 z-50 space-y-3"
+                    >
+                      <div className="border-b border-stone-100 pb-2">
+                        <div className="font-extrabold text-sm text-stone-950 truncate">
+                          {currentUser.name || 'ChuruOne Customer'}
+                        </div>
+                        <div className="text-xs text-stone-500 font-mono">
+                          {currentUser.phone || currentUser.email}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAccountMenuOpen(false);
+                            setIsCartOpen(true);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold text-stone-700 hover:bg-stone-50 flex items-center gap-2 cursor-pointer"
+                        >
+                          <ShoppingCart className="w-4 h-4 text-stone-500" />
+                          <span>My Cart ({cartCount})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAccountMenuOpen(false);
+                            setIsLocationModalOpen(true);
+                          }}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold text-stone-700 hover:bg-stone-50 flex items-center gap-2 cursor-pointer"
+                        >
+                          <MapPin className="w-4 h-4 text-stone-500" />
+                          <span>Delivery Address ({customerLocation?.name || 'Churu'})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4 text-red-500" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Native ChuruOne Cart Pill (Blinkit Emerald Pill) */}
+              <button 
+                type="button"
+                onClick={() => setIsCartOpen(true)}
+                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl shadow-md shadow-emerald-700/20 font-black text-xs sm:text-sm cursor-pointer transition-all"
+                title="Open ChuruOne Cart"
+              >
+                <ShoppingCart className="w-4.5 h-4.5 stroke-[2.4]" />
+                {cartCount > 0 ? (
+                  <div className="flex items-center gap-1.5">
+                    <span>{cartCount} item{cartCount > 1 ? 's' : ''}</span>
+                    <span className="opacity-70">|</span>
+                    <span className="font-mono">₹{finalCartTotal}</span>
+                  </div>
+                ) : (
+                  <span>Cart</span>
+                )}
+              </button>
+            </div>
+
           </div>
 
-          {/* Right Utilities: Cart Drawer Trigger, User Profile */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0" ref={accountMenuRef}>
-            
-            {/* Native ChuruOne Cart Icon Button with Live Counter Badge */}
-            <button 
-              type="button"
-              onClick={() => setIsCartOpen(true)}
-              className="relative p-2 rounded-full hover:bg-stone-100 transition-colors text-stone-800 cursor-pointer flex items-center gap-1.5"
-              title="Open ChuruOne Cart"
-            >
-              <div className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-amber-600 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-              {cartTotal > 0 && (
-                <span className="hidden md:inline text-xs font-bold font-mono text-stone-900">
-                  ₹{finalCartTotal}
-                </span>
+          {/* Floating Search Bar (Blinkit Style with Soft Shadow) */}
+          <div className="relative pt-0.5">
+            <div className="flex items-center bg-white rounded-2xl border border-stone-200/90 shadow-sm hover:shadow-md focus-within:shadow-md focus-within:border-stone-950 transition-all p-2.5 pl-4">
+              <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
+              <input
+                type="text"
+                placeholder='Search "milk", "atta", "shawarma", "shirt", "haircut", "combos"...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm sm:text-base text-stone-950 placeholder:text-stone-400 font-medium outline-none"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-800 mr-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              ) : (
+                <span className="text-stone-400 text-xs px-2 select-none">🎙️</span>
               )}
-            </button>
+            </div>
+          </div>
 
-
-
+          {/* Quick Category Icons Bar (Blinkit Category Ribbon) */}
+          <div className="overflow-x-auto no-scrollbar pt-1 pb-0.5">
+            <div className="flex items-center gap-2 sm:gap-2.5 w-max min-w-full">
+              {categories.map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      const el = document.getElementById('catalog-grid');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
+                      isSelected
+                        ? 'bg-stone-950 text-white border-stone-950 shadow-sm scale-102 font-black'
+                        : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border-stone-200/80 shadow-2xs'
+                    }`}
+                  >
+                    <span>{cat.emoji || '✨'}</span>
+                    <span>{cat.name}</span>
+                    {cat.count !== undefined && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'
+                      }`}>
+                        {cat.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10 sm:space-y-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-8 sm:space-y-10">
         
-        {/* ─── HERO BANNER (Seamlessly Blended Churu Lal Ghantaghar + Overlay Search) ── */}
-        <section className="relative rounded-[2.5rem] bg-gradient-to-r from-stone-50 via-white to-amber-50/20 border border-stone-200/80 shadow-xs overflow-hidden min-h-[380px] sm:min-h-[420px] md:min-h-[460px] flex items-center">
-          
-          {/* Beautifully Faded Real Churu Lal Ghantaghar Image (Seamlessly Embedded into UI) */}
-          <div className="absolute right-0 top-0 bottom-0 w-full md:w-[64%] lg:w-[60%] h-full pointer-events-none select-none overflow-hidden flex items-center justify-end">
-            <motion.img
-              animate={{ scale: [1, 1.05, 1], y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 16, ease: "easeInOut" }}
-              src="/images/churu-ghantaghar.jpg"
-              alt="Real Churu Lal Ghanta Ghar Dharm Stup"
-              className="w-full h-full object-cover object-center"
-              style={{
-                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.1) 10%, rgba(0,0,0,0.85) 35%, black 65%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.1) 10%, rgba(0,0,0,0.85) 35%, black 65%)'
-              }}
-            />
-            {/* Ambient Blend Gradient Layers */}
-            <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white via-white/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white/80 via-white/30 to-transparent" />
-            <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-white/60 to-transparent" />
+        {/* ─── SECTION 1: BLINKIT-STYLE 4-IN-1 BESTSELLER COLLECTIONS ───────── */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-stone-950 tracking-tight">
+                Bestsellers
+              </h2>
+              <p className="text-xs text-stone-500 mt-0.5">Churu ke sabse pasandida categories aur daily needs</p>
+            </div>
           </div>
 
-          {/* Left Content Area + Search Bar Overlaid Direct Onto Photo */}
-          <div className="relative z-20 w-full p-6 sm:p-10 lg:p-14 space-y-6 max-w-2xl">
-            
-            <div className="space-y-2">
-              <motion.h1 
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-stone-950 leading-[1.02]"
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3">
+            {BESTSELLER_COLLECTIONS.map((col) => (
+              <button
+                key={col.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(col.targetCategory);
+                  const el = document.getElementById('catalog-grid');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="group bg-white hover:bg-amber-50/50 rounded-2xl p-2 sm:p-2.5 border border-stone-200/80 hover:border-amber-400 hover:shadow-md transition-all text-left flex flex-col justify-between cursor-pointer shadow-2xs"
               >
-                {platformData?.branding?.heroTitle ? (
-                  platformData.branding.heroTitle
-                ) : (
-                  <>Social Commerce<br />Churu</>
-                )}
-              </motion.h1>
-              <p className="text-xs sm:text-sm font-semibold tracking-wide text-stone-600 max-w-md">
-                {platformData?.branding?.heroSubtitle || 'Churu ke verified dukandar, khana, fashion aur services — ab ek hi social commerce platform par.'}
-              </p>
-            </div>
+                {/* 2x2 Image Collage */}
+                <div className="grid grid-cols-2 gap-1.5 rounded-xl overflow-hidden bg-stone-50 p-1">
+                  {col.images.map((img, iIdx) => (
+                    <div key={iIdx} className="aspect-square rounded-lg overflow-hidden bg-stone-100">
+                      <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  ))}
+                </div>
 
-            {/* OVERLAPPING FLOATING SEARCH BAR (Physically sits across the photo) */}
-            <div className="relative z-30 max-w-xl w-full pt-2">
-              <div className="flex items-center bg-white/95 backdrop-blur-md border border-stone-200/90 shadow-xl hover:shadow-2xl rounded-full p-2.5 pl-6 focus-within:border-stone-900 focus-within:ring-2 focus-within:ring-stone-900/10 transition-all">
-                <Search className="w-5 h-5 text-stone-400 shrink-0 mr-3" />
-                <input
-                  type="text"
-                  placeholder="Kya dhoondh rahe hain? Food, Fashion, Outfits, Salons, Products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-sm sm:text-base text-stone-900 placeholder:text-stone-400 outline-none font-medium"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.getElementById('catalog-grid');
-                    if (el) el.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-stone-950 hover:bg-black text-white flex items-center justify-center shrink-0 shadow-md cursor-pointer transition-transform active:scale-95"
-                  aria-label="Search"
-                >
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* ─── LIVE KINETIC MARQUEE STREAM (Thick Black Slow Ribbon) ── */}
-        <div className="py-5 sm:py-6 border-y border-stone-800 bg-black text-white overflow-hidden whitespace-nowrap select-none rounded-2xl shadow-xl">
-          <div 
-            className="flex gap-10 items-center animate-marquee w-max text-xs sm:text-sm font-mono font-bold uppercase tracking-widest text-stone-300"
-            style={{ animationDuration: '65s' }}
-          >
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="flex items-center gap-10">
-                {platformData?.branding?.marqueeText ? (
-                  platformData.branding.marqueeText.split(/•|✦|★/).filter(s => s && s.trim()).map((chunk, cIdx) => (
-                    <React.Fragment key={cIdx}>
-                      <span className="font-sans font-bold text-stone-200">
-                        {chunk.trim()}
-                      </span>
-                      <span className="text-stone-700">✦</span>
-                    </React.Fragment>
-                  ))
-                ) : (
-                  <>
-                    <span className="flex items-center gap-2 text-emerald-400 font-sans font-black tracking-wider text-sm sm:text-base">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                      LIVE ORDERS DISPATCHING ACROSS CHURU
-                    </span>
-                    <span className="text-stone-700">✦</span>
-                    <span className="text-amber-400 font-sans font-bold">SHAWARMA NIGHTS • 25 MIN EXPRESS</span>
-                    <span className="text-stone-700">✦</span>
-                    <span className="text-white font-sans font-bold">SKYLINE PREMIUM OUTFITS • BESPOKE APPAREL</span>
-                    <span className="text-stone-700">✦</span>
-                    <span className="text-indigo-300 font-sans font-bold">NASH STUDIO • PRIVATE SALON GROOMING</span>
-                    <span className="text-stone-700">✦</span>
-                    <span className="text-stone-300">0% PLATFORM COMMISSIONS • DIRECT PRICING</span>
-                    <span className="text-stone-700">✦</span>
-                    <span className="text-emerald-400 font-sans font-bold">INSTANT UPI SMARTPAY SETTLEMENTS</span>
-                    <span className="text-stone-700">✦</span>
-                  </>
-                )}
-              </div>
+                {/* Counter Pill + Title */}
+                <div className="mt-2 text-center space-y-0.5">
+                  <span className="inline-block text-[9px] font-black uppercase text-amber-800 bg-amber-100/80 px-2 py-0.2 rounded-full">
+                    {col.badge}
+                  </span>
+                  <h4 className="font-extrabold text-xs text-stone-900 group-hover:text-amber-800 line-clamp-1">
+                    {col.title}
+                  </h4>
+                </div>
+              </button>
             ))}
           </div>
-        </div>
-
-        {/* ─── CATEGORY SQUIRCLE ROW (Clean Large Line Icons) ─────────── */}
-        <section className="overflow-x-auto no-scrollbar py-2">
-          <div className="flex items-center gap-3 sm:gap-4 w-max min-w-full">
-            {categories.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`flex flex-col items-center justify-center gap-2.5 p-3.5 sm:p-4 rounded-2xl transition-all cursor-pointer min-w-[88px] sm:min-w-[106px] group ${
-                    isSelected 
-                    ? 'bg-stone-950 text-white shadow-xl ring-2 ring-stone-950 ring-offset-2' 
-                    : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-950 border border-stone-200/90 shadow-2xs'
-                  }`}
-                >
-                  <div className={`transition-transform duration-200 group-hover:scale-110 ${
-                    isSelected ? 'text-white' : 'text-stone-700 group-hover:text-stone-950'
-                  }`}>
-                    <CategoryLineIcon categoryId={cat.id} className="w-7 h-7 sm:w-8 sm:h-8" />
-                  </div>
-                  <span className="text-xs sm:text-xs font-bold tracking-tight whitespace-nowrap">
-                    {cat.name}
-                  </span>
-                  {cat.count !== undefined && (
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold ${
-                      isSelected ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
-                    }`}>
-                      {cat.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
         </section>
 
-
-        {/* ─── DUAL SWITCHER: MOHALLA MARKET VS CITY FLAGSHIP BRANDS ──── */}
-        <div className="bg-white rounded-3xl p-3 sm:p-4 border border-stone-200/90 shadow-sm space-y-3">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            {/* Split Toggle Pills */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl flex-1 max-w-xl">
-              {/* Tab 1: Mohalla Market */}
-              <button
-                type="button"
-                onClick={() => setMarketplaceView('mohalla')}
-                className={`py-2.5 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all border-0 ${
-                  marketplaceView === 'mohalla'
-                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                }`}
-              >
-                <Store className="w-4 h-4 shrink-0" />
-                <span>🏠 Mohalla Market</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  marketplaceView === 'mohalla' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
-                }`}>
-                  15-MIN EXPRESS
-                </span>
-              </button>
-
-              {/* Tab 2: City Flagship Brands */}
-              <button
-                type="button"
-                onClick={() => setMarketplaceView('flagship')}
-                className={`py-2.5 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all border-0 ${
-                  marketplaceView === 'flagship'
-                    ? 'bg-stone-950 text-white shadow-md'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                }`}
-              >
-                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>👑 City Flagships</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                  marketplaceView === 'flagship' ? 'bg-stone-800 text-amber-300' : 'bg-stone-200 text-stone-700'
-                }`}>
-                  CITY-WIDE
-                </span>
-              </button>
-            </div>
-
-            {/* Location / Radius Status Indicator */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200/70 text-xs">
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span className="font-bold text-stone-900 truncate max-w-[140px]">
-                  {customerLocation?.name || 'Subhash Chowk'}
-                </span>
-                <span className="text-[10px] text-stone-400">
-                  {marketplaceView === 'mohalla' ? '(1.5 km radius)' : '(City-wide delivery)'}
-                </span>
+        {/* ─── SECTION 2: ⚡ SUPER SAVER COMBOS & DAILY BUNDLES SHOWCASE ──── */}
+        {comboItems.length > 0 && (
+          <section className="space-y-3.5 pt-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black text-sm shadow-xs">
+                    🎁
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black text-stone-950 tracking-tight">
+                    Super Saver Combos & Bundles
+                  </h2>
+                </div>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Bachat packs & feasts • Ek click me pura combo bag me add karein
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => setIsLocationModalOpen(true)}
-                className="text-amber-700 hover:text-amber-800 font-bold underline cursor-pointer text-[11px] shrink-0"
+                onClick={() => {
+                  setSelectedCategory('combos');
+                  const el = document.getElementById('catalog-grid');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-xs font-bold text-amber-800 hover:text-amber-900 flex items-center gap-1 cursor-pointer"
               >
-                Change
+                <span>View all ({comboItems.length})</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              {comboItems.slice(0, 4).map((combo) => (
+                <div
+                  key={combo.id}
+                  className="group bg-white rounded-3xl overflow-hidden border border-amber-200/90 shadow-2xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="relative h-40 w-full overflow-hidden bg-stone-100">
+                      <img
+                        src={combo.image}
+                        alt={combo.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {/* Savings Badge */}
+                      <span className="absolute top-2.5 left-2.5 bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md uppercase tracking-wide">
+                        {combo.badge || 'SUPER SAVER'}
+                      </span>
+                      <span className="absolute top-2.5 right-2.5 bg-stone-900/80 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                        {combo.isMohallaProduct ? '⚡ 15 Min Kirana' : '👑 Flagship Feast'}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 space-y-2">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-amber-800 truncate">
+                        {combo.storeName}
+                      </div>
+                      <h4 className="font-extrabold text-sm text-stone-950 line-clamp-1 group-hover:text-amber-800">
+                        {combo.name}
+                      </h4>
+                      <p className="text-[11px] text-stone-600 line-clamp-2 leading-relaxed">
+                        {combo.description}
+                      </p>
+                      {/* Included Items List Chips */}
+                      {combo.comboItems && combo.comboItems.length > 0 && (
+                        <div className="pt-1 flex flex-wrap gap-1">
+                          {combo.comboItems.map((ci, cIdx) => (
+                            <span key={cIdx} className="text-[10px] bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-medium">
+                              ✓ {typeof ci === 'string' ? ci : (ci.name || ci)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 pt-0 flex items-center justify-between border-t border-stone-100 mt-2">
+                    <div>
+                      <div className="font-black text-base text-stone-950">
+                        ₹{combo.price}
+                      </div>
+                      {combo.originalPrice && combo.originalPrice > combo.price && (
+                        <div className="text-[10px] text-stone-400 line-through">
+                          MRP ₹{combo.originalPrice}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => addToCart(combo)}
+                      className="h-9 px-4 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black flex items-center gap-1.5 transition-transform shadow-md shadow-emerald-600/20 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                      <span>ADD COMBO</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ─── SECTION 3: SLEEK SEGMENTED SWITCHER (MOHALLA VS FLAGSHIPS) ──── */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-1.5 bg-stone-100 rounded-2xl border border-stone-200/80 shadow-2xs">
+          {/* Segmented Pill Tabs */}
+          <div className="flex items-center gap-1 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setMarketplaceView('mohalla')}
+              className={`flex-1 sm:flex-none py-2 px-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                marketplaceView === 'mohalla'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <Store className="w-3.5 h-3.5" />
+              <span>⚡ 15-Min Mohalla</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMarketplaceView('flagship')}
+              className={`flex-1 sm:flex-none py-2 px-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                marketplaceView === 'flagship'
+                  ? 'bg-stone-950 text-white shadow-sm'
+                  : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>👑 City Flagships</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMarketplaceView('all')}
+              className={`flex-1 sm:flex-none py-2 px-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                marketplaceView === 'all'
+                  ? 'bg-white text-stone-950 shadow-sm'
+                  : 'text-stone-600 hover:text-stone-950'
+              }`}
+            >
+              <span>🌟 All Stores</span>
+            </button>
           </div>
 
-          {/* Explanatory micro-banner based on active view */}
-          {marketplaceView === 'mohalla' ? (
-            <div className="text-[11px] text-emerald-800 bg-emerald-50/70 px-3 py-1.5 rounded-xl flex items-center gap-2 font-medium">
-              <span className="text-emerald-600 font-black">⚡ 15-Min Hyperlocal:</span>
-              <span>Aapke mohalle ke daily essentials (Milk, Bread, Atta, Spices, Kirana) — fast express delivery directly to your home.</span>
-            </div>
-          ) : (
-            <div className="text-[11px] text-stone-700 bg-amber-50/60 px-3 py-1.5 rounded-xl flex items-center gap-2 font-medium">
-              <span className="text-amber-600 font-black">👑 Flagship Exemption:</span>
-              <span>Shawarma Nights, Skyline Outfits & Nash Studio deliver across all of Churu with zero radius boundaries.</span>
-            </div>
-          )}
+          {/* Quick Location Context */}
+          <div className="flex items-center gap-2 text-xs text-stone-600 px-2 py-1">
+            <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+            <span className="font-bold text-stone-900 truncate max-w-[150px]">
+              {customerLocation?.name || 'Subhash Chowk'}
+            </span>
+            <span className="text-[11px] text-stone-400 font-mono">
+              {marketplaceView === 'mohalla' ? '(1.5 km radius)' : '(City-wide)'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsLocationModalOpen(true)}
+              className="text-amber-800 hover:underline font-bold text-[11px] cursor-pointer ml-1"
+            >
+              Change
+            </button>
+          </div>
         </div>
+
+        {/* ─── SECTION 4: HERO CHURU LAL GHANTAGHAR AMBIENT BANNER ─────────── */}
+        <section className="relative rounded-3xl bg-gradient-to-r from-stone-50 via-white to-amber-50/30 border border-stone-200/80 shadow-2xs overflow-hidden min-h-[220px] sm:min-h-[260px] flex items-center">
+          {/* Real Churu Lal Ghantaghar Ambient Image */}
+          <div className="absolute right-0 top-0 bottom-0 w-full md:w-[60%] h-full pointer-events-none select-none overflow-hidden flex items-center justify-end">
+            <motion.img
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ repeat: Infinity, duration: 18, ease: "easeInOut" }}
+              src="/images/churu-ghantaghar.jpg"
+              alt="Churu Lal Ghanta Ghar Dharm Stup"
+              className="w-full h-full object-cover object-center"
+              style={{
+                maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 15%, rgba(0,0,0,0.9) 45%, black 75%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,0.15) 15%, rgba(0,0,0,0.9) 45%, black 75%)'
+              }}
+            />
+            <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white via-white/50 to-transparent" />
+          </div>
+
+          <div className="relative z-10 p-5 sm:p-8 space-y-2 max-w-xl">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full">
+              ★ Churu Ki Apni Digital Market
+            </span>
+            <h1 className="text-2xl sm:text-4xl font-black text-stone-950 tracking-tight">
+              Social Commerce Churu
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 font-medium max-w-md leading-relaxed">
+              Shawarma Nights • Skyline Bespoke Apparel • Nash Private Salon • Mohalla Kirana — direct orders without middleman commission.
+            </p>
+          </div>
+        </section>
 
         {/* ─── VERIFIED CHURU OUTLETS ROW ──────────────────────────── */}
         <section id="stores-grid" className="space-y-4">
