@@ -33,8 +33,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
-        display: ['Cabinet Grotesk', 'Plus Jakarta Sans', 'sans-serif'],
+        sans: ['Manrope', 'Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Bricolage Grotesque', 'Cabinet Grotesk', 'Plus Jakarta Sans', 'sans-serif'],
       },
       boxShadow: {
         'glow-sm': '0 0 15px -3px rgba(225, 29, 72, 0.3)',
