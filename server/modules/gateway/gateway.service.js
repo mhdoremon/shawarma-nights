@@ -11,14 +11,17 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       
       let orders = [];
       if (isMarketplace) {
-        const allStores = ['shawarma', 'skyline', 'nash-studio'];
+        const storeDirIds = DataLayer.listStoreIds ? DataLayer.listStoreIds() : ['shawarma', 'skyline', 'nash-studio', 'gupta-kirana-nayabass'];
+        const allStores = storeDirIds.filter(id => !['churuone', 'platform', 'admin', 'api', 'hub'].includes(id.toLowerCase()));
         allStores.forEach(sId => {
           const list = DataLayer.read(sId, 'orders') || [];
+          const sCfg = DataLayer.getStoreConfig(sId) || {};
+          const fallbackName = sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : sId === 'nash-studio' ? 'Nash Studio' : (sCfg.name || sId);
           list.forEach(o => {
             orders.push({
               ...o,
               storeId: o.storeId || sId,
-              storeName: o.storeName || (sId === 'shawarma' ? 'Shawarma Nights' : sId === 'skyline' ? 'Skyline Outfits' : 'Nash Studio')
+              storeName: o.storeName || fallbackName
             });
           });
         });
@@ -32,7 +35,8 @@ export function handleGatewayMessage(data, ws, storeId, source) {
       
       let rawCustomers = [];
       if (isMarketplace) {
-        const allStores = ['shawarma', 'skyline', 'nash-studio'];
+        const storeDirIds = DataLayer.listStoreIds ? DataLayer.listStoreIds() : ['shawarma', 'skyline', 'nash-studio', 'gupta-kirana-nayabass'];
+        const allStores = storeDirIds.filter(id => !['churuone', 'platform', 'admin', 'api', 'hub'].includes(id.toLowerCase()));
         const custMap = new Map();
         allStores.forEach(sId => {
           const list = DataLayer.read(sId, 'customers') || [];

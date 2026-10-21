@@ -313,6 +313,8 @@ export const getMarketplaceFeed = (req, res) => {
             food: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80',
             fashion: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=600&q=80',
             salon: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80',
+            mohalla_kirana: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
+            grocery: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
             general: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=600&q=80'
         };
 
@@ -377,25 +379,47 @@ export const getMarketplaceFeed = (req, res) => {
             const storeImg = storeInfo.image || heroBanner.circleImage || (menuItems[0]?.image || menuItems[0]?.img) || DEFAULT_STORE_IMAGES[vertical] || DEFAULT_STORE_IMAGES.general;
             const destination = vertical === 'salon' ? '/nash' : (vertical === 'fashion' ? '/skyline' : '/shawarma');
 
+            const isFlagship = Boolean(
+                regStore.isFlagship || 
+                config.isFlagship || 
+                ['shawarma', 'skyline', 'nash-studio'].includes(sId)
+            );
+            const isMohallaStore = Boolean(
+                regStore.isMohallaStore || 
+                config.isMohallaStore || 
+                vertical === 'mohalla_kirana' || 
+                sId.includes('kirana') || 
+                sId.includes('gupta')
+            );
+
             const storeSummary = {
                 id: sId,
                 name: storeName,
                 vertical,
-                category: vertical === 'food' ? 'Charcoal Kitchen & Dining' : (vertical === 'salon' ? 'Salon & Luxury Grooming' : 'Luxury Menswear & Outfits'),
+                category: isMohallaStore ? 'Mohalla Kirana & Daily Needs' : (vertical === 'food' ? 'Charcoal Kitchen & Dining' : (vertical === 'salon' ? 'Salon & Luxury Grooming' : 'Luxury Menswear & Outfits')),
                 rating: String(storeRating),
-                timing: storeTiming,
+                timing: isMohallaStore ? '15 min express' : storeTiming,
                 image: storeImg,
-                destination,
-                tag: vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits'),
+                destination: isMohallaStore ? `/churuone?store=${sId}` : destination,
+                tag: isMohallaStore ? '15 Min Express' : (vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits')),
                 isOpen: storeInfo.isOpen !== false,
                 address: storeInfo.address || 'Churu, Rajasthan',
                 phone: storeInfo.phone || storeInfo.whatsapp || '7023963189',
-                freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? 499,
+                freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? (isMohallaStore ? 199 : 499),
                 upiId: storeInfo.upiId || '7023963189@fam',
                 payeeName: storeInfo.payeeName || storeName,
                 itemCount: menuItems.length,
                 dealsCount: dealsList.length,
-                marketplaceVisible: regStore.marketplaceVisible ?? config.marketplaceVisible ?? true
+                marketplaceVisible: regStore.marketplaceVisible ?? config.marketplaceVisible ?? true,
+                isMohallaStore,
+                isFlagshipBrand: isFlagship,
+                isCityWide: isFlagship,
+                mohalla: regStore.mohalla || config.mohalla || storeInfo.mohalla || 'Naya Bass',
+                nearestLandmark: regStore.nearestLandmark || config.nearestLandmark || 'naya_bass',
+                lat: Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || 28.2932),
+                lng: Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || 74.9620),
+                radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),
+                expressDeliveryMins: Number(regStore.expressDeliveryMins || config.expressDeliveryMins || 15)
             };
             marketplaceStores.push(storeSummary);
 
@@ -416,6 +440,28 @@ export const getMarketplaceFeed = (req, res) => {
                     const isService = vertical === 'salon';
                     const itemPrice = Number(item.price) || 0;
                     const itemMrp = Number(item.originalPrice || item.mrp) || Math.round(itemPrice * 1.25);
+                    allItems.push({
+                        id: item.id || `${sId}-${item.name?.toLowerCase().replace(/\s+/g, '-')}`,
+                        storeId: sId,
+                        storeName,
+                        storeVertical: vertical,
+                        name: item.name,
+                        type: isService ? 'service' : 'product',
+                        category: isMohallaStore ? 'grocery' : (item.category || vertical),
+                        subCategory: item.category || (isMohallaStore ? 'dairy' : ''),
+                        unit: item.unit || '',
+                        isMohallaProduct: isMohallaStore,
+                        price: itemPrice,
+                        originalPrice: itemMrp,
+                        discount: itemMrp > itemPrice ? `-${Math.round(((itemMrp - itemPrice) / itemMrp) * 100)}%` : null,
+                        image: item.image || item.img || storeImg,
+                        description: item.description || '',
+                        rating: Number(item.rating || storeRating),
+                        reviews: Number(item.reviews || 24),
+                        destination: isMohallaStore ? `/churuone?store=${sId}` : destination
+                    });
+                }
+            });
                     allItems.push({
                         id: item.id || `${sId}-${item.name?.toLowerCase().replace(/\s+/g, '-')}`,
                         storeId: sId,

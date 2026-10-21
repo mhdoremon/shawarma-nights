@@ -1,0 +1,98 @@
+[
+  {
+    "id": "gkn-item-01",
+    "name": "Amul Taaza Homogenised Toned Milk 500ml",
+    "category": "dairy",
+    "price": 27,
+    "originalPrice": 28,
+    "unit": "500 ml",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80",
+    "description": "Pasteurised toned milk with 3.0% fat, 8.5% SNF. Fresh morning stock."
+  },
+  {
+    "id": "gkn-item-02",
+    "name": "Amul Gold Full Cream Milk 500ml",
+    "category": "dairy",
+    "price": 33,
+    "originalPrice": 34,
+    "unit": "500 ml",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=400&q=80",
+    "description": "Rich full cream milk with 6.0% fat for tea, curd, and sweets."
+  },
+  {
+    "id": "gkn-item-03",
+    "name": "English Oven Daily Sandwich Bread 400g",
+    "category": "bakery",
+    "price": 43,
+    "originalPrice": 45,
+    "unit": "400 g",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80",
+    "description": "Fresh soft sandwich bread baked daily."
+  },
+  {
+    "id": "gkn-item-04",
+    "name": "Aashirvaad Shudh Chakki Atta 5kg",
+    "category": "staples",
+    "price": 235,
+    "originalPrice": 255,
+    "unit": "5 kg",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=400&q=80",
+    "description": "100% whole wheat flour, fiber-rich rotis stay soft for hours."
+  },
+  {
+    "id": "gkn-item-05",
+    "name": "Fortune Sunlite Refined Sunflower Oil 1L",
+    "category": "oil & ghee",
+    "price": 142,
+    "originalPrice": 155,
+    "unit": "1 L",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=400&q=80",
+    "description": "Light and healthy cooking oil enriched with Vitamins A & D."
+  },
+  {
+    "id": "gkn-item-06",
+    "name": "Tata Salt Vacuum Evaporated Iodised 1kg",
+    "category": "staples",
+    "price": 27,
+    "originalPrice": 28,
+    "unit": "1 kg",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?auto=format&fit=crop&w=400&q=80",
+    "description": "Desh Ka Namak with guaranteed iodine content."
+  },
+  {
+    "id": "gkn-item-07",
+    "name": "Parle-G Gold Biscuits 1kg Family Pack",
+    "category": "snacks",
+    "price": 115,
+    "originalPrice": 130,
+    "unit": "1 kg",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=400&q=80",
+    "description": "Bigger, crispier and tastier Parle-G for the whole family."
+  },
+  {
+    "id": "gkn-item-08",
+    "name": "Tata Tea Premium Desh Ki Chai 500g",
+    "category": "beverages",
+    "price": 255,
+    "originalPrice": 285,
+    "unit": "500 g",
+    "available": true,
+    "isVeg": true,
+    "image": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80",
+    "description": "Unique blend of badipatti and chotipatti for taste and kadak strength."
+  }
+]

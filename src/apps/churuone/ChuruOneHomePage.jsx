@@ -33,7 +33,10 @@ import {
   RotateCcw,
   Lock,
   Shirt,
-  Footprints
+  Footprints,
+  Zap,
+  LocateFixed,
+  Share2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,6 +52,14 @@ import {
   subscribeToChuruOneAuth
 } from '../../utils/ssoHelper';
 import { getStoreLiveStatus, extractStoreHours } from '../../utils/storeTimingHelper';
+import { 
+  CHURU_LANDMARKS, 
+  calculateDistanceKm, 
+  findNearestLandmark, 
+  isStoreServingLocation, 
+  getSavedCustomerLocation, 
+  saveCustomerLocation 
+} from '../../utils/geoHelper';
 
 // Popular Churu Landmarks for Fast Accurate City Delivery
 export const CHURU_POPULAR_LANDMARKS = [
@@ -120,7 +131,7 @@ function CategoryLineIcon({ categoryId, className = "w-7 h-7 sm:w-8 sm:h-8" }) {
   }
 }
 
-// Fallback Real Stores (Shawarma Nights, Skyline Premium Outfits, Nash Studio)
+// Fallback Real Stores (Shawarma Nights, Skyline Premium Outfits, Nash Studio, Gupta Kirana)
 const FALLBACK_REAL_STORES = [
   {
     id: 'shawarma',
@@ -137,7 +148,9 @@ const FALLBACK_REAL_STORES = [
     phone: '7023963189',
     freeDeliveryThreshold: 299,
     upiId: '7023963189@fam',
-    payeeName: 'Shawarma Nights Churu'
+    payeeName: 'Shawarma Nights Churu',
+    isFlagshipBrand: true,
+    isCityWide: true
   },
   {
     id: 'skyline',
@@ -154,7 +167,9 @@ const FALLBACK_REAL_STORES = [
     phone: '7023963189',
     freeDeliveryThreshold: 499,
     upiId: '7023963189@fam',
-    payeeName: 'Skyline Premium Outfits'
+    payeeName: 'Skyline Premium Outfits',
+    isFlagshipBrand: true,
+    isCityWide: true
   },
   {
     id: 'nash-studio',
@@ -171,12 +186,125 @@ const FALLBACK_REAL_STORES = [
     phone: '7023963189',
     freeDeliveryThreshold: 0,
     upiId: '7023963189@fam',
-    payeeName: 'Nash Studio Churu'
+    payeeName: 'Nash Studio Churu',
+    isFlagshipBrand: true,
+    isCityWide: true
+  },
+  {
+    id: 'gupta-kirana-nayabass',
+    name: 'Gupta Kirana & Daily Needs',
+    vertical: 'mohalla_kirana',
+    category: 'Mohalla Kirana • Dairy, Staples, Spices & 15-Min Express',
+    rating: '4.9',
+    timing: '15 min express',
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
+    destination: '/churuone?store=gupta-kirana-nayabass',
+    tag: '15 Min Express',
+    isOpen: true,
+    address: 'Shop No. 4, Main Market, Naya Bass, Churu',
+    phone: '7023963189',
+    freeDeliveryThreshold: 199,
+    upiId: '7023963189@fam',
+    payeeName: 'Gupta Kirana Store',
+    isMohallaStore: true,
+    isFlagshipBrand: false,
+    mohalla: 'Naya Bass',
+    nearestLandmark: 'naya_bass',
+    lat: 28.2932,
+    lng: 74.9620,
+    radiusKm: 1.5,
+    expressDeliveryMins: 15
   }
 ];
 
-// Fallback Real Catalog Items (Multi-Store: Shawarma Nights, Skyline Outfits, Nash Studio)
+// Fallback Real Catalog Items (Multi-Store: Shawarma Nights, Skyline Outfits, Nash Studio, Gupta Kirana)
 const FALLBACK_REAL_ITEMS = [
+  // ─── GUPTA KIRANA & DAILY NEEDS (MOHALLA 15-MIN EXPRESS) ───
+  {
+    "id": "gkn-milk-01",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Amul Taaza Homogenised Toned Milk 500ml",
+    "type": "product",
+    "category": "grocery",
+    "subCategory": "dairy",
+    "price": 27,
+    "originalPrice": 28,
+    "discount": "-4%",
+    "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=400&q=80",
+    "description": "Pasteurised toned milk with 3.0% fat, 8.5% SNF. Fresh morning stock.",
+    "rating": 4.9,
+    "reviews": 42,
+    "unit": "500 ml",
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "gkn-atta-01",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Aashirvaad Shudh Chakki Atta 5kg",
+    "type": "product",
+    "category": "grocery",
+    "subCategory": "staples",
+    "price": 235,
+    "originalPrice": 255,
+    "discount": "-8%",
+    "image": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=400&q=80",
+    "description": "100% whole wheat flour, rotis stay soft for hours.",
+    "rating": 4.9,
+    "reviews": 57,
+    "unit": "5 kg",
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "gkn-bread-01",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "English Oven Daily Sandwich Bread 400g",
+    "type": "product",
+    "category": "grocery",
+    "subCategory": "bakery",
+    "price": 43,
+    "originalPrice": 45,
+    "discount": "-4%",
+    "image": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80",
+    "description": "Fresh soft sandwich bread baked daily.",
+    "rating": 4.8,
+    "reviews": 31,
+    "unit": "400 g",
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+  {
+    "id": "gkn-oil-01",
+    "storeId": "gupta-kirana-nayabass",
+    "storeName": "Gupta Kirana & Daily Needs",
+    "storeVertical": "mohalla_kirana",
+    "name": "Fortune Sunlite Refined Sunflower Oil 1L",
+    "type": "product",
+    "category": "grocery",
+    "subCategory": "oil & ghee",
+    "price": 142,
+    "originalPrice": 155,
+    "discount": "-8%",
+    "image": "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=400&q=80",
+    "description": "Light and healthy cooking oil enriched with Vitamins A & D.",
+    "rating": 4.9,
+    "reviews": 38,
+    "unit": "1 L",
+    "isMohallaProduct": true,
+    "nearestLandmark": "naya_bass",
+    "destination": "/churuone?store=gupta-kirana-nayabass"
+  },
+
   // ─── SHAWARMA NIGHTS (FOOD DELIVERY) ───
   {
     "id": "sn-classic",
@@ -917,11 +1045,69 @@ export default function ChuruOneHomePage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [toastMessage, setToastMessage] = useState('');
 
+  // ─── HYPER-LOCAL MOHALLA & GEO STATE ─────────────────────────────
+  const [marketplaceView, setMarketplaceView] = useState('mohalla'); // 'mohalla' (15-Min Express) | 'flagship' (City Brands)
+  const [customerLocation, setCustomerLocation] = useState(() => getSavedCustomerLocation());
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [gpsError, setGpsError] = useState('');
+
+  const handleDetectGps = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGpsError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsDetectingGps(true);
+    setGpsError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const nearest = findNearestLandmark(latitude, longitude);
+        const newLoc = {
+          landmarkId: nearest.id,
+          name: nearest.name,
+          lat: latitude,
+          lng: longitude,
+          distanceToLandmarkKm: nearest.distanceKm,
+          isGpsVerified: true
+        };
+        setCustomerLocation(newLoc);
+        saveCustomerLocation(newLoc);
+        setIsDetectingGps(false);
+        setIsLocationModalOpen(false);
+        setToastMessage(`📍 GPS Location Verified: Near ${nearest.name}`);
+        setTimeout(() => setToastMessage(''), 3000);
+      },
+      (err) => {
+        console.warn('GPS detection failed:', err);
+        setGpsError('Could not detect GPS location. Please select your nearest landmark below.');
+        setIsDetectingGps(false);
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleSelectLandmark = (landmark) => {
+    const newLoc = {
+      landmarkId: landmark.id,
+      name: landmark.name,
+      lat: landmark.lat,
+      lng: landmark.lng,
+      isGpsVerified: false
+    };
+    setCustomerLocation(newLoc);
+    saveCustomerLocation(newLoc);
+    setIsLocationModalOpen(false);
+    setToastMessage(`📍 Delivering to: ${landmark.name}`);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
   // ─── DYNAMIC MARKETPLACE DATA (Real Stores & Live Products Feed) ──
   const [stores, setStores] = useState(FALLBACK_REAL_STORES);
   const [items, setItems] = useState(FALLBACK_REAL_ITEMS);
   const [categories, setCategories] = useState([
     { id: 'all', name: 'All Collection', count: FALLBACK_REAL_ITEMS.length },
+    { id: 'grocery', name: 'Daily Essentials & Kirana', count: 22 },
     { id: 'food', name: 'Food & Dining', count: 3 },
     { id: 'fashion', name: 'Fashion & Outfits', count: 38 },
     { id: 'salon', name: 'Salon & Grooming', count: 3 },
@@ -1690,31 +1876,86 @@ export default function ChuruOneHomePage() {
     setBookingConfirmed(true);
   };
 
-  // ─── FILTERING LOGIC (Intelligent Search & Categorization & 1-Sec Dukan Visibility) ──
-  const filteredStores = stores.filter(s => {
+  // ─── FILTERING LOGIC (Mohalla Geo-Isolation & Flagship Dual Engine) ──
+  const servingMohallaStores = (stores || []).filter(s => {
     const sId = String(s.id || '').toLowerCase().trim();
     if (!isStoreVisible(sId)) return false;
+
+    // Flagship brands are exempt from radius and handled in Flagship view
+    const isFlagship = Boolean(
+      s.isFlagshipBrand || 
+      s.isCityWide || 
+      ['shawarma', 'skyline', 'nash-studio'].includes(sId)
+    );
+    if (isFlagship) return false;
+
+    const serveRes = isStoreServingLocation(s, customerLocation?.lat, customerLocation?.lng, customerLocation?.landmarkId);
+    return serveRes.serving === true;
+  }).map(s => {
+    const dist = s.lat && s.lng && customerLocation?.lat && customerLocation?.lng
+      ? calculateDistanceKm(customerLocation.lat, customerLocation.lng, s.lat, s.lng)
+      : (s.radiusKm || 1.2);
+    return { ...s, calculatedDistanceKm: dist };
+  });
+
+  const servingMohallaStoreIds = new Set(servingMohallaStores.map(s => String(s.id || '').toLowerCase().trim()));
+
+  const filteredStores = (stores || []).filter(s => {
+    const sId = String(s.id || '').toLowerCase().trim();
+    if (!isStoreVisible(sId)) return false;
+
+    const isFlagship = Boolean(
+      s.isFlagshipBrand || 
+      s.isCityWide || 
+      ['shawarma', 'skyline', 'nash-studio'].includes(sId)
+    );
+
+    if (marketplaceView === 'flagship') {
+      if (!isFlagship) return false;
+    } else {
+      // In Mohalla view: show only mohalla stores serving customer radius
+      if (isFlagship) return false;
+      if (!servingMohallaStoreIds.has(sId)) return false;
+    }
 
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = !q || 
       s.name.toLowerCase().includes(q) || 
-      s.category.toLowerCase().includes(q);
+      (s.category && s.category.toLowerCase().includes(q)) ||
+      (s.mohalla && s.mohalla.toLowerCase().includes(q));
     return matchQuery;
+  }).map(s => {
+    if (marketplaceView === 'mohalla') {
+      const found = servingMohallaStores.find(ms => String(ms.id || '').toLowerCase().trim() === String(s.id || '').toLowerCase().trim());
+      return found || s;
+    }
+    return s;
   });
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = (items || []).filter(item => {
     const sId = String(item.storeId || '').toLowerCase().trim();
     if (!isStoreVisible(sId)) return false;
 
-    // Multi-vertical category matching (handles food, fashion, salon, and granular categories)
+    const isFlagshipItem = ['shawarma', 'skyline', 'nash-studio'].includes(sId);
+    if (marketplaceView === 'flagship') {
+      if (!isFlagshipItem && item.isMohallaProduct) return false;
+    } else {
+      // In Mohalla view: only show mohalla store items or daily essentials
+      if (isFlagshipItem) return false;
+      if (item.storeId && !servingMohallaStoreIds.has(sId)) return false;
+    }
+
+    // Multi-vertical category matching (handles grocery, food, fashion, salon, and granular categories)
     const matchCat = selectedCategory === 'all' 
       ? true 
       : (selectedCategory === 'deals' 
           ? ((item.originalPrice || 0) > item.price) 
-          : (selectedCategory === 'food' ? (item.storeVertical === 'food' || item.category === 'food' || ['shawarmas', 'platters', 'fries'].includes(item.category))
-            : selectedCategory === 'fashion' ? (item.storeVertical === 'fashion' || item.category === 'fashion' || ['shirts', 'pants', 'jeans', 'tshirts', 'jackets'].includes(item.category))
-            : selectedCategory === 'salon' ? (item.storeVertical === 'salon' || item.category === 'salon')
-            : item.category === selectedCategory));
+          : (selectedCategory === 'grocery' || selectedCategory === 'kirana' || selectedCategory === 'daily'
+              ? (item.category === 'grocery' || item.isMohallaProduct || ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.category) || ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'].includes(item.subCategory))
+              : (selectedCategory === 'food' ? (item.storeVertical === 'food' || item.category === 'food' || ['shawarmas', 'platters', 'fries'].includes(item.category))
+                : selectedCategory === 'fashion' ? (item.storeVertical === 'fashion' || item.category === 'fashion' || ['shirts', 'pants', 'jeans', 'tshirts', 'jackets'].includes(item.category))
+                : selectedCategory === 'salon' ? (item.storeVertical === 'salon' || item.category === 'salon')
+                : item.category === selectedCategory)));
 
     const q = searchQuery.toLowerCase().trim();
     const matchQuery = !q || 
@@ -1732,8 +1973,8 @@ export default function ChuruOneHomePage() {
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 transition-all">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-18 sm:h-20 flex items-center justify-between">
           
-          {/* Logo & City Pill */}
-          <div className="flex items-center gap-3">
+          {/* Logo & Interactive Geo-Location Pill */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
             <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="ChuruOne Home">
               <div className="w-9 h-9 rounded-xl bg-stone-950 text-white flex items-center justify-center shadow-xs">
                 <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
@@ -1743,10 +1984,25 @@ export default function ChuruOneHomePage() {
               </span>
             </Link>
 
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-stone-500 bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200/60">
-              <MapPin className="w-3 h-3 text-amber-700" />
-              Churu City • 331001
-            </span>
+            {/* Interactive Geo-Location Selector Pill */}
+            <button
+              type="button"
+              onClick={() => setIsLocationModalOpen(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-700 bg-amber-50 hover:bg-amber-100/90 px-3 py-1.5 rounded-full border border-amber-200/80 transition-all cursor-pointer shadow-xs active:scale-98"
+              title="Click to change delivery area or detect GPS"
+            >
+              <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <div className="flex items-center gap-1 text-left">
+                <span className="hidden sm:inline text-[10px] uppercase font-bold text-amber-900/70">Delivering to</span>
+                <span className="font-extrabold text-stone-900 truncate max-w-[110px] sm:max-w-[160px]">
+                  {customerLocation?.name || 'Subhash Chowk'}
+                </span>
+                {customerLocation?.isGpsVerified && (
+                  <span className="text-[10px] text-emerald-600 font-bold" title="GPS Verified">🛰️</span>
+                )}
+              </div>
+              <ChevronDown className="w-3 h-3 text-stone-400 shrink-0" />
+            </button>
           </div>
 
           {/* Right Utilities: Cart Drawer Trigger, User Profile */}
@@ -1933,15 +2189,106 @@ export default function ChuruOneHomePage() {
         </section>
 
 
+        {/* ─── DUAL SWITCHER: MOHALLA MARKET VS CITY FLAGSHIP BRANDS ──── */}
+        <div className="bg-white rounded-3xl p-3 sm:p-4 border border-stone-200/90 shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            {/* Split Toggle Pills */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-2xl flex-1 max-w-xl">
+              {/* Tab 1: Mohalla Market */}
+              <button
+                type="button"
+                onClick={() => setMarketplaceView('mohalla')}
+                className={`py-2.5 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all border-0 ${
+                  marketplaceView === 'mohalla'
+                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <Store className="w-4 h-4 shrink-0" />
+                <span>🏠 Mohalla Market</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  marketplaceView === 'mohalla' ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+                }`}>
+                  15-MIN EXPRESS
+                </span>
+              </button>
+
+              {/* Tab 2: City Flagship Brands */}
+              <button
+                type="button"
+                onClick={() => setMarketplaceView('flagship')}
+                className={`py-2.5 px-3 sm:px-4 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all border-0 ${
+                  marketplaceView === 'flagship'
+                    ? 'bg-stone-950 text-white shadow-md'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>👑 City Flagships</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                  marketplaceView === 'flagship' ? 'bg-stone-800 text-amber-300' : 'bg-stone-200 text-stone-700'
+                }`}>
+                  CITY-WIDE
+                </span>
+              </button>
+            </div>
+
+            {/* Location / Radius Status Indicator */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 px-3 py-1.5 rounded-xl bg-stone-50 border border-stone-200/70 text-xs">
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span className="font-bold text-stone-900 truncate max-w-[140px]">
+                  {customerLocation?.name || 'Subhash Chowk'}
+                </span>
+                <span className="text-[10px] text-stone-400">
+                  {marketplaceView === 'mohalla' ? '(1.5 km radius)' : '(City-wide delivery)'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="text-amber-700 hover:text-amber-800 font-bold underline cursor-pointer text-[11px] shrink-0"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+
+          {/* Explanatory micro-banner based on active view */}
+          {marketplaceView === 'mohalla' ? (
+            <div className="text-[11px] text-emerald-800 bg-emerald-50/70 px-3 py-1.5 rounded-xl flex items-center gap-2 font-medium">
+              <span className="text-emerald-600 font-black">⚡ 15-Min Hyperlocal:</span>
+              <span>Aapke mohalle ke daily essentials (Milk, Bread, Atta, Spices, Kirana) — fast express delivery directly to your home.</span>
+            </div>
+          ) : (
+            <div className="text-[11px] text-stone-700 bg-amber-50/60 px-3 py-1.5 rounded-xl flex items-center gap-2 font-medium">
+              <span className="text-amber-600 font-black">👑 Flagship Exemption:</span>
+              <span>Shawarma Nights, Skyline Outfits & Nash Studio deliver across all of Churu with zero radius boundaries.</span>
+            </div>
+          )}
+        </div>
+
         {/* ─── VERIFIED CHURU OUTLETS ROW ──────────────────────────── */}
         <section id="stores-grid" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Churu Famous Outlets & Brands
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950 flex items-center gap-2">
+                {marketplaceView === 'mohalla' ? (
+                  <>
+                    <Store className="w-6 h-6 text-emerald-600 inline" />
+                    <span>Mohalla Stores & Express Daily Needs</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-6 h-6 text-amber-500 inline" />
+                    <span>Churu Famous Flagship Brands</span>
+                  </>
+                )}
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Direct in-store menus • Verified merchant partners in Churu
+                {marketplaceView === 'mohalla'
+                  ? `⚡ Express 15-minute delivery • Showing stores serving within 1.5 km of ${customerLocation?.name || 'Subhash Chowk'}`
+                  : 'Shawarma Nights • Skyline Premium Outfits • Nash Studio • 100% City-Wide Delivery'}
               </p>
             </div>
             <a 
@@ -1953,75 +2300,129 @@ export default function ChuruOneHomePage() {
             </a>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredStores.map((store) => (
-              <a
-                key={store.id}
-                href={getStoreUrl(store.id)}
-                className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-2xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-40 sm:h-44 w-full overflow-hidden bg-stone-100 relative">
-                    <img
-                      src={store.image || FALLBACK_STORE_IMAGE}
-                      alt={store.name}
-                      onError={(e) => {
-                        e.currentTarget.onerror = null;
-                        e.currentTarget.src = FALLBACK_STORE_IMAGE;
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                    />
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span className="bg-stone-950/85 backdrop-blur-xs text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                        {store.tag}
-                      </span>
-                      {store.isOpen && (
-                        <span className="bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                          Open
+          {/* Conditional Rendering: Stores Grid vs Viral Referral Card */}
+          {filteredStores.length === 0 ? (
+            <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 rounded-3xl p-6 sm:p-8 border-2 border-dashed border-amber-300 text-center space-y-4 max-w-xl mx-auto shadow-xs my-4">
+              <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto shadow-xs">
+                <Store className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-black text-stone-900">
+                  Aapke Mohalle ({customerLocation?.name}) me abhi koi Kirana dukan nahi judi hai!
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto">
+                  Apne paas ke kirana ya daily needs wale dukandar ko ChuruOne se jodein. Unki dukan 2 minute me live hogi aur aapko har order par express delivery milegi!
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Namaste bhaiya! ChuruOne par apne mohalle ${customerLocation?.name} ki dukan register karein aur 15 minute express delivery shuru karein: https://churuone.in/master/auth`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all border-0"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>📲 WhatsApp par Dukandar ko Jodein</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  className="w-full sm:w-auto px-5 py-3 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs cursor-pointer transition-all border-0"
+                >
+                  Dusra Area Chunein
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {filteredStores.map((store) => (
+                <a
+                  key={store.id}
+                  href={getStoreUrl(store.id)}
+                  className="group bg-white rounded-2xl overflow-hidden border border-stone-200/80 shadow-2xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="h-40 sm:h-44 w-full overflow-hidden bg-stone-100 relative">
+                      <img
+                        src={store.image || FALLBACK_STORE_IMAGE}
+                        alt={store.name}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = FALLBACK_STORE_IMAGE;
+                        }}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      />
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="bg-stone-950/85 backdrop-blur-xs text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                          {store.tag}
                         </span>
-                      )}
+                        {store.calculatedDistanceKm !== undefined && (
+                          <span className="bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                            📍 {store.calculatedDistanceKm} km away
+                          </span>
+                        )}
+                        {store.isOpen && (
+                          <span className="bg-emerald-700 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            Open
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-extrabold text-base text-stone-950 group-hover:text-amber-800 transition-colors truncate">
-                        {store.name}
-                      </h3>
-                      <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
-                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                        {store.rating}
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-500 truncate">
-                      {store.category} • {store.address}
-                    </p>
-                    <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1 border-t border-stone-100">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-stone-400" />
-                        {store.timing}
-                      </span>
-                      <span className="text-stone-800 font-semibold group-hover:underline flex items-center gap-0.5">
-                        Visit Store <ExternalLink className="w-3 h-3" />
-                      </span>
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-extrabold text-base text-stone-950 group-hover:text-amber-800 transition-colors truncate">
+                          {store.name}
+                        </h3>
+                        <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                          {store.rating}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-500 truncate">
+                        {store.category} • {store.address}
+                      </p>
+                      <div className="flex items-center justify-between text-[11px] text-stone-500 pt-1 border-t border-stone-100">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-stone-400" />
+                          {store.timing}
+                        </span>
+                        <span className="text-stone-800 font-semibold group-hover:underline flex items-center gap-0.5">
+                          Visit Store <ExternalLink className="w-3 h-3" />
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </a>
-            ))}
-          </div>
+                </a>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ─── LIVE PRODUCT & SERVICES CATALOG ─────────────────────── */}
         <section id="catalog-grid" className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950">
-                Citywide Catalog & Direct Ordering
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-stone-950 flex items-center gap-2">
+                {marketplaceView === 'mohalla' ? (
+                  <>
+                    <ShoppingBag className="w-6 h-6 text-emerald-600 inline" />
+                    <span>Mohalla Daily Essentials & Kirana</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-6 h-6 text-amber-500 inline" />
+                    <span>Citywide Flagship Catalog & Direct Ordering</span>
+                  </>
+                )}
               </h2>
               <p className="text-xs text-stone-500 mt-0.5">
-                Food & outfits go directly to ChuruOne Bag • Salon grooming slots book instantly
+                {marketplaceView === 'mohalla'
+                  ? `Fresh milk, atta, bread, oil, spices & daily needs from nearby verified stores`
+                  : 'Food & outfits go directly to ChuruOne Bag • Salon grooming slots book instantly'}
               </p>
             </div>
             <div className="text-xs font-mono text-stone-500">
@@ -3179,6 +3580,121 @@ export default function ChuruOneHomePage() {
                 >
                   Cancel
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── INTERACTIVE GEO-LOCATION SELECTOR MODAL ───────────── */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsLocationModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 z-10 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-stone-900">
+                      Delivering to Churu
+                    </h3>
+                    <p className="text-[11px] text-stone-500 font-medium">
+                      Select your neighborhood for 15-min express delivery
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center cursor-pointer transition-colors border-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Live GPS Detection Button */}
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  disabled={isDetectingGps}
+                  onClick={handleDetectGps}
+                  className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer transition-all border-0 disabled:opacity-60"
+                >
+                  <LocateFixed className={`w-4 h-4 ${isDetectingGps ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isDetectingGps ? 'Detecting Live Coordinates...' : '🎯 Detect My Live GPS Location'}
+                  </span>
+                </button>
+
+                {gpsError && (
+                  <div className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>{gpsError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-stone-400 py-1">
+                <div className="flex-1 h-px bg-stone-200" />
+                <span>Ya Churu Ka Landmark Chunein</span>
+                <div className="flex-1 h-px bg-stone-200" />
+              </div>
+
+              {/* Predefined Landmarks Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {CHURU_LANDMARKS.map(lm => {
+                  const isSelected = (customerLocation?.landmarkId === lm.id) || (customerLocation?.name === lm.name);
+                  return (
+                    <button
+                      key={lm.id}
+                      type="button"
+                      onClick={() => handleSelectLandmark(lm)}
+                      className={`p-3 rounded-2xl text-left border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        isSelected
+                          ? 'bg-emerald-50 border-emerald-500 shadow-xs'
+                          : 'bg-stone-50/80 hover:bg-stone-100 border-stone-200/80'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-stone-900 truncate">
+                          {lm.name}
+                        </div>
+                        <div className="text-[10px] text-stone-500 truncate">
+                          {lm.label?.includes('(') ? lm.label.split('(')[1]?.replace(')', '') : 'Churu Area'}
+                        </div>
+                      </div>
+                      {isSelected ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </div>
+                      ) : (
+                        <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Footer Note */}
+              <div className="bg-stone-50 p-3 rounded-2xl border border-stone-100 text-[11px] text-stone-500 text-center leading-relaxed">
+                📍 Location select hote hi pass ke mohalla dukandar microsecond me filter ho jayenge.
               </div>
             </motion.div>
           </div>

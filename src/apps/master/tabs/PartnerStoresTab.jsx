@@ -44,6 +44,46 @@ export default function PartnerStoresTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVertical, setSelectedVertical] = useState('all');
   const [togglingId, setTogglingId] = useState(null);
+  const [updatingRadiusId, setUpdatingRadiusId] = useState(null);
+
+  // Super Admin Radius Reward & Expansion for Top Performing Mohalla Stores
+  const handleUpdateRadius = async (storeId, delta) => {
+    setUpdatingRadiusId(storeId);
+    let targetRadius = 1.5;
+
+    setStores(prev => prev.map(s => {
+      if (s.id === storeId) {
+        const cur = Number(s.radiusKm || 1.5);
+        const next = Math.max(0.5, Math.min(10.0, Math.round((cur + delta) * 10) / 10));
+        targetRadius = next;
+        return { ...s, radiusKm: next };
+      }
+      return s;
+    }));
+
+    try {
+      const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
+      await fetch(`${API_BASE}/api/store-info`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-store-id': storeId,
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          radiusKm: targetRadius,
+          settings: {
+            deliveryRadius: targetRadius
+          }
+        })
+      });
+      showToast(`🏆 ${storeId.toUpperCase()} Delivery Radius expanded to ${targetRadius} km!`, 'success');
+    } catch (err) {
+      showToast(`Radius updated locally to ${targetRadius} km`, 'info');
+    } finally {
+      setUpdatingRadiusId(null);
+    }
+  };
 
   // Platform Marquee ribbon quick state
   const [marqueeInput, setMarqueeInput] = useState(
@@ -349,6 +389,7 @@ export default function PartnerStoresTab() {
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
           {[
             { id: 'all', label: 'All Stores', icon: Layers },
+            { id: 'mohalla_kirana', label: 'Mohalla Kirana', icon: Store },
             { id: 'food', label: 'Food', icon: Utensils },
             { id: 'fashion', label: 'Fashion', icon: Shirt },
             { id: 'salon', label: 'Salon', icon: Scissors }
@@ -379,8 +420,15 @@ export default function PartnerStoresTab() {
         {filteredStores.map(store => {
           const isVisible = store.marketplaceVisible !== false;
           const isToggling = togglingId === store.id;
+          const isMohalla = store.isMohallaStore || store.vertical === 'mohalla_kirana' || store.type === 'mohalla_kirana' || (store.id || '').includes('kirana');
+          const isFlagship = Boolean(
+            store.isFlagshipBrand || 
+            store.isCityWide || 
+            ['shawarma', 'skyline', 'nash-studio'].includes(store.id || store.slug)
+          );
 
           const verticalBadge = 
+            isMohalla ? { label: 'Mohalla Kirana', bg: 'bg-emerald-100 text-emerald-900', icon: Store } :
             store.vertical === 'food' ? { label: 'Food Delivery', bg: 'bg-amber-100 text-amber-900', icon: Utensils } :
             store.vertical === 'salon' ? { label: 'Salon Booking', bg: 'bg-purple-100 text-purple-900', icon: Scissors } :
             { label: 'Fashion & Outfits', bg: 'bg-blue-100 text-blue-900', icon: Shirt };
@@ -435,7 +483,7 @@ export default function PartnerStoresTab() {
               </div>
 
               {/* Operational Metrics & Contact Details */}
-              <div className="bg-stone-50 p-3 rounded-2xl space-y-1.5 border border-stone-100 text-xs text-stone-600">
+              <div className="bg-stone-50 p-3 rounded-2xl space-y-2 border border-stone-100 text-xs text-stone-600">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-stone-400">Live Status:</span>
                   <span className={`text-[11px] font-bold ${store.isOpen !== false ? 'text-emerald-700' : 'text-red-600'}`}>
@@ -448,18 +496,62 @@ export default function PartnerStoresTab() {
                     {store.address || 'Churu, Rajasthan'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-stone-400">Order/Slot Promise:</span>
-                  <span className="text-[11px] font-mono font-bold text-stone-900">
-                    {store.timing || '20-25 mins'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-stone-400">Free Delivery Over:</span>
-                  <span className="text-[11px] font-mono font-bold text-stone-900">
-                    {store.freeDeliveryThreshold ? `₹${store.freeDeliveryThreshold}` : 'Free'}
-                  </span>
-                </div>
+
+                {/* Mohalla Specific Delivery Radius & Reward Expansion Control */}
+                {isMohalla ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-stone-400">Mohalla Area:</span>
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        🏡 {store.mohalla || 'Naya Bass'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-stone-200">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-emerald-900">Delivery Radius:</span>
+                        <div className="text-[10px] text-stone-400">Reward top dukandar</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                          {store.radiusKm || 1.5} km
+                        </span>
+                        <button
+                          type="button"
+                          disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) <= 0.5}
+                          onClick={() => handleUpdateRadius(store.id, -0.5)}
+                          className="w-5 h-5 rounded bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs flex items-center justify-center cursor-pointer disabled:opacity-40 border-0"
+                          title="Decrease radius"
+                        >
+                          -
+                        </button>
+                        <button
+                          type="button"
+                          disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) >= 10.0}
+                          onClick={() => handleUpdateRadius(store.id, +0.5)}
+                          className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] flex items-center justify-center gap-0.5 cursor-pointer shadow-xs border-0 active:scale-95"
+                          title="Reward Top Performing Dukandar (+0.5 km radius)"
+                        >
+                          <span>+0.5km</span>
+                          <span>🏆</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : isFlagship ? (
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-200">
+                    <span className="text-[10px] uppercase font-bold text-amber-800">Coverage:</span>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      👑 100% City-Wide (Flagship Exemption)
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-stone-400">Order Promise:</span>
+                    <span className="text-[11px] font-mono font-bold text-stone-900">
+                      {store.timing || '20-25 mins'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons: 1-Click Manage in Dukandar OS + View Website */}

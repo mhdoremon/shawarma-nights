@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useMaster } from '../context/MasterContext';
-import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check, Package, Camera } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Flame, Sparkles, Upload, Image as ImageIcon, Star, Check, Package, Camera, Zap, CheckSquare, Square, ShoppingBag } from 'lucide-react';
 import { getImageUrl, handleImageError } from '../../../utils/imageHelper';
+import masterMohallaInventory from '../../../data/master_mohalla_inventory.json';
 
 export default function MenuTab() {
   const { menu, categories, toggleItemAvailability, addMenuItem, updateMenuItem, deleteMenuItem, updateHeroBanner, showToast, storeInfo, storeId, capabilities } = useMaster();
@@ -15,9 +16,15 @@ export default function MenuTab() {
   const hasLookbook = capabilities?.catalog?.hasLookbook ?? isFashion;
   const hasServiceDuration = capabilities?.catalog?.hasServiceDuration ?? isSalon;
   const hasFoodAddons = capabilities?.catalog?.hasFoodAddons ?? (!isSalon && !isFashion);
+  const hasMasterCatalogPicker = Boolean(
+    capabilities?.catalog?.hasMasterCatalogPicker ||
+    storeInfo?.vertical === 'mohalla_kirana' ||
+    (storeId || '').includes('kirana') ||
+    (storeId || '').includes('gupta')
+  );
 
-  const itemNoun = capabilities?.catalog?.itemNoun || (hasServiceDuration ? 'Service' : (hasSizes && hasColors) ? 'Product' : 'Dish');
-  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasServiceDuration ? 'Services' : (hasSizes && hasColors) ? 'Products' : 'Dishes');
+  const itemNoun = capabilities?.catalog?.itemNoun || (hasServiceDuration ? 'Service' : (hasSizes && hasColors) ? 'Product' : (hasMasterCatalogPicker ? 'Item' : 'Dish'));
+  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasServiceDuration ? 'Services' : (hasSizes && hasColors) ? 'Products' : (hasMasterCatalogPicker ? 'Items' : 'Dishes'));
   const addBtnText = `+ ADD ${itemNoun.toUpperCase()}`;
 
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -27,6 +34,12 @@ export default function MenuTab() {
   const [modalItem, setModalItem] = useState(null); // Item Add/Edit Modal
   const [comboModalItem, setComboModalItem] = useState(null); // Combo Meal Add/Edit Modal
   const [heroModalDish, setHeroModalDish] = useState(null); // Set Hero Offer Modal
+  const [showMasterCatalogModal, setShowMasterCatalogModal] = useState(false); // ⚡ 1-Click Master Kirana Catalog Modal
+  const [selectedMasterIds, setSelectedMasterIds] = useState(new Set());
+  const [masterSearchQuery, setMasterSearchQuery] = useState('');
+  const [masterCategory, setMasterCategory] = useState('ALL');
+  const [masterPriceOverrides, setMasterPriceOverrides] = useState({});
+  const [isAddingBulk, setIsAddingBulk] = useState(false);
 
   // Hero Offer Modal form state
   const [heroForm, setHeroForm] = useState({
@@ -517,6 +530,86 @@ export default function MenuTab() {
     showToast(`"${heroModalDish.name}" set as Homepage Hero Offer!`, 'success');
   };
 
+  // Master Inventory computations & handlers
+  const alreadyAddedNames = useMemo(() => {
+    return new Set((menu || []).map(m => (m.name || '').toLowerCase().trim()));
+  }, [menu]);
+
+  const masterCategoriesList = useMemo(() => {
+    const cats = new Set(['ALL']);
+    (masterMohallaInventory || []).forEach(item => {
+      if (item.category) cats.add(item.category.toLowerCase());
+    });
+    return Array.from(cats);
+  }, []);
+
+  const filteredMasterItems = useMemo(() => {
+    return (masterMohallaInventory || []).filter(item => {
+      const matchCat = masterCategory === 'ALL' || item.category.toLowerCase() === masterCategory.toLowerCase();
+      const matchSearch = !masterSearchQuery ||
+        (item.name || '').toLowerCase().includes(masterSearchQuery.toLowerCase()) ||
+        (item.description || '').toLowerCase().includes(masterSearchQuery.toLowerCase()) ||
+        (item.category || '').toLowerCase().includes(masterSearchQuery.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [masterCategory, masterSearchQuery]);
+
+  const toggleSelectMasterItem = (id) => {
+    setSelectedMasterIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllUnadded = () => {
+    const unadded = filteredMasterItems.filter(item => !alreadyAddedNames.has((item.name || '').toLowerCase().trim()));
+    const allSelected = unadded.length > 0 && unadded.every(item => selectedMasterIds.has(item.id));
+    setSelectedMasterIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        unadded.forEach(item => next.delete(item.id));
+      } else {
+        unadded.forEach(item => next.add(item.id));
+      }
+      return next;
+    });
+  };
+
+  const handleAddSelectedMasterItems = async () => {
+    if (selectedMasterIds.size === 0) return;
+    setIsAddingBulk(true);
+    let count = 0;
+    try {
+      const itemsToAdd = (masterMohallaInventory || []).filter(item => selectedMasterIds.has(item.id));
+      for (const item of itemsToAdd) {
+        if (alreadyAddedNames.has((item.name || '').toLowerCase().trim())) continue;
+        const payload = {
+          name: item.name,
+          price: Number(masterPriceOverrides[item.id] !== undefined ? masterPriceOverrides[item.id] : item.suggestedPrice),
+          originalPrice: Number(item.mrp),
+          category: (item.category || 'dairy').toLowerCase(),
+          unit: item.unit || '',
+          isVeg: true,
+          available: true,
+          image: item.image,
+          description: item.description,
+          masterId: item.id
+        };
+        await addMenuItem(payload);
+        count++;
+      }
+      showToast(`⚡ ${count} items added to your daily essentials inventory!`, 'success');
+      setSelectedMasterIds(new Set());
+      setShowMasterCatalogModal(false);
+    } catch (err) {
+      showToast('Error adding items: ' + err.message, 'error');
+    } finally {
+      setIsAddingBulk(false);
+    }
+  };
+
   return (
     <div className="space-y-5 pb-16">
       
@@ -578,6 +671,21 @@ export default function MenuTab() {
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>{addBtnText}</span>
             </button>
+
+            {/* 1-Click Master Kirana Catalog Button */}
+            {hasMasterCatalogPicker && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMasterIds(new Set());
+                  setShowMasterCatalogModal(true);
+                }}
+                className="px-5 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl shrink-0 border-0 active:scale-98 transition-all"
+              >
+                <Zap className="w-4 h-4 fill-amber-300 stroke-amber-300" />
+                <span>⚡ 1-Click Master Kirana Catalog</span>
+              </button>
+            )}
 
             {/* Create Combo Meal / Salon Combo Package Button */}
             {(hasFoodAddons || hasServiceDuration) && (
@@ -2490,6 +2598,245 @@ export default function MenuTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: 1-CLICK MASTER KIRANA CATALOG MODAL */}
+      {showMasterCatalogModal && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white text-zinc-900 rounded-[28px] sm:rounded-3xl max-w-3xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl border-0 overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between shrink-0">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-amber-400 text-emerald-950 flex items-center justify-center font-black">
+                    <Zap className="w-4 h-4 fill-current stroke-current" />
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
+                    1-Click Master Kirana Catalog
+                  </h3>
+                  <span className="text-[10px] bg-emerald-900/60 text-emerald-200 font-bold px-2 py-0.5 rounded-full border border-emerald-400/30">
+                    22 DAILY ITEMS
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100/90 font-medium">
+                  Pre-verified Churu daily essentials. Select items and click Add to stock your store instantly.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMasterCatalogModal(false)}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-all border-0 shrink-0 ml-2"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="p-4 sm:p-5 bg-zinc-50 border-b border-zinc-200/80 space-y-3 shrink-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={masterSearchQuery}
+                    onChange={(e) => setMasterSearchQuery(e.target.value)}
+                    placeholder="Search milk, atta, oil, tea, biscuits, spices..."
+                    className="w-full pl-9 pr-3 py-2 text-xs font-semibold bg-white rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                  />
+                  {masterSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setMasterSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Select Non-added */}
+                <button
+                  type="button"
+                  onClick={handleSelectAllUnadded}
+                  className="px-3.5 py-2 rounded-xl bg-white hover:bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0 transition-all"
+                >
+                  <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Toggle All Unadded ({filteredMasterItems.filter(i => !alreadyAddedNames.has((i.name || '').toLowerCase().trim())).length})</span>
+                </button>
+              </div>
+
+              {/* Category Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                {masterCategoriesList.map(cat => {
+                  const isActive = masterCategory.toLowerCase() === cat.toLowerCase();
+                  const count = cat === 'ALL'
+                    ? (masterMohallaInventory?.length || 0)
+                    : (masterMohallaInventory?.filter(i => (i.category || '').toLowerCase() === cat.toLowerCase())?.length || 0);
+
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setMasterCategory(cat)}
+                      className={`px-3 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider shrink-0 cursor-pointer transition-all border ${
+                        isActive
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-100'
+                      }`}
+                    >
+                      {cat} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Items List */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-2.5 divide-y divide-zinc-100">
+              {filteredMasterItems.length === 0 ? (
+                <div className="py-12 text-center text-zinc-400 text-xs">
+                  No daily essentials match your search query.
+                </div>
+              ) : (
+                filteredMasterItems.map(item => {
+                  const isAlreadyAdded = alreadyAddedNames.has((item.name || '').toLowerCase().trim());
+                  const isSelected = selectedMasterIds.has(item.id);
+                  const currentPrice = masterPriceOverrides[item.id] !== undefined
+                    ? masterPriceOverrides[item.id]
+                    : item.suggestedPrice;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (!isAlreadyAdded) toggleSelectMasterItem(item.id);
+                      }}
+                      className={`pt-2.5 first:pt-0 flex items-center gap-3 p-2.5 rounded-2xl transition-all ${
+                        isAlreadyAdded
+                          ? 'bg-zinc-50/70 opacity-60 cursor-not-allowed'
+                          : isSelected
+                            ? 'bg-emerald-50/80 border border-emerald-300/80 cursor-pointer shadow-xs'
+                            : 'hover:bg-zinc-50 border border-transparent cursor-pointer'
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <div className="shrink-0 flex items-center justify-center">
+                        {isAlreadyAdded ? (
+                          <div className="w-5 h-5 rounded-md bg-zinc-200 text-zinc-500 flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : isSelected ? (
+                          <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-md border-2 border-zinc-300 hover:border-emerald-500 bg-white" />
+                        )}
+                      </div>
+
+                      {/* Image */}
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-zinc-100 overflow-hidden shrink-0 border border-zinc-200">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={handleImageError}
+                        />
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                            {item.category}
+                          </span>
+                          <span className="text-[10px] font-semibold text-zinc-400">
+                            {item.unit}
+                          </span>
+                          {isAlreadyAdded && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">
+                              ✓ Added in Store
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xs sm:text-sm font-bold text-zinc-900 truncate mt-0.5">
+                          {item.name}
+                        </h4>
+                        <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
+                          {item.description}
+                        </p>
+                      </div>
+
+                      {/* Price & Selling input */}
+                      <div
+                        className="shrink-0 text-right space-y-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="text-[10px] text-zinc-400">
+                          MRP: <span className="line-through">₹{item.mrp}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold text-zinc-600">Sell ₹</span>
+                          <input
+                            type="number"
+                            min="1"
+                            disabled={isAlreadyAdded}
+                            value={currentPrice}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setMasterPriceOverrides(prev => ({
+                                ...prev,
+                                [item.id]: val
+                              }));
+                            }}
+                            className="w-16 px-2 py-1 text-xs font-black text-emerald-700 bg-white border border-zinc-200 rounded-lg text-center focus:ring-1 focus:ring-emerald-500 focus:outline-none shadow-xs disabled:bg-zinc-100 disabled:text-zinc-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Sticky Footer */}
+            <div className="px-5 sm:px-6 py-4 bg-zinc-50 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-zinc-600 font-medium">
+                <strong className="text-zinc-900">{selectedMasterIds.size}</strong> items selected to add
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowMasterCatalogModal(false)}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-full bg-zinc-200 hover:bg-zinc-300 text-zinc-800 font-bold text-xs cursor-pointer border-0 transition-all"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedMasterIds.size === 0 || isAddingBulk}
+                  onClick={handleAddSelectedMasterItems}
+                  className={`flex-1 sm:flex-none px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg border-0 transition-all ${
+                    selectedMasterIds.size > 0 && !isAddingBulk
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white shadow-emerald-600/30 active:scale-98'
+                      : 'bg-zinc-300 text-zinc-500 cursor-not-allowed shadow-none'
+                  }`}
+                >
+                  <Zap className="w-4 h-4 fill-amber-300 stroke-amber-300" />
+                  <span>
+                    {isAddingBulk
+                      ? 'Adding Items...'
+                      : `⚡ Add ${selectedMasterIds.size} Selected Items`}
+                  </span>
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

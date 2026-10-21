@@ -113,6 +113,37 @@ export const CAPABILITY_PROFILES = {
     }
   },
 
+  mohalla_kirana: {
+    storeType: 'mohalla_kirana',
+    catalog: {
+      hasVegNonVeg: true,
+      hasFoodAddons: false,
+      hasSizes: false,
+      hasColors: false,
+      hasLookbook: false,
+      hasServiceDuration: false,
+      hasUnitWeights: true,
+      hasMasterCatalogPicker: true,
+      isMohallaStore: true
+    },
+    orders: {
+      hasKotPrinting: false,
+      hasRiderDispatch: true,
+      hasAppointments: false,
+      hasAdvanceToken: false,
+      hasDeliveryOtp: true,
+      isExpressDelivery: true
+    },
+    settings: {
+      hasDeliveryRadius: true,
+      hasFreeDeliveryThreshold: true,
+      hasAdvanceTokenFee: false,
+      hasTableBooking: false,
+      hasMohallaGeoFence: true,
+      hasLandmarkBinding: true
+    }
+  },
+
   marketplace: {
     storeType: 'marketplace',
     catalog: {
@@ -163,7 +194,10 @@ export function inferStoreType(storeId, storeConfig = {}) {
     if (['salon', 'spa', 'services', 'service', 'appointments', 'barber', 'parlour', 'parlor'].includes(explicitType)) {
       return 'salon';
     }
-    if (['grocery', 'retail', 'supermarket', 'kirana', 'general', 'store'].includes(explicitType)) {
+    if (['mohalla_kirana', 'kirana', 'mohalla', 'dairy', 'provisions', 'daily_needs'].includes(explicitType)) {
+      return 'mohalla_kirana';
+    }
+    if (['grocery', 'retail', 'supermarket', 'general', 'store'].includes(explicitType)) {
       return 'grocery';
     }
     if (['marketplace', 'platform', 'churuone', 'aggregator', 'mall'].includes(explicitType)) {
@@ -183,6 +217,9 @@ export function inferStoreType(storeId, storeConfig = {}) {
   }
   if (normalizedStoreId === 'nash-studio' || normalizedStoreId === 'nash' || normalizedStoreId.includes('nash')) {
     return 'salon';
+  }
+  if (normalizedStoreId.includes('kirana') || normalizedStoreId.includes('mohalla') || normalizedStoreId.includes('gupta')) {
+    return 'mohalla_kirana';
   }
 
   // 3. Fallback for new / generic stores

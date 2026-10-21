@@ -48,6 +48,11 @@ export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
     sId.includes('skyline') || sId.includes('fashion') || sId.includes('cloth') || sId.includes('shoe') || sId.includes('wear')
   ) {
     vertical = 'fashion';
+  } else if (
+    ['mohalla_kirana', 'kirana', 'mohalla', 'dairy', 'provisions', 'daily_needs', 'grocery', 'supermarket'].includes(rawVertical) ||
+    sId.includes('kirana') || sId.includes('mohalla') || sId.includes('dairy') || sId.includes('provision') || sId.includes('gupta')
+  ) {
+    vertical = 'mohalla_kirana';
   }
 
   const profiles = {
@@ -197,6 +202,50 @@ export function resolveClientCapabilities(storeId = '', storeConfig = {}) {
         hasFranchise: true,
         hasDayWiseHours: false,
       }
+    },
+    mohalla_kirana: {
+      vertical: 'mohalla_kirana',
+      storeType: 'mohalla_kirana',
+      catalog: {
+        hasVegNonVeg: true,
+        hasSizes: false,
+        hasColors: false,
+        hasLookbook: false,
+        hasServiceDuration: false,
+        hasFoodAddons: false,
+        hasUnitWeights: true,
+        hasMasterCatalogPicker: true,
+        isMohallaStore: true,
+        itemNoun: 'Kirana Item',
+        itemNounPlural: 'Daily Essentials',
+        placeholderCategories: 'dairy, bakery, staples, oil & ghee, spices, snacks, beverages, hygiene...',
+        placeholderItemName: 'e.g. Aashirvaad Shudh Chakki Atta (5kg)',
+        defaultCategory: 'dairy',
+        defaultPrice: '60',
+        categorySuggestions: ['dairy', 'bakery', 'staples', 'oil & ghee', 'spices', 'snacks', 'beverages', 'hygiene'],
+        nameSuggestions: ['Fresh Full Cream Milk 1L', 'Amul Butter 100g', 'Aashirvaad Atta 5kg', 'Fortune Mustard Oil 1L', 'Tata Salt 1kg', 'Parle-G Gold Biscuit'],
+      },
+      orders: {
+        hasKotPrinting: false,
+        hasRiderDispatch: true,
+        hasDeliveryOtp: true,
+        hasAppointments: false,
+        hasAdvanceToken: false,
+        hasTicketPrinting: false,
+        isExpressDelivery: true
+      },
+      settings: {
+        hasAdvanceTokenFee: false,
+        hasFreeDeliveryThreshold: true,
+        hasDeliveryFee: true,
+        hasTaxesAndPackaging: false,
+        hasHeroBanner: true,
+        hasHeroVideo: false,
+        hasFranchise: false,
+        hasDayWiseHours: false,
+        hasMohallaGeoFence: true,
+        hasLandmarkBinding: true
+      }
     }
   };
 
@@ -236,6 +285,7 @@ export function getStoreDefaultName(id) {
   if (clean === 'churuone' || clean === 'platform') return 'ChuruOne Platform & Marketplace';
   if (clean.includes('skyline')) return 'Skyline Premium Outfits';
   if (clean.includes('nash')) return 'Nash Studio';
+  if (clean.includes('gupta') || clean.includes('kirana')) return 'Gupta Kirana & Daily Needs';
   return 'Shawarma Nights';
 }
 
