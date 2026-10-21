@@ -501,13 +501,13 @@ export const getMarketplaceFeed = (req, res) => {
         const hasCombos = allItems.some(i => i.isCombo || i.category === 'combos');
 
         let categories = [
-            { id: 'all', name: 'All Collection', emoji: '🌟', count: allItems.length },
-            ...(hasCombos ? [{ id: 'combos', name: 'Combos & Savers', emoji: '🎁', count: allItems.filter(i => i.isCombo || i.category === 'combos').length }] : []),
-            ...(hasMohalla ? [{ id: 'grocery', name: 'Daily & Kirana', emoji: '🥛', count: allItems.filter(i => i.isMohallaProduct || i.category === 'grocery' || i.category === 'dairy' || i.category === 'staples' || i.category === 'snacks').length }] : []),
-            ...(hasFood ? [{ id: 'food', name: 'Shawarma & Food', emoji: '🌯', count: allItems.filter(i => i.storeVertical === 'food').length }] : []),
-            ...(hasFashion ? [{ id: 'fashion', name: 'Fashion & Outfits', emoji: '👔', count: allItems.filter(i => i.storeVertical === 'fashion').length }] : []),
-            ...(hasSalon ? [{ id: 'salon', name: 'Salon Grooming', emoji: '✂️', count: allItems.filter(i => i.storeVertical === 'salon').length }] : []),
-            { id: 'deals', name: 'Deals & Coupons', emoji: '🏷️', count: allDeals.length }
+            { id: 'all', name: 'All Collection', count: allItems.length },
+            ...(hasCombos ? [{ id: 'combos', name: 'Combos & Savers', count: allItems.filter(i => i.isCombo || i.category === 'combos').length }] : []),
+            ...(hasMohalla ? [{ id: 'grocery', name: 'Daily & Kirana', count: allItems.filter(i => i.isMohallaProduct || i.category === 'grocery' || i.category === 'dairy' || i.category === 'staples' || i.category === 'snacks').length }] : []),
+            ...(hasFood ? [{ id: 'food', name: 'Shawarma & Food', count: allItems.filter(i => i.storeVertical === 'food').length }] : []),
+            ...(hasFashion ? [{ id: 'fashion', name: 'Fashion & Outfits', count: allItems.filter(i => i.storeVertical === 'fashion').length }] : []),
+            ...(hasSalon ? [{ id: 'salon', name: 'Salon Grooming', count: allItems.filter(i => i.storeVertical === 'salon').length }] : []),
+            { id: 'deals', name: 'Deals & Coupons', count: allDeals.length }
         ];
 
         const platformConfig = DataLayer.getStoreConfig('churuone') || {};
