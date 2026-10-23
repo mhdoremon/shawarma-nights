@@ -45,6 +45,7 @@ import BottomNavBar from '../../components/BottomNavBar';
 export default function MasterLayout() {
   const { 
     role, 
+    user,
     storeId, 
     storeInfo, 
     capabilities,
@@ -75,38 +76,29 @@ export default function MasterLayout() {
     return <DeliveryPartnerView />;
   }
 
+  // Safe user resolution with infallible fallback to local storage
+  const currentUser = user || (() => {
+    try {
+      return JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+
   const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
   const isRejected = !isApprovedServer && (
     storeInfo?.status === 'rejected' ||
-    user?.status === 'rejected' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'rejected';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'rejected'
   );
   const isPendingReview = !isApprovedServer && !isRejected && (
     storeInfo?.status === 'pending_review' || 
-    user?.status === 'pending_review' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'pending_review';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'pending_review'
   );
   const isSuspended = !isApprovedServer && !isRejected && !isPendingReview && (
     storeInfo?.status === 'suspended' ||
     storeInfo?.status === 'deactivated' ||
-    user?.status === 'suspended' ||
-    user?.status === 'deactivated' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'suspended' || u.status === 'deactivated';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'suspended' ||
+    currentUser?.status === 'deactivated'
   );
   const isStoreLocked = isPendingReview || isRejected || isSuspended;
 

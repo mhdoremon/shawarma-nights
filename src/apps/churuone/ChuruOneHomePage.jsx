@@ -456,9 +456,21 @@ export default function ChuruOneHomePage() {
             setStores(data.stores);
           }
           if (Array.isArray(data.items)) {
-            const validItems = data.items.filter(it => 
+            const validItems = data.items.map(it => {
+              const cleanId = typeof it.id === 'string' && it.id.trim()
+                ? it.id.trim()
+                : (it.id?.id ? String(it.id.id) : `dish-${Math.random().toString(36).slice(2, 7)}`);
+              const cleanName = typeof it.name === 'string' && it.name.trim()
+                ? it.name.trim()
+                : (it.id?.name ? String(it.id.name) : String(it.name || 'Product Item'));
+              return {
+                ...it,
+                id: cleanId,
+                name: cleanName
+              };
+            }).filter(it => 
               it.category !== 'footwear' &&
-              !it.id?.startsWith('slick-shoe') &&
+              !it.id.startsWith('slick-shoe') &&
               !/shoe|sneaker|footwear/i.test(it.name || '')
             );
             setItems(validItems);
@@ -1151,7 +1163,7 @@ export default function ChuruOneHomePage() {
 
     const isFlagshipItem = ['shawarma', 'skyline', 'nash-studio'].includes(sId);
     if (marketplaceView === 'flagship') {
-      if (!isFlagshipItem && item.isMohallaProduct) return false;
+      if (!isFlagshipItem) return false;
     } else {
       // In Mohalla view: only show mohalla store items or daily essentials
       if (isFlagshipItem) return false;
@@ -1416,6 +1428,53 @@ export default function ChuruOneHomePage() {
             </div>
           )}
 
+          {/* In Mohalla View: Live Serving Stores Strip */}
+          {marketplaceView === 'mohalla' && servingMohallaStores.length > 0 && (
+            <div className="space-y-2 pb-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-stone-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <Store className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Aapke Area Me Live Dukanein ({servingMohallaStores.length})</span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-300/60">
+                  ⚡ 15-Min Express
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {servingMohallaStores.map(store => (
+                  <div
+                    key={store.id}
+                    className="bg-white rounded-2xl p-3 border border-emerald-300/80 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img 
+                        src={store.image || FALLBACK_STORE_IMAGE} 
+                        alt={store.name} 
+                        className="w-11 h-11 rounded-xl object-cover border border-stone-200 shrink-0" 
+                      />
+                      <div className="space-y-0.5 min-w-0">
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block truncate">
+                          {store.mohalla || customerLocation?.name || 'Local Store'}
+                        </span>
+                        <h4 className="font-extrabold text-xs sm:text-sm text-stone-950 group-hover:text-emerald-700 transition-colors truncate">
+                          {store.name}
+                        </h4>
+                        <p className="text-[10px] text-stone-500 flex items-center gap-1.5">
+                          <span>⚡ {store.timing || '15 min express'}</span>
+                          <span>•</span>
+                          <span>📦 {store.itemCount || 0} saman</span>
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shrink-0 ml-2">
+                      Live
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* In Mohalla View: Notice or Referral if unserved */}
           {marketplaceView === 'mohalla' && servingMohallaStores.length === 0 && (
             <div className="bg-white rounded-2xl p-6 border border-amber-200 text-center space-y-3 shadow-2xs my-2">
@@ -1479,13 +1538,14 @@ export default function ChuruOneHomePage() {
               </div>
             ) : (
               filteredItems.map((p) => {
-                const cartEntry = cartItems.find(ci => ci.id === p.id);
+                const pid = typeof p.id === 'string' && p.id ? p.id : (p.id?.id ? String(p.id.id) : `prod-${p.name || Math.random()}`);
+                const cartEntry = cartItems.find(ci => ci.id === pid);
                 const n = cartEntry ? cartEntry.qty : 0;
                 const hasDiscount = p.originalPrice && p.originalPrice > p.price;
                 const discountAmount = hasDiscount ? p.originalPrice - p.price : 0;
 
                 return (
-                  <article key={p.id} className="flex flex-col rounded-2xl bg-white p-2 shadow-sm border border-stone-200/80 hover:shadow-md transition-shadow">
+                  <article key={pid} className="flex flex-col rounded-2xl bg-white p-2 shadow-sm border border-stone-200/80 hover:shadow-md transition-shadow">
                     <div className="relative overflow-hidden rounded-xl bg-stone-100">
                       <img 
                         src={p.image || FALLBACK_PRODUCT_IMAGE} 
@@ -1524,7 +1584,7 @@ export default function ChuruOneHomePage() {
                         ) : n === 0 ? (
                           <button 
                             type="button" 
-                            onClick={() => addToCart(p)} 
+                            onClick={() => addToCart({ ...p, id: pid })} 
                             aria-label="Add"
                             className="grid h-8 w-8 place-items-center rounded-xl border border-emerald-600/30 bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white transition active:scale-90 shadow-2xs cursor-pointer"
                           >
@@ -1532,11 +1592,11 @@ export default function ChuruOneHomePage() {
                           </button>
                         ) : (
                           <div className="flex h-8 items-center rounded-xl bg-emerald-700 text-white shadow-2xs px-0.5">
-                            <button type="button" onClick={() => updateCartQty(p.id, -1)} aria-label="Remove" className="px-1.5 hover:opacity-80 cursor-pointer">
+                            <button type="button" onClick={() => updateCartQty(pid, -1)} aria-label="Remove" className="px-1.5 hover:opacity-80 cursor-pointer">
                               <Minus className="h-3.5 w-3.5 stroke-[2.5]" />
                             </button>
                             <span className="w-4 text-center text-xs font-bold font-mono">{n}</span>
-                            <button type="button" onClick={() => updateCartQty(p.id, 1)} aria-label="Add more" className="px-1.5 hover:opacity-80 cursor-pointer">
+                            <button type="button" onClick={() => updateCartQty(pid, 1)} aria-label="Add more" className="px-1.5 hover:opacity-80 cursor-pointer">
                               <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
                             </button>
                           </div>

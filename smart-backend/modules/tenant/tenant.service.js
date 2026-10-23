@@ -652,20 +652,30 @@ export const getMarketplaceFeed = (req, res) => {
 
             // Add catalog items
             menuItems.forEach(item => {
-                if (item.available !== false && item.visibleOnChuruOne !== false && item.marketplaceVisible !== false) {
+                if (item && item.available !== false && item.visibleOnChuruOne !== false && item.marketplaceVisible !== false) {
                     const isService = vertical === 'salon';
-                    const itemPrice = Number(item.price) || 0;
-                    const itemMrp = Number(item.originalPrice || item.mrp) || Math.round(itemPrice * 1.25);
+                    const itemPrice = Number(item.price || item.id?.price) || 0;
+                    const itemMrp = Number(item.originalPrice || item.mrp || item.id?.originalPrice) || Math.round(itemPrice * 1.25);
+                    const cleanItemId = typeof item.id === 'string' && item.id.trim()
+                        ? item.id.trim()
+                        : (item.id?.id ? String(item.id.id) : `${sId}-${String(item.name || 'dish').toLowerCase().replace(/\s+/g, '-')}`);
+                    const cleanItemName = typeof item.name === 'string' && item.name.trim()
+                        ? item.name.trim()
+                        : (item.id?.name ? String(item.id.name) : 'Product Item');
+                    const cleanItemCategory = item.category === 'combos' ? 'combos' : (isMohallaStore ? 'grocery' : (item.category || item.id?.category || vertical));
+                    const cleanItemSubCat = item.subCategory || item.id?.subCategory || item.category || (isMohallaStore ? 'dairy' : '');
+                    const cleanItemImg = item.image || item.img || item.id?.image || item.id?.img || storeImg;
+
                     allItems.push({
-                        id: item.id || `${sId}-${item.name?.toLowerCase().replace(/\s+/g, '-')}`,
+                        id: cleanItemId,
                         storeId: sId,
                         storeName,
                         storeVertical: vertical,
-                        name: item.name,
+                        name: cleanItemName,
                         type: isService ? 'service' : 'product',
-                        category: item.category === 'combos' ? 'combos' : (isMohallaStore ? 'grocery' : (item.category || vertical)),
-                        subCategory: item.subCategory || item.category || (isMohallaStore ? 'dairy' : ''),
-                        unit: item.unit || '',
+                        category: cleanItemCategory,
+                        subCategory: cleanItemSubCat,
+                        unit: item.unit || item.id?.unit || '',
                         isMohallaProduct: isMohallaStore,
                         isCombo: Boolean(item.isCombo || item.category === 'combos'),
                         comboItems: item.comboItems || [],
@@ -673,11 +683,11 @@ export const getMarketplaceFeed = (req, res) => {
                         price: itemPrice,
                         originalPrice: itemMrp,
                         discount: itemMrp > itemPrice ? `-${Math.round(((itemMrp - itemPrice) / itemMrp) * 100)}%` : null,
-                        image: item.image || item.img || storeImg,
-                        description: item.description || '',
+                        image: cleanItemImg,
+                        description: item.description || item.id?.description || '',
                         rating: Number(item.rating || storeRating),
                         reviews: Number(item.reviews || 24),
-                        isVeg: item.isVeg,
+                        isVeg: item.isVeg !== undefined ? item.isVeg : true,
                         durationMinutes: item.durationMinutes || item.time || 30,
                         sizes: item.sizes || (vertical === 'fashion' ? ['UK 7', 'UK 8', 'UK 9', 'UK 10'] : null),
                         colors: item.colors || null,

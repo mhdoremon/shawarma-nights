@@ -230,43 +230,33 @@ export default function DashboardTab() {
     }
   };
 
+  const currentUser = user || (() => {
+    try {
+      return JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+    } catch {
+      return {};
+    }
+  })();
+
   const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
   const isRejected = !isApprovedServer && (
     storeInfo?.status === 'rejected' ||
-    user?.status === 'rejected' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'rejected';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'rejected'
   );
   const isPendingReview = !isApprovedServer && !isRejected && (
     storeInfo?.status === 'pending_review' || 
-    user?.status === 'pending_review' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'pending_review';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'pending_review'
   );
   const isSuspended = !isApprovedServer && !isRejected && !isPendingReview && (
     storeInfo?.status === 'suspended' ||
     storeInfo?.status === 'deactivated' ||
-    user?.status === 'suspended' ||
-    user?.status === 'deactivated' ||
-    (() => {
-      try {
-        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        return u.status === 'suspended' || u.status === 'deactivated';
-      } catch { return false; }
-    })()
+    currentUser?.status === 'suspended' ||
+    currentUser?.status === 'deactivated'
   );
 
   // Store Appeal / Re-open State & Handlers
   const [appealMessage, setAppealMessage] = useState('');
-  const [appealPhone, setAppealPhone] = useState(user?.phone || storeInfo?.phone || '');
+  const [appealPhone, setAppealPhone] = useState(currentUser?.phone || storeInfo?.phone || '');
   const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
   const [appealSuccess, setAppealSuccess] = useState(false);
 
@@ -331,14 +321,14 @@ export default function DashboardTab() {
   const [isSubmittingReapply, setIsSubmittingReapply] = useState(false);
 
   const handleOpenReapplyModal = () => {
-    setReapplyDukanName(user?.dukanName || storeInfo?.name || '');
-    setReapplyOwnerName(user?.ownerName || storeInfo?.owner?.name || '');
-    setReapplyCategory(user?.businessType || storeInfo?.type || 'mohalla_kirana');
-    setReapplyMohalla(user?.mohalla || user?.areaName || user?.mohallaData?.areaName || storeInfo?.mohalla || '');
-    setReapplyLandmark(user?.nearestLandmark || user?.mohallaData?.nearestLandmark || storeInfo?.nearestLandmark || 'subhash_chowk');
-    setReapplyLat(user?.lat || user?.mohallaData?.lat || storeInfo?.lat || null);
-    setReapplyLng(user?.lng || user?.mohallaData?.lng || storeInfo?.lng || null);
-    setReapplyRadius(user?.radiusKm || user?.mohallaData?.radiusKm || storeInfo?.radiusKm || 1.5);
+    setReapplyDukanName(currentUser?.dukanName || storeInfo?.name || '');
+    setReapplyOwnerName(currentUser?.ownerName || storeInfo?.owner?.name || '');
+    setReapplyCategory(currentUser?.businessType || storeInfo?.type || 'mohalla_kirana');
+    setReapplyMohalla(currentUser?.mohalla || currentUser?.areaName || currentUser?.mohallaData?.areaName || storeInfo?.mohalla || '');
+    setReapplyLandmark(currentUser?.nearestLandmark || currentUser?.mohallaData?.nearestLandmark || storeInfo?.nearestLandmark || 'subhash_chowk');
+    setReapplyLat(currentUser?.lat || currentUser?.mohallaData?.lat || storeInfo?.lat || null);
+    setReapplyLng(currentUser?.lng || currentUser?.mohallaData?.lng || storeInfo?.lng || null);
+    setReapplyRadius(currentUser?.radiusKm || currentUser?.mohallaData?.radiusKm || storeInfo?.radiusKm || 1.5);
     setShowReapplyModal(true);
   };
 
@@ -387,7 +377,7 @@ export default function DashboardTab() {
           'Authorization': `Bearer ${localStorage.getItem('churuone_master_token') || ''}`
         },
         body: JSON.stringify({
-          dukanId: user?.dukanId || storeId,
+          dukanId: currentUser?.dukanId || storeId,
           dukanName: reapplyDukanName.trim(),
           ownerName: reapplyOwnerName.trim(),
           businessType: reapplyCategory,
@@ -453,7 +443,7 @@ export default function DashboardTab() {
 
           <form onSubmit={handleSubmitReapply} className="my-4 space-y-4">
             <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
-              💡 <strong>Dukan ID Surakshit Hai:</strong> Aapki Dukan ID (<span className="font-mono font-bold">{user?.dukanId || storeId}</span>) aur phone number surakshit hain. Sirf zaroori details sudharkar jama karein.
+              💡 <strong>Dukan ID Surakshit Hai:</strong> Aapki Dukan ID (<span className="font-mono font-bold">{currentUser?.dukanId || storeId}</span>) aur phone number surakshit hain. Sirf zaroori details sudharkar jama karein.
             </div>
 
             {/* Dukan Name */}
@@ -616,12 +606,12 @@ export default function DashboardTab() {
 
   // If application is rejected, show REJECTION ALERT, EXACT REASON NOTE & RE-APPLY ACTION
   if (isRejected) {
-    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
-    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
-    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
-    const phone = user?.phone || storeInfo?.owner?.phone || '-';
-    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
-    const rejectionReason = storeInfo?.adminNote || user?.adminNote || storeInfo?.rejectionReason || user?.rejectionReason || 'Application details me sudhaar ki aavashyakta hai. Kripya niche diye gaye button par click karke details update karein.';
+    const dukanTitle = currentUser?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(currentUser?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = currentUser?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const phone = currentUser?.phone || storeInfo?.owner?.phone || '-';
+    const bType = String(currentUser?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
+    const rejectionReason = storeInfo?.adminNote || currentUser?.adminNote || storeInfo?.rejectionReason || currentUser?.rejectionReason || 'Application details me sudhaar ki aavashyakta hai. Kripya niche diye gaye button par click karke details update karein.';
 
     return (
       <div className="space-y-6 pb-12 max-w-5xl mx-auto">
@@ -734,13 +724,13 @@ export default function DashboardTab() {
 
   // If store is suspended/deactivated midway by Super Admin, show DUKAN BAND ALERT, REASON NOTE, GUIDANCE & APPEAL/SUPPORT ACTIONS
   if (isSuspended) {
-    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
-    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
-    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
-    const phone = user?.phone || storeInfo?.owner?.phone || '-';
-    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
-    const suspensionReason = storeInfo?.statusNote || storeInfo?.bandReason || user?.statusNote || 'Super Admin dwara is dukan ko niyam ya prashasnik karno se temporary/permanently band kar diya gaya hai.';
-    const appealData = storeInfo?.appeal || user?.appeal;
+    const dukanTitle = currentUser?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(currentUser?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = currentUser?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const phone = currentUser?.phone || storeInfo?.owner?.phone || '-';
+    const bType = String(currentUser?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
+    const suspensionReason = storeInfo?.statusNote || storeInfo?.bandReason || currentUser?.statusNote || 'Super Admin dwara is dukan ko niyam ya prashasnik karno se temporary/permanently band kar diya gaya hai.';
+    const appealData = storeInfo?.appeal || currentUser?.appeal;
     const hasPendingAppeal = appealSuccess || appealData?.status === 'appeal_pending';
 
     const waText = encodeURIComponent(`Namaste ChuruOne Admin, meri dukan "${dukanTitle}" (ID: ${dukanCode}) band ho gayi hai. Reason: "${suspensionReason}". Kripya ise wapas live karne me madad karein.`);
@@ -942,13 +932,13 @@ export default function DashboardTab() {
 
   // If application is pending review, show DUKAN ID CARD, 24-HR REVIEW NOTICE, DETAILS, AND STORE EXPLORER
   if (isPendingReview) {
-    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
-    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
-    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
-    const father = user?.fatherName || storeInfo?.owner?.fatherName || '-';
-    const phone = user?.phone || storeInfo?.owner?.phone || '-';
-    const username = user?.username || storeInfo?.owner?.username || '-';
-    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
+    const dukanTitle = currentUser?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(currentUser?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = currentUser?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const father = currentUser?.fatherName || storeInfo?.owner?.fatherName || '-';
+    const phone = currentUser?.phone || storeInfo?.owner?.phone || '-';
+    const username = currentUser?.username || storeInfo?.owner?.username || '-';
+    const bType = String(currentUser?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
 
     return (
       <div className="space-y-6 pb-12 max-w-5xl mx-auto">
@@ -1624,29 +1614,29 @@ export default function DashboardTab() {
             <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Mohalla / Area</span>
               <span className="text-xs font-black text-emerald-900 block truncate">
-                🏡 {storeInfo?.mohalla || user?.mohalla || user?.mohallaData?.areaName || user?.mohallaData?.mohalla || storeInfo?.areaName || 'Churu Area'}
+                🏡 {storeInfo?.mohalla || currentUser?.mohalla || currentUser?.mohallaData?.areaName || currentUser?.mohallaData?.mohalla || storeInfo?.areaName || 'Churu Area'}
               </span>
             </div>
 
             <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Nearest Landmark</span>
               <span className="text-xs font-bold text-zinc-800 block truncate capitalize">
-                {String(storeInfo?.nearestLandmark || user?.nearestLandmark || user?.mohallaData?.nearestLandmark || 'Near Churu City Center').replace(/_/g, ' ')}
+                {String(storeInfo?.nearestLandmark || currentUser?.nearestLandmark || currentUser?.mohallaData?.nearestLandmark || 'Near Churu City Center').replace(/_/g, ' ')}
               </span>
             </div>
 
             <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Delivery Service Radius</span>
               <span className="text-xs font-black text-emerald-800 block">
-                {storeInfo?.radiusKm || storeInfo?.settings?.deliveryRadius || user?.radiusKm || user?.mohallaData?.radiusKm || 1.2} km
+                {storeInfo?.radiusKm || storeInfo?.settings?.deliveryRadius || currentUser?.radiusKm || currentUser?.mohallaData?.radiusKm || 1.2} km
               </span>
             </div>
 
             <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
               <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">GPS Coordinates</span>
               {(() => {
-                const lat = storeInfo?.lat || user?.lat || user?.mohallaData?.lat;
-                const lng = storeInfo?.lng || user?.lng || user?.mohallaData?.lng;
+                const lat = storeInfo?.lat || currentUser?.lat || currentUser?.mohallaData?.lat;
+                const lng = storeInfo?.lng || currentUser?.lng || currentUser?.mohallaData?.lng;
                 if (lat && lng) {
                   return (
                     <a

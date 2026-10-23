@@ -26,14 +26,21 @@ export function addOrUpdateMenuItem(req, res) {
     const menuData = DataLayer.read(req.storeId, 'menu') || { menu: [], categories: [] };
     let menu = menuData.menu || [];
     
+    const resolvedId = typeof itemData.id === 'string' && itemData.id.trim()
+      ? itemData.id.trim()
+      : (itemData.id?.id ? String(itemData.id.id) : generateId('dish'));
+    const resolvedName = typeof itemData.name === 'string' && itemData.name.trim()
+      ? itemData.name.trim()
+      : (itemData.id?.name ? String(itemData.id.name) : (itemData.title || null));
+
     let existingIndex = -1;
-    if (itemData.id) {
-      existingIndex = menu.findIndex(i => i.id === itemData.id);
+    if (resolvedId) {
+      existingIndex = menu.findIndex(i => (typeof i.id === 'string' ? i.id : i.id?.id) === resolvedId);
     }
 
     const universalItem = {
-      id: itemData.id || generateId('dish'),
-      name: itemData.name || null,
+      id: resolvedId,
+      name: resolvedName,
       category: itemData.category || null,
       price: itemData.price || 0,
       originalPrice: itemData.originalPrice || null,
