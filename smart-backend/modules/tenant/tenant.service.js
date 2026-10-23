@@ -193,6 +193,23 @@ export const updateStoreSettings = (req, res) => {
             }
         }
 
+        if (updates.isSetupComplete !== undefined) {
+            const scBool = Boolean(updates.isSetupComplete);
+            config.isSetupComplete = scBool;
+            config.settings.isSetupComplete = scBool;
+            try {
+                const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+                const stores = storesData.stores || [];
+                const targetStore = stores.find(s => (s.id || s.slug) === req.storeId);
+                if (targetStore) {
+                    targetStore.isSetupComplete = scBool;
+                    DataLayer.writePlatform('stores', { stores });
+                }
+            } catch (err) {
+                console.warn('Could not sync stores.json setupComplete:', err);
+            }
+        }
+
         if (updates.payment) config.payment = { ...(config.payment || {}), ...updates.payment };
         if (updates.socials) config.socials = { ...(config.socials || {}), ...updates.socials };
         if (updates.taxesAndCharges) config.taxesAndCharges = { ...(config.taxesAndCharges || {}), ...updates.taxesAndCharges };
@@ -204,6 +221,8 @@ export const updateStoreSettings = (req, res) => {
             isOpen: config.settings.isOpen !== false,
             weeklySchedule: config.settings.weeklySchedule || config.weeklySchedule || {},
             marketplaceVisible: config.settings.marketplaceVisible !== false,
+            isSetupComplete: Boolean(config.settings.isSetupComplete ?? config.isSetupComplete),
+            status: config.status || 'active',
             name: activeName,
             studioName: activeName,
             storeName: activeName,
@@ -323,7 +342,7 @@ export const getMarketplaceFeed = (req, res) => {
             ...storeDirIds
         ])).filter(Boolean);
 
-        const showAll = req?.query?.all === 'true';
+        const showAll = req?.query?.all === 'true' || req?.query?.admin === 'true';
         const validStoreIds = allStoreIds.filter(id => {
             const clean = String(id).toLowerCase().trim();
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
@@ -333,7 +352,7 @@ export const getMarketplaceFeed = (req, res) => {
             const reg = registeredStores.find(s => (s.id || s.slug) === clean);
             const cfg = DataLayer.getStoreConfig(clean) || {};
             const sInfo = DataLayer.read(clean, 'store_info') || {};
-            // If explicitly set to false in any config layer, hide from marketplace feed
+            // If explicitly set to false in any config layer, hide from marketplace feed (unless showAll)
             const isStoreHidden = reg?.marketplaceVisible === false || 
                                   cfg?.marketplaceVisible === false || 
                                   cfg?.settings?.marketplaceVisible === false ||
@@ -361,8 +380,8 @@ export const getMarketplaceFeed = (req, res) => {
                 : (Array.isArray(rawDeals?.deals) ? rawDeals.deals : []);
             const heroBanner = DataLayer.read(sId, 'hero_banner') || {};
 
-            // Skip any non-core store with 0 items
-            if (menuItems.length === 0 && !['shawarma', 'skyline', 'nash-studio'].includes(sId)) {
+            // Skip any non-core store with 0 items for public customer feed; Admin sees all stores!
+            if (!showAll && menuItems.length === 0 && !['shawarma', 'skyline', 'nash-studio'].includes(sId)) {
                 continue;
             }
 
@@ -392,6 +411,12 @@ export const getMarketplaceFeed = (req, res) => {
                 sId.includes('gupta')
             );
 
+            const isStoreOpen = storeInfo.isOpen !== undefined 
+                ? Boolean(storeInfo.isOpen)
+                : (config.settings?.isOpen !== undefined ? Boolean(config.settings.isOpen) : isFlagship);
+            const isStoreMarketplaceVisible = regStore.marketplaceVisible ?? config.marketplaceVisible ?? isFlagship;
+            const isSetupComplete = Boolean(config.isSetupComplete ?? regStore.isSetupComplete ?? (isFlagship || menuItems.length > 0));
+
             const storeSummary = {
                 id: sId,
                 name: storeName,
@@ -402,7 +427,10 @@ export const getMarketplaceFeed = (req, res) => {
                 image: storeImg,
                 destination: isMohallaStore ? `/churuone?store=${sId}` : destination,
                 tag: isMohallaStore ? '15 Min Express' : (vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits')),
-                isOpen: storeInfo.isOpen !== false,
+                isOpen: isStoreOpen,
+                status: regStore.status || config.status || storeInfo.status || 'active',
+                isApproved: Boolean(regStore.isApproved ?? config.isApproved ?? (regStore.status === 'active' || config.status === 'active')),
+                isSetupComplete,
                 address: storeInfo.address || 'Churu, Rajasthan',
                 phone: storeInfo.phone || storeInfo.whatsapp || '7023963189',
                 freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? (isMohallaStore ? 199 : 499),
@@ -410,7 +438,7 @@ export const getMarketplaceFeed = (req, res) => {
                 payeeName: storeInfo.payeeName || storeName,
                 itemCount: menuItems.length,
                 dealsCount: dealsList.length,
-                marketplaceVisible: regStore.marketplaceVisible ?? config.marketplaceVisible ?? true,
+                marketplaceVisible: isStoreMarketplaceVisible,
                 isMohallaStore,
                 isFlagshipBrand: isFlagship,
                 isCityWide: isFlagship,

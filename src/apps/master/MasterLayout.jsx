@@ -66,7 +66,8 @@ export default function MasterLayout() {
     updateStoreSettings,
     showToast,
     isSuperAdmin,
-    switchStoreId
+    switchStoreId,
+    platformStores
   } = useMaster();
 
   // If logged in as Delivery Boy, show Delivery Partner View directly
@@ -165,12 +166,22 @@ export default function MasterLayout() {
                 <select
                   value={storeId}
                   onChange={(e) => switchStoreId(e.target.value)}
-                  className="bg-white text-zinc-900 text-xs font-black px-3.5 py-1.5 rounded-full shadow-md cursor-pointer border border-zinc-200 focus:outline-none pr-7 appearance-none"
+                  className="bg-white text-zinc-900 text-xs font-black px-3.5 py-1.5 rounded-full shadow-md cursor-pointer border border-zinc-200 focus:outline-none pr-7 appearance-none max-w-[190px] sm:max-w-none truncate"
                 >
                   <option value="churuone">👑 ChuruOne Platform</option>
-                  <option value="shawarma">🌯 Shawarma Nights</option>
-                  <option value="skyline">👔 Skyline Premium Outfits</option>
-                  <option value="nash-studio">✂️ Nash Studio</option>
+                  {(platformStores || [])
+                    .filter(s => (s.id || s.slug) !== 'churuone')
+                    .map(s => {
+                      const sid = s.id || s.slug;
+                      const icon = s.vertical === 'food' ? '🌯' : s.vertical === 'fashion' ? '👔' : s.vertical === 'salon' ? '✂️' : '🏪';
+                      const label = s.name || sid;
+                      const suffix = s.isMohallaStore && s.mohalla ? ` (${s.mohalla})` : '';
+                      return (
+                        <option key={sid} value={sid}>
+                          {icon} {label}{suffix}
+                        </option>
+                      );
+                    })}
                 </select>
                 <ChevronDown className="w-3.5 h-3.5 text-zinc-600 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
               </div>
@@ -181,34 +192,66 @@ export default function MasterLayout() {
               </div>
             )}
 
-            {/* Live Store Status 1-Click Toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                const nextOpen = !(storeInfo?.isOpen !== false);
-                updateStoreSettings({ isOpen: nextOpen });
-                showToast(
-                  nextOpen 
-                    ? (isMarketplace ? '🟢 ChuruOne Platform abhi LIVE OPEN kar diya gaya!' : '🟢 Dukan abhi LIVE OPEN kar di gayi! Website par Store Open ho gaya hai.')
-                    : (isMarketplace ? '🔴 ChuruOne Platform abhi PAUSED mark kar diya gaya!' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.'),
-                  nextOpen ? 'success' : 'warning'
-                );
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all cursor-pointer border-0 active:scale-95 ${
-                storeInfo?.isOpen !== false
-                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                  : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-              }`}
-              title={storeInfo?.isOpen !== false ? 'Click to Pause/Close' : 'Click to Open/Resume'}
-            >
-              <span className={`w-2 h-2 rounded-full ${storeInfo?.isOpen !== false ? 'bg-white animate-pulse' : 'bg-white'}`} />
-              <span>{storeInfo?.isOpen !== false ? (isMarketplace ? 'PLATFORM LIVE' : 'DUKAN OPEN') : (isMarketplace ? 'PLATFORM PAUSED' : 'DUKAN CLOSED (CLICK TO OPEN)')}</span>
-            </button>
-
-            {isPendingReview && (
-              <span className="hidden md:inline-flex items-center gap-1 text-[10px] bg-amber-400 text-amber-950 font-black px-2 py-0.5 rounded-full uppercase">
-                <Clock className="w-2.5 h-2.5 animate-pulse" /> Review Stage (24h)
+            {/* Store Status / Live Toggle */}
+            {isPendingReview ? (
+              <span className="inline-flex items-center gap-1 text-[11px] bg-amber-400 text-amber-950 font-black px-3 py-1 rounded-full uppercase shadow-xs">
+                <Clock className="w-3 h-3 animate-pulse" /> Review Stage (24h)
               </span>
+            ) : isMarketplace ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextOpen = !(storeInfo?.isOpen !== false);
+                  updateStoreSettings({ isOpen: nextOpen });
+                  showToast(
+                    nextOpen ? '🟢 ChuruOne Platform abhi LIVE OPEN kar diya gaya!' : '🔴 ChuruOne Platform abhi PAUSED mark kar diya gaya!',
+                    nextOpen ? 'success' : 'warning'
+                  );
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all cursor-pointer border-0 active:scale-95 ${
+                  storeInfo?.isOpen !== false
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                }`}
+                title={storeInfo?.isOpen !== false ? 'Click to Pause Platform' : 'Click to Resume Platform'}
+              >
+                <span className={`w-2 h-2 rounded-full ${storeInfo?.isOpen !== false ? 'bg-white animate-pulse' : 'bg-white'}`} />
+                <span>{storeInfo?.isOpen !== false ? 'PLATFORM LIVE' : 'PLATFORM PAUSED'}</span>
+              </button>
+            ) : (!storeInfo?.marketplaceVisible || !storeInfo?.isSetupComplete) && !['shawarma', 'skyline', 'nash-studio'].includes(storeId) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab(0);
+                  showToast('Dukan abhi marketplace par hidden hai. Pehle Dashboard par jakar Setup poora karein aur Go Live dabayein.', 'info');
+                }}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm bg-amber-400 hover:bg-amber-500 text-amber-950 transition-all cursor-pointer border-0 active:scale-95"
+                title="Dukan abhi offline hai: Setup poora karke Go Live dabayein"
+              >
+                <span className="w-2 h-2 rounded-full bg-amber-950 animate-pulse" />
+                <span>SETUP IN PROGRESS (OFFLINE)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextOpen = !(storeInfo?.isOpen !== false);
+                  updateStoreSettings({ isOpen: nextOpen });
+                  showToast(
+                    nextOpen ? '🟢 Dukan abhi LIVE OPEN kar di gayi! Website par Store Open ho gaya hai.' : '🔴 Dukan abhi CLOSED mark kar di gayi! Website par Store Closed banner show ho gaya hai.',
+                    nextOpen ? 'success' : 'warning'
+                  );
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all cursor-pointer border-0 active:scale-95 ${
+                  storeInfo?.isOpen !== false
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                    : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                }`}
+                title={storeInfo?.isOpen !== false ? 'Click to Pause/Close' : 'Click to Open/Resume'}
+              >
+                <span className={`w-2 h-2 rounded-full ${storeInfo?.isOpen !== false ? 'bg-white animate-pulse' : 'bg-white'}`} />
+                <span>{storeInfo?.isOpen !== false ? 'DUKAN OPEN' : 'DUKAN CLOSED (CLICK TO OPEN)'}</span>
+              </button>
             )}
           </div>
 

@@ -1,6 +1,5 @@
 import React from 'react';
 import { MasterProvider, useMaster } from './context/MasterContext';
-import MasterAuth from './MasterAuth';
 import MasterLayout from './MasterLayout';
 
 function MasterRoot() {

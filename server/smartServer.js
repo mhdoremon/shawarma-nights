@@ -197,7 +197,16 @@ app.get('/api/data', (req, res) => {
     capabilities: storeConfig?.capabilities,
     storeInfo: {
       capabilities: storeConfig?.capabilities,
-      status: storeConfig?.status || 'active',
+      status: storeConfig?.status || (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId) ? 'active' : 'pending_review'),
+      isOpen: storeConfig?.isOpen !== undefined 
+        ? Boolean(storeConfig.isOpen) 
+        : (storeConfig?.settings?.isOpen !== undefined 
+            ? Boolean(storeConfig.settings.isOpen) 
+            : (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      marketplaceVisible: Boolean(storeConfig?.marketplaceVisible ?? (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isSetupComplete: Boolean(storeConfig?.isSetupComplete ?? (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isApproved: Boolean(storeConfig?.isApproved ?? (storeConfig?.status === 'active' || ['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isMohallaStore: Boolean(storeConfig?.isMohallaStore ?? storeConfig?.type === 'mohalla_kirana' ?? (storeId || '').includes('kirana')),
       ...(storeConfig?.settings || {}),
       payment: storeConfig?.payment || {},
       ...(storeConfig?.payment || {}),

@@ -285,8 +285,9 @@ function getStoreConfig(storeId) {
           if (sRec.isSetupComplete !== undefined) {
             cfg.isSetupComplete = sRec.isSetupComplete;
           }
-          if (sRec.isOpen !== undefined && cfg.settings) {
-            cfg.settings.isOpen = sRec.isOpen;
+          if (sRec.isOpen !== undefined) {
+            cfg.isOpen = sRec.isOpen;
+            if (cfg.settings) cfg.settings.isOpen = sRec.isOpen;
           }
         }
       }

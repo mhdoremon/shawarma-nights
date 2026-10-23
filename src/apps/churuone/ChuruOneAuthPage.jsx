@@ -1217,7 +1217,7 @@ export default function ChuruOneAuthPage() {
 
       // Application submitted! Route directly to Master Dashboard!
       const finalDukanId = data.dukanId || dukanGeneratedId;
-      const storeSlug = String(finalDukanId).toLowerCase();
+      const storeSlug = data.storeId || data.storeSlug || String(finalDukanId).toLowerCase();
       const masterUser = {
         storeId: storeSlug,
         dukanId: finalDukanId,

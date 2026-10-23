@@ -42,7 +42,8 @@ export default function PartnerStoresTab() {
     showToast, 
     toggleStoreMarketplaceVisibility, 
     isSuperAdmin,
-    storeInfo: currentStoreInfo
+    storeInfo: currentStoreInfo,
+    refreshPlatformStores
   } = useMaster();
 
   const [stores, setStores] = useState([]);
@@ -102,7 +103,7 @@ export default function PartnerStoresTab() {
   const loadPlatformStores = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${API_BASE}/api/platform/marketplace`);
+      const res = await fetch(`${API_BASE}/api/platform/marketplace?all=true`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.stores)) {
@@ -222,6 +223,7 @@ export default function PartnerStoresTab() {
         );
         loadPendingApps();
         loadPlatformStores();
+        if (typeof refreshPlatformStores === 'function') refreshPlatformStores();
       } else {
         showToast(data.message || 'Error processing application', 'error');
       }
@@ -698,6 +700,12 @@ export default function PartnerStoresTab() {
 
               {/* Operational Metrics & Contact Details */}
               <div className="bg-stone-50 p-3 rounded-2xl space-y-2 border border-stone-100 text-xs text-stone-600">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-stone-400">Products:</span>
+                  <span className={`text-[11px] font-bold ${store.itemCount > 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {store.itemCount > 0 ? `📦 ${store.itemCount} items` : '🛠️ Setup in progress (0 items)'}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-stone-400">Live Status:</span>
                   <span className={`text-[11px] font-bold ${store.isOpen !== false ? 'text-emerald-700' : 'text-red-600'}`}>

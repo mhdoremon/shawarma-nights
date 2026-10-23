@@ -1645,18 +1645,27 @@ export const dukandarRegisterApply = async (req, res) => {
             const sList = Array.isArray(storesData) ? storesData : (storesData.stores || []);
 
             const storeRecord = {
-                id: finalDukanId.toLowerCase(),
+                id: storeSlug,
                 slug: storeSlug,
+                dukanId: finalDukanId,
                 name: dukanName.trim(),
                 type: businessType || 'retail',
                 vertical: businessType === 'restaurant' ? 'food' : (businessType || 'retail'),
                 status: 'pending_review',
-                subdomain: storeSlug,
+                isApproved: false,
+                isOpen: false,
+                isSetupComplete: false,
                 marketplaceVisible: false,
-                capabilities: resolveStoreCapabilities(finalDukanId.toLowerCase(), { type: businessType })
+                subdomain: storeSlug,
+                capabilities: resolveStoreCapabilities(storeSlug, { type: businessType })
             };
 
-            const sIdx = sList.findIndex(s => s.id === finalDukanId.toLowerCase() || s.slug === storeSlug);
+            const sIdx = sList.findIndex(s => 
+                s.id === storeSlug || 
+                s.slug === storeSlug || 
+                s.id === finalDukanId.toLowerCase() || 
+                (s.dukanId && s.dukanId === finalDukanId)
+            );
             if (sIdx !== -1) {
                 sList[sIdx] = { ...sList[sIdx], ...storeRecord };
             } else {
@@ -1672,16 +1681,24 @@ export const dukandarRegisterApply = async (req, res) => {
             console.warn('Store registration in stores.json warning:', e.message);
         }
 
-        // 3. Provision Store Config Directory (server/data/stores/{id}/config.json)
+        // 3. Provision Store Config Directory (server/data/stores/{storeSlug}/config.json)
         try {
-            const storeDirPath = path.join(process.cwd(), 'server', 'data', 'stores', finalDukanId.toLowerCase());
-            if (!fs.existsSync(storeDirPath)) fs.mkdirSync(storeDirPath, { recursive: true });
+            const targetDirs = Array.from(new Set([
+                path.join(process.cwd(), 'server', 'data', 'stores', storeSlug),
+                path.join(process.cwd(), 'server', 'data', 'stores', finalDukanId.toLowerCase())
+            ]));
 
             const initialConfig = {
-                name: dukanName.trim(),
+                id: storeSlug,
                 slug: storeSlug,
+                dukanId: finalDukanId,
+                name: dukanName.trim(),
                 type: businessType || 'retail',
                 status: 'pending_review',
+                isApproved: false,
+                isOpen: false,
+                isSetupComplete: false,
+                marketplaceVisible: false,
                 owner: {
                     name: ownerName.trim(),
                     phone: cleanPhone,
@@ -1689,26 +1706,31 @@ export const dukandarRegisterApply = async (req, res) => {
                     password: String(password).trim(),
                     token
                 },
-                capabilities: resolveStoreCapabilities(finalDukanId.toLowerCase(), { type: businessType }),
+                capabilities: resolveStoreCapabilities(storeSlug, { type: businessType }),
                 settings: {
                     storeName: dukanName.trim(),
                     phone: cleanPhone,
                     aboutText: description || '',
-                    isOpen: true
+                    isOpen: false
                 },
                 createdAt: now()
             };
 
-            writeJsonFile(path.join(storeDirPath, 'config.json'), initialConfig);
-            writeJsonFile(path.join(storeDirPath, 'menu.json'), { menu: [], categories: [] });
-            writeJsonFile(path.join(storeDirPath, 'orders.json'), []);
-            writeJsonFile(path.join(storeDirPath, 'deals.json'), []);
-            writeJsonFile(path.join(storeDirPath, 'reviews.json'), []);
+            for (const storeDirPath of targetDirs) {
+                if (!fs.existsSync(storeDirPath)) fs.mkdirSync(storeDirPath, { recursive: true });
+                writeJsonFile(path.join(storeDirPath, 'config.json'), initialConfig);
+                writeJsonFile(path.join(storeDirPath, 'menu.json'), { menu: [], categories: [] });
+                writeJsonFile(path.join(storeDirPath, 'orders.json'), []);
+                writeJsonFile(path.join(storeDirPath, 'deals.json'), []);
+                writeJsonFile(path.join(storeDirPath, 'reviews.json'), []);
+            }
 
             // Also mirror to smart-backend
-            const smartStoreDirPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores', finalDukanId.toLowerCase());
-            if (!fs.existsSync(smartStoreDirPath)) fs.mkdirSync(smartStoreDirPath, { recursive: true });
-            writeJsonFile(path.join(smartStoreDirPath, 'config.json'), initialConfig);
+            for (const storeDirPath of targetDirs) {
+                const smartPath = storeDirPath.replace(/[\\\/]server[\\\/]data[\\\/]/, path.sep + 'smart-backend' + path.sep + 'data' + path.sep);
+                if (!fs.existsSync(smartPath)) fs.mkdirSync(smartPath, { recursive: true });
+                writeJsonFile(path.join(smartPath, 'config.json'), initialConfig);
+            }
         } catch (e) {
             console.warn('Store config directory provision error:', e.message);
         }
@@ -2094,10 +2116,16 @@ export const reviewMohallaApplication = (req, res) => {
             const STORES_FILE = path.join(process.cwd(), 'server', 'data', 'stores.json');
             const storesData = readJsonFile(STORES_FILE, { stores: [] });
             const storeSlug = dukandar.storeSlug || dukanId.toLowerCase();
-            const existingStoreIdx = (storesData.stores || []).findIndex(s => s.id === storeSlug);
+            const existingStoreIdx = (storesData.stores || []).findIndex(s => 
+                s.id === storeSlug || 
+                s.slug === storeSlug || 
+                (dukandar.dukanId && s.id === String(dukandar.dukanId).toLowerCase()) ||
+                (s.dukanId && s.dukanId === dukandar.dukanId)
+            );
             const newStoreEntry = {
                 id: storeSlug,
                 slug: storeSlug,
+                dukanId: dukandar.dukanId,
                 name: dukandar.dukanName,
                 type: 'mohalla_kirana',
                 vertical: 'grocery',
@@ -2133,6 +2161,8 @@ export const reviewMohallaApplication = (req, res) => {
             writeJsonFile(STORES_FILE, storesData);
             try {
                 DataLayer.writePlatform('stores', storesData);
+                const smartStoresPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores.json');
+                writeJsonFile(smartStoresPath, storesData);
             } catch {}
 
             // 3. Create store folder + initialize menu as empty so dukandar selects what they sell

@@ -359,15 +359,44 @@ export const MasterProvider = ({ children }) => {
     setupDays: '14 Days'
   }));
   const [franchiseInquiries, setFranchiseInquiries] = useState([]);
+  const isCoreStoreInit = ['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId);
   const [storeInfo, setStoreInfo] = useState(() => getLocalCache(`churuone_cache_storeInfo_${storeId}`, {
     name: getStoreDefaultName(storeId),
     storeName: getStoreDefaultName(storeId),
     vertical: storeId === 'churuone' ? 'marketplace' : storeId.includes('nash') ? 'salon' : storeId.includes('skyline') ? 'fashion' : 'food',
-    isOpen: true
+    isOpen: isCoreStoreInit,
+    marketplaceVisible: isCoreStoreInit,
+    isSetupComplete: isCoreStoreInit,
+    status: isCoreStoreInit ? 'active' : 'pending_review'
   }));
   const [heroBanner, setHeroBanner] = useState({});
   const [smsLogs, setSmsLogs] = useState([]);
   const [assignedOrders, setAssignedOrders] = useState([]);
+
+  // All Platform Stores List (For Super Admin dropdown & store directory)
+  const [platformStores, setPlatformStores] = useState(() => getLocalCache('churuone_platform_stores', [
+    { id: 'shawarma', name: 'Shawarma Nights', vertical: 'food' },
+    { id: 'skyline', name: 'Skyline Premium Outfits', vertical: 'fashion' },
+    { id: 'nash-studio', name: 'Nash Studio', vertical: 'salon' },
+    { id: 'gupta-kirana-nayabass', name: 'Gupta Kirana & Daily Needs', vertical: 'grocery', isMohallaStore: true, mohalla: 'Naya Bass' }
+  ]));
+
+  const refreshPlatformStores = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/platform/marketplace?all=true`);
+      if (res && res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.stores)) {
+          setPlatformStores(data.stores);
+          setLocalCache('churuone_platform_stores', data.stores);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    refreshPlatformStores();
+  }, [refreshPlatformStores]);
 
   // Capabilities Matrix state dynamically resolved for the active store
   const [capabilities, setCapabilities] = useState(() => resolveClientCapabilities(storeId, storeInfo || {}));
@@ -516,8 +545,13 @@ export const MasterProvider = ({ children }) => {
             setLocalCache(`churuone_cache_deals_${storeId}`, data.deals);
           }
           if (data.storeInfo) {
+            const isFlagship = ['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId);
             const mergedInfo = {
               ...data.storeInfo,
+              isOpen: Boolean(data.storeInfo.isOpen ?? (isFlagship && data.storeInfo.isOpen !== false)),
+              marketplaceVisible: Boolean(data.storeInfo.marketplaceVisible ?? isFlagship),
+              isSetupComplete: Boolean(data.storeInfo.isSetupComplete ?? isFlagship),
+              status: data.storeInfo.status || (isFlagship ? 'active' : 'pending_review'),
               name: data.storeInfo.name || data.storeInfo.storeName || getStoreDefaultName(storeId),
               storeName: data.storeInfo.storeName || data.storeInfo.name || getStoreDefaultName(storeId),
               vertical: data.storeInfo.vertical || (storeId === 'churuone' ? 'marketplace' : 'retail')
@@ -1363,11 +1397,15 @@ export const MasterProvider = ({ children }) => {
       return;
     }
     setStoreId(cleanId);
+    const isCore = ['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(cleanId);
     const cachedStoreInfo = getLocalCache(`churuone_cache_storeInfo_${cleanId}`, {
       name: getStoreDefaultName(cleanId),
       storeName: getStoreDefaultName(cleanId),
       vertical: cleanId === 'churuone' ? 'marketplace' : cleanId.includes('nash') ? 'salon' : cleanId.includes('skyline') ? 'fashion' : 'food',
-      isOpen: true
+      isOpen: isCore,
+      marketplaceVisible: isCore,
+      isSetupComplete: isCore,
+      status: isCore ? 'active' : 'pending_review'
     });
     setStoreInfo(cachedStoreInfo);
     setCapabilities(resolveClientCapabilities(cleanId, cachedStoreInfo));
@@ -1400,6 +1438,8 @@ export const MasterProvider = ({ children }) => {
       setStoreId,
       switchStoreId,
       isSuperAdmin,
+      platformStores,
+      refreshPlatformStores,
       toggleStoreMarketplaceVisibility,
       capabilities,
       setCapabilities,
