@@ -47,4 +47,7 @@ router.get('/admin/customers', requireAdmin, service.getAdminCustomers);
 router.get('/admin/mohalla/pending', requireAdmin, service.listMohallaPendingApplications);
 router.post('/admin/mohalla/review', requireAdmin, service.reviewMohallaApplication);
 
+// Merchant Re-Application
+router.post('/dukandar/re-apply', service.dukandarReApply);
+
 export default router;

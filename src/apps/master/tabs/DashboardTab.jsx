@@ -29,9 +29,16 @@ import {
   Eye,
   ArrowUpRight,
   Package,
-  ArrowRight
+  ArrowRight,
+  LogOut,
+  Edit3,
+  MapPin,
+  Sliders,
+  X,
+  XCircle
 } from 'lucide-react';
 import { getImageUrl } from '../../../utils/imageHelper';
+import { CHURU_LANDMARKS } from '../../../utils/geoHelper';
 
 export default function DashboardTab() {
   const { 
@@ -51,7 +58,8 @@ export default function DashboardTab() {
     loadHistoricalOrders,
     refreshData,
     updateStoreSettings,
-    showToast
+    showToast,
+    logout
   } = useMaster();
   const [copiedId, setCopiedId] = useState(false);
 
@@ -64,7 +72,17 @@ export default function DashboardTab() {
   };
 
   const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
-  const isPendingReview = !isApprovedServer && (
+  const isRejected = !isApprovedServer && (
+    storeInfo?.status === 'rejected' ||
+    user?.status === 'rejected' ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'rejected';
+      } catch { return false; }
+    })()
+  );
+  const isPendingReview = !isApprovedServer && !isRejected && (
     storeInfo?.status === 'pending_review' || 
     user?.status === 'pending_review' ||
     (() => {
@@ -80,13 +98,428 @@ export default function DashboardTab() {
     if (isApprovedServer) {
       try {
         const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
-        if (u && u.status === 'pending_review') {
+        if (u && (u.status === 'pending_review' || u.status === 'rejected')) {
           u.status = 'active';
           localStorage.setItem('churuone_master_user', JSON.stringify(u));
         }
       } catch {}
     }
   }, [isApprovedServer]);
+
+  // Re-Application Modal State & Handlers
+  const [showReapplyModal, setShowReapplyModal] = useState(false);
+  const [reapplyDukanName, setReapplyDukanName] = useState('');
+  const [reapplyOwnerName, setReapplyOwnerName] = useState('');
+  const [reapplyCategory, setReapplyCategory] = useState('mohalla_kirana');
+  const [reapplyMohalla, setReapplyMohalla] = useState('');
+  const [reapplyLandmark, setReapplyLandmark] = useState('subhash_chowk');
+  const [reapplyLat, setReapplyLat] = useState(null);
+  const [reapplyLng, setReapplyLng] = useState(null);
+  const [reapplyRadius, setReapplyRadius] = useState(1.5);
+  const [isCapturingGps, setIsCapturingGps] = useState(false);
+  const [isSubmittingReapply, setIsSubmittingReapply] = useState(false);
+
+  const handleOpenReapplyModal = () => {
+    setReapplyDukanName(user?.dukanName || storeInfo?.name || '');
+    setReapplyOwnerName(user?.ownerName || storeInfo?.owner?.name || '');
+    setReapplyCategory(user?.businessType || storeInfo?.type || 'mohalla_kirana');
+    setReapplyMohalla(user?.mohalla || user?.areaName || user?.mohallaData?.areaName || storeInfo?.mohalla || '');
+    setReapplyLandmark(user?.nearestLandmark || user?.mohallaData?.nearestLandmark || storeInfo?.nearestLandmark || 'subhash_chowk');
+    setReapplyLat(user?.lat || user?.mohallaData?.lat || storeInfo?.lat || null);
+    setReapplyLng(user?.lng || user?.mohallaData?.lng || storeInfo?.lng || null);
+    setReapplyRadius(user?.radiusKm || user?.mohallaData?.radiusKm || storeInfo?.radiusKm || 1.5);
+    setShowReapplyModal(true);
+  };
+
+  const handleCaptureGps = () => {
+    if (!navigator?.geolocation) {
+      showToast('Aapke browser me geolocation support nahi hai', 'error');
+      return;
+    }
+    setIsCapturingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setReapplyLat(Number(pos.coords.latitude.toFixed(6)));
+        setReapplyLng(Number(pos.coords.longitude.toFixed(6)));
+        setIsCapturingGps(false);
+        showToast('📍 Exact GPS coordinates capture ho gaye!', 'success');
+      },
+      (err) => {
+        setIsCapturingGps(false);
+        showToast('GPS capture nahi hua. Landmark coordinates se kaam chalega.', 'info');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleSubmitReapply = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!reapplyDukanName.trim()) {
+      showToast('Kripya dukan ka naam darj karein!', 'error');
+      return;
+    }
+    if (!reapplyMohalla.trim()) {
+      showToast('Kripya dukan ka mohalla / colony ka naam darj karein!', 'error');
+      return;
+    }
+
+    try {
+      setIsSubmittingReapply(true);
+      const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:5000'
+        : 'https://churuone-backend.onrender.com';
+      
+      const res = await fetch(`${API_BASE}/api/auth/dukandar/re-apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('churuone_master_token') || ''}`
+        },
+        body: JSON.stringify({
+          dukanId: user?.dukanId || storeId,
+          dukanName: reapplyDukanName.trim(),
+          ownerName: reapplyOwnerName.trim(),
+          businessType: reapplyCategory,
+          mohalla: reapplyMohalla.trim(),
+          areaName: reapplyMohalla.trim(),
+          nearestLandmark: reapplyLandmark,
+          lat: reapplyLat,
+          lng: reapplyLng,
+          radiusKm: reapplyRadius
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showToast('✅ Details update ho gayi hain aur application dobara review ke liye bhej di gayi hai!', 'success');
+        try {
+          const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+          const updatedUser = {
+            ...u,
+            status: 'pending_review',
+            dukanName: reapplyDukanName.trim(),
+            ownerName: reapplyOwnerName.trim(),
+            businessType: reapplyCategory,
+            mohalla: reapplyMohalla.trim(),
+            areaName: reapplyMohalla.trim(),
+            nearestLandmark: reapplyLandmark,
+            adminNote: 'Re-applied by merchant',
+            rejectionReason: ''
+          };
+          localStorage.setItem('churuone_master_user', JSON.stringify(updatedUser));
+        } catch {}
+
+        setShowReapplyModal(false);
+        refreshData();
+      } else {
+        showToast(data.message || 'Re-application error', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      setIsSubmittingReapply(false);
+    }
+  };
+
+  const renderReapplyModal = () => {
+    if (!showReapplyModal) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 relative max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+            <div className="flex items-center gap-2 text-emerald-700">
+              <Edit3 className="w-5 h-5" />
+              <h3 className="text-base font-black text-stone-900">Application Details Sudharein (Re-Apply)</h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowReapplyModal(false)}
+              className="p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmitReapply} className="my-4 space-y-4">
+            <div className="bg-amber-50 p-3 rounded-2xl border border-amber-200 text-xs text-amber-900 leading-relaxed">
+              💡 <strong>Dukan ID Surakshit Hai:</strong> Aapki Dukan ID (<span className="font-mono font-bold">{user?.dukanId || storeId}</span>) aur phone number surakshit hain. Sirf zaroori details sudharkar jama karein.
+            </div>
+
+            {/* Dukan Name */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Dukan Ka Naam (Store Name) *
+              </label>
+              <input
+                type="text"
+                required
+                value={reapplyDukanName}
+                onChange={(e) => setReapplyDukanName(e.target.value)}
+                placeholder="e.g. Ramesh Kirana Store"
+                className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-emerald-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Owner Name */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Dukandar Ka Naam (Owner Name)
+              </label>
+              <input
+                type="text"
+                value={reapplyOwnerName}
+                onChange={(e) => setReapplyOwnerName(e.target.value)}
+                placeholder="e.g. Ramesh Kumar"
+                className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-emerald-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Business Category */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Business Type / Dukan Ki Category
+              </label>
+              <select
+                value={reapplyCategory}
+                onChange={(e) => setReapplyCategory(e.target.value)}
+                className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
+              >
+                <option value="mohalla_kirana">🛒 Mohalla Kirana & Daily Needs</option>
+                <option value="grocery">🍎 General Grocery / Supermarket</option>
+                <option value="dairy_sweets">🥛 Dairy & Sweets (दूध, दही, पनीर)</option>
+                <option value="fruits_veg">🥦 Fruits & Fresh Vegetables (सब्जी व फल)</option>
+                <option value="bakery">🍞 Bakery & Snacks</option>
+                <option value="medicine">💊 Pharmacy & Medical Store</option>
+                <option value="stationery">📚 Stationery & Books</option>
+                <option value="general_store">🏬 General Store & Cosmetics</option>
+              </select>
+            </div>
+
+            {/* Mohalla / Area Name */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Mohalla / Colony Ka Naam (Area Name) *
+              </label>
+              <input
+                type="text"
+                required
+                value={reapplyMohalla}
+                onChange={(e) => setReapplyMohalla(e.target.value)}
+                placeholder="e.g. Pankha Circle, Naya Bass, Purani Abadi"
+                className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-emerald-600 focus:outline-none"
+              />
+            </div>
+
+            {/* Nearest Landmark */}
+            <div>
+              <label className="block text-xs font-bold text-stone-700 mb-1">
+                Nazdeeki Landmark (Churu Landmark Selector) *
+              </label>
+              <select
+                value={reapplyLandmark}
+                onChange={(e) => setReapplyLandmark(e.target.value)}
+                className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
+              >
+                {CHURU_LANDMARKS.map(lm => (
+                  <option key={lm.id} value={lm.id}>
+                    {lm.label || lm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* GPS Capture Button */}
+            <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-stone-700">Dukan Ki GPS Location:</span>
+                <button
+                  type="button"
+                  disabled={isCapturingGps}
+                  onClick={handleCaptureGps}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>{isCapturingGps ? 'Capturing...' : '📍 Auto-Capture GPS'}</span>
+                </button>
+              </div>
+              <div className="text-[11px] font-mono text-stone-600">
+                {reapplyLat && reapplyLng ? (
+                  <span className="text-emerald-700 font-bold">📍 Captured: {reapplyLat}, {reapplyLng}</span>
+                ) : (
+                  <span className="text-stone-400">Landmark coordinates will be used automatically</span>
+                )}
+              </div>
+            </div>
+
+            {/* Delivery Radius */}
+            <div>
+              <div className="flex items-center justify-between text-xs font-bold text-stone-700 mb-1">
+                <span>Delivery Radius (डिलीवरी दायरा):</span>
+                <span className="text-emerald-700 font-mono font-black">{reapplyRadius} km</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="5.0"
+                step="0.1"
+                value={reapplyRadius}
+                onChange={(e) => setReapplyRadius(parseFloat(e.target.value))}
+                className="w-full accent-emerald-600 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-stone-400">
+                <span>0.5 km (Mohalla)</span>
+                <span>2.5 km (Colony)</span>
+                <span>5.0 km (City-wide)</span>
+              </div>
+            </div>
+
+            {/* Modal Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={() => setShowReapplyModal(false)}
+                className="px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs uppercase cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmittingReapply || !reapplyDukanName.trim() || !reapplyMohalla.trim()}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+              >
+                {isSubmittingReapply ? (
+                  <span>Submitting...</span>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Re-Apply & Jama Karein</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // If application is rejected, show REJECTION ALERT, EXACT REASON NOTE & RE-APPLY ACTION
+  if (isRejected) {
+    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const phone = user?.phone || storeInfo?.owner?.phone || '-';
+    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
+    const rejectionReason = storeInfo?.adminNote || user?.adminNote || storeInfo?.rejectionReason || user?.rejectionReason || 'Application details me sudhaar ki aavashyakta hai. Kripya niche diye gaye button par click karke details update karein.';
+
+    return (
+      <div className="space-y-6 pb-12 max-w-5xl mx-auto">
+        {/* 1. Permanent Dukan ID Card */}
+        <div className="p-6 sm:p-8 bg-gradient-to-br from-red-600 via-red-700 to-rose-900 text-white rounded-3xl shadow-xl relative overflow-hidden">
+          <div className="absolute right-4 top-4 opacity-10 pointer-events-none">
+            <AlertTriangle className="w-36 h-36" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-mono tracking-widest uppercase bg-black/30 px-3 py-1 rounded-full font-bold">
+                PERMANENT DUKAN ID
+              </span>
+              <span className="flex items-center gap-1.5 text-xs font-bold bg-white/20 px-3 py-1 rounded-full">
+                <AlertTriangle className="w-3.5 h-3.5 text-yellow-300" /> Action Required / Sudhaar Aavashyak
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 my-3">
+              <div>
+                <div className="text-3xl sm:text-5xl font-mono font-black tracking-wider text-white drop-shadow-sm">
+                  {dukanCode}
+                </div>
+                <div className="text-xs text-red-100 font-semibold mt-1">
+                  Store: {dukanTitle} • Category: {bType.toUpperCase()}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyDukanId(dukanCode)}
+                className="px-4 py-2.5 bg-white text-zinc-950 rounded-2xl text-xs font-extrabold flex items-center gap-2 shadow-md hover:bg-zinc-100 transition-all cursor-pointer active:scale-95 shrink-0"
+              >
+                {copiedId ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedId ? 'ID Copied!' : 'Copy Dukan ID'}</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-red-100/95 leading-relaxed font-medium mt-3 bg-black/20 p-3.5 rounded-2xl border border-white/10">
+              💡 <strong>Dukan ID Surakshit Hai:</strong> Aapki Dukan ID ({dukanCode}) aur phone number wahi rahenge. Re-apply karne par kewal dukan ka naam, landmark, ya category update hogi. Aapko naya account nahi banana hoga.
+            </p>
+          </div>
+        </div>
+
+        {/* 2. Super Admin Rejection Reason Alert Card */}
+        <div className="p-6 bg-red-50 border-2 border-red-300 rounded-3xl shadow-sm space-y-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <XCircle className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <span className="inline-block bg-red-200 text-red-950 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider mb-1">
+                Application Review Update
+              </span>
+              <h3 className="text-lg font-black text-red-950">
+                Aapki Application Me Sudhaar Ki Zaroorat Hai (Action Required)
+              </h3>
+              <p className="text-xs text-red-800 mt-1 leading-relaxed">
+                Super Admin ne aapki application check karne ke baad niche likha hua note bheja hai. Kripya is karan ko padhein aur "Details Sudharein Aur Re-Apply Karein" button par click karke ise theek karein:
+              </p>
+            </div>
+          </div>
+
+          {/* Exact Reason Note */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-red-200/90 shadow-xs">
+            <div className="text-[11px] font-bold uppercase text-red-500 mb-1 flex items-center gap-1.5">
+              <span>Super Admin Ka Note / Nirdesh:</span>
+            </div>
+            <div className="text-sm font-semibold text-stone-900 leading-relaxed italic">
+              "{rejectionReason}"
+            </div>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleOpenReapplyModal}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-md cursor-pointer"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Details Sudharein Aur Re-Apply Karein</span>
+            </button>
+
+            <a
+              href={`https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20ID%20${dukanCode}%20me%20sudhaar%20ki%20zaroorat%20batai%20hai`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-3 bg-white hover:bg-zinc-100 text-emerald-800 border border-emerald-300 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              <span>WhatsApp Helpline</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="px-4 py-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs ml-auto"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout Account</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Re-Application Modal */}
+        {renderReapplyModal()}
+      </div>
+    );
+  }
 
   // If application is pending review, show DUKAN ID CARD, 24-HR REVIEW NOTICE, DETAILS, AND STORE EXPLORER
   if (isPendingReview) {
@@ -160,7 +593,7 @@ export default function DashboardTab() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
             <a
               href={`https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20ID%20${dukanCode}%20ka%20status%20bataiye`}
               target="_blank"
@@ -177,6 +610,14 @@ export default function DashboardTab() {
               <Phone className="w-4 h-4" />
               <span>Call Team</span>
             </a>
+            <button
+              type="button"
+              onClick={logout}
+              className="px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer ml-auto"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Logout Account</span>
+            </button>
           </div>
         </div>
 

@@ -186,31 +186,6 @@ const FALLBACK_REAL_STORES = [
     payeeName: 'Nash Studio Churu',
     isFlagshipBrand: true,
     isCityWide: true
-  },
-  {
-    id: 'gupta-kirana-nayabass',
-    name: 'Gupta Kirana & Daily Needs',
-    vertical: 'mohalla_kirana',
-    category: 'Mohalla Kirana • Dairy, Staples, Spices & 15-Min Express',
-    rating: '4.9',
-    timing: '15 min express',
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80',
-    destination: '/churuone?store=gupta-kirana-nayabass',
-    tag: '15 Min Express',
-    isOpen: true,
-    address: 'Shop No. 4, Main Market, Naya Bass, Churu',
-    phone: '7023963189',
-    freeDeliveryThreshold: 199,
-    upiId: '7023963189@fam',
-    payeeName: 'Gupta Kirana Store',
-    isMohallaStore: true,
-    isFlagshipBrand: false,
-    mohalla: 'Naya Bass',
-    nearestLandmark: 'naya_bass',
-    lat: 28.2932,
-    lng: 74.9620,
-    radiusKm: 1.5,
-    expressDeliveryMins: 15
   }
 ];
 
@@ -1127,7 +1102,7 @@ export default function ChuruOneHomePage() {
     );
     if (isFlagship) return false;
 
-    const serveRes = isStoreServingLocation(s, customerLocation?.lat, customerLocation?.lng, customerLocation?.landmarkId);
+    const serveRes = isStoreServingLocation(s, customerLocation?.lat, customerLocation?.lng, customerLocation?.landmarkId, customerLocation?.name);
     return serveRes.serving === true;
   }).map(s => {
     const dist = s.lat && s.lng && customerLocation?.lat && customerLocation?.lng

@@ -76,8 +76,19 @@ export default function MasterLayout() {
   }
 
   const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
-  const isPendingReview = !isApprovedServer && (
+  const isRejected = !isApprovedServer && (
+    storeInfo?.status === 'rejected' ||
+    user?.status === 'rejected' ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'rejected';
+      } catch { return false; }
+    })()
+  );
+  const isPendingReview = !isApprovedServer && !isRejected && (
     storeInfo?.status === 'pending_review' || 
+    user?.status === 'pending_review' ||
     (() => {
       try {
         const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
@@ -298,6 +309,16 @@ export default function MasterLayout() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
+
+            {/* Always Available Logout Button */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Dukandar Portal Se Logout Karein"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Logout</span>
+            </button>
           </div>
 
         </div>
@@ -354,8 +375,8 @@ export default function MasterLayout() {
           >
             {activeTab === 0 ? (
               <DashboardTab />
-            ) : isPendingReview ? (
-              <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} />
+            ) : (isPendingReview || isRejected) ? (
+              <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} onLogout={logout} isRejected={isRejected} />
             ) : (
               <>
                 {activeTab === 1 && (isMarketplace ? <CityOrdersLedgerTab /> : <OrdersTab />)}
@@ -473,7 +494,7 @@ export default function MasterLayout() {
   );
 }
 
-function LockedTabPreview({ tabId, setActiveTab }) {
+function LockedTabPreview({ tabId, setActiveTab, onLogout, isRejected }) {
   const tabNames = {
     1: 'Live Orders & KOT Printing',
     2: 'Menu & Product Catalog Editor',
@@ -487,18 +508,26 @@ function LockedTabPreview({ tabId, setActiveTab }) {
   const title = tabNames[tabId] || 'Yeh Feature';
 
   return (
-    <div className="max-w-2xl mx-auto my-8 p-6 sm:p-8 bg-white rounded-3xl border border-amber-200/90 shadow-xl text-center">
-      <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-4 shadow-sm">
-        <Lock className="w-8 h-8 text-amber-700" />
+    <div className={`max-w-2xl mx-auto my-8 p-6 sm:p-8 bg-white rounded-3xl border shadow-xl text-center ${
+      isRejected ? 'border-red-300' : 'border-amber-200/90'
+    }`}>
+      <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm ${
+        isRejected ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
+      }`}>
+        <Lock className={`w-8 h-8 ${isRejected ? 'text-red-600' : 'text-amber-700'}`} />
       </div>
-      <span className="text-[11px] font-mono uppercase bg-amber-100 text-amber-900 px-3 py-1 rounded-full font-bold">
-        Application Under Review
+      <span className={`text-[11px] font-mono uppercase px-3 py-1 rounded-full font-bold ${
+        isRejected ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'
+      }`}>
+        {isRejected ? '⚠️ Action Required / Rejected' : 'Application Under Review'}
       </span>
       <h3 className="text-xl font-black text-zinc-950 mt-3">
         {title} Abhi Locked Hai
       </h3>
       <p className="text-xs text-zinc-600 mt-2 max-w-md mx-auto leading-relaxed">
-        Aapki dukan ki custom website abhi hamari tech team banakar link kar rahi hai. 24 ghante ke andar website live hote hi aapka yeh section unlock ho jayega aur aap isko poori tarah operate kar sakenge.
+        {isRejected 
+          ? 'Aapki application me sudhaar ki aavashyakta hai. Kripya Dashboard tab par jakar Super Admin ka note padhein aur application re-apply karein.' 
+          : 'Aapki dukan ki custom website abhi hamari tech team banakar link kar rahi hai. 24 ghante ke andar website live hote hi aapka yeh section unlock ho jayega.'}
       </p>
       
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -506,22 +535,22 @@ function LockedTabPreview({ tabId, setActiveTab }) {
           onClick={() => setActiveTab(0)}
           className="px-5 py-2.5 bg-zinc-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm"
         >
-          ← Dashboard Par Wapas Jayein
+          ← Dashboard Par Jayein
         </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout Account</span>
+          </button>
+        )}
         <a
           href="/explore"
           className="px-5 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
         >
-          🌐 ChuruOne Live Feed Dekhein
-        </a>
-        <a
-          href="https://wa.me/917023963189?text=Namaste%20ChuruOne%20Team%2C%20meri%20dukan%20application%20review%20me%20hai"
-          target="_blank"
-          rel="noreferrer"
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>WhatsApp Helpline</span>
+          🌐 ChuruOne Live Feed
         </a>
       </div>
     </div>

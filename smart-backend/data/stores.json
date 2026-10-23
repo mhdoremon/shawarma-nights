@@ -150,54 +150,6 @@
           "hasTableBooking": false
         }
       }
-    },
-    {
-      "id": "gupta-kirana-nayabass",
-      "slug": "gupta-kirana-nayabass",
-      "name": "Gupta Kirana & Daily Needs",
-      "type": "mohalla_kirana",
-      "vertical": "grocery",
-      "status": "active",
-      "subdomain": "guptakirana",
-      "marketplaceVisible": true,
-      "isMohallaStore": true,
-      "isFlagship": false,
-      "mohalla": "Naya Bass",
-      "nearestLandmark": "naya_bass",
-      "lat": 28.2932,
-      "lng": 74.9620,
-      "radiusKm": 1.5,
-      "expressDeliveryMins": 15,
-      "capabilities": {
-        "storeType": "mohalla_kirana",
-        "catalog": {
-          "hasVegNonVeg": true,
-          "hasFoodAddons": false,
-          "hasSizes": false,
-          "hasColors": false,
-          "hasLookbook": false,
-          "hasServiceDuration": false,
-          "hasUnitWeights": true,
-          "hasMasterCatalogPicker": true,
-          "isMohallaStore": true
-        },
-        "orders": {
-          "hasKotPrinting": false,
-          "hasRiderDispatch": true,
-          "hasAppointments": false,
-          "hasAdvanceToken": false,
-          "hasDeliveryOtp": true,
-          "isExpressDelivery": true
-        },
-        "settings": {
-          "hasDeliveryRadius": true,
-          "hasFreeDeliveryThreshold": true,
-          "hasAdvanceTokenFee": false,
-          "hasTableBooking": false,
-          "hasMohallaGeoFence": true,
-          "hasLandmarkBinding": true
-        }
-      }
     }
   ]
 }

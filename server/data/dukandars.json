@@ -56,41 +56,6 @@
       "token": "master-token-nash-active-2026",
       "createdAt": "2026-10-14T20:00:00.000Z",
       "updatedAt": "2026-10-14T20:00:00.000Z"
-    },
-    {
-      "dukanId": "DKN-77777",
-      "storeSlug": "dkn-77777",
-      "dukanName": "Churu Royal Kirana",
-      "ownerName": "Rajesh Kumar",
-      "fatherName": "Ramesh Kumar",
-      "phone": "9988776655",
-      "username": "royalkirana",
-      "password": "Dukan@123",
-      "businessType": "grocery",
-      "status": "pending_review",
-      "token": "master-token-kirana-review-2026",
-      "createdAt": "2026-10-14T20:00:00.000Z",
-      "updatedAt": "2026-10-14T20:00:00.000Z"
-    },
-    {
-      "dukanId": "GUPTA-KIRANA",
-      "storeSlug": "gupta-kirana-nayabass",
-      "dukanName": "Gupta Kirana & Daily Needs",
-      "ownerName": "Ramesh Gupta",
-      "phone": "7023963189",
-      "username": "gupta",
-      "password": "Gupta@123",
-      "businessType": "mohalla_kirana",
-      "status": "active",
-      "isMohallaStore": true,
-      "mohalla": "Naya Bass",
-      "nearestLandmark": "naya_bass",
-      "lat": 28.2932,
-      "lng": 74.9620,
-      "radiusKm": 1.5,
-      "token": "master-token-gupta-active-2026",
-      "createdAt": "2026-10-21T00:00:00.000Z",
-      "updatedAt": "2026-10-21T00:00:00.000Z"
     }
   ]
 }

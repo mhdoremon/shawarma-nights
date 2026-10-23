@@ -377,8 +377,7 @@ export const MasterProvider = ({ children }) => {
   const [platformStores, setPlatformStores] = useState(() => getLocalCache('churuone_platform_stores', [
     { id: 'shawarma', name: 'Shawarma Nights', vertical: 'food' },
     { id: 'skyline', name: 'Skyline Premium Outfits', vertical: 'fashion' },
-    { id: 'nash-studio', name: 'Nash Studio', vertical: 'salon' },
-    { id: 'gupta-kirana-nayabass', name: 'Gupta Kirana & Daily Needs', vertical: 'grocery', isMohallaStore: true, mohalla: 'Naya Bass' }
+    { id: 'nash-studio', name: 'Nash Studio', vertical: 'salon' }
   ]));
 
   const refreshPlatformStores = useCallback(async () => {
@@ -552,6 +551,8 @@ export const MasterProvider = ({ children }) => {
               marketplaceVisible: Boolean(data.storeInfo.marketplaceVisible ?? isFlagship),
               isSetupComplete: Boolean(data.storeInfo.isSetupComplete ?? isFlagship),
               status: data.storeInfo.status || (isFlagship ? 'active' : 'pending_review'),
+              adminNote: data.storeInfo.adminNote || user?.adminNote || '',
+              rejectionReason: data.storeInfo.rejectionReason || data.storeInfo.adminNote || user?.adminNote || '',
               name: data.storeInfo.name || data.storeInfo.storeName || getStoreDefaultName(storeId),
               storeName: data.storeInfo.storeName || data.storeInfo.name || getStoreDefaultName(storeId),
               vertical: data.storeInfo.vertical || (storeId === 'churuone' ? 'marketplace' : 'retail')
@@ -1008,6 +1009,16 @@ export const MasterProvider = ({ children }) => {
           phone: data.ownerPhone || '',
           businessType: data.businessType || 'retail',
           status: data.status || 'active',
+          adminNote: data.adminNote || '',
+          rejectionReason: data.rejectionReason || data.adminNote || '',
+          rejectedAt: data.rejectedAt || null,
+          mohallaData: data.mohallaData || null,
+          mohalla: data.mohalla || '',
+          areaName: data.areaName || '',
+          nearestLandmark: data.nearestLandmark || '',
+          lat: data.lat || null,
+          lng: data.lng || null,
+          radiusKm: data.radiusKm || 1.2,
           websiteUrl: data.websiteUrl || '',
           isSuperAdmin: Boolean(data.isSuperAdmin || storeIdClean === 'churuone')
         };
@@ -1018,6 +1029,9 @@ export const MasterProvider = ({ children }) => {
         if (data.status === 'pending_review') {
           setActiveTab(0);
           showToast('Dukandar Login Successful! Application under review.', 'info');
+        } else if (data.status === 'rejected') {
+          setActiveTab(0);
+          showToast('⚠️ Application Needs Correction. Kripya reason padhein aur re-apply karein.', 'warning');
         } else {
           showToast('ChuruOne Dukandar Login Successful!', 'success');
         }

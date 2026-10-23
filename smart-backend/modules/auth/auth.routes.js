@@ -43,4 +43,11 @@ router.post('/admin/login', service.loginAdmin);
 router.post('/admin/verify', service.verifyAdmin);
 router.get('/admin/customers', requireAdmin, service.getAdminCustomers);
 
+// Super Admin: Mohalla Store Management
+router.get('/admin/mohalla/pending', requireAdmin, service.listMohallaPendingApplications);
+router.post('/admin/mohalla/review', requireAdmin, service.reviewMohallaApplication);
+
+// Merchant Re-Application
+router.post('/dukandar/re-apply', service.dukandarReApply);
+
 export default router;

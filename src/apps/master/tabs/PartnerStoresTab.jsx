@@ -245,6 +245,44 @@ export default function PartnerStoresTab() {
   const [actingAppId, setActingAppId] = useState(null);
   const [editRadius, setEditRadius] = useState({});
 
+  // Super Admin Mandatory Rejection Reason & Note State
+  const REJECTION_PRESETS = [
+    { 
+      id: 'address_unclear', 
+      label: '📍 दुकान का पता या मोहल्ला/लैंडमार्क स्पष्ट नहीं है (Shop address / Landmark unclear)', 
+      defaultNote: 'Aapki dukan ka pata ya landmark saaf nahi hai. Kripya apna sahi mohalla aur landmark select karke dobara apply karein.' 
+    },
+    { 
+      id: 'outside_service', 
+      label: '🛵 दुकान का क्षेत्र वर्तमान डिलीवरी नेटवर्क से बाहर है (Area outside delivery zone)', 
+      defaultNote: 'Aapki dukan ka area hamare current 15-min delivery radius se bahar hai. Kripya apna sahi nazdeeki landmark select karein.' 
+    },
+    { 
+      id: 'incomplete_contact', 
+      label: '📞 दुकानदार या संपर्क विवरण अधूरा / अमान्य है (Incomplete / Invalid Details)', 
+      defaultNote: 'Aapke phone number ya dukan ke naam me kami hai. Kripya dukan ka sahi naam aur sampark sutra update karein.' 
+    },
+    { 
+      id: 'duplicate_test', 
+      label: '🧪 डुप्लीकेट या टेस्टिंग हेतु बनाई गई एप्लीकेशन (Duplicate / Test application)', 
+      defaultNote: 'Yeh application testing ya duplicate pratit ho rahi hai. Kripya sahi vyaparik jankari ke sath re-apply karein.' 
+    },
+    { 
+      id: 'wrong_category', 
+      label: '📦 गलत व्यापार श्रेणी या अनुपयुक्त उत्पाद (Incorrect Business Category)', 
+      defaultNote: 'Aapne galat category select ki hai. Kripya apni dukan ke anusaar uchit business type select karein.' 
+    },
+    { 
+      id: 'other', 
+      label: '✏️ अन्य कारण (Other / Custom reason)', 
+      defaultNote: '' 
+    }
+  ];
+
+  const [rejectModalApp, setRejectModalApp] = useState(null);
+  const [selectedReasonPreset, setSelectedReasonPreset] = useState('address_unclear');
+  const [rejectionCustomNote, setRejectionCustomNote] = useState('');
+
   const loadPendingApps = async () => {
     try {
       setIsLoadingApps(true);
@@ -266,7 +304,7 @@ export default function PartnerStoresTab() {
     }
   };
 
-  const handleReviewApp = async (dukanId, action, customRadius, customMohalla, customLandmark) => {
+  const handleReviewApp = async (dukanId, action, customRadius, customMohalla, customLandmark, customAdminNote) => {
     try {
       setActingAppId(dukanId);
       const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
@@ -282,7 +320,7 @@ export default function PartnerStoresTab() {
           radiusKm: customRadius || 1.5,
           mohalla: customMohalla,
           nearestLandmark: customLandmark,
-          adminNote: action === 'approve' ? 'Approved by ChuruOne Super Admin' : 'Rejected'
+          adminNote: customAdminNote || (action === 'approve' ? 'Approved by ChuruOne Super Admin' : 'Application rejected by admin')
         })
       });
       const data = await res.json();
@@ -290,7 +328,7 @@ export default function PartnerStoresTab() {
         showToast(
           action === 'approve' 
             ? '🟢 Mohalla Dukan approve ho gayi & area allot ho gaya! Dukandar dashboard unlock ho chuka hai.' 
-            : '🔴 Application reject kar di gayi.', 
+            : '🔴 Application reject kar di gayi aur reason applicant ko bhej diya gaya.', 
           'success'
         );
         loadPendingApps();
@@ -667,11 +705,16 @@ export default function PartnerStoresTab() {
                       <button
                         type="button"
                         disabled={isActing}
-                        onClick={() => handleReviewApp(dId, 'reject')}
-                        className="px-3 py-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs uppercase transition-colors cursor-pointer disabled:opacity-50"
-                        title="Reject Application"
+                        onClick={() => {
+                          setRejectModalApp(app);
+                          setSelectedReasonPreset(REJECTION_PRESETS[0].id);
+                          setRejectionCustomNote(REJECTION_PRESETS[0].defaultNote);
+                        }}
+                        className="px-3 py-2 rounded-xl bg-red-100 hover:bg-red-200 active:scale-95 text-red-700 font-bold text-xs uppercase transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1 shadow-xs"
+                        title="Reject Application with Required Reason"
                       >
                         <X className="w-4 h-4" />
+                        <span>Reject</span>
                       </button>
                     </div>
                   </div>
@@ -1063,6 +1106,122 @@ export default function PartnerStoresTab() {
           <p className="text-xs text-stone-500 max-w-sm mx-auto">
             Aapke search query ke anusaar koi store match nahi hua. Search clear karein ya filters badlein.
           </p>
+        </div>
+      )}
+
+      {/* 4. MANDATORY APPLICATION REJECTION REASON MODAL */}
+      {rejectModalApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-red-200 relative">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-200">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertCircle className="w-5 h-5" />
+                <h3 className="text-base font-black text-stone-900">Application Rejection & Correction Note</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModalApp(null)}
+                className="p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="my-4 space-y-4">
+              {/* Applicant Summary */}
+              <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-900">{rejectModalApp.dukanName || 'Mohalla Dukan'}</span>
+                  <span className="font-mono bg-stone-200 text-stone-800 px-2 py-0.5 rounded font-black text-[10px]">
+                    {rejectModalApp.dukanId}
+                  </span>
+                </div>
+                <div className="text-stone-600">
+                  Owner: {rejectModalApp.ownerName || '-'} • Phone: {rejectModalApp.phone || '-'}
+                </div>
+                <div className="text-stone-500 text-[11px]">
+                  Area: {rejectModalApp.mohallaData?.areaName || rejectModalApp.mohalla || '-'} ({rejectModalApp.mohallaData?.nearestLandmark || rejectModalApp.nearestLandmark || '-'})
+                </div>
+              </div>
+
+              {/* Standard Reason Dropdown */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  1. Reason Category Chunein (Select Standard Preset):
+                </label>
+                <select
+                  value={selectedReasonPreset}
+                  onChange={(e) => {
+                    const presetId = e.target.value;
+                    setSelectedReasonPreset(presetId);
+                    const found = REJECTION_PRESETS.find(p => p.id === presetId);
+                    if (found) {
+                      setRejectionCustomNote(found.defaultNote);
+                    }
+                  }}
+                  className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-red-500 focus:outline-none cursor-pointer"
+                >
+                  {REJECTION_PRESETS.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mandatory Rejection Note Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center justify-between">
+                  <span>2. Dukandar Ke Liye Spasht Note / Nirdesh (Mandatory Note):</span>
+                  <span className="text-[10px] text-red-600 font-bold">*Required</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={rejectionCustomNote}
+                  onChange={(e) => setRejectionCustomNote(e.target.value)}
+                  placeholder="Applicant ko spasht likhein ki unhe apni application me kya sudharna hai (e.g. sahi landmark chunein, dukan ka sahi naam darj karein)..."
+                  className="w-full text-xs p-3 rounded-2xl bg-stone-50 border border-stone-300 text-stone-900 focus:border-red-500 focus:outline-none resize-none leading-relaxed"
+                />
+                <div className="text-[10px] text-stone-500 mt-1">
+                  ℹ️ Yeh note applicant ke dukandar dashboard me laal alert card ke roop me dikhai dega aur unhe ise sudharne ka button milega.
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={() => setRejectModalApp(null)}
+                className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs uppercase cursor-pointer"
+              >
+                Radd Karein (Cancel)
+              </button>
+              <button
+                type="button"
+                disabled={!rejectionCustomNote.trim() || actingAppId === rejectModalApp.dukanId}
+                onClick={async () => {
+                  if (!rejectionCustomNote.trim()) {
+                    showToast('Kripya rejection ka karan spasht likhein!', 'error');
+                    return;
+                  }
+                  await handleReviewApp(
+                    rejectModalApp.dukanId,
+                    'reject',
+                    null,
+                    null,
+                    null,
+                    rejectionCustomNote.trim()
+                  );
+                  setRejectModalApp(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Confirm Reject & Send Note</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

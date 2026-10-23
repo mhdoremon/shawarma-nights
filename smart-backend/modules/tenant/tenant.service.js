@@ -418,6 +418,26 @@ export function handleStoreWsMessage(data, ws, storeId, source) {
     }
 }
 
+const CHURU_COORDS = {
+    subhash_chowk: { lat: 28.2915, lng: 74.9662 },
+    naya_bass: { lat: 28.2965, lng: 74.9590 },
+    station_road: { lat: 28.2950, lng: 74.9690 },
+    nai_sarak: { lat: 28.2930, lng: 74.9630 },
+    dharamstupa: { lat: 28.2920, lng: 74.9645 },
+    kotwali: { lat: 28.2920, lng: 74.9645 },
+    collectorate_road: { lat: 28.2880, lng: 74.9610 },
+    collectorate: { lat: 28.2880, lng: 74.9610 },
+    pankha_circle: { lat: 28.2990, lng: 74.9720 },
+    lohiya_college: { lat: 28.2850, lng: 74.9580 },
+    nature_park: { lat: 28.2830, lng: 74.9620 },
+    ramgarh_road: { lat: 28.3020, lng: 74.9640 },
+    purani_abadi: { lat: 28.2980, lng: 74.9650 },
+    raj_colony: { lat: 28.2890, lng: 74.9540 },
+    gandhi_nagar: { lat: 28.2840, lng: 74.9680 },
+    adarsh_nagar: { lat: 28.2810, lng: 74.9650 },
+    ghantaghar: { lat: 28.2925, lng: 74.9655 }
+};
+
 /**
  * ─── CHURUONE MARKETPLACE FEED & CITY DISCOVERY ALGORITHM (CDRA-v1) ───
  * Aggregates real items across ALL connected stores, calculates city rankings,
@@ -431,7 +451,7 @@ export const getMarketplaceFeed = (req, res) => {
         
         // Filter out platform names, typos, and non-merchant IDs
         const RESERVED_NON_MERCHANTS = new Set([
-            'churuone', 'admin', 'platform', 'api', 'www', 'hub', 'test', '10', 'sawarma'
+            'churuone', 'admin', 'platform', 'api', 'www', 'hub', '10', 'sawarma'
         ]);
 
         const DEFAULT_STORE_IMAGES = {
@@ -454,16 +474,15 @@ export const getMarketplaceFeed = (req, res) => {
             if (RESERVED_NON_MERCHANTS.has(clean)) return false;
             if (clean.length < 3 || /^\d+$/.test(clean)) return false;
             
-            // Check dynamic store visibility
+            // Check dynamic store visibility: most recent user setting takes precedence
             const reg = registeredStores.find(s => (s.id || s.slug) === clean);
             const cfg = DataLayer.getStoreConfig(clean) || {};
             const sInfo = DataLayer.read(clean, 'store_info') || {};
-            // If explicitly set to false in any config layer, hide from marketplace feed (unless showAll)
-            const isStoreHidden = reg?.marketplaceVisible === false || 
-                                  cfg?.marketplaceVisible === false || 
-                                  cfg?.settings?.marketplaceVisible === false ||
-                                  sInfo?.marketplaceVisible === false;
-            if (!showAll && isStoreHidden) {
+            const storeMv = reg?.marketplaceVisible !== undefined ? reg.marketplaceVisible :
+                            (cfg?.settings?.marketplaceVisible !== undefined ? cfg.settings.marketplaceVisible :
+                            (sInfo?.marketplaceVisible !== undefined ? sInfo.marketplaceVisible :
+                            (cfg?.marketplaceVisible !== undefined ? cfg.marketplaceVisible : true)));
+            if (!showAll && storeMv === false) {
                 return false;
             }
             return true;
@@ -605,13 +624,44 @@ export const getMarketplaceFeed = (req, res) => {
                 isMohallaStore,
                 isFlagshipBrand: isFlagship,
                 isCityWide: isFlagship,
-                mohalla: regStore.mohalla || config.mohalla || config.settings?.mohalla || storeInfo.mohalla || 'Churu Area',
-                nearestLandmark: regStore.nearestLandmark || config.nearestLandmark || config.settings?.nearestLandmark || storeInfo.nearestLandmark || 'subhash_chowk',
-                lat: Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || 28.2932),
-                lng: Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || 74.9620),
-                radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),
-                expressDeliveryMins: Number(regStore.expressDeliveryMins || config.expressDeliveryMins || 15)
-            };
+                const resolvedLandmark = regStore.nearestLandmark || config.nearestLandmark || config.settings?.nearestLandmark || storeInfo.nearestLandmark || 'subhash_chowk';
+                const cleanLmKey = String(resolvedLandmark).toLowerCase().trim();
+                const lmCoords = CHURU_COORDS[cleanLmKey] || { lat: 28.2915, lng: 74.9662 };
+                const finalLat = Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || lmCoords.lat);
+                const finalLng = Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || lmCoords.lng);
+
+                const storeSummary = {
+                    id: sId,
+                    name: storeName,
+                    vertical,
+                    category: isMohallaStore ? 'Mohalla Kirana & Daily Needs' : (vertical === 'food' ? 'Charcoal Kitchen & Dining' : (vertical === 'salon' ? 'Salon & Luxury Grooming' : 'Luxury Menswear & Outfits')),
+                    rating: String(storeRating),
+                    timing: isMohallaStore ? '15 min express' : storeTiming,
+                    image: storeImg,
+                    destination: isMohallaStore ? `/churuone?store=${sId}` : destination,
+                    tag: isMohallaStore ? '15 Min Express' : (vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits')),
+                    isOpen: isStoreOpen,
+                    status: regStore.status || config.status || storeInfo.status || 'active',
+                    isApproved: Boolean(regStore.isApproved ?? config.isApproved ?? (regStore.status === 'active' || config.status === 'active')),
+                    isSetupComplete,
+                    address: storeInfo.address || 'Churu, Rajasthan',
+                    phone: storeInfo.phone || storeInfo.whatsapp || '7023963189',
+                    freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? (isMohallaStore ? 199 : 499),
+                    upiId: storeInfo.upiId || '7023963189@fam',
+                    payeeName: storeInfo.payeeName || storeName,
+                    itemCount: menuItems.length,
+                    dealsCount: dealsList.length,
+                    marketplaceVisible: isStoreMarketplaceVisible,
+                    isMohallaStore,
+                    isFlagshipBrand: isFlagship,
+                    isCityWide: isFlagship,
+                    mohalla: regStore.mohalla || config.mohalla || config.settings?.mohalla || storeInfo.mohalla || 'Churu Area',
+                    nearestLandmark: resolvedLandmark,
+                    lat: finalLat,
+                    lng: finalLng,
+                    radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),
+                    expressDeliveryMins: Number(regStore.expressDeliveryMins || config.expressDeliveryMins || 15)
+                };
             marketplaceStores.push(storeSummary);
 
             // Add active deals

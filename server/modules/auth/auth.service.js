@@ -868,7 +868,11 @@ export function getAllDukandars() {
         });
     } catch {}
 
-    return list;
+    // Permanently filter out legacy dummy review applications
+    return list.filter(d => 
+        String(d.dukanId || '').toUpperCase() !== 'DKN-77777' &&
+        !String(d.dukanName || '').toLowerCase().includes('royal kirana')
+    );
 }
 
 export function saveDukandarRecord(dukandar) {
@@ -1874,6 +1878,16 @@ export const dukandarLogin = (req, res) => {
             gender: target.gender || '',
             businessType: target.businessType || 'retail',
             status: target.status || 'pending_review',
+            adminNote: target.adminNote || target.rejectionReason || '',
+            rejectionReason: target.rejectionReason || target.adminNote || '',
+            rejectedAt: target.rejectedAt || null,
+            mohallaData: target.mohallaData || null,
+            nearestLandmark: target.nearestLandmark || target.mohallaData?.nearestLandmark || '',
+            mohalla: target.mohalla || target.mohallaData?.areaName || '',
+            areaName: target.areaName || target.mohallaData?.areaName || '',
+            lat: target.lat || target.mohallaData?.lat || null,
+            lng: target.lng || target.mohallaData?.lng || null,
+            radiusKm: target.radiusKm || target.mohallaData?.radiusKm || 1.2,
             websiteUrl: target.websiteUrl || '',
             capabilities,
             username: target.username,
@@ -2100,13 +2114,37 @@ export const purgeAllLoginDataHandler = async (req, res) => {
 export const listMohallaPendingApplications = (req, res) => {
     try {
         const dukandars = getAllDukandars();
+        const reservedCore = ['shawarma', 'skyline', 'nash-studio', 'churuone', 'beared'];
         const pending = dukandars.filter(d =>
-            d.status === 'pending_review' && (d.businessType === 'mohalla_kirana' || d.businessType === 'grocery' || d.isMohallaApplicant)
+            d.status === 'pending_review' && 
+            !reservedCore.includes(String(d.dukanId || '').toLowerCase()) &&
+            !reservedCore.includes(String(d.storeSlug || '').toLowerCase())
         );
         res.json({ success: true, applications: pending });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
+};
+
+// ─── CHURU LANDMARK COORDINATES REFERENCE ─────────────────────────
+const CHURU_LANDMARK_COORDS = {
+    subhash_chowk: { lat: 28.2915, lng: 74.9662 },
+    naya_bass: { lat: 28.2965, lng: 74.9590 },
+    station_road: { lat: 28.2950, lng: 74.9690 },
+    nai_sarak: { lat: 28.2930, lng: 74.9630 },
+    dharamstupa: { lat: 28.2920, lng: 74.9645 },
+    kotwali: { lat: 28.2920, lng: 74.9645 },
+    collectorate_road: { lat: 28.2880, lng: 74.9610 },
+    collectorate: { lat: 28.2880, lng: 74.9610 },
+    pankha_circle: { lat: 28.2990, lng: 74.9720 },
+    lohiya_college: { lat: 28.2850, lng: 74.9580 },
+    nature_park: { lat: 28.2830, lng: 74.9620 },
+    ramgarh_road: { lat: 28.3020, lng: 74.9640 },
+    purani_abadi: { lat: 28.2980, lng: 74.9650 },
+    raj_colony: { lat: 28.2890, lng: 74.9540 },
+    gandhi_nagar: { lat: 28.2840, lng: 74.9680 },
+    adarsh_nagar: { lat: 28.2810, lng: 74.9650 },
+    ghantaghar: { lat: 28.2925, lng: 74.9655 }
 };
 
 // ─── SUPER ADMIN: APPROVE/REJECT MOHALLA APPLICATION ─────────────────────────
@@ -2126,11 +2164,23 @@ export const reviewMohallaApplication = (req, res) => {
         const dukandar = dukandars[idx];
 
         if (action === 'approve') {
-            const resolvedMohalla = mohalla || dukandar.mohallaData?.areaName || dukandar.mohallaData?.mohalla || (dukandar.mohallaData?.nearestLandmark && dukandar.mohallaData.nearestLandmark !== 'custom_other' ? dukandar.mohallaData.nearestLandmark.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Churu');
             const resolvedLandmark = nearestLandmark || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'subhash_chowk';
-            const resolvedLat = lat || dukandar.mohallaData?.lat || dukandar.lat || 28.2915;
-            const resolvedLng = lng || dukandar.mohallaData?.lng || dukandar.lng || 74.9662;
-            const resolvedRadius = Number(radiusKm || dukandar.mohallaData?.radiusKm || 1.2);
+            const lmCoords = CHURU_LANDMARK_COORDS[resolvedLandmark];
+            
+            let resolvedLat = lat || dukandar.mohallaData?.lat || dukandar.lat;
+            let resolvedLng = lng || dukandar.mohallaData?.lng || dukandar.lng;
+            
+            // If GPS wasn't provided or defaulted to Subhash Chowk, use specific landmark coords
+            if ((!resolvedLat || Number(resolvedLat) === 28.2915) && lmCoords) {
+                resolvedLat = lmCoords.lat;
+                resolvedLng = lmCoords.lng;
+            } else {
+                resolvedLat = resolvedLat || 28.2915;
+                resolvedLng = resolvedLng || 74.9662;
+            }
+
+            const resolvedMohalla = mohalla || dukandar.mohallaData?.areaName || dukandar.mohallaData?.mohalla || (dukandar.mohallaData?.nearestLandmark && dukandar.mohallaData.nearestLandmark !== 'custom_other' ? dukandar.mohallaData.nearestLandmark.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Churu');
+            const resolvedRadius = Number(radiusKm || dukandar.mohallaData?.radiusKm || 1.5);
 
             const updatedDukandar = {
                 ...dukandar,
@@ -2140,8 +2190,8 @@ export const reviewMohallaApplication = (req, res) => {
                 approvedAt: new Date().toISOString(),
                 mohalla: resolvedMohalla,
                 areaName: resolvedMohalla,
-                lat: resolvedLat,
-                lng: resolvedLng,
+                lat: Number(resolvedLat),
+                lng: Number(resolvedLng),
                 nearestLandmark: resolvedLandmark,
                 radiusKm: resolvedRadius,
                 adminNote: adminNote || '',
@@ -2160,7 +2210,7 @@ export const reviewMohallaApplication = (req, res) => {
                 dukanId: dukandar.dukanId,
                 name: dukandar.dukanName,
                 type: 'mohalla_kirana',
-                vertical: 'grocery',
+                vertical: dukandar.businessType === 'mohalla_kirana' ? 'grocery' : (dukandar.businessType || 'grocery'),
                 status: 'active',
                 isApproved: true,
                 marketplaceVisible: false, // NOT immediately live: merchant must set up inventory and click Go Live!
@@ -2244,14 +2294,50 @@ export const reviewMohallaApplication = (req, res) => {
                 console.warn('Config update on review error:', cfgErr.message);
             }
         } else {
-            // Reject
+            // Reject with mandatory reason note
+            const finalNote = String(adminNote || '').trim() || 'Application rejected by ChuruOne Super Admin. Kripya details sudharkar re-apply karein.';
             const updatedDukandar = {
                 ...dukandar,
                 status: 'rejected',
+                isApproved: false,
                 rejectedAt: new Date().toISOString(),
-                adminNote: adminNote || 'Application rejected by admin.'
+                adminNote: finalNote,
+                rejectionReason: finalNote
             };
             saveDukandarRecord(updatedDukandar);
+
+            // Synchronize status in stores.json and config
+            try {
+                const STORES_FILE = path.join(process.cwd(), 'server', 'data', 'stores.json');
+                const storesData = readJsonFile(STORES_FILE, { stores: [] });
+                const storeSlug = dukandar.storeSlug || String(dukandar.dukanId).toLowerCase();
+                const dukanIdLower = String(dukandar.dukanId || '').toLowerCase();
+
+                storesData.stores = (storesData.stores || []).map(s => {
+                    const sId = String(s.id || '').toLowerCase();
+                    const sSlug = String(s.slug || '').toLowerCase();
+                    const sDukan = String(s.dukanId || '').toLowerCase();
+                    if (sId === storeSlug || sSlug === storeSlug || sId === dukanIdLower || sDukan === dukanIdLower) {
+                        return { ...s, status: 'rejected', isApproved: false, marketplaceVisible: false, isOpen: false, adminNote: finalNote };
+                    }
+                    return s;
+                });
+                writeJsonFile(STORES_FILE, storesData);
+                DataLayer.writePlatform('stores', storesData);
+                const smartStoresPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores.json');
+                writeJsonFile(smartStoresPath, storesData);
+
+                DataLayer.updateStoreConfig(storeSlug, {
+                    status: 'rejected',
+                    isApproved: false,
+                    marketplaceVisible: false,
+                    isOpen: false,
+                    adminNote: finalNote,
+                    rejectionReason: finalNote
+                });
+            } catch (err) {
+                console.warn('Reject store sync error:', err.message);
+            }
         }
 
         res.json({ 
@@ -2264,4 +2350,168 @@ export const reviewMohallaApplication = (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 };
+
+// ─── MERCHANT RE-APPLICATION AFTER REJECTION / CORRECTION ───────────────────────
+export const dukandarReApply = (req, res) => {
+    try {
+        const {
+            dukanId,
+            dukanName,
+            ownerName,
+            businessType,
+            mohalla,
+            areaName,
+            nearestLandmark,
+            lat,
+            lng,
+            radiusKm
+        } = req.body;
+
+        if (!dukanId) {
+            return res.status(400).json({ success: false, message: 'Dukan ID zaroori hai re-application ke liye.' });
+        }
+
+        const dukanIdClean = String(dukanId).trim().toLowerCase();
+        const dukandars = getAllDukandars();
+        const idx = dukandars.findIndex(d => 
+            String(d.dukanId || '').toLowerCase() === dukanIdClean ||
+            String(d.storeSlug || '').toLowerCase() === dukanIdClean
+        );
+
+        if (idx === -1) {
+            return res.status(404).json({ success: false, message: `Dukan ID ${dukanId} system me nahi mili.` });
+        }
+
+        const existing = dukandars[idx];
+
+        const resolvedLandmark = nearestLandmark || existing.nearestLandmark || existing.mohallaData?.nearestLandmark || 'subhash_chowk';
+        const lmCoords = CHURU_LANDMARK_COORDS[resolvedLandmark];
+        
+        let resolvedLat = lat !== undefined && lat !== null ? Number(lat) : (existing.lat || (lmCoords ? lmCoords.lat : 28.2915));
+        let resolvedLng = lng !== undefined && lng !== null ? Number(lng) : (existing.lng || (lmCoords ? lmCoords.lng : 74.9662));
+        
+        if (resolvedLandmark !== 'subhash_chowk' && lmCoords && (resolvedLat === 28.2915 || !resolvedLat)) {
+            resolvedLat = lmCoords.lat;
+            resolvedLng = lmCoords.lng;
+        }
+
+        const resolvedMohalla = areaName || mohalla || existing.mohalla || existing.areaName || (lmCoords ? resolvedLandmark.replace(/_/g, ' ') : 'Churu');
+        const resolvedRadius = radiusKm !== undefined ? Number(radiusKm) : (existing.radiusKm || 1.5);
+        const resolvedDukanName = dukanName ? String(dukanName).trim() : existing.dukanName;
+        const resolvedOwnerName = ownerName ? String(ownerName).trim() : existing.ownerName;
+        const resolvedBusinessType = businessType || existing.businessType || 'mohalla_kirana';
+
+        const updatedDukandar = {
+            ...existing,
+            dukanName: resolvedDukanName,
+            ownerName: resolvedOwnerName,
+            businessType: resolvedBusinessType,
+            mohalla: resolvedMohalla,
+            areaName: resolvedMohalla,
+            nearestLandmark: resolvedLandmark,
+            lat: resolvedLat,
+            lng: resolvedLng,
+            radiusKm: resolvedRadius,
+            mohallaData: {
+                ...(existing.mohallaData || {}),
+                areaName: resolvedMohalla,
+                mohalla: resolvedMohalla,
+                nearestLandmark: resolvedLandmark,
+                lat: resolvedLat,
+                lng: resolvedLng,
+                radiusKm: resolvedRadius
+            },
+            status: 'pending_review',
+            isApproved: false,
+            reappliedAt: new Date().toISOString(),
+            lastRejectionNote: existing.adminNote || existing.rejectionReason || '',
+            adminNote: 'Re-applied by merchant with corrected details. Under review.',
+            rejectionReason: null
+        };
+
+        saveDukandarRecord(updatedDukandar);
+
+        // Update stores.json
+        try {
+            const STORES_FILE = path.join(process.cwd(), 'server', 'data', 'stores.json');
+            const storesData = readJsonFile(STORES_FILE, { stores: [] });
+            const storeSlug = existing.storeSlug || dukanIdClean;
+            
+            storesData.stores = (storesData.stores || []).map(s => {
+                const sId = String(s.id || '').toLowerCase();
+                const sSlug = String(s.slug || '').toLowerCase();
+                const sDukan = String(s.dukanId || '').toLowerCase();
+                if (sId === storeSlug || sSlug === storeSlug || sId === dukanIdClean || sDukan === dukanIdClean) {
+                    return {
+                        ...s,
+                        name: resolvedDukanName,
+                        ownerName: resolvedOwnerName,
+                        vertical: resolvedBusinessType === 'mohalla_kirana' ? 'grocery' : resolvedBusinessType,
+                        mohalla: resolvedMohalla,
+                        areaName: resolvedMohalla,
+                        nearestLandmark: resolvedLandmark,
+                        lat: resolvedLat,
+                        lng: resolvedLng,
+                        radiusKm: resolvedRadius,
+                        status: 'pending_review',
+                        isApproved: false,
+                        marketplaceVisible: false,
+                        isOpen: false,
+                        adminNote: 'Re-applied by merchant'
+                    };
+                }
+                return s;
+            });
+
+            writeJsonFile(STORES_FILE, storesData);
+            DataLayer.writePlatform('stores', storesData);
+            const smartStoresPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores.json');
+            writeJsonFile(smartStoresPath, storesData);
+
+            DataLayer.updateStoreConfig(storeSlug, {
+                status: 'pending_review',
+                isApproved: false,
+                marketplaceVisible: false,
+                isOpen: false,
+                mohalla: resolvedMohalla,
+                areaName: resolvedMohalla,
+                nearestLandmark: resolvedLandmark,
+                lat: resolvedLat,
+                lng: resolvedLng,
+                radiusKm: resolvedRadius,
+                settings: {
+                    name: resolvedDukanName,
+                    storeName: resolvedDukanName,
+                    mohalla: resolvedMohalla,
+                    areaName: resolvedMohalla,
+                    deliveryRadius: resolvedRadius
+                }
+            });
+        } catch (err) {
+            console.warn('Reapply store sync error:', err.message);
+        }
+
+        return res.json({
+            success: true,
+            message: 'Aapki application details safalta-purvak update ho gayi hain aur dobara review ke liye bhej di gayi hai!',
+            dukandar: {
+                dukanId: updatedDukandar.dukanId,
+                storeSlug: updatedDukandar.storeSlug,
+                dukanName: updatedDukandar.dukanName,
+                ownerName: updatedDukandar.ownerName,
+                businessType: updatedDukandar.businessType,
+                status: 'pending_review',
+                mohalla: updatedDukandar.mohalla,
+                areaName: updatedDukandar.areaName,
+                nearestLandmark: updatedDukandar.nearestLandmark,
+                lat: updatedDukandar.lat,
+                lng: updatedDukandar.lng,
+                radiusKm: updatedDukandar.radiusKm
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 

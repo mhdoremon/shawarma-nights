@@ -80,8 +80,8 @@ export function findNearestLandmark(lat, lng) {
  * Check if customer is within store's delivery radius.
  * City-wide flagship brands (Shawarma, Skyline, Nash) always return true!
  */
-export function isStoreServingLocation(store, customerLat, customerLng, customerLandmarkId = null) {
-  if (!store) return false;
+export function isStoreServingLocation(store, customerLat, customerLng, customerLandmarkId = null, customerAreaName = null) {
+  if (!store) return { serving: false, distanceKm: 999, radiusKm: 1.5 };
 
   // 1. City-Wide Flagship Brands are exempt from radius restrictions!
   const isFlagship = store.isCityWide === true || 
@@ -91,48 +91,70 @@ export function isStoreServingLocation(store, customerLat, customerLng, customer
     return { serving: true, distanceKm: 0, reason: 'City-wide flagship brand' };
   }
 
-  // 2. Mohalla store: check radius
-  const storeLat = Number(store.geo?.lat || store.lat || store.latitude);
-  const storeLng = Number(store.geo?.lng || store.lng || store.longitude);
-  const radius = Number(store.radiusKm || store.deliveryRadiusKm || 1.2); // Default 1.2km radius
+  // 2. Mohalla store: check radius & landmark binding
+  const radius = Number(store.radiusKm || store.deliveryRadiusKm || store.settings?.deliveryRadius || 1.5);
+  
+  // Resolve accurate store coordinates from CHURU_LANDMARKS if generic fallback
+  const resolvedLmId = String(store.nearestLandmark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const lmRef = CHURU_LANDMARKS.find(l => l.id.replace(/[^a-z0-9]/g, '') === resolvedLmId);
 
-  // If customer has GPS coordinates
-  if (customerLat && customerLng && storeLat && storeLng) {
-    const dist = calculateDistanceKm(customerLat, customerLng, storeLat, storeLng);
-    if (dist <= radius) {
-      return { serving: true, distanceKm: dist, radiusKm: radius };
-    }
+  let storeLat = Number(store.geo?.lat || store.lat || store.latitude);
+  let storeLng = Number(store.geo?.lng || store.lng || store.longitude);
+
+  if (lmRef && (!storeLat || storeLat === 28.2915) && resolvedLmId !== 'subhashchowk') {
+    storeLat = lmRef.lat;
+    storeLng = lmRef.lng;
   }
 
-  // Fallback to landmark / mohalla match if GPS is absent
-  if (customerLandmarkId) {
-    const cleanCustLandmark = String(customerLandmarkId).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanStoreMohalla = String(store.mohalla || store.areaName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanStoreLandmark = String(store.nearestLandmark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cleanCustLandmark = customerLandmarkId ? String(customerLandmarkId).toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  const cleanCustName = customerAreaName ? String(customerAreaName).toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  const cleanStoreMohalla = String(store.mohalla || store.areaName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const cleanStoreLandmark = String(store.nearestLandmark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    if (store.serviceArea && Array.isArray(store.serviceArea)) {
-      if (store.serviceArea.includes(customerLandmarkId) || store.serviceArea.includes('all')) {
-        return { serving: true, distanceKm: 0.5, radiusKm: radius };
-      }
-    }
+  const aliases = {
+    kotwali: 'dharamstupa',
+    dharamstupa: 'kotwali',
+    collectorate: 'collectorateroad',
+    collectorateroad: 'collectorate'
+  };
 
-    const aliases = {
-      kotwali: 'dharamstupa',
-      dharamstupa: 'kotwali',
-      collectorate: 'collectorateroad',
-      collectorateroad: 'collectorate'
-    };
-
-    if (
+  // Direct landmark / mohalla match:
+  const isLandmarkMatch = Boolean(
+    (cleanCustLandmark && (
       cleanStoreLandmark === cleanCustLandmark ||
       aliases[cleanStoreLandmark] === cleanCustLandmark ||
       (cleanStoreMohalla && (cleanStoreMohalla.includes(cleanCustLandmark) || cleanCustLandmark.includes(cleanStoreMohalla)))
-    ) {
-      return { serving: true, distanceKm: 0.5, radiusKm: radius };
+    )) ||
+    (cleanCustName && (
+      cleanStoreLandmark === cleanCustName ||
+      cleanStoreMohalla === cleanCustName ||
+      (cleanStoreMohalla && (cleanStoreMohalla.includes(cleanCustName) || cleanCustName.includes(cleanStoreMohalla)))
+    ))
+  );
+
+  let dist = null;
+  if (customerLat && customerLng && storeLat && storeLng) {
+    dist = calculateDistanceKm(customerLat, customerLng, storeLat, storeLng);
+  }
+
+  // If customer is directly in the store's designated landmark / mohalla, ALWAYS serve!
+  if (isLandmarkMatch) {
+    return { serving: true, distanceKm: dist ?? 0.3, radiusKm: radius, reason: 'Direct landmark match' };
+  }
+
+  // If GPS distance is within allotted radius
+  if (dist !== null && dist <= radius) {
+    return { serving: true, distanceKm: dist, radiusKm: radius, reason: 'Within radius' };
+  }
+
+  // Fallback to service area list if defined
+  if (customerLandmarkId && store.serviceArea && Array.isArray(store.serviceArea)) {
+    if (store.serviceArea.includes(customerLandmarkId) || store.serviceArea.includes('all')) {
+      return { serving: true, distanceKm: dist ?? 0.5, radiusKm: radius, reason: 'Service area list' };
     }
   }
 
-  return { serving: false, distanceKm: 999, radiusKm: radius };
+  return { serving: false, distanceKm: dist ?? 999, radiusKm: radius };
 }
 
 /**

@@ -185,6 +185,24 @@ app.get('/api/data', (req, res) => {
   const customers = enrichCustomersWithOrderStats(rawCustomers, orders);
   const franchiseData = DataLayer.read(storeId, 'franchise') || {};
 
+  // Resolve dukandar record if available for live status & adminNote
+  let dukandarRecord = null;
+  try {
+    const dukPath = path.join(__dirname, 'data', 'dukandars.json');
+    if (fs.existsSync(dukPath)) {
+      const dukRaw = JSON.parse(fs.readFileSync(dukPath, 'utf8'));
+      const dukList = Array.isArray(dukRaw) ? dukRaw : (dukRaw.dukandars || []);
+      const sIdLower = String(storeId || '').toLowerCase();
+      dukandarRecord = dukList.find(d => 
+        String(d.dukanId || '').toLowerCase() === sIdLower ||
+        String(d.storeSlug || '').toLowerCase() === sIdLower
+      );
+    }
+  } catch {}
+
+  const resolvedStatus = dukandarRecord?.status || storeConfig?.status || (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId) ? 'active' : 'pending_review');
+  const resolvedAdminNote = dukandarRecord?.adminNote || storeConfig?.adminNote || '';
+
   res.json({
     menu: menuData.menu || [],
     categories: menuData.categories || [],
@@ -197,7 +215,18 @@ app.get('/api/data', (req, res) => {
     capabilities: storeConfig?.capabilities,
     storeInfo: {
       capabilities: storeConfig?.capabilities,
-      status: storeConfig?.status || 'active',
+      status: resolvedStatus,
+      adminNote: resolvedAdminNote,
+      rejectionReason: resolvedAdminNote,
+      isOpen: storeConfig?.isOpen !== undefined 
+        ? Boolean(storeConfig.isOpen) 
+        : (storeConfig?.settings?.isOpen !== undefined 
+            ? Boolean(storeConfig.settings.isOpen) 
+            : (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      marketplaceVisible: Boolean(storeConfig?.marketplaceVisible ?? (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isSetupComplete: Boolean(storeConfig?.isSetupComplete ?? (['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isApproved: Boolean(storeConfig?.isApproved ?? (storeConfig?.status === 'active' || ['shawarma', 'skyline', 'nash-studio', 'churuone'].includes(storeId))),
+      isMohallaStore: Boolean(storeConfig?.isMohallaStore ?? storeConfig?.type === 'mohalla_kirana' ?? (storeId || '').includes('kirana')),
       ...(storeConfig?.settings || {}),
       payment: storeConfig?.payment || {},
       ...(storeConfig?.payment || {}),
