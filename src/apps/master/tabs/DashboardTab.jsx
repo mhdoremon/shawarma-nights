@@ -251,6 +251,58 @@ export default function DashboardTab() {
       } catch { return false; }
     })()
   );
+  const isSuspended = !isApprovedServer && !isRejected && !isPendingReview && (
+    storeInfo?.status === 'suspended' ||
+    storeInfo?.status === 'deactivated' ||
+    user?.status === 'suspended' ||
+    user?.status === 'deactivated' ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'suspended' || u.status === 'deactivated';
+      } catch { return false; }
+    })()
+  );
+
+  // Store Appeal / Re-open State & Handlers
+  const [appealMessage, setAppealMessage] = useState('');
+  const [appealPhone, setAppealPhone] = useState(user?.phone || storeInfo?.phone || '');
+  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
+  const [appealSuccess, setAppealSuccess] = useState(false);
+
+  const handleSendAppeal = async (e) => {
+    e?.preventDefault();
+    if (!appealMessage.trim()) {
+      showToast('Kripya apna sandesh ya samasya ka vivaran likhein', 'error');
+      return;
+    }
+    try {
+      setIsSubmittingAppeal(true);
+      const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:5000'
+        : 'https://churuone-backend.onrender.com';
+      const res = await fetch(`${API_BASE}/api/platform/stores/${storeId}/appeal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: appealMessage.trim(),
+          contactPhone: appealPhone.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAppealSuccess(true);
+        showToast('🟢 Aapka anurodh Super Admin ko bhej diya gaya hai!', 'success');
+        refreshData();
+      } else {
+        showToast(data.message || 'Appeal submit nahi ho saki', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      setIsSubmittingAppeal(false);
+    }
+  };
 
   // Synchronize localStorage user status if approved on server
   useEffect(() => {
@@ -676,6 +728,214 @@ export default function DashboardTab() {
 
         {/* Re-Application Modal */}
         {renderReapplyModal()}
+      </div>
+    );
+  }
+
+  // If store is suspended/deactivated midway by Super Admin, show DUKAN BAND ALERT, REASON NOTE, GUIDANCE & APPEAL/SUPPORT ACTIONS
+  if (isSuspended) {
+    const dukanTitle = user?.dukanName || storeInfo?.name || `Dukan ${String(storeId || '').toUpperCase()}`;
+    const dukanCode = String(user?.dukanId || storeId || 'DKN').toUpperCase();
+    const owner = user?.ownerName || storeInfo?.owner?.name || 'Registered Merchant';
+    const phone = user?.phone || storeInfo?.owner?.phone || '-';
+    const bType = String(user?.businessType || storeInfo?.type || storeInfo?.vertical || 'retail');
+    const suspensionReason = storeInfo?.statusNote || storeInfo?.bandReason || user?.statusNote || 'Super Admin dwara is dukan ko niyam ya prashasnik karno se temporary/permanently band kar diya gaya hai.';
+    const appealData = storeInfo?.appeal || user?.appeal;
+    const hasPendingAppeal = appealSuccess || appealData?.status === 'appeal_pending';
+
+    const waText = encodeURIComponent(`Namaste ChuruOne Admin, meri dukan "${dukanTitle}" (ID: ${dukanCode}) band ho gayi hai. Reason: "${suspensionReason}". Kripya ise wapas live karne me madad karein.`);
+
+    return (
+      <div className="space-y-6 pb-12 max-w-5xl mx-auto font-sans">
+        {/* 1. Permanent Dukan ID Card with Danger Glow */}
+        <div className="p-6 sm:p-8 bg-gradient-to-br from-red-700 via-rose-800 to-zinc-950 text-white rounded-3xl shadow-2xl relative overflow-hidden border border-red-500/30">
+          <div className="absolute right-4 top-4 opacity-15 pointer-events-none">
+            <Lock className="w-36 h-36 text-white" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <span className="text-[11px] font-mono tracking-widest uppercase bg-black/40 px-3 py-1 rounded-full font-bold border border-white/10">
+                PERMANENT DUKAN ID: {dukanCode}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs font-black bg-red-500 text-white px-3.5 py-1 rounded-full shadow-sm animate-pulse">
+                <Lock className="w-3.5 h-3.5" /> DUKAN ABHI BAND / SUSPENDED HAI
+              </span>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 my-3">
+              <div>
+                <div className="text-3xl sm:text-5xl font-mono font-black tracking-wider text-white drop-shadow-sm">
+                  {dukanCode}
+                </div>
+                <div className="text-xs text-red-200 font-semibold mt-1">
+                  Store: {dukanTitle} • Owner: {owner} • Phone: {phone}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCopyDukanId(dukanCode)}
+                className="px-4 py-2.5 bg-white text-zinc-950 rounded-2xl text-xs font-extrabold flex items-center gap-2 shadow-md hover:bg-zinc-100 transition-all cursor-pointer active:scale-95 shrink-0"
+              >
+                {copiedId ? <Check className="w-4 h-4 text-emerald-600 stroke-[3]" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedId ? 'ID Copied!' : 'Copy Dukan ID'}</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-red-100/90 leading-relaxed font-medium mt-3 bg-black/30 p-3.5 rounded-2xl border border-white/10">
+              🛑 <strong>Store Access Paused:</strong> Is dukan ko Super Admin dwara marketplace aur customer feed se hata diya gaya hai. Dukandar dashboard operational activities ke liye abhi locked hai.
+            </p>
+          </div>
+        </div>
+
+        {/* 2. Super Admin Suspension Reason Notice Card */}
+        <div className="p-6 bg-red-50/90 border-2 border-red-300 rounded-3xl shadow-sm space-y-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1 flex-1">
+              <span className="text-[10px] font-mono uppercase bg-red-200 text-red-950 px-2.5 py-0.5 rounded-full font-bold">
+                Official Super Admin Order
+              </span>
+              <h3 className="text-lg font-black text-red-950">
+                Dukan Band Hone Ka Mukhya Karan (Reason from Super Admin)
+              </h3>
+              <p className="text-xs text-red-800">
+                ChuruOne admin portal dwara aapki dukan ko is kaaran band kiya gaya hai:
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-white rounded-2xl border border-red-200 text-xs sm:text-sm text-red-900 font-bold leading-relaxed shadow-xs">
+            "{suspensionReason}"
+          </div>
+
+          {/* Advice & Guidance */}
+          <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-xs text-amber-950 space-y-2">
+            <div className="font-black flex items-center gap-1.5 uppercase tracking-wide">
+              <span>💡 Dukandar Ke Liye Salah (What Should You Do?):</span>
+            </div>
+            <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-900/90 leading-relaxed">
+              <li>Aapki dukan par customer orders aana pause ho gaya hai aur ChuruOne marketplace se store hide hai.</li>
+              <li>Aap upar diye gaye karan ko durust karke niche <strong>Appeal Form</strong> se wapas dukan chalu karne ka anurodh bhej sakte hain.</li>
+              <li>Turant samadhan ke liye aap seedhe <strong>WhatsApp Helpline</strong> ya Call par sampark kar sakte hain.</li>
+              <li>Aap <strong>Settings Tab</strong> par jakar apni jankari check kar sakte hain ya account logout kar sakte hain.</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* 3. Re-Activation Appeal / Request Form */}
+        <div className="bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-zinc-200 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-bold border border-emerald-200">
+                Self Appeal & Resolution
+              </span>
+              <h3 className="text-lg font-black text-zinc-950 mt-1">
+                Dukan Wapas Kholne Ki Appeal (Request Re-Activation)
+              </h3>
+              <p className="text-xs text-zinc-600 mt-0.5">
+                Agar aapne samasya theek kar li hai ya koi safaai dena chahte hain, toh yahan message likhkar Super Admin ko bhejein.
+              </p>
+            </div>
+          </div>
+
+          {hasPendingAppeal ? (
+            <div className="p-5 bg-emerald-50 border border-emerald-300 rounded-2xl space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-emerald-900 font-extrabold text-sm">
+                <Check className="w-5 h-5 text-emerald-600 stroke-[3]" />
+                <span>Aapka Re-Open Anurodh Super Admin Ko Praapt Ho Chuka Hai!</span>
+              </div>
+              <p className="text-emerald-800 leading-relaxed">
+                Super Admin team aapki appeal ko review kar rahi hai. Jaldi hi aapse registered mobile number par sampark kiya jayega.
+              </p>
+              {appealData?.message && (
+                <div className="bg-white p-3 rounded-xl border border-emerald-200 text-stone-700 mt-2 font-medium">
+                  <strong>Aapka Message:</strong> "{appealData.message}"
+                </div>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleSendAppeal} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 mb-1.5">
+                  Aapki Safaai / Explanation (Kyu dukan wapas kholi jaye?):
+                </label>
+                <textarea
+                  rows={3}
+                  value={appealMessage}
+                  onChange={(e) => setAppealMessage(e.target.value)}
+                  placeholder="Jaise: Humne apni samasya solve kar li hai, sabhi orders complete hain aur aage niyam ka palan hoga. Kripya dukan unlock karein..."
+                  className="w-full text-xs p-3 rounded-2xl border border-zinc-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none leading-relaxed text-zinc-800 bg-zinc-50"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-zinc-800 mb-1.5">
+                  Contact Phone Number:
+                </label>
+                <input
+                  type="tel"
+                  value={appealPhone}
+                  onChange={(e) => setAppealPhone(e.target.value)}
+                  placeholder="10-digit mobile number"
+                  className="w-full text-xs p-3 rounded-2xl border border-zinc-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 outline-none text-zinc-800 bg-zinc-50 font-mono"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingAppeal}
+                className="w-full py-3.5 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all border-0 disabled:opacity-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{isSubmittingAppeal ? 'Appeal Bheji Ja Rahi Hai...' : 'Dukan Wapas Kholne Ka Anurodh (Appeal) Bhejein'}</span>
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* 4. Action Buttons (WhatsApp Support, Settings, Logout) */}
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-md border border-zinc-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={`https://wa.me/917023963189?text=${waText}`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-xs cursor-pointer no-underline"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp Admin Helpline</span>
+            </a>
+
+            <a
+              href="tel:7023963189"
+              className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-xs cursor-pointer no-underline"
+            >
+              <Phone className="w-4 h-4 text-zinc-600" />
+              <span>Call Helpline (7023963189)</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab(8)}
+              className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 rounded-2xl text-xs font-bold transition-all cursor-pointer"
+            >
+              ⚙️ Settings Tab (Check Profile)
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-xs ml-auto"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout Account</span>
+          </button>
+        </div>
       </div>
     );
   }

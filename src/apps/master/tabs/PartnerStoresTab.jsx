@@ -283,6 +283,39 @@ export default function PartnerStoresTab() {
   const [selectedReasonPreset, setSelectedReasonPreset] = useState('address_unclear');
   const [rejectionCustomNote, setRejectionCustomNote] = useState('');
 
+  // Super Admin Mandatory Store Shutdown / Suspension Modal State
+  const BAND_PRESETS = [
+    {
+      id: 'policy_violation',
+      label: '❌ नियमों या डिलीवरी शर्तों का उल्लंघन (Policy / Service Violation)',
+      defaultNote: 'Aapki dukan par ChuruOne ke delivery ya customer niyam ka ulanghan paya gaya hai. Kripya niyam durust karein aur support se sampark karein.'
+    },
+    {
+      id: 'quality_complaint',
+      label: '⚠️ ग्राहक की शिकायतें या निम्न गुणवत्ता (Customer Complaints / Quality Issue)',
+      defaultNote: 'Aapke orders par grahakon ki gambhir shikayatein praapt hui hain. Kripya quality samasya ko theek karke appeal submit karein.'
+    },
+    {
+      id: 'unresponsive',
+      label: '📦 दुकानदार की अनुपलब्धता या दुकान बंद (Store Unresponsive / Inactive)',
+      defaultNote: 'Aapki dukan lambe samay se band ya unresponsive pratit ho rahi hai. Dukan punah shuru karne ke liye support par sampark karein.'
+    },
+    {
+      id: 'verification_pending',
+      label: '📝 दस्तावेज़ या सत्यापन अधूरा (Documentation / Verification Required)',
+      defaultNote: 'Aapke vyapar ka physical ya legal verification aavashyak hai. Kripya apne zaroori dastawez ChuruOne team ko submit karein.'
+    },
+    {
+      id: 'other',
+      label: '✏️ अन्य विशेष कारण (Other / Custom reason)',
+      defaultNote: ''
+    }
+  ];
+
+  const [bandModalStore, setBandModalStore] = useState(null);
+  const [selectedBandPreset, setSelectedBandPreset] = useState('policy_violation');
+  const [bandCustomNote, setBandCustomNote] = useState('');
+
   const loadPendingApps = async () => {
     try {
       setIsLoadingApps(true);
@@ -932,32 +965,70 @@ export default function PartnerStoresTab() {
 
               {/* Band Status Notice with 1-Click Re-activate & Delete */}
               {isBand && (
-                <div className="p-3 bg-red-100/90 border border-red-300 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold text-red-950">
-                  <div className="flex items-center gap-1.5 min-w-0 pr-1">
-                    <Lock className="w-3.5 h-3.5 text-red-700 shrink-0" />
-                    <span className="truncate">{isSuspended ? 'Super Admin dwara Blocked' : 'Dukandar dwara Deactivated'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      disabled={changingStatusId === store.id}
-                      onClick={() => handleUpdateStoreStatus(store.id, 'active')}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0"
-                    >
-                      {changingStatusId === store.id ? 'Opening...' : '🟢 Wapas Kholen'}
-                    </button>
-                    {!isFlagship && (
+                <div className="space-y-2">
+                  <div className="p-3 bg-red-100/90 border border-red-300 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold text-red-950">
+                    <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                      <Lock className="w-3.5 h-3.5 text-red-700 shrink-0" />
+                      <span className="truncate">{isSuspended ? 'Super Admin dwara Blocked' : 'Dukandar dwara Deactivated'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
-                        disabled={deletingStoreId === store.id}
-                        onClick={() => handleDeleteStore(store.id, store.name)}
-                        className="p-1 rounded-lg bg-red-200 hover:bg-red-300 text-red-800 transition-colors cursor-pointer border-0"
-                        title="Delete Store"
+                        disabled={changingStatusId === store.id}
+                        onClick={() => handleUpdateStoreStatus(store.id, 'active')}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        {changingStatusId === store.id ? 'Opening...' : '🟢 Wapas Kholen'}
                       </button>
-                    )}
+                      {!isFlagship && (
+                        <button
+                          type="button"
+                          disabled={deletingStoreId === store.id}
+                          onClick={() => handleDeleteStore(store.id, store.name)}
+                          className="p-1 rounded-lg bg-red-200 hover:bg-red-300 text-red-800 transition-colors cursor-pointer border-0"
+                          title="Delete Store"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Super Admin Stated Reason */}
+                  {store.statusNote && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-950 font-medium leading-relaxed">
+                      <span className="font-black text-red-900">📌 Band Karne Ka Karan:</span> "{store.statusNote}"
+                    </div>
+                  )}
+
+                  {/* Merchant Appeal if submitted */}
+                  {store.appeal && (
+                    <div className="p-3 bg-amber-50 border border-amber-300 rounded-2xl space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-amber-900 font-extrabold text-[11px] uppercase">
+                          <Bell className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
+                          <span>Merchant Appeal Received</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-amber-700 font-bold">
+                          {new Date(store.appeal.requestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-stone-800 text-xs bg-white p-2.5 rounded-xl border border-amber-200 font-medium leading-relaxed">
+                        "{store.appeal.message}"
+                      </p>
+                      {store.appeal.contactPhone && (
+                        <div className="flex items-center justify-between text-[11px] text-stone-600 pt-0.5">
+                          <span>Phone: <strong>{store.appeal.contactPhone}</strong></span>
+                          <a 
+                            href={`tel:${store.appeal.contactPhone}`}
+                            className="text-emerald-700 hover:underline font-bold"
+                          >
+                            📞 Call Merchant
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1129,9 +1200,9 @@ export default function PartnerStoresTab() {
                           type="button"
                           disabled={changingStatusId === store.id}
                           onClick={() => {
-                            if (window.confirm(`Kya aap "${store.name}" (${store.id}) ko PERMANENTLY BAND / BLOCK karna chahte hain? Iska customer access aur dukan login turant ruk jayega aur yeh 'Band Dukanein' me move ho jayegi.`)) {
-                              handleUpdateStoreStatus(store.id, 'suspended', 'Blocked by Super Admin from Partner Stores Tab');
-                            }
+                            setBandModalStore(store);
+                            setSelectedBandPreset('policy_violation');
+                            setBandCustomNote('Aapki dukan par ChuruOne ke delivery ya customer niyam ka ulanghan paya gaya hai. Kripya niyam durust karein aur support se sampark karein.');
                           }}
                           className="flex-1 py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-300 text-red-700 hover:text-red-900 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
                         >
@@ -1277,6 +1348,116 @@ export default function PartnerStoresTab() {
               >
                 <XCircle className="w-4 h-4" />
                 <span>Confirm Reject & Send Note</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. SUPER ADMIN BAND / SUSPEND STORE MODAL */}
+      {bandModalStore && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-lg w-full shadow-2xl border border-red-200">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <h3 className="text-base font-black text-stone-900 uppercase">
+                  Dukan Ko Band / Suspend Karein
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBandModalStore(null)}
+                className="p-1.5 rounded-full hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="my-4 space-y-4">
+              {/* Store Summary */}
+              <div className="bg-red-50/70 p-3.5 rounded-2xl border border-red-200 text-xs space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-red-950">{bandModalStore.name}</span>
+                  <span className="font-mono bg-red-200 text-red-900 px-2 py-0.5 rounded font-black text-[10px]">
+                    ID: {bandModalStore.id}
+                  </span>
+                </div>
+                <div className="text-red-800 text-[11px]">
+                  Category: {bandModalStore.category || bandModalStore.vertical} • Area: {bandModalStore.mohalla || bandModalStore.address || 'Churu'}
+                </div>
+              </div>
+
+              {/* Standard Reason Dropdown */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  1. Dukan Band Karne Ka Karan (Reason Preset):
+                </label>
+                <select
+                  value={selectedBandPreset}
+                  onChange={(e) => {
+                    const presetId = e.target.value;
+                    setSelectedBandPreset(presetId);
+                    const found = BAND_PRESETS.find(p => p.id === presetId);
+                    if (found) {
+                      setBandCustomNote(found.defaultNote);
+                    }
+                  }}
+                  className="w-full text-xs p-2.5 rounded-xl bg-stone-50 border border-stone-300 font-semibold text-stone-900 focus:border-red-500 focus:outline-none cursor-pointer"
+                >
+                  {BAND_PRESETS.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mandatory Reason Note Textarea */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1 flex items-center justify-between">
+                  <span>2. Dukandar Ke Liye Spasht Note / Karan (Mandatory):</span>
+                  <span className="text-[10px] text-red-600 font-bold">*Required</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={bandCustomNote}
+                  onChange={(e) => setBandCustomNote(e.target.value)}
+                  placeholder="Dukandar ko batayein ki unki dukan kyu band ki ja rahi hai aur wapas kholne ke liye unhe kya karna hoga..."
+                  className="w-full text-xs p-3 rounded-2xl bg-stone-50 border border-stone-300 text-stone-900 focus:border-red-500 focus:outline-none resize-none leading-relaxed"
+                />
+                <div className="text-[10px] text-stone-500 mt-1">
+                  ℹ️ Yeh karan dukandar ke dashboard par laal alert banner ke roop me dikhayi dega aur unka dashboard lock ho jayega.
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={() => setBandModalStore(null)}
+                className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs uppercase cursor-pointer"
+              >
+                Radd Karein (Cancel)
+              </button>
+              <button
+                type="button"
+                disabled={!bandCustomNote.trim() || changingStatusId === bandModalStore.id}
+                onClick={async () => {
+                  if (!bandCustomNote.trim()) {
+                    showToast('Kripya dukan band karne ka karan spasht likhein!', 'error');
+                    return;
+                  }
+                  await handleUpdateStoreStatus(bandModalStore.id, 'suspended', bandCustomNote.trim());
+                  setBandModalStore(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5 border-0"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Confirm Band & Send Reason</span>
               </button>
             </div>
           </div>

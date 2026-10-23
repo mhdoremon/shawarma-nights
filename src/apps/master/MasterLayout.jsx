@@ -96,6 +96,19 @@ export default function MasterLayout() {
       } catch { return false; }
     })()
   );
+  const isSuspended = !isApprovedServer && !isRejected && !isPendingReview && (
+    storeInfo?.status === 'suspended' ||
+    storeInfo?.status === 'deactivated' ||
+    user?.status === 'suspended' ||
+    user?.status === 'deactivated' ||
+    (() => {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        return u.status === 'suspended' || u.status === 'deactivated';
+      } catch { return false; }
+    })()
+  );
+  const isStoreLocked = isPendingReview || isRejected || isSuspended;
 
   // Synchronize localStorage user status if approved on server
   useEffect(() => {
@@ -133,13 +146,13 @@ export default function MasterLayout() {
     { id: 5, label: 'Reviews & Permissions', icon: Star, badge: reviews?.length || 0 },
     { id: 8, label: 'Platform Settings', icon: Settings },
   ] : [
-    { id: 0, label: (isPendingReview || isRejected) ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
-    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: (isPendingReview || isRejected) },
-    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: (isPendingReview || isRejected) },
-    { id: 3, label: hasAppointments ? 'Packages & Offers' : 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: (isPendingReview || isRejected) },
-    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: (isPendingReview || isRejected) },
-    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: (isPendingReview || isRejected) },
-    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: (isPendingReview || isRejected) }] : []),
+    { id: 0, label: isSuspended ? 'Dukan Band Status' : (isPendingReview || isRejected) ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
+    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: isStoreLocked },
+    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: isStoreLocked },
+    { id: 3, label: hasAppointments ? 'Packages & Offers' : 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isStoreLocked },
+    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: isStoreLocked },
+    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: isStoreLocked },
+    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: isStoreLocked }] : []),
     { id: 8, label: 'Settings', icon: Settings, isLocked: false },
   ];
 
@@ -204,7 +217,11 @@ export default function MasterLayout() {
             )}
 
             {/* Store Status / Live Toggle */}
-            {isPendingReview ? (
+            {isSuspended ? (
+              <span className="inline-flex items-center gap-1 text-[11px] bg-red-600 text-white font-black px-3 py-1 rounded-full uppercase shadow-xs">
+                <Lock className="w-3 h-3" /> Dukan Band (Suspended)
+              </span>
+            ) : isPendingReview ? (
               <span className="inline-flex items-center gap-1 text-[11px] bg-amber-400 text-amber-950 font-black px-3 py-1 rounded-full uppercase shadow-xs">
                 <Clock className="w-3 h-3 animate-pulse" /> Review Stage (24h)
               </span>
@@ -377,8 +394,8 @@ export default function MasterLayout() {
               <DashboardTab />
             ) : activeTab === 8 ? (
               <SettingsTab />
-            ) : (isPendingReview || isRejected) ? (
-              <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} onLogout={logout} isRejected={isRejected} />
+            ) : isStoreLocked ? (
+              <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} onLogout={logout} isRejected={isRejected} isSuspended={isSuspended} />
             ) : (
               <>
                 {activeTab === 1 && (isMarketplace ? <CityOrdersLedgerTab /> : <OrdersTab />)}
@@ -496,7 +513,7 @@ export default function MasterLayout() {
   );
 }
 
-function LockedTabPreview({ tabId, setActiveTab, onLogout, isRejected }) {
+function LockedTabPreview({ tabId, setActiveTab, onLogout, isRejected, isSuspended }) {
   const tabNames = {
     1: 'Live Orders & KOT Printing',
     2: 'Menu & Product Catalog Editor',
@@ -511,25 +528,27 @@ function LockedTabPreview({ tabId, setActiveTab, onLogout, isRejected }) {
 
   return (
     <div className={`max-w-2xl mx-auto my-8 p-6 sm:p-8 bg-white rounded-3xl border shadow-xl text-center ${
-      isRejected ? 'border-red-300' : 'border-amber-200/90'
+      (isRejected || isSuspended) ? 'border-red-300' : 'border-amber-200/90'
     }`}>
       <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-sm ${
-        isRejected ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
+        (isRejected || isSuspended) ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
       }`}>
-        <Lock className={`w-8 h-8 ${isRejected ? 'text-red-600' : 'text-amber-700'}`} />
+        <Lock className={`w-8 h-8 ${(isRejected || isSuspended) ? 'text-red-600' : 'text-amber-700'}`} />
       </div>
       <span className={`text-[11px] font-mono uppercase px-3 py-1 rounded-full font-bold ${
-        isRejected ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'
+        isSuspended ? 'bg-red-100 text-red-900' : isRejected ? 'bg-red-100 text-red-900' : 'bg-amber-100 text-amber-900'
       }`}>
-        {isRejected ? '⚠️ Action Required / Rejected' : 'Application Under Review'}
+        {isSuspended ? '🚫 Dukan Band / Suspended' : isRejected ? '⚠️ Action Required / Rejected' : 'Application Under Review'}
       </span>
       <h3 className="text-xl font-black text-zinc-950 mt-3">
         {title} Abhi Locked Hai
       </h3>
       <p className="text-xs text-zinc-600 mt-2 max-w-md mx-auto leading-relaxed">
-        {isRejected 
-          ? 'Aapki application me sudhaar ki aavashyakta hai. Kripya Dashboard tab par jakar Super Admin ka note padhein aur application re-apply karein.' 
-          : 'Aapki dukan ki custom website abhi hamari tech team banakar link kar rahi hai. 24 ghante ke andar website live hote hi aapka yeh section unlock ho jayega.'}
+        {isSuspended
+          ? 'Super Admin dwara is dukan ko band ya suspend kar diya gaya hai. Kripya Dashboard tab par jakar dukan band hone ka karan dekhein aur support se sampark karein.'
+          : isRejected 
+            ? 'Aapki application me sudhaar ki aavashyakta hai. Kripya Dashboard tab par jakar Super Admin ka note padhein aur application re-apply karein.' 
+            : 'Aapki dukan ki custom website abhi hamari tech team banakar link kar rahi hai. 24 ghante ke andar website live hote hi aapka yeh section unlock ho jayega.'}
       </p>
       
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

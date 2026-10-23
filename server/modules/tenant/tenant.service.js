@@ -1034,21 +1034,147 @@ export const updateStoreOperationalStatus = (req, res) => {
         config.isOpen = isOpen;
         config.marketplaceVisible = marketplaceVisible;
         if (!config.settings) config.settings = {};
+        config.settings.status = status;
         config.settings.isOpen = isOpen;
         config.settings.marketplaceVisible = marketplaceVisible;
-        if (note) config.statusNote = note;
+        if (note) {
+            config.statusNote = note;
+            config.bandReason = note;
+            config.settings.statusNote = note;
+            config.settings.bandReason = note;
+        } else if (status === 'active') {
+            config.statusNote = '';
+            config.bandReason = '';
+            config.settings.statusNote = '';
+            config.settings.bandReason = '';
+            config.appeal = null;
+            config.settings.appeal = null;
+            if (targetStore) targetStore.appeal = null;
+            if (targetDukandar) targetDukandar.appeal = null;
+        }
         DataLayer.updateStoreConfig(cleanId, config);
 
         if (targetStore && targetStore.id && targetStore.id.toLowerCase() !== cleanId) {
             DataLayer.updateStoreConfig(targetStore.id.toLowerCase(), config);
         }
 
+        // 4. Update store_info.json directly
+        try {
+            const existingInfo = DataLayer.read(cleanId, 'store_info') || {};
+            DataLayer.write(cleanId, 'store_info', {
+                ...existingInfo,
+                status,
+                isOpen,
+                marketplaceVisible,
+                statusNote: status === 'active' ? '' : (note || existingInfo.statusNote || ''),
+                bandReason: status === 'active' ? '' : (note || existingInfo.bandReason || ''),
+                appeal: status === 'active' ? null : existingInfo.appeal
+            });
+        } catch (e) {}
+
+        // 5. Broadcast to connected merchant and platform
+        try {
+            WebSocketHub.broadcastToAll(cleanId, {
+                action: 'STORE_STATUS_UPDATED',
+                status,
+                isOpen,
+                marketplaceVisible,
+                statusNote: note || '',
+                bandReason: note || ''
+            });
+            WebSocketHub.broadcastToAll('platform', {
+                action: 'STORE_STATUS_UPDATED',
+                storeId: cleanId,
+                status,
+                isOpen,
+                marketplaceVisible,
+                statusNote: note || ''
+            });
+        } catch (e) {}
+
         return res.json({
             success: true,
             status,
+            statusNote: note || '',
             message: status === 'active' 
                 ? `Store ${cleanId} has been successfully reactivated.` 
                 : (status === 'suspended' ? `Store ${cleanId} access has been blocked / terminated by Super Admin.` : `Store ${cleanId} is now deactivated.`)
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── DUKANDAR: SUBMIT APPEAL / REQUEST TO RE-OPEN SUSPENDED STORE ───
+ */
+export const submitStoreAppeal = (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const { message, contactPhone } = req.body || {};
+        const cleanId = String(storeId).toLowerCase().trim();
+
+        if (!message || !message.trim()) {
+            return res.status(400).json({ success: false, message: 'Appeal message is required' });
+        }
+
+        const appealData = {
+            requestedAt: new Date().toISOString(),
+            message: message.trim(),
+            contactPhone: contactPhone || '',
+            status: 'appeal_pending'
+        };
+
+        // 1. Update stores.json
+        const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+        const stores = storesData.stores || [];
+        const targetStore = stores.find(s => 
+            String(s.id || '').toLowerCase() === cleanId || 
+            String(s.slug || '').toLowerCase() === cleanId
+        );
+        if (targetStore) {
+            targetStore.appeal = appealData;
+            DataLayer.writePlatform('stores', { stores });
+        }
+
+        // 2. Update dukandars.json
+        const dukandarsData = DataLayer.readJson('dukandars.json') || { dukandars: [] };
+        const dukandars = dukandarsData.dukandars || [];
+        const targetDukandar = dukandars.find(d => 
+            String(d.dukanId || '').toLowerCase() === cleanId || 
+            String(d.storeSlug || '').toLowerCase() === cleanId
+        );
+        if (targetDukandar) {
+            targetDukandar.appeal = appealData;
+            DataLayer.writeJson('dukandars.json', { dukandars });
+        }
+
+        // 3. Update store config
+        const config = DataLayer.getStoreConfig(cleanId) || {};
+        config.appeal = appealData;
+        if (!config.settings) config.settings = {};
+        config.settings.appeal = appealData;
+        DataLayer.updateStoreConfig(cleanId, config);
+
+        // 4. Update store_info
+        try {
+            const existingInfo = DataLayer.read(cleanId, 'store_info') || {};
+            DataLayer.write(cleanId, 'store_info', { ...existingInfo, appeal: appealData });
+        } catch (e) {}
+
+        // 5. Broadcast to platform super admin
+        try {
+            WebSocketHub.broadcastToAll('platform', {
+                action: 'STORE_APPEAL_SUBMITTED',
+                storeId: cleanId,
+                appeal: appealData
+            });
+        } catch (e) {}
+
+        return res.json({
+            success: true,
+            message: 'Aapki appeal request Super Admin ko bhej di gayi hai. Hum jald hi aapse sampark karenge.',
+            appeal: appealData
         });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });
