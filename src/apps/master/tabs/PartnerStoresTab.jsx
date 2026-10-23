@@ -420,18 +420,25 @@ export default function PartnerStoresTab() {
     const matchesVertical = selectedVertical === 'all' || st.vertical === selectedVertical;
 
     const isBand = st.status === 'deactivated' || st.status === 'suspended';
+    const isRejected = st.status === 'rejected';
+    const isPending = st.status === 'pending_review' || st.status === 'pending';
+    const isActive = (st.status === 'active' || st.status === 'approved' || !st.status) && !isBand && !isRejected && !isPending;
+
     const matchesStatus = 
       selectedStatusTab === 'all' ? true :
-      selectedStatusTab === 'active' ? !isBand :
-      selectedStatusTab === 'band' ? isBand : true;
+      selectedStatusTab === 'active' ? isActive :
+      selectedStatusTab === 'band' ? isBand :
+      selectedStatusTab === 'rejected' ? isRejected : true;
 
     return matchesQuery && matchesVertical && matchesStatus;
   });
 
   const totalStores = stores.length;
+  const rejectedCount = stores.filter(s => s.status === 'rejected').length;
   const bandCount = stores.filter(s => s.status === 'deactivated' || s.status === 'suspended').length;
-  const liveCount = stores.filter(s => s.status !== 'deactivated' && s.status !== 'suspended' && s.marketplaceVisible !== false).length;
-  const hiddenCount = Math.max(0, totalStores - liveCount - bandCount);
+  const activeCount = stores.filter(s => (s.status === 'active' || s.status === 'approved' || !s.status) && s.status !== 'deactivated' && s.status !== 'suspended' && s.status !== 'rejected' && s.status !== 'pending_review' && s.status !== 'pending').length;
+  const liveCount = stores.filter(s => (s.status === 'active' || s.status === 'approved' || !s.status) && s.status !== 'deactivated' && s.status !== 'suspended' && s.status !== 'rejected' && s.marketplaceVisible !== false).length;
+  const hiddenCount = Math.max(0, totalStores - liveCount - bandCount - rejectedCount);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans">
@@ -763,19 +770,31 @@ export default function PartnerStoresTab() {
               }`}
             >
               <span>🟢 Active</span>
-              <span className="text-[10px] opacity-80">({totalStores - bandCount})</span>
+              <span className="text-[10px] opacity-80">({activeCount})</span>
             </button>
             <button
               type="button"
               onClick={() => setSelectedStatusTab('band')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1 ${
                 selectedStatusTab === 'band'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <span>⏸️ Band Dukanein</span>
+              <span className="text-[10px] opacity-80">({bandCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedStatusTab('rejected')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1 ${
+                selectedStatusTab === 'rejected'
                   ? 'bg-red-600 text-white shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              <span>🔴 Band Dukanein</span>
-              <span className="text-[10px] opacity-80">({bandCount})</span>
+              <span>🚫 Rejected</span>
+              <span className="text-[10px] opacity-80">({rejectedCount})</span>
             </button>
           </div>
         </div>
@@ -822,6 +841,7 @@ export default function PartnerStoresTab() {
             ['shawarma', 'skyline', 'nash-studio'].includes(store.id || store.slug)
           );
           const isBand = store.status === 'deactivated' || store.status === 'suspended';
+          const isRejected = store.status === 'rejected';
           const isSuspended = store.status === 'suspended';
 
           const verticalBadge = 
@@ -836,9 +856,11 @@ export default function PartnerStoresTab() {
             <div
               key={store.id}
               className={`bg-white rounded-3xl p-5 shadow-xl border transition-all flex flex-col justify-between space-y-4 relative ${
-                isBand 
-                  ? 'border-red-300 bg-red-50/30' 
-                  : isVisible ? 'border-stone-200/90 hover:border-stone-400' : 'border-amber-200 bg-amber-50/20 opacity-90'
+                isRejected
+                  ? 'border-rose-300 bg-rose-50/25'
+                  : isBand 
+                    ? 'border-red-300 bg-red-50/30' 
+                    : isVisible ? 'border-stone-200/90 hover:border-stone-400' : 'border-amber-200 bg-amber-50/20 opacity-90'
               }`}
             >
               {/* Top Row: Vertical Badge + Marketplace Visibility Switch / Band Badge */}
@@ -852,6 +874,11 @@ export default function PartnerStoresTab() {
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-600 text-white">
                     <Lock className="w-3 h-3" />
                     <span>{isSuspended ? 'BLOCKED' : 'BAND'}</span>
+                  </span>
+                ) : isRejected ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>REJECTED</span>
                   </span>
                 ) : (
                   /* 1-Click Visibility Toggle Button */
@@ -871,6 +898,37 @@ export default function PartnerStoresTab() {
                   </button>
                 )}
               </div>
+
+              {/* Rejected Notice with 1-Click Re-approve & Delete */}
+              {isRejected && (
+                <div className="p-3 bg-rose-100/90 border border-rose-300 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold text-rose-950">
+                  <div className="flex items-center gap-1.5 min-w-0 pr-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                    <span className="truncate">Rejected: {store.adminNote || store.rejectionReason || 'Application rejected'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      disabled={changingStatusId === store.id}
+                      onClick={() => handleUpdateStoreStatus(store.id, 'active')}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0"
+                    >
+                      {changingStatusId === store.id ? 'Approving...' : '🟢 Re-Approve'}
+                    </button>
+                    {!isFlagship && (
+                      <button
+                        type="button"
+                        disabled={deletingStoreId === store.id}
+                        onClick={() => handleDeleteStore(store.id, store.name)}
+                        className="p-1 rounded-lg bg-red-200 hover:bg-red-300 text-red-800 transition-colors cursor-pointer border-0"
+                        title="Delete Store"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Band Status Notice with 1-Click Re-activate & Delete */}
               {isBand && (

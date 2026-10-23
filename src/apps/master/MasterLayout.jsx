@@ -133,14 +133,14 @@ export default function MasterLayout() {
     { id: 5, label: 'Reviews & Permissions', icon: Star, badge: reviews?.length || 0 },
     { id: 8, label: 'Platform Settings', icon: Settings },
   ] : [
-    { id: 0, label: isPendingReview ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
-    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: isPendingReview },
-    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: isPendingReview },
-    { id: 3, label: hasAppointments ? 'Packages & Offers' : 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: isPendingReview },
-    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: isPendingReview },
-    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: isPendingReview },
-    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: isPendingReview }] : []),
-    { id: 8, label: 'Settings', icon: Settings, isLocked: isPendingReview },
+    { id: 0, label: (isPendingReview || isRejected) ? 'Dashboard & Status' : 'Dashboard', icon: LayoutDashboard },
+    { id: 1, label: hasAppointments ? 'Bookings' : 'Orders', icon: ShoppingBag, badge: activeOrdersCount, highlightBadge: activeOrdersCount > 0, isLocked: (isPendingReview || isRejected) },
+    { id: 2, label: catalogTabLabel, icon: UtensilsCrossed, badge: menu?.length || 0, isLocked: (isPendingReview || isRejected) },
+    { id: 3, label: hasAppointments ? 'Packages & Offers' : 'Offers', icon: Tag, badge: deals?.length || 0, isLocked: (isPendingReview || isRejected) },
+    { id: 4, label: hasAppointments ? 'Clients' : 'Customers', icon: Users, badge: customers?.length || 0, isLocked: (isPendingReview || isRejected) },
+    { id: 5, label: 'Reviews', icon: Star, badge: reviews?.length || 0, isLocked: (isPendingReview || isRejected) },
+    ...(hasFranchise ? [{ id: 7, label: 'Franchise', icon: Building2, badge: franchiseInquiries?.length || 0, highlightBadge: franchiseInquiries?.length > 0, isLocked: (isPendingReview || isRejected) }] : []),
+    { id: 8, label: 'Settings', icon: Settings, isLocked: false },
   ];
 
   return (
@@ -375,6 +375,8 @@ export default function MasterLayout() {
           >
             {activeTab === 0 ? (
               <DashboardTab />
+            ) : activeTab === 8 ? (
+              <SettingsTab />
             ) : (isPendingReview || isRejected) ? (
               <LockedTabPreview tabId={activeTab} setActiveTab={setActiveTab} onLogout={logout} isRejected={isRejected} />
             ) : (

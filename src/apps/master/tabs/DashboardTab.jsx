@@ -58,9 +58,168 @@ export default function DashboardTab() {
     loadHistoricalOrders,
     refreshData,
     updateStoreSettings,
+    toggleStoreMarketplaceVisibility,
     showToast,
     logout
   } = useMaster();
+
+  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
+  const isSalon = !isMarketplace && (capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
+  const isFashion = !isMarketplace && (capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline')));
+  const hasAppointments = !isMarketplace && (capabilities?.orders?.hasAppointments ?? isSalon);
+  const hasFranchise = !isMarketplace && (capabilities?.settings?.hasFranchise ?? (!isSalon));
+  const showOffers = !isMarketplace && storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
+
+  const storeDisplayName = storeInfo?.name || storeInfo?.storeName || storeInfo?.studioName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights');
+  const orderNoun = hasAppointments ? 'Booking' : isMarketplace ? 'City Order' : 'Order';
+  const orderNounPlural = hasAppointments ? 'Bookings' : isMarketplace ? 'City Orders' : 'Orders';
+  const itemNoun = capabilities?.catalog?.itemNoun || (hasAppointments ? 'Service' : isFashion ? 'Product' : isMarketplace ? 'Partner Store' : 'Dish');
+  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : isFashion ? 'Products' : isMarketplace ? 'Partner Stores' : 'Dishes');
+
+  // ─── SUPER ADMIN: MARKETPLACE EXECUTIVE ANALYTICS (CALLED UNCONDITIONALLY) ───
+  const marketplaceAnalytics = useMemo(() => {
+    if (!isMarketplace) return null;
+    const list = Array.isArray(orders) ? orders : [];
+    const validOrders = list.filter(o => o.status !== 'cancelled' && o.status !== 'rejected');
+
+    const churuoneOrders = validOrders.filter(o => o.channel === 'churuone' || o.fromChuruOne === true);
+    const storefrontOrders = validOrders.filter(o => o.channel !== 'churuone' && !o.fromChuruOne);
+
+    const churuoneRevenue = churuoneOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
+    const storefrontRevenue = storefrontOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
+    const totalRevenue = churuoneRevenue + storefrontRevenue;
+
+    const timeSlots = [
+      { key: 'morning', label: 'Morning', hours: '6 AM - 12 PM', count: 0, revenue: 0, color: 'text-amber-500', bg: 'bg-amber-50 border-amber-200' },
+      { key: 'afternoon', label: 'Afternoon', hours: '12 PM - 5 PM', count: 0, revenue: 0, color: 'text-orange-500', bg: 'bg-orange-50 border-orange-200' },
+      { key: 'evening', label: 'Evening', hours: '5 PM - 9 PM', count: 0, revenue: 0, color: 'text-indigo-500', bg: 'bg-indigo-50 border-indigo-200' },
+      { key: 'night', label: 'Late Night', hours: '9 PM - 4 AM', count: 0, revenue: 0, color: 'text-purple-500', bg: 'bg-purple-50 border-purple-200' }
+    ];
+
+    churuoneOrders.forEach(o => {
+      const d = o.createdAt || o.placedAt || o.timestamp ? new Date(o.createdAt || o.placedAt || o.timestamp) : new Date();
+      const h = d.getHours();
+      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
+
+      if (h >= 6 && h < 12) {
+        timeSlots[0].count += 1;
+        timeSlots[0].revenue += rev;
+      } else if (h >= 12 && h < 17) {
+        timeSlots[1].count += 1;
+        timeSlots[1].revenue += rev;
+      } else if (h >= 17 && h < 21) {
+        timeSlots[2].count += 1;
+        timeSlots[2].revenue += rev;
+      } else {
+        timeSlots[3].count += 1;
+        timeSlots[3].revenue += rev;
+      }
+    });
+
+    const storeMap = {
+      shawarma: { name: 'Shawarma Nights', vertical: 'food', badge: '🌯 Food Delivery', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
+      skyline: { name: 'Skyline Premium Outfits', vertical: 'fashion', badge: '👔 Fashion & Footwear', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
+      'nash-studio': { name: 'Nash Studio', vertical: 'salon', badge: '✂️ Salon & Grooming', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 }
+    };
+
+    validOrders.forEach(o => {
+      const sId = o.storeId || 'shawarma';
+      if (!storeMap[sId]) {
+        storeMap[sId] = { name: o.storeName || sId, vertical: 'general', badge: '🏬 Partner Store', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 };
+      }
+      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
+      if (o.channel === 'churuone' || o.fromChuruOne === true) {
+        storeMap[sId].churuoneOrders += 1;
+        storeMap[sId].churuoneRev += rev;
+      } else {
+        storeMap[sId].directOrders += 1;
+        storeMap[sId].directRev += rev;
+      }
+    });
+
+    const salesMap = new Map();
+    validOrders.forEach(o => {
+      if (Array.isArray(o.items)) {
+        o.items.forEach(it => {
+          const key = it.id || it.name;
+          const current = salesMap.get(key) || {
+            id: key,
+            name: it.name,
+            storeId: o.storeId,
+            storeName: o.storeName,
+            units: 0,
+            revenue: 0,
+            image: it.image
+          };
+          const qty = Number(it.quantity || it.qty || 1);
+          const price = Number(it.price || 0);
+          current.units += qty;
+          current.revenue += (price * qty);
+          salesMap.set(key, current);
+        });
+      }
+    });
+
+    const orderedProducts = Array.from(salesMap.values()).sort((a, b) => b.units - a.units);
+    const topProducts = orderedProducts.slice(0, 5);
+
+    const allKnown = (cityProducts && cityProducts.length > 0) ? cityProducts : [];
+    const slowProducts = allKnown
+      .map(p => {
+        const stats = salesMap.get(p.id) || salesMap.get(p.name);
+        return {
+          id: p.id,
+          name: p.name,
+          storeId: p.storeId,
+          storeName: p.storeName,
+          category: p.category,
+          price: p.price,
+          image: p.image || p.img,
+          units: stats?.units || 0,
+          revenue: stats?.revenue || 0
+        };
+      })
+      .sort((a, b) => a.units - b.units)
+      .slice(0, 5);
+
+    return {
+      churuoneOrdersCount: churuoneOrders.length,
+      churuoneRevenue,
+      storefrontOrdersCount: storefrontOrders.length,
+      storefrontRevenue,
+      totalRevenue,
+      totalOrdersCount: validOrders.length,
+      timeSlots,
+      stores: Object.entries(storeMap).map(([id, d]) => ({ id, ...d })),
+      topProducts,
+      slowProducts
+    };
+  }, [isMarketplace, orders, cityProducts]);
+
+  // Metrics calculation for normal stores (CALLED UNCONDITIONALLY)
+  const metrics = useMemo(() => {
+    const list = Array.isArray(orders) ? orders : [];
+    const totalOrders = list.length;
+    
+    const totalRevenue = list
+      .filter(o => o.status !== 'cancelled' && o.status !== 'rejected')
+      .reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
+
+    const activeOrders = list.filter(o => 
+      ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'payment_pending', 'in_chair', 'booked'].includes(o.status)
+    ).length;
+
+    const deliveredOrders = list.filter(o => o.status === 'delivered' || o.status === 'completed').length;
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / (deliveredOrders || totalOrders || 1)) : 0;
+
+    return { totalOrders, totalRevenue, activeOrders, deliveredOrders, avgOrderValue };
+  }, [orders]);
+
+  // Recent 6 orders (CALLED UNCONDITIONALLY)
+  const recentOrders = useMemo(() => {
+    const list = Array.isArray(orders) ? [...orders] : [];
+    return list.slice(0, 6);
+  }, [orders]);
   const [copiedId, setCopiedId] = useState(false);
 
   const handleCopyDukanId = (id) => {
@@ -834,169 +993,6 @@ export default function DashboardTab() {
     );
   }
 
-  const isMarketplace = storeId === 'churuone' || capabilities?.storeType === 'marketplace' || capabilities?.vertical === 'marketplace';
-  const isSalon = !isMarketplace && (capabilities?.orders?.hasAppointments ?? (storeInfo?.vertical === 'salon' || (storeId || '').includes('nash')));
-  const isFashion = !isMarketplace && (capabilities?.catalog?.hasSizes ?? (storeInfo?.vertical === 'fashion' || (storeId || '').includes('skyline')));
-  const hasAppointments = !isMarketplace && (capabilities?.orders?.hasAppointments ?? isSalon);
-  const hasFranchise = !isMarketplace && (capabilities?.settings?.hasFranchise ?? (!isSalon));
-  const showOffers = !isMarketplace && storeInfo?.settings?.showOfferCards !== false && (!hasAppointments || storeInfo?.settings?.dealsEnabled === true);
-
-  const storeDisplayName = storeInfo?.name || storeInfo?.storeName || storeInfo?.studioName || (isMarketplace ? 'ChuruOne Platform & Marketplace' : isSalon ? 'Nash Studio' : isFashion ? 'Skyline Outfits' : 'Shawarma Nights');
-  const orderNoun = hasAppointments ? 'Booking' : isMarketplace ? 'City Order' : 'Order';
-  const orderNounPlural = hasAppointments ? 'Bookings' : isMarketplace ? 'City Orders' : 'Orders';
-  const itemNoun = capabilities?.catalog?.itemNoun || (hasAppointments ? 'Service' : isFashion ? 'Product' : isMarketplace ? 'Partner Store' : 'Dish');
-  const itemNounPlural = capabilities?.catalog?.itemNounPlural || (hasAppointments ? 'Services' : isFashion ? 'Products' : isMarketplace ? 'Partner Stores' : 'Dishes');
-
-  // ─── SUPER ADMIN: MARKETPLACE EXECUTIVE ANALYTICS ───
-  const marketplaceAnalytics = useMemo(() => {
-    if (!isMarketplace) return null;
-    const list = Array.isArray(orders) ? orders : [];
-    const validOrders = list.filter(o => o.status !== 'cancelled' && o.status !== 'rejected');
-
-    const churuoneOrders = validOrders.filter(o => o.channel === 'churuone' || o.fromChuruOne === true);
-    const storefrontOrders = validOrders.filter(o => o.channel !== 'churuone' && !o.fromChuruOne);
-
-    const churuoneRevenue = churuoneOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
-    const storefrontRevenue = storefrontOrders.reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
-    const totalRevenue = churuoneRevenue + storefrontRevenue;
-
-    // Time-of-day slots for ChuruOne orders
-    const timeSlots = [
-      { key: 'morning', label: 'Morning', hours: '6 AM - 12 PM', count: 0, revenue: 0, color: 'text-amber-500', bg: 'bg-amber-50 border-amber-200' },
-      { key: 'afternoon', label: 'Afternoon', hours: '12 PM - 5 PM', count: 0, revenue: 0, color: 'text-orange-500', bg: 'bg-orange-50 border-orange-200' },
-      { key: 'evening', label: 'Evening', hours: '5 PM - 9 PM', count: 0, revenue: 0, color: 'text-indigo-500', bg: 'bg-indigo-50 border-indigo-200' },
-      { key: 'night', label: 'Late Night', hours: '9 PM - 4 AM', count: 0, revenue: 0, color: 'text-purple-500', bg: 'bg-purple-50 border-purple-200' }
-    ];
-
-    churuoneOrders.forEach(o => {
-      const d = o.createdAt || o.placedAt || o.timestamp ? new Date(o.createdAt || o.placedAt || o.timestamp) : new Date();
-      const h = d.getHours();
-      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
-
-      if (h >= 6 && h < 12) {
-        timeSlots[0].count += 1;
-        timeSlots[0].revenue += rev;
-      } else if (h >= 12 && h < 17) {
-        timeSlots[1].count += 1;
-        timeSlots[1].revenue += rev;
-      } else if (h >= 17 && h < 21) {
-        timeSlots[2].count += 1;
-        timeSlots[2].revenue += rev;
-      } else {
-        timeSlots[3].count += 1;
-        timeSlots[3].revenue += rev;
-      }
-    });
-
-    // Store breakdown
-    const storeMap = {
-      shawarma: { name: 'Shawarma Nights', vertical: 'food', badge: '🌯 Food Delivery', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
-      skyline: { name: 'Skyline Premium Outfits', vertical: 'fashion', badge: '👔 Fashion & Footwear', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 },
-      'nash-studio': { name: 'Nash Studio', vertical: 'salon', badge: '✂️ Salon & Grooming', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 }
-    };
-
-    validOrders.forEach(o => {
-      const sId = o.storeId || 'shawarma';
-      if (!storeMap[sId]) {
-        storeMap[sId] = { name: o.storeName || sId, vertical: 'general', badge: '🏬 Partner Store', directOrders: 0, directRev: 0, churuoneOrders: 0, churuoneRev: 0 };
-      }
-      const rev = Number(o.total || o.grandTotal || o.totalPrice) || 0;
-      if (o.channel === 'churuone' || o.fromChuruOne === true) {
-        storeMap[sId].churuoneOrders += 1;
-        storeMap[sId].churuoneRev += rev;
-      } else {
-        storeMap[sId].directOrders += 1;
-        storeMap[sId].directRev += rev;
-      }
-    });
-
-    // Product frequency and sales calculation
-    const salesMap = new Map();
-    validOrders.forEach(o => {
-      if (Array.isArray(o.items)) {
-        o.items.forEach(it => {
-          const key = it.id || it.name;
-          const current = salesMap.get(key) || {
-            id: key,
-            name: it.name,
-            storeId: o.storeId,
-            storeName: o.storeName,
-            units: 0,
-            revenue: 0,
-            image: it.image
-          };
-          const qty = Number(it.quantity || it.qty || 1);
-          const price = Number(it.price || 0);
-          current.units += qty;
-          current.revenue += (price * qty);
-          salesMap.set(key, current);
-        });
-      }
-    });
-
-    const orderedProducts = Array.from(salesMap.values()).sort((a, b) => b.units - a.units);
-    const topProducts = orderedProducts.slice(0, 5);
-
-    // Identify Slow / "Bekr" (low velocity or 0 sales) products from catalog
-    const allKnown = (cityProducts && cityProducts.length > 0) ? cityProducts : [];
-    const slowProducts = allKnown
-      .map(p => {
-        const stats = salesMap.get(p.id) || salesMap.get(p.name);
-        return {
-          id: p.id,
-          name: p.name,
-          storeId: p.storeId,
-          storeName: p.storeName,
-          category: p.category,
-          price: p.price,
-          image: p.image || p.img,
-          units: stats?.units || 0,
-          revenue: stats?.revenue || 0
-        };
-      })
-      .sort((a, b) => a.units - b.units)
-      .slice(0, 5);
-
-    return {
-      churuoneOrdersCount: churuoneOrders.length,
-      churuoneRevenue,
-      storefrontOrdersCount: storefrontOrders.length,
-      storefrontRevenue,
-      totalRevenue,
-      totalOrdersCount: validOrders.length,
-      timeSlots,
-      stores: Object.entries(storeMap).map(([id, d]) => ({ id, ...d })),
-      topProducts,
-      slowProducts
-    };
-  }, [isMarketplace, orders, cityProducts]);
-
-  // Metrics calculation for normal stores
-  const metrics = useMemo(() => {
-    const list = Array.isArray(orders) ? orders : [];
-    const totalOrders = list.length;
-    
-    // Revenue sum from non-cancelled orders
-    const totalRevenue = list
-      .filter(o => o.status !== 'cancelled' && o.status !== 'rejected')
-      .reduce((sum, o) => sum + (Number(o.total || o.grandTotal || o.totalPrice) || 0), 0);
-
-    const activeOrders = list.filter(o => 
-      ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'payment_pending', 'in_chair', 'booked'].includes(o.status)
-    ).length;
-
-    const deliveredOrders = list.filter(o => o.status === 'delivered' || o.status === 'completed').length;
-    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / (deliveredOrders || totalOrders || 1)) : 0;
-
-    return { totalOrders, totalRevenue, activeOrders, deliveredOrders, avgOrderValue };
-  }, [orders]);
-
-  // Recent 6 orders
-  const recentOrders = useMemo(() => {
-    const list = Array.isArray(orders) ? [...orders] : [];
-    return list.slice(0, 6);
-  }, [orders]);
-
   // ─── IF MARKETPLACE (CHURUONE SUPER ADMIN), RENDER PLATFORM COMMAND CENTER ───
   if (isMarketplace && marketplaceAnalytics) {
     const ma = marketplaceAnalytics;
@@ -1533,6 +1529,9 @@ export default function DashboardTab() {
                       isOpen: true,
                       isSetupComplete: true
                     });
+                    if (typeof toggleStoreMarketplaceVisibility === 'function') {
+                      await toggleStoreMarketplaceVisibility(storeId, true).catch(() => {});
+                    }
                     showToast('🎉 Badhaai ho! Aapki dukan ChuruOne marketplace par LIVE ho chuki hai!', 'success');
                   }}
                   className="mt-3 w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-600 hover:to-teal-500 text-black text-xs font-black shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
@@ -1562,6 +1561,9 @@ export default function DashboardTab() {
             type="button"
             onClick={async () => {
               await updateStoreSettings({ marketplaceVisible: false });
+              if (typeof toggleStoreMarketplaceVisibility === 'function') {
+                await toggleStoreMarketplaceVisibility(storeId, false).catch(() => {});
+              }
               showToast('Dukan marketplace par pause kar di gayi hai.', 'info');
             }}
             className="px-3.5 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 rounded-xl text-xs font-bold text-stone-700 cursor-pointer shadow-2xs"

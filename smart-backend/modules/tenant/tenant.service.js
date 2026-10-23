@@ -478,10 +478,10 @@ export const getMarketplaceFeed = (req, res) => {
             const reg = registeredStores.find(s => (s.id || s.slug) === clean);
             const cfg = DataLayer.getStoreConfig(clean) || {};
             const sInfo = DataLayer.read(clean, 'store_info') || {};
-            const storeMv = reg?.marketplaceVisible !== undefined ? reg.marketplaceVisible :
-                            (cfg?.settings?.marketplaceVisible !== undefined ? cfg.settings.marketplaceVisible :
+            const storeMv = cfg?.settings?.marketplaceVisible !== undefined ? cfg.settings.marketplaceVisible :
+                            (cfg?.marketplaceVisible !== undefined ? cfg.marketplaceVisible :
                             (sInfo?.marketplaceVisible !== undefined ? sInfo.marketplaceVisible :
-                            (cfg?.marketplaceVisible !== undefined ? cfg.marketplaceVisible : true)));
+                            (reg?.marketplaceVisible !== undefined ? reg.marketplaceVisible : true)));
             if (!showAll && storeMv === false) {
                 return false;
             }
@@ -596,8 +596,14 @@ export const getMarketplaceFeed = (req, res) => {
             const isStoreOpen = storeInfo.isOpen !== undefined 
                 ? Boolean(storeInfo.isOpen)
                 : (config.settings?.isOpen !== undefined ? Boolean(config.settings.isOpen) : isFlagship);
-            const isStoreMarketplaceVisible = regStore.marketplaceVisible ?? config.marketplaceVisible ?? isFlagship;
+            const isStoreMarketplaceVisible = config?.settings?.marketplaceVisible ?? config?.marketplaceVisible ?? storeInfo?.marketplaceVisible ?? regStore.marketplaceVisible ?? isFlagship;
             const isSetupComplete = Boolean(config.isSetupComplete ?? regStore.isSetupComplete ?? (isFlagship || menuItems.length > 0));
+
+            const resolvedLandmark = regStore.nearestLandmark || config.nearestLandmark || config.settings?.nearestLandmark || storeInfo.nearestLandmark || 'subhash_chowk';
+            const cleanLmKey = String(resolvedLandmark).toLowerCase().trim();
+            const lmCoords = CHURU_COORDS[cleanLmKey] || { lat: 28.2915, lng: 74.9662 };
+            const finalLat = Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || lmCoords.lat);
+            const finalLng = Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || lmCoords.lng);
 
             const storeSummary = {
                 id: sId,
@@ -624,44 +630,13 @@ export const getMarketplaceFeed = (req, res) => {
                 isMohallaStore,
                 isFlagshipBrand: isFlagship,
                 isCityWide: isFlagship,
-                const resolvedLandmark = regStore.nearestLandmark || config.nearestLandmark || config.settings?.nearestLandmark || storeInfo.nearestLandmark || 'subhash_chowk';
-                const cleanLmKey = String(resolvedLandmark).toLowerCase().trim();
-                const lmCoords = CHURU_COORDS[cleanLmKey] || { lat: 28.2915, lng: 74.9662 };
-                const finalLat = Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || lmCoords.lat);
-                const finalLng = Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || lmCoords.lng);
-
-                const storeSummary = {
-                    id: sId,
-                    name: storeName,
-                    vertical,
-                    category: isMohallaStore ? 'Mohalla Kirana & Daily Needs' : (vertical === 'food' ? 'Charcoal Kitchen & Dining' : (vertical === 'salon' ? 'Salon & Luxury Grooming' : 'Luxury Menswear & Outfits')),
-                    rating: String(storeRating),
-                    timing: isMohallaStore ? '15 min express' : storeTiming,
-                    image: storeImg,
-                    destination: isMohallaStore ? `/churuone?store=${sId}` : destination,
-                    tag: isMohallaStore ? '15 Min Express' : (vertical === 'food' ? 'Food Delivery' : (vertical === 'salon' ? 'Salon Booking' : 'Fashion & Outfits')),
-                    isOpen: isStoreOpen,
-                    status: regStore.status || config.status || storeInfo.status || 'active',
-                    isApproved: Boolean(regStore.isApproved ?? config.isApproved ?? (regStore.status === 'active' || config.status === 'active')),
-                    isSetupComplete,
-                    address: storeInfo.address || 'Churu, Rajasthan',
-                    phone: storeInfo.phone || storeInfo.whatsapp || '7023963189',
-                    freeDeliveryThreshold: storeInfo.freeDeliveryThreshold ?? (isMohallaStore ? 199 : 499),
-                    upiId: storeInfo.upiId || '7023963189@fam',
-                    payeeName: storeInfo.payeeName || storeName,
-                    itemCount: menuItems.length,
-                    dealsCount: dealsList.length,
-                    marketplaceVisible: isStoreMarketplaceVisible,
-                    isMohallaStore,
-                    isFlagshipBrand: isFlagship,
-                    isCityWide: isFlagship,
-                    mohalla: regStore.mohalla || config.mohalla || config.settings?.mohalla || storeInfo.mohalla || 'Churu Area',
-                    nearestLandmark: resolvedLandmark,
-                    lat: finalLat,
-                    lng: finalLng,
-                    radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),
-                    expressDeliveryMins: Number(regStore.expressDeliveryMins || config.expressDeliveryMins || 15)
-                };
+                mohalla: regStore.mohalla || config.mohalla || config.settings?.mohalla || storeInfo.mohalla || 'Churu Area',
+                nearestLandmark: resolvedLandmark,
+                lat: finalLat,
+                lng: finalLng,
+                radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),
+                expressDeliveryMins: Number(regStore.expressDeliveryMins || config.expressDeliveryMins || 15)
+            };
             marketplaceStores.push(storeSummary);
 
             // Add active deals
