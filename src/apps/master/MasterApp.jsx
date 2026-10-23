@@ -7,7 +7,13 @@ function MasterRoot() {
   const { isAuthenticated } = useMaster();
 
   if (!isAuthenticated) {
-    return <MasterAuth />;
+    const params = new URLSearchParams(window.location.search);
+    const storeId = params.get('storeId') || params.get('store') || '';
+    const target = storeId 
+      ? `/auth?role=dukandar&mode=login&storeId=${encodeURIComponent(storeId)}`
+      : '/auth?role=dukandar&mode=login';
+    window.location.replace(target);
+    return null;
   }
 
   return <MasterLayout />;

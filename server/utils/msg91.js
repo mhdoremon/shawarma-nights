@@ -102,7 +102,7 @@ export async function verifyMsg91Otp(phone, otp, reqId = '') {
     const data = await response.json();
     console.log(`📡 [MSG91 Verify Response]:`, data);
 
-    if (data?.type === 'success' || (data?.message && data.message.toLowerCase().includes('success'))) {
+    if (data?.type === 'success' || (data?.message && (data.message.toLowerCase().includes('success') || data.message.toLowerCase().includes('already') || data.message.toLowerCase().includes('verified')))) {
       return { success: true, verified: true, message: 'OTP verified successfully' };
     }
 

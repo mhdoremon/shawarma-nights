@@ -5,6 +5,15 @@ import { Link } from 'react-router-dom';
 import BottomNavBar from '../../components/BottomNavBar';
 
 export default function MasterAuth() {
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const storeId = params.get('storeId') || params.get('store') || '';
+    const target = storeId 
+      ? `/auth?role=dukandar&mode=login&storeId=${encodeURIComponent(storeId)}`
+      : '/auth?role=dukandar&mode=login';
+    window.location.replace(target);
+  }, []);
+
   const { loginDukandar, loginDelivery, registerDelivery } = useMaster();
 
   const [authRole, setAuthRole] = useState('dukandar'); // 'dukandar' | 'delivery_boy'

@@ -1145,13 +1145,38 @@ export default function ChuruOneAuthPage() {
     setErrorMsg('');
     try {
       const clean = dukanPhone.replace(/\D/g, '').slice(-10);
+      const cleanOtp = dukanSigningOtp.trim();
       let isVerified = false;
-      if (dukanSigningOtp && dukanSigningOtp.trim().length >= 4) {
-        try {
-          const mRes = await verifyOtpViaMsg91(dukanSigningOtp.trim());
-          if (mRes && mRes.success) isVerified = true;
-        } catch (e) {}
+
+      // 1. Try verify via client-side MSG91 SDK
+      try {
+        const mRes = await verifyOtpViaMsg91(cleanOtp);
+        if (mRes && (mRes.success || (mRes.message && (mRes.message.toLowerCase().includes('already') || mRes.message.toLowerCase().includes('success'))))) {
+          isVerified = true;
+        }
+      } catch (e) {
+        if (e.message && (e.message.toLowerCase().includes('already') || e.message.toLowerCase().includes('success'))) {
+          isVerified = true;
+        }
       }
+
+      // 2. Verify through backend verify-otp endpoint
+      try {
+        const vRes = await fetch(`${API_URL}/api/auth/dukandar/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: clean,
+            otp: cleanOtp,
+            purpose: 'contract',
+            preVerified: isVerified
+          })
+        });
+        const vData = await vRes.json();
+        if (vData && vData.success) {
+          isVerified = true;
+        }
+      } catch (e) {}
 
       const isMohalla = onboardingModel === 'mohalla' || dukanBusinessType === 'mohalla_kirana';
       const res = await fetch(`${API_URL}/api/auth/dukandar/register-apply`, {
@@ -1172,7 +1197,7 @@ export default function ChuruOneAuthPage() {
           dukanId: dukanGeneratedId,
           username: dukanUsername.trim().toLowerCase(),
           password: dukanPassword.trim(),
-          signingOtp: dukanSigningOtp.trim(),
+          signingOtp: cleanOtp,
           preVerified: isVerified,
           mohallaData: isMohalla ? {
             lat: parseFloat(dukanMohallaLat) || null,

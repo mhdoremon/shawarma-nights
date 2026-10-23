@@ -24,12 +24,12 @@ export function isChuruOnePlatformId(id) {
   );
 }
 
-function resolveStoreMeta(storeId, extraName) {
+function resolveStoreMeta(storeId) {
   if (!storeId || isChuruOnePlatformId(storeId)) return null;
   const s = String(storeId).toLowerCase().trim();
   if (STORE_CATALOG[s]) return STORE_CATALOG[s];
-  const shortName = extraName ? extraName.split(' ')[0] : (s.charAt(0).toUpperCase() + s.slice(1, 9));
-  return { id: s, shortName, name: extraName || storeId, url: `/?storeId=${s}` };
+  // Mohalla stores are part of Feed and do NOT get an extra store button in navbar
+  return null;
 }
 
 /* ─── NAV PILL BUTTON ──────────────────────────────────────────── */
@@ -108,7 +108,7 @@ export default function BottomNavBar({ hidden = false }) {
     try {
       localStorage.removeItem('churuone_active_shop');
       const saved = JSON.parse(sessionStorage.getItem('churuone_active_shop') || 'null');
-      if (saved && saved.id && !isChuruOnePlatformId(saved.id)) return saved;
+      if (saved && saved.id && STORE_CATALOG[saved.id]) return saved;
     } catch {}
     return null;
   });
@@ -118,28 +118,27 @@ export default function BottomNavBar({ hidden = false }) {
     if (path.startsWith('/skyline') || path.startsWith('/outfits') || storeParam === 'skyline') return STORE_CATALOG['skyline'];
     if (path.startsWith('/nash') || path.startsWith('/salon') || storeParam === 'nash' || storeParam === 'nash-studio') return STORE_CATALOG['nash-studio'];
     if (path.startsWith('/shawarma') || path.startsWith('/sn') || storeParam === 'shawarma') return STORE_CATALOG['shawarma'];
-    if (storeParam && !isChuruOnePlatformId(storeParam)) return resolveStoreMeta(storeParam);
-    if ((path.startsWith('/master') || path.startsWith('/admin') || path.startsWith('/dukandar')) && dukandar?.storeId && !isChuruOnePlatformId(dukandar.storeId)) {
-      return resolveStoreMeta(dukandar.storeId, dukandar.dukanName);
-    }
-    if (activeShop && !isChuruOnePlatformId(activeShop.id)) return activeShop;
+    if (storeParam && STORE_CATALOG[storeParam]) return STORE_CATALOG[storeParam];
+    if (activeShop && STORE_CATALOG[activeShop.id]) return activeShop;
     return null;
-  }, [path, storeParam, dukandar?.storeId, dukandar?.dukanName, activeShop, isPhonePeReview]);
+  }, [path, storeParam, activeShop, isPhonePeReview]);
 
   useEffect(() => {
     let detected = null;
     if (path.startsWith('/skyline') || storeParam === 'skyline') detected = STORE_CATALOG['skyline'];
     else if (path.startsWith('/nash') || storeParam === 'nash' || storeParam === 'nash-studio') detected = STORE_CATALOG['nash-studio'];
     else if (path.startsWith('/shawarma') || storeParam === 'shawarma') detected = STORE_CATALOG['shawarma'];
-    else if (storeParam && !isChuruOnePlatformId(storeParam)) detected = resolveStoreMeta(storeParam);
-    else if ((path.startsWith('/master') || path.startsWith('/admin')) && dukandar?.storeId && !isChuruOnePlatformId(dukandar.storeId)) {
-      detected = resolveStoreMeta(dukandar.storeId, dukandar.dukanName);
-    }
-    if (detected && !isChuruOnePlatformId(detected.id)) {
+    else if (storeParam && STORE_CATALOG[storeParam]) detected = STORE_CATALOG[storeParam];
+
+    if (detected) {
       setActiveShop(detected);
       try { sessionStorage.setItem('churuone_active_shop', JSON.stringify(detected)); } catch {}
+    } else if (path === '/' || path === '' || isChuruOnePlatformId(storeParam) || (storeParam && !STORE_CATALOG[storeParam])) {
+      // Feed or mohalla store -> clear activeShop so duplicate pill never shows
+      setActiveShop(null);
+      try { sessionStorage.removeItem('churuone_active_shop'); } catch {}
     }
-  }, [path, storeParam, dukandar?.storeId]);
+  }, [path, storeParam]);
 
   useEffect(() => {
     const readSessions = () => {
@@ -154,7 +153,8 @@ export default function BottomNavBar({ hidden = false }) {
       } catch { setCustomer(null); }
       try {
         const savedShop = JSON.parse(sessionStorage.getItem('churuone_active_shop') || 'null');
-        if (savedShop?.id) setActiveShop(savedShop);
+        if (savedShop?.id && STORE_CATALOG[savedShop.id]) setActiveShop(savedShop);
+        else setActiveShop(null);
       } catch {}
     };
     readSessions();

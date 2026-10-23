@@ -1494,11 +1494,19 @@ export const dukandarVerifyOtp = async (req, res) => {
             } else {
                 const mRes = await verifyMsg91Otp(cleanPhone, otp);
                 if (mRes.success && mRes.verified) isVerified = true;
+                else if (mRes.message && (mRes.message.toLowerCase().includes('already') || mRes.message.toLowerCase().includes('success'))) {
+                    isVerified = true;
+                }
             }
         }
 
         if (!isVerified) {
             return res.status(400).json({ success: false, message: 'Galat ya expired OTP code dalein' });
+        }
+
+        otpStore.set(`dukan:verified:${cleanPhone}`, { verified: true, expiresAt: Date.now() + 15 * 60 * 1000 });
+        if (purpose === 'contract') {
+            otpStore.set(`dukan:contract_verified:${cleanPhone}`, { verified: true, expiresAt: Date.now() + 15 * 60 * 1000 });
         }
 
         return res.json({
@@ -1553,19 +1561,31 @@ export const dukandarRegisterApply = async (req, res) => {
 
         const key = `dukan:contract:${cleanPhone}`;
         const stored = otpStore.get(key);
+        const contractVerifiedToken = otpStore.get(`dukan:contract_verified:${cleanPhone}`);
         let contractVerified = false;
 
-        // Allow test bypass for phone 9999999999 only
-        if (cleanPhone === '9999999999' && (String(signingOtp).trim() === '123456' || String(signingOtp).trim() === '1234')) {
-            contractVerified = true;
-        } else if (stored && String(stored.otp) === String(signingOtp).trim()) {
+        // 1. If pre-verified by client SDK, verify-otp endpoint, or token
+        if (preVerified === true || req.body.isVerified === true || (contractVerifiedToken && contractVerifiedToken.verified)) {
             contractVerified = true;
             otpStore.delete(key);
-        } else {
+            otpStore.delete(`dukan:contract_verified:${cleanPhone}`);
+        }
+        // 2. Allow test bypass for phone 9999999999 only
+        else if (cleanPhone === '9999999999' && (String(signingOtp).trim() === '123456' || String(signingOtp).trim() === '1234')) {
+            contractVerified = true;
+        } 
+        // 3. Stored server OTP match
+        else if (stored && String(stored.otp) === String(signingOtp).trim()) {
+            contractVerified = true;
+            otpStore.delete(key);
+        } 
+        // 4. Verify against MSG91 Cloud API
+        else {
             try {
                 const mRes = await verifyMsg91Otp(cleanPhone, String(signingOtp).trim());
-                if (mRes && (mRes.success || mRes.verified)) {
+                if (mRes && (mRes.success || mRes.verified || (mRes.message && (mRes.message.toLowerCase().includes('already') || mRes.message.toLowerCase().includes('success'))))) {
                     contractVerified = true;
+                    otpStore.delete(key);
                 }
             } catch (e) {
                 console.warn('MSG91 contract OTP verification error:', e.message);

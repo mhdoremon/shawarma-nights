@@ -429,11 +429,14 @@ export const MasterProvider = ({ children }) => {
     localStorage.removeItem('churuone_master_token');
     localStorage.removeItem('churuone_master_user');
     localStorage.removeItem('churuone_master_role');
+    localStorage.removeItem('churuone_master_store_id');
+    sessionStorage.removeItem('churuone_active_shop');
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
     showToast('Logged out successfully', 'info');
+    window.location.href = '/auth?role=dukandar&mode=login';
   }, [showToast]);
 
   // REST API fetch wrapper with store ID and auth token headers
