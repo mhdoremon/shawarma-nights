@@ -1206,122 +1206,124 @@ export default function ChuruOneHomePage() {
   const brandName = platformData?.branding?.heroTitle || platformData?.settings?.storeName || platformData?.name || 'ChuruOne';
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-full lg:max-w-7xl 2xl:max-w-[1536px] bg-[#f9faf9] font-sans text-stone-900 antialiased selection:bg-emerald-900 selection:text-white">
+    <div className="w-full min-h-screen bg-[#f9faf9] font-sans text-stone-900 antialiased selection:bg-emerald-900 selection:text-white">
       
       {/* ─── LOVABLE EMERALD QUICK-COMMERCE HERO HEADER ─────────────── */}
-      <header className="relative overflow-hidden rounded-b-[2rem] md:rounded-b-[2.5rem] bg-gradient-to-br from-[#165b40] via-[#124d35] to-[#0c3826] px-5 sm:px-8 lg:px-12 pb-6 pt-5 md:pb-8 md:pt-7 text-white shadow-lg">
+      <header className="relative w-full overflow-hidden rounded-b-[2rem] md:rounded-b-3xl bg-gradient-to-br from-[#165b40] via-[#124d35] to-[#0c3826] px-4 sm:px-8 lg:px-12 xl:px-16 pb-6 pt-5 md:pb-8 md:pt-7 text-white shadow-lg">
         {/* Ambient Warm Golden Glow Circles */}
         <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-amber-400/20 blur-3xl" />
         <div className="pointer-events-none absolute -left-16 -bottom-20 h-48 w-48 rounded-full bg-emerald-400/10 blur-3xl" />
 
-        <div className="relative flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
-              <Zap className="h-3.5 w-3.5 fill-current text-amber-300" />
-              <span>{dynamicDeliveryMins} MIN DELIVERY</span>
+        <div className="w-full max-w-6xl mx-auto">
+          <div className="relative flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-300">
+                <Zap className="h-3.5 w-3.5 fill-current text-amber-300" />
+                <span>{dynamicDeliveryMins} MIN DELIVERY</span>
+              </div>
+              
+              {/* Clickable Address / Mohalla Location Picker */}
+              <button 
+                type="button"
+                onClick={() => setIsLocationModalOpen(true)}
+                className="mt-1.5 flex items-center gap-1.5 font-black text-2xl md:text-3xl font-display leading-tight text-white hover:text-amber-200 transition-colors cursor-pointer text-left"
+                title="Click to detect GPS or change area"
+              >
+                <span>{customerLocation?.name || 'Subhash Chowk'}</span>
+                <ChevronDown className="h-5 w-5 opacity-70 shrink-0" />
+              </button>
+
+              <div className="mt-0.5 flex items-center gap-1 text-xs text-emerald-100/80 font-medium">
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
+                <span>{brandName}, Churu</span>
+              </div>
             </div>
-            
-            {/* Clickable Address / Mohalla Location Picker */}
+
+            {/* Right: Cart Button with Golden Badge */}
             <button 
               type="button"
-              onClick={() => setIsLocationModalOpen(true)}
-              className="mt-1.5 flex items-center gap-1.5 font-black text-2xl md:text-3xl font-display leading-tight text-white hover:text-amber-200 transition-colors cursor-pointer text-left"
-              title="Click to detect GPS or change area"
+              onClick={() => setIsCartOpen(true)}
+              aria-label="Cart" 
+              className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-md hover:bg-white/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <span>{customerLocation?.name || 'Subhash Chowk'}</span>
-              <ChevronDown className="h-5 w-5 opacity-70 shrink-0" />
+              <ShoppingBag className="h-5 w-5 text-white" />
+              {cartCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-black text-stone-950 shadow-md">
+                  {cartCount}
+                </span>
+              )}
             </button>
-
-            <div className="mt-0.5 flex items-center gap-1 text-xs text-emerald-100/80 font-medium">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-300" />
-              <span>{brandName}, Churu</span>
-            </div>
           </div>
 
-          {/* Right: Cart Button with Golden Badge */}
-          <button 
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            aria-label="Cart" 
-            className="relative grid h-12 w-12 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-md hover:bg-white/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-          >
-            <ShoppingBag className="h-5 w-5 text-white" />
-            {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] font-black text-stone-950 shadow-md">
-                {cartCount}
-              </span>
-            )}
-          </button>
-        </div>
+          {/* Search Bar + Switcher container */}
+          <div className="w-full">
+            {/* Search Bar */}
+            <label className="relative mt-5 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-stone-900 shadow-sm ring-1 ring-black/5 hover:ring-black/10 focus-within:ring-2 focus-within:ring-emerald-400 transition-all cursor-text">
+              <Search className="h-5 w-5 text-stone-400 shrink-0" />
+              <input 
+                type="text"
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                placeholder="Search milk, atta, bread, shawarma…" 
+                className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-stone-400 text-stone-950" 
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1 text-stone-400 hover:text-stone-700 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </label>
 
-        {/* Search Bar + Switcher container */}
-        <div className="max-w-4xl mx-auto w-full">
-          {/* Search Bar */}
-          <label className="relative mt-5 flex items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-stone-900 shadow-sm ring-1 ring-black/5 hover:ring-black/10 focus-within:ring-2 focus-within:ring-emerald-400 transition-all cursor-text">
-            <Search className="h-5 w-5 text-stone-400 shrink-0" />
-            <input 
-              type="text"
-              value={searchQuery} 
-              onChange={(e) => setSearchQuery(e.target.value)} 
-              placeholder="Search milk, atta, bread, shawarma…" 
-              className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-stone-400 text-stone-950" 
-            />
-            {searchQuery && (
+            {/* 2-Way Switcher: Mohalla Express vs City Brands */}
+            <div className="relative mt-4 grid grid-cols-2 gap-1.5 rounded-2xl bg-white/10 p-1.5 ring-1 ring-white/15 backdrop-blur-sm">
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
-                className="p-1 text-stone-400 hover:text-stone-700 cursor-pointer"
+                onClick={() => {
+                  setMarketplaceView('mohalla');
+                  setSelectedCategory('all');
+                }}
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer ${
+                  marketplaceView === 'mohalla' 
+                    ? 'bg-white text-stone-950 shadow-md font-black' 
+                    : 'text-white/80 hover:text-white hover:bg-white/5'
+                }`}
               >
-                <X className="h-4 w-4" />
+                <Store className={`h-4 w-4 shrink-0 ${marketplaceView === 'mohalla' ? 'text-emerald-700' : 'text-emerald-200'}`} />
+                <span className="leading-tight">
+                  <span className="block text-[13px] font-bold">Mohalla Express</span>
+                  <span className="block text-[11px] opacity-70 font-mono">{calculatedDistanceKm} km</span>
+                </span>
               </button>
-            )}
-          </label>
 
-          {/* 2-Way Switcher: Mohalla Express vs City Brands */}
-          <div className="relative mt-4 grid grid-cols-2 gap-1.5 rounded-2xl bg-white/10 p-1.5 ring-1 ring-white/15 backdrop-blur-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setMarketplaceView('mohalla');
-                setSelectedCategory('all');
-              }}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer ${
-                marketplaceView === 'mohalla' 
-                  ? 'bg-white text-stone-950 shadow-md font-black' 
-                  : 'text-white/80 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Store className={`h-4 w-4 shrink-0 ${marketplaceView === 'mohalla' ? 'text-emerald-700' : 'text-emerald-200'}`} />
-              <span className="leading-tight">
-                <span className="block text-[13px] font-bold">Mohalla Express</span>
-                <span className="block text-[11px] opacity-70 font-mono">{calculatedDistanceKm} km</span>
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setMarketplaceView('flagship');
-                setSelectedCategory('all');
-              }}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer ${
-                marketplaceView === 'flagship' 
-                  ? 'bg-white text-stone-950 shadow-md font-black' 
-                  : 'text-white/80 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Sparkles className={`h-4 w-4 shrink-0 ${marketplaceView === 'flagship' ? 'text-amber-600' : 'text-amber-200'}`} />
-              <span className="leading-tight">
-                <span className="block text-[13px] font-bold">City Brands</span>
-                <span className="block text-[11px] opacity-70 font-mono">City-wide</span>
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMarketplaceView('flagship');
+                  setSelectedCategory('all');
+                }}
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer ${
+                  marketplaceView === 'flagship' 
+                    ? 'bg-white text-stone-950 shadow-md font-black' 
+                    : 'text-white/80 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sparkles className={`h-4 w-4 shrink-0 ${marketplaceView === 'flagship' ? 'text-amber-600' : 'text-amber-200'}`} />
+                <span className="leading-tight">
+                  <span className="block text-[13px] font-bold">City Brands</span>
+                  <span className="block text-[11px] opacity-70 font-mono">City-wide</span>
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* ─── LOVABLE SPLIT BODY: LEFT SIDEBAR CATEGORIES + MAIN CATALOG ── */}
-      <div className="flex gap-2 sm:gap-4 lg:gap-6 pb-32 pt-4 px-2 sm:px-6 lg:px-8">
+      <div className="w-full max-w-full flex gap-2 sm:gap-4 lg:gap-6 pb-32 pt-4 px-2 sm:px-6 lg:px-8 xl:px-12">
         
         {/* Left Sticky Vertical Category Rail */}
         <aside className="no-scrollbar sticky top-4 h-[calc(100vh-2rem)] w-[72px] sm:w-[78px] shrink-0 overflow-y-auto pl-1">
@@ -1450,7 +1452,7 @@ export default function ChuruOneHomePage() {
           )}
 
           {/* Product Cards Grid with Lovable Card Style & Stepper */}
-          <div id="catalog-grid" className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div id="catalog-grid" className="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8">
             {isLoadingFeed && items.length === 0 ? (
               [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
                 <div key={n} className="flex flex-col rounded-2xl bg-white p-2 shadow-2xs border border-stone-200 animate-pulse space-y-2">
