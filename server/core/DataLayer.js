@@ -207,7 +207,7 @@ function storeExists(storeId) {
  */
 function getStoreConfig(storeId) {
   let cfg = read(storeId, 'config.json');
-  if (!cfg && storeId) {
+  if (storeId) {
     try {
       const dukandarsPath = path.join(config.DATA_DIR, 'dukandars.json');
       if (fs.existsSync(dukandarsPath)) {
@@ -220,32 +220,74 @@ function getStoreConfig(storeId) {
           String(item.storeSlug || '').toLowerCase() === sClean
         );
         if (d) {
-          cfg = {
-            id: String(d.dukanId).toLowerCase(),
-            slug: d.storeSlug || String(d.dukanId).toLowerCase(),
-            name: d.dukanName,
-            status: d.status || 'pending_review',
-            type: d.businessType || 'retail',
-            vertical: d.businessType === 'restaurant' ? 'food' : (d.businessType || 'retail'),
-            owner: {
-              name: d.ownerName,
-              fatherName: d.fatherName,
-              dob: d.dob,
-              gender: d.gender,
-              phone: d.phone,
-              username: d.username,
-              password: d.password,
-              token: d.token
-            },
-            settings: {
-              storeName: d.dukanName,
+          if (!cfg) {
+            cfg = {
+              id: String(d.dukanId).toLowerCase(),
+              slug: d.storeSlug || String(d.dukanId).toLowerCase(),
               name: d.dukanName,
-              phone: d.phone,
-              isOpen: false,
-              timing: 'Setup in progress',
-              freeDeliveryThreshold: 350
+              status: d.status || 'pending_review',
+              type: d.businessType || 'retail',
+              vertical: d.businessType === 'restaurant' ? 'food' : (d.businessType || 'retail'),
+              owner: {
+                name: d.ownerName,
+                fatherName: d.fatherName,
+                dob: d.dob,
+                gender: d.gender,
+                phone: d.phone,
+                username: d.username,
+                password: d.password,
+                token: d.token
+              },
+              settings: {
+                storeName: d.dukanName,
+                name: d.dukanName,
+                phone: d.phone,
+                isOpen: false,
+                timing: 'Setup in progress',
+                freeDeliveryThreshold: 350
+              }
+            };
+          } else {
+            // Keep status synchronized with dukandars.json authority
+            if (d.status && d.status !== 'pending_review') {
+              cfg.status = d.status;
             }
-          };
+            if (d.isMohallaStore !== undefined) {
+              cfg.isMohallaStore = d.isMohallaStore;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // Check stores.json for marketplaceVisible and live status
+    try {
+      const storesPath = path.join(config.DATA_DIR, 'stores.json');
+      if (fs.existsSync(storesPath)) {
+        const sRaw = fs.readFileSync(storesPath, 'utf-8');
+        const sData = JSON.parse(sRaw);
+        const sList = Array.isArray(sData) ? sData : (sData.stores || []);
+        const sClean = String(storeId).toLowerCase().trim();
+        const sRec = sList.find(item => 
+          String(item.id || '').toLowerCase() === sClean ||
+          String(item.slug || '').toLowerCase() === sClean
+        );
+        if (sRec && cfg) {
+          if (sRec.status && sRec.status !== 'pending_review') {
+            cfg.status = sRec.status;
+          }
+          if (sRec.marketplaceVisible !== undefined) {
+            cfg.marketplaceVisible = sRec.marketplaceVisible;
+          }
+          if (sRec.isApproved !== undefined) {
+            cfg.isApproved = sRec.isApproved;
+          }
+          if (sRec.isSetupComplete !== undefined) {
+            cfg.isSetupComplete = sRec.isSetupComplete;
+          }
+          if (sRec.isOpen !== undefined && cfg.settings) {
+            cfg.settings.isOpen = sRec.isOpen;
+          }
         }
       }
     } catch {}

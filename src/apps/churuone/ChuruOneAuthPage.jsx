@@ -188,7 +188,8 @@ export default function ChuruOneAuthPage() {
   const [dukanGender, setDukanGender] = useState('male');
   const [dukanStoreName, setDukanStoreName] = useState('');
   const [dukanBrandName, setDukanBrandName] = useState('');
-  const [dukanBusinessType, setDukanBusinessType] = useState('restaurant');
+  const [onboardingModel, setOnboardingModel] = useState('mohalla'); // 'mohalla' | 'brand'
+  const [dukanBusinessType, setDukanBusinessType] = useState('mohalla_kirana');
   const [dukanDescription, setDukanDescription] = useState('');
 
   // Step 3 Credentials
@@ -1065,7 +1066,7 @@ export default function ChuruOneAuthPage() {
       if (data.success && data.dukanId) {
         setDukanGeneratedId(data.dukanId);
         setDukanUsername(dukanStoreName.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 15));
-        if (dukanBusinessType === 'mohalla_kirana') {
+        if (onboardingModel === 'mohalla' || dukanBusinessType === 'mohalla_kirana') {
           setDukanLocationStep(true);
         } else {
           setDukanStep(3);
@@ -1128,11 +1129,15 @@ export default function ChuruOneAuthPage() {
     }
   }
 
-  // Step 4: Submit Application & Route to Locked Dashboard!
+  // Step 4: Submit Application & Route to Dashboard!
   async function handleDukanFinalSubmit(e) {
     e.preventDefault();
     if (!dukanContractAccepted) {
       setErrorMsg('Kripya ChuruOne Dukan Service Agreement ki terms ko accept karein.');
+      return;
+    }
+    if (!dukanSigningOtp || dukanSigningOtp.trim().length < 4) {
+      setErrorMsg('Digital Contract sign karne ke liye phone par aaya OTP daalna anivarya (mandatory) hai.');
       return;
     }
 
@@ -1148,6 +1153,7 @@ export default function ChuruOneAuthPage() {
         } catch (e) {}
       }
 
+      const isMohalla = onboardingModel === 'mohalla' || dukanBusinessType === 'mohalla_kirana';
       const res = await fetch(`${API_URL}/api/auth/dukandar/register-apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1160,14 +1166,15 @@ export default function ChuruOneAuthPage() {
           dukanName: dukanStoreName.trim(),
           brandName: dukanBrandName.trim(),
           businessType: dukanBusinessType,
-          description: dukanDescription.trim(),
+          onboardingModel,
+          description: isMohalla ? 'Mohalla Kirana hyperlocal store' : dukanDescription.trim(),
           phone: clean,
           dukanId: dukanGeneratedId,
           username: dukanUsername.trim().toLowerCase(),
           password: dukanPassword.trim(),
           signingOtp: dukanSigningOtp.trim(),
-          preVerified: isVerified || true,
-          mohallaData: dukanBusinessType === 'mohalla_kirana' ? {
+          preVerified: isVerified,
+          mohallaData: isMohalla ? {
             lat: parseFloat(dukanMohallaLat) || null,
             lng: parseFloat(dukanMohallaLng) || null,
             nearestLandmark: dukanMohallaNearestLandmark,
@@ -1195,6 +1202,8 @@ export default function ChuruOneAuthPage() {
         phone: clean,
         username: dukanUsername.trim().toLowerCase(),
         businessType: dukanBusinessType,
+        onboardingModel,
+        isMohallaStore: isMohalla,
         status: 'pending_review',
         role: 'dukandar',
         token: data.token || 'master_token',
@@ -2658,44 +2667,116 @@ export default function ChuruOneAuthPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
-                        Dukan Category / Type *
+                    {/* Model Selection: Mohalla Dukandar vs Independent Brand */}
+                    <div className="space-y-1.5 pt-1">
+                      <label className="block text-xs font-black text-zinc-800 uppercase tracking-wide">
+                        Dukan Model Chunein (Select Store Type) *
                       </label>
-                      <select
-                        value={dukanBusinessType}
-                        onChange={e => setDukanBusinessType(e.target.value)}
-                        className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
-                      >
-                        <option value="restaurant">🍲 Restaurant / Food Delivery</option>
-                        <option value="fashion">👔 Fashion / Outfits & Footwear</option>
-                        <option value="salon">✂️ Salon / Grooming & Appointments</option>
-                        <option value="grocery">🛒 Grocery / Kirana & Daily Needs</option>
-                        <option value="electronics">📱 Electronics & Accessories</option>
-                        <option value="retail">🏷️ General Store / Retail</option>
-                        <option value="mohalla_kirana">🏘️ Mohalla Kirana / Daily Needs (Neighbourhood Store)</option>
-                      </select>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        {/* Option 1: Mohalla Dukandar */}
+                        <div
+                          onClick={() => {
+                            setOnboardingModel('mohalla');
+                            setDukanBusinessType('mohalla_kirana');
+                          }}
+                          className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
+                            onboardingModel === 'mohalla'
+                              ? 'border-emerald-600 bg-emerald-50/80 shadow-sm ring-1 ring-emerald-500/30'
+                              : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 opacity-70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-2xl">🏘️</span>
+                            {onboardingModel === 'mohalla' && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-extrabold text-sm text-zinc-950">
+                            Mohalla Dukandar
+                          </div>
+                          <p className="text-[11px] text-zinc-600 leading-tight mt-1 font-medium">
+                            ChuruOne 15-min Quick-Commerce feed se judega. Area allot hoga. Alag se website ki zaroorat nahi hai.
+                          </p>
+                        </div>
+
+                        {/* Option 2: Independent Brand */}
+                        <div
+                          onClick={() => {
+                            setOnboardingModel('brand');
+                            if (dukanBusinessType === 'mohalla_kirana') setDukanBusinessType('restaurant');
+                          }}
+                          className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
+                            onboardingModel === 'brand'
+                              ? 'border-zinc-950 bg-zinc-900 text-white shadow-sm ring-1 ring-zinc-700'
+                              : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 opacity-70'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-2xl">👑</span>
+                            {onboardingModel === 'brand' && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-400 text-zinc-950 text-[10px] font-black uppercase tracking-wider">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <div className={`font-extrabold text-sm ${onboardingModel === 'brand' ? 'text-white' : 'text-zinc-950'}`}>
+                            Independent Brand
+                          </div>
+                          <p className={`text-[11px] leading-tight mt-1 font-medium ${onboardingModel === 'brand' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                            Shawarma Nights & Skyline Outfits ki tarah apna exclusive store page & custom web experience.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
-                        Website Description (Products & Details)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={dukanDescription}
-                        onChange={e => setDukanDescription(e.target.value)}
-                        placeholder="Aap kya bechte hain? Kesi website chahiye? (e.g. Food menu with veg/non-veg, cloth sizes/colors, hair appointments...)"
-                        className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium resize-none"
-                      />
-                    </div>
+                    {/* Conditional Info or Inputs based on Model */}
+                    {onboardingModel === 'mohalla' ? (
+                      <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl text-xs text-emerald-900 leading-relaxed font-medium">
+                        📍 <strong>Hyperlocal Express Store:</strong> Aapki dukan ka saman ChuruOne home page par aapke alloted area ke logon ko dikhega. Alag se website banana zaroori nahi hai. Agle step me location select karein.
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
+                            Brand Industry / Category *
+                          </label>
+                          <select
+                            value={dukanBusinessType}
+                            onChange={e => setDukanBusinessType(e.target.value)}
+                            className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
+                          >
+                            <option value="restaurant">🍲 Restaurant / Food Delivery</option>
+                            <option value="fashion">👔 Fashion / Outfits & Footwear</option>
+                            <option value="salon">✂️ Salon / Grooming & Appointments</option>
+                            <option value="grocery">🛒 Supermarket / Grocery Store</option>
+                            <option value="electronics">📱 Electronics & Accessories</option>
+                            <option value="retail">🏷️ General Store / Retail</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-zinc-700 mb-1 uppercase tracking-wide">
+                            Website Description (Kesi website chahiye?)
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={dukanDescription}
+                            onChange={e => setDukanDescription(e.target.value)}
+                            placeholder="Aap kya bechte hain? Kesi website chahiye? (e.g. Food menu with veg/non-veg, cloth sizes/colors, hair appointments...)"
+                            className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium resize-none"
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <button
                       type="submit"
                       disabled={loading}
                       className="w-full py-3 mt-1 bg-zinc-950 hover:bg-black text-white rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      {loading ? 'Processing...' : 'Generate Dukan ID & Set Password'}
+                      {loading ? 'Processing...' : (onboardingModel === 'mohalla' ? 'Select Mohalla Location & Area' : 'Generate Dukan ID & Set Password')}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </form>
@@ -2949,12 +3030,17 @@ export default function ChuruOneAuthPage() {
 
                     <button
                       type="submit"
-                      disabled={loading || !dukanContractAccepted}
-                      className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      disabled={loading || !dukanContractAccepted || !dukanSigningOtp || dukanSigningOtp.trim().length < 4}
+                      className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
                     >
                       <CheckCircle2 className="w-5 h-5" />
-                      {loading ? 'Submitting Application...' : 'Sign Contract & Apply for Dukan ID'}
+                      {loading ? 'Verifying OTP & Submitting...' : 'Sign Contract with OTP & Apply for Dukan ID'}
                     </button>
+                    {(!dukanSigningOtp || dukanSigningOtp.trim().length < 4) && (
+                      <p className="text-[11px] text-center text-amber-800 font-semibold">
+                        🔒 Digital signature ke liye mobile par bheja gaya OTP upar daalna anivarya hai
+                      </p>
+                    )}
                   </form>
                 )}
               </div>

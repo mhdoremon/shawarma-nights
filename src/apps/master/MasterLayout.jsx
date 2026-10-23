@@ -74,13 +74,29 @@ export default function MasterLayout() {
     return <DeliveryPartnerView />;
   }
 
-  const isPendingReview = storeInfo?.status === 'pending_review' || 
+  const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
+  const isPendingReview = !isApprovedServer && (
+    storeInfo?.status === 'pending_review' || 
     (() => {
       try {
         const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
         return u.status === 'pending_review';
       } catch { return false; }
-    })();
+    })()
+  );
+
+  // Synchronize localStorage user status if approved on server
+  useEffect(() => {
+    if (isApprovedServer) {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        if (u && u.status === 'pending_review') {
+          u.status = 'active';
+          localStorage.setItem('churuone_master_user', JSON.stringify(u));
+        }
+      } catch {}
+    }
+  }, [isApprovedServer]);
 
   const [showReviewModal, setShowReviewModal] = useState(false);
 

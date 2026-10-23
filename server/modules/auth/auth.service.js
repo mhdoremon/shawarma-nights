@@ -1514,7 +1514,7 @@ export const dukandarVerifyOtp = async (req, res) => {
 /**
  * Dukandar Register & Apply with Digital Contract E-Signature
  */
-export const dukandarRegisterApply = (req, res) => {
+export const dukandarRegisterApply = async (req, res) => {
     try {
         const { 
             ownerName, 
@@ -1530,7 +1530,8 @@ export const dukandarRegisterApply = (req, res) => {
             username, 
             password,
             signingOtp,
-            preVerified
+            preVerified,
+            onboardingModel
         } = req.body;
 
         if (!dukanName || !ownerName || !phone || !username || !password) {
@@ -1542,21 +1543,47 @@ export const dukandarRegisterApply = (req, res) => {
             return res.status(400).json({ success: false, message: 'Valid 10-digit mobile number dalein' });
         }
 
-        // Verify digital contract signature OTP
-        if (!preVerified) {
-            const key = `dukan:contract:${cleanPhone}`;
-            const stored = otpStore.get(key);
-            if (signingOtp && stored && String(stored.otp) === String(signingOtp).trim()) {
-                otpStore.delete(key);
-            } else if (!signingOtp && !preVerified) {
-                // If direct agreement checkbox accepted with phone verification
+        // Strict validation: digital contract signature OTP is mandatory
+        if (!signingOtp || String(signingOtp).trim().length < 4) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Digital Contract sign karne ke liye mobile par bheja gaya OTP daalna anivarya (mandatory) hai.' 
+            });
+        }
+
+        const key = `dukan:contract:${cleanPhone}`;
+        const stored = otpStore.get(key);
+        let contractVerified = false;
+
+        // Allow test bypass for phone 9999999999 only
+        if (cleanPhone === '9999999999' && (String(signingOtp).trim() === '123456' || String(signingOtp).trim() === '1234')) {
+            contractVerified = true;
+        } else if (stored && String(stored.otp) === String(signingOtp).trim()) {
+            contractVerified = true;
+            otpStore.delete(key);
+        } else {
+            try {
+                const mRes = await verifyMsg91Otp(cleanPhone, String(signingOtp).trim());
+                if (mRes && (mRes.success || mRes.verified)) {
+                    contractVerified = true;
+                }
+            } catch (e) {
+                console.warn('MSG91 contract OTP verification error:', e.message);
             }
+        }
+
+        if (!contractVerified) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Aapka Contract Signing OTP galat hai ya expire ho chuka hai. Kripya naya OTP mangwayein aur verify karein.' 
+            });
         }
 
         const dukandars = getAllDukandars();
         const finalDukanId = requestedDukanId || `DKN-${Math.floor(1000 + Math.random() * 9000)}`;
         const storeSlug = slugify(dukanName) || finalDukanId.toLowerCase();
         const token = generateUUID();
+        const resolvedModel = onboardingModel || (businessType === 'mohalla_kirana' ? 'mohalla' : 'brand');
 
         // 1. Save Dukandar record
         const newDukandar = {
@@ -1572,11 +1599,12 @@ export const dukandarRegisterApply = (req, res) => {
             username: username.toLowerCase().trim().replace(/^@/, ''),
             password: String(password).trim(),
             businessType: businessType || 'retail',
-            description: description || '',
+            onboardingModel: resolvedModel,
+            description: resolvedModel === 'mohalla' ? 'Mohalla Kirana hyperlocal store' : (description || ''),
             status: 'pending_review',
             websiteUrl: '',
             mohallaData: req.body.mohallaData || null,
-            isMohallaApplicant: businessType === 'mohalla_kirana',
+            isMohallaApplicant: resolvedModel === 'mohalla' || businessType === 'mohalla_kirana',
             contract: {
                 signed: true,
                 signedPhone: cleanPhone,
@@ -2029,6 +2057,7 @@ export const reviewMohallaApplication = (req, res) => {
             const updatedDukandar = {
                 ...dukandar,
                 status: 'active',
+                isApproved: true,
                 isMohallaStore: true,
                 approvedAt: new Date().toISOString(),
                 mohalla: mohalla || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'Churu',
@@ -2036,7 +2065,8 @@ export const reviewMohallaApplication = (req, res) => {
                 lng: lng || dukandar.mohallaData?.lng || dukandar.lng || 74.9662,
                 nearestLandmark: nearestLandmark || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'subhash_chowk',
                 radiusKm: Number(radiusKm || dukandar.mohallaData?.radiusKm || 1.2),
-                adminNote: adminNote || ''
+                adminNote: adminNote || '',
+                isSetupComplete: false
             };
             saveDukandarRecord(updatedDukandar);
 
@@ -2052,7 +2082,10 @@ export const reviewMohallaApplication = (req, res) => {
                 type: 'mohalla_kirana',
                 vertical: 'grocery',
                 status: 'active',
-                marketplaceVisible: true,
+                isApproved: true,
+                marketplaceVisible: false, // NOT immediately live: merchant must set up inventory and click Go Live!
+                isOpen: false,
+                isSetupComplete: false,
                 isMohallaStore: true,
                 isFlagship: false,
                 ownerName: dukandar.ownerName,
@@ -2082,28 +2115,41 @@ export const reviewMohallaApplication = (req, res) => {
                 DataLayer.writePlatform('stores', storesData);
             } catch {}
 
-            // 3. Create store folder + initialize menu with premade master inventory items if empty
+            // 3. Create store folder + initialize menu as empty so dukandar selects what they sell
             const storeDir = path.join(process.cwd(), 'server', 'data', 'stores', storeSlug);
             if (!fs.existsSync(storeDir)) fs.mkdirSync(storeDir, { recursive: true });
             const menuPath = path.join(storeDir, 'menu.json');
             if (!fs.existsSync(menuPath)) {
-                // Pre-populate with first 10 essential items from master inventory for quick-launch!
-                const masterInvPath = path.join(process.cwd(), 'server', 'data', 'master_mohalla_inventory.json');
-                const masterItems = readJsonFile(masterInvPath, []);
-                const initialItems = masterItems.slice(0, 12).map(item => ({
-                    id: `${storeSlug}-${item.id}`,
-                    name: item.name,
-                    category: item.category,
-                    subCategory: item.subCategory,
-                    unit: item.unit,
-                    price: item.suggestedPrice || item.mrp,
-                    originalPrice: item.mrp,
-                    available: true,
-                    isVeg: true,
-                    image: item.image,
-                    description: item.description
-                }));
-                writeJsonFile(menuPath, initialItems);
+                writeJsonFile(menuPath, []);
+            }
+
+            // 4. Update store config in DataLayer so dukandar dashboard unlocks immediately
+            try {
+                DataLayer.updateStoreConfig(storeSlug, {
+                    status: 'active',
+                    isApproved: true,
+                    marketplaceVisible: false,
+                    isOpen: false,
+                    isSetupComplete: false,
+                    settings: {
+                        isOpen: false,
+                        marketplaceVisible: false,
+                        name: dukandar.dukanName,
+                        storeName: dukandar.dukanName,
+                        phone: dukandar.phone
+                    }
+                });
+                if (dukandar.dukanId && String(dukandar.dukanId).toLowerCase() !== storeSlug) {
+                    DataLayer.updateStoreConfig(String(dukandar.dukanId).toLowerCase(), {
+                        status: 'active',
+                        isApproved: true,
+                        marketplaceVisible: false,
+                        isOpen: false,
+                        isSetupComplete: false
+                    });
+                }
+            } catch (cfgErr) {
+                console.warn('Config update on review error:', cfgErr.message);
             }
         } else {
             // Reject
@@ -2116,7 +2162,12 @@ export const reviewMohallaApplication = (req, res) => {
             saveDukandarRecord(updatedDukandar);
         }
 
-        res.json({ success: true, message: action === 'approve' ? 'Store approved, area allotted & activated on marketplace!' : 'Application rejected.' });
+        res.json({ 
+            success: true, 
+            message: action === 'approve' 
+                ? 'Store approved & area allotted! Dukandar dashboard unlocked for store setup.' 
+                : 'Application rejected.' 
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useMaster } from '../context/MasterContext';
 import { 
   TrendingUp, 
@@ -27,7 +27,9 @@ import {
   Sparkles,
   Layers,
   Eye,
-  ArrowUpRight
+  ArrowUpRight,
+  Package,
+  ArrowRight
 } from 'lucide-react';
 import { getImageUrl } from '../../../utils/imageHelper';
 
@@ -47,7 +49,9 @@ export default function DashboardTab() {
     isHistoricalOrdersLoaded,
     isLoadingHistoricalOrders,
     loadHistoricalOrders,
-    refreshData
+    refreshData,
+    updateStoreSettings,
+    showToast
   } = useMaster();
   const [copiedId, setCopiedId] = useState(false);
 
@@ -59,14 +63,30 @@ export default function DashboardTab() {
     }
   };
 
-  const isPendingReview = storeInfo?.status === 'pending_review' || 
+  const isApprovedServer = storeInfo?.status === 'active' || storeInfo?.status === 'approved';
+  const isPendingReview = !isApprovedServer && (
+    storeInfo?.status === 'pending_review' || 
     user?.status === 'pending_review' ||
     (() => {
       try {
         const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
         return u.status === 'pending_review';
       } catch { return false; }
-    })();
+    })()
+  );
+
+  // Synchronize localStorage user status if approved on server
+  useEffect(() => {
+    if (isApprovedServer) {
+      try {
+        const u = JSON.parse(localStorage.getItem('churuone_master_user') || '{}');
+        if (u && u.status === 'pending_review') {
+          u.status = 'active';
+          localStorage.setItem('churuone_master_user', JSON.stringify(u));
+        }
+      } catch {}
+    }
+  }, [isApprovedServer]);
 
   // If application is pending review, show DUKAN ID CARD, 24-HR REVIEW NOTICE, DETAILS, AND STORE EXPLORER
   if (isPendingReview) {
@@ -880,6 +900,165 @@ export default function DashboardTab() {
           </button>
         </div>
       </div>
+
+      {/* Onboarding & Setup Progress Wizard Card (shown when store is approved but not yet live) */}
+      {(!storeInfo?.marketplaceVisible || !storeInfo?.isSetupComplete) && !isMarketplace && (
+        <div className="bg-gradient-to-br from-emerald-900 via-stone-900 to-black text-white rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-emerald-500/30 relative overflow-hidden">
+          <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 uppercase tracking-wider">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Application Approved by Admin
+                </span>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-2">
+                  Apni Dukan Setup Karein & ChuruOne Par Live Aayein!
+                </h3>
+                <p className="text-xs sm:text-sm text-stone-300 mt-1 max-w-2xl leading-relaxed">
+                  Super Admin ne aapki dukan approve kar di hai. Marketplace par customers ko dukan dikhane se pehle bas yeh aasan steps poore karein:
+                </p>
+              </div>
+
+              {/* Status Badge */}
+              <div className="px-4 py-2 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2 shrink-0">
+                <Clock className="w-4 h-4 animate-pulse" />
+                <span>Setup in Progress (Dukan Abhi Hidden Hai)</span>
+              </div>
+            </div>
+
+            {/* 3 Step Setup Checklist */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              
+              {/* Step 1: Catalog / Inventory */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                (menu?.length || 0) > 0 
+                  ? 'bg-emerald-950/40 border-emerald-500/40' 
+                  : 'bg-white/5 border-white/10'
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono font-bold text-stone-400">STEP 1</span>
+                  {(menu?.length || 0) > 0 ? (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-black">
+                      Done ({menu.length} Items)
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300">
+                      Baki Hai
+                    </span>
+                  )}
+                </div>
+                <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-emerald-400" />
+                  <span>Products Add Karein</span>
+                </h4>
+                <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                  Master Smart Inventory se 1-Click mein daily needs items dukan me dalein.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(2)}
+                  className="mt-3 w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>{(menu?.length || 0) > 0 ? 'Edit Products' : '+ Add Products'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Step 2: Pricing & Timing */}
+              <div className="p-4 rounded-2xl border bg-white/5 border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-mono font-bold text-stone-400">STEP 2</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-stone-700 text-stone-300">
+                    Optional / Auto
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                  <Store className="w-4 h-4 text-amber-400" />
+                  <span>Price & Timing Check</span>
+                </h4>
+                <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                  Apni selling price ya discount verify karein. Default market rate set hai.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(2)}
+                  className="mt-3 w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>Review Rates</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Step 3: Go Live Button */}
+              <div className="p-4 rounded-2xl border bg-emerald-500/10 border-emerald-500/40 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-mono font-bold text-emerald-400">FINAL STEP</span>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-black">
+                      Ready
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm text-white flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>ChuruOne Par Live Karein</span>
+                  </h4>
+                  <p className="text-xs text-stone-300 mt-1 leading-relaxed">
+                    Customers ko dukan show karne ke liye button dabayein.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if ((menu?.length || 0) === 0) {
+                      if (!window.confirm('Aapki dukan me abhi koi product add nahi hai. Kya aap bina product ke dukan live karna chahte hain? Hum recommend karte hain pehle Smart Inventory se items add karein.')) {
+                        setActiveTab(2);
+                        return;
+                      }
+                    }
+                    await updateStoreSettings({
+                      marketplaceVisible: true,
+                      isOpen: true,
+                      isSetupComplete: true
+                    });
+                    showToast('🎉 Badhaai ho! Aapki dukan ChuruOne marketplace par LIVE ho chuki hai!', 'success');
+                  }}
+                  className="mt-3 w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-600 hover:to-teal-500 text-black text-xs font-black shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <Sparkles className="w-4 h-4 text-black" />
+                  <span>🚀 Dukan Live Karein (Go Live)</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Store Status Ribbon (shown when store is already live) */}
+      {storeInfo?.marketplaceVisible && !isMarketplace && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-600" />
+            </span>
+            <span className="font-extrabold text-emerald-950">Aapki Dukan ChuruOne Marketplace Par LIVE Hai</span>
+            <span className="text-emerald-700 hidden sm:inline">• Allotted Mohalle ke customers aapka saman order kar sakte hain</span>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await updateStoreSettings({ marketplaceVisible: false });
+              showToast('Dukan marketplace par pause kar di gayi hai.', 'info');
+            }}
+            className="px-3.5 py-1.5 bg-white hover:bg-stone-100 border border-stone-300 rounded-xl text-xs font-bold text-stone-700 cursor-pointer shadow-2xs"
+          >
+            Pause Store (Go Offline)
+          </button>
+        </div>
+      )}
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

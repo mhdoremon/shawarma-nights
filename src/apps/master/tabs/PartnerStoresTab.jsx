@@ -216,7 +216,7 @@ export default function PartnerStoresTab() {
       if (data.success) {
         showToast(
           action === 'approve' 
-            ? '🟢 Mohalla Dukan approve ho gayi & area allot ho gaya! Dukan live ho gayi hai.' 
+            ? '🟢 Mohalla Dukan approve ho gayi & area allot ho gaya! Dukandar dashboard unlock ho chuka hai.' 
             : '🔴 Application reject kar di gayi.', 
           'success'
         );

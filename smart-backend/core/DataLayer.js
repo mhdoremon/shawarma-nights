@@ -207,7 +207,7 @@ function storeExists(storeId) {
  */
 function getStoreConfig(storeId) {
   let cfg = read(storeId, 'config.json');
-  if (!cfg && storeId) {
+  if (storeId) {
     try {
       const dukandarsPath = path.join(config.DATA_DIR, 'dukandars.json');
       if (fs.existsSync(dukandarsPath)) {
@@ -220,32 +220,74 @@ function getStoreConfig(storeId) {
           String(item.storeSlug || '').toLowerCase() === sClean
         );
         if (d) {
-          cfg = {
-            id: String(d.dukanId).toLowerCase(),
-            slug: d.storeSlug || String(d.dukanId).toLowerCase(),
-            name: d.dukanName,
-            status: d.status || 'pending_review',
-            type: d.businessType || 'retail',
-            vertical: d.businessType === 'restaurant' ? 'food' : (d.businessType || 'retail'),
-            owner: {
-              name: d.ownerName,
-              fatherName: d.fatherName,
-              dob: d.dob,
-              gender: d.gender,
-              phone: d.phone,
-              username: d.username,
-              password: d.password,
-              token: d.token
-            },
-            settings: {
-              storeName: d.dukanName,
+          if (!cfg) {
+            cfg = {
+              id: String(d.dukanId).toLowerCase(),
+              slug: d.storeSlug || String(d.dukanId).toLowerCase(),
               name: d.dukanName,
-              phone: d.phone,
-              isOpen: false,
-              timing: 'Setup in progress',
-              freeDeliveryThreshold: 350
+              status: d.status || 'pending_review',
+              type: d.businessType || 'retail',
+              vertical: d.businessType === 'restaurant' ? 'food' : (d.businessType || 'retail'),
+              owner: {
+                name: d.ownerName,
+                fatherName: d.fatherName,
+                dob: d.dob,
+                gender: d.gender,
+                phone: d.phone,
+                username: d.username,
+                password: d.password,
+                token: d.token
+              },
+              settings: {
+                storeName: d.dukanName,
+                name: d.dukanName,
+                phone: d.phone,
+                isOpen: false,
+                timing: 'Setup in progress',
+                freeDeliveryThreshold: 350
+              }
+            };
+          } else {
+            // Keep status synchronized with dukandars.json authority
+            if (d.status && d.status !== 'pending_review') {
+              cfg.status = d.status;
             }
-          };
+            if (d.isMohallaStore !== undefined) {
+              cfg.isMohallaStore = d.isMohallaStore;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // Check stores.json for marketplaceVisible and live status
+    try {
+      const storesPath = path.join(config.DATA_DIR, 'stores.json');
+      if (fs.existsSync(storesPath)) {
+        const sRaw = fs.readFileSync(storesPath, 'utf-8');
+        const sData = JSON.parse(sRaw);
+        const sList = Array.isArray(sData) ? sData : (sData.stores || []);
+        const sClean = String(storeId).toLowerCase().trim();
+        const sRec = sList.find(item => 
+          String(item.id || '').toLowerCase() === sClean ||
+          String(item.slug || '').toLowerCase() === sClean
+        );
+        if (sRec && cfg) {
+          if (sRec.status && sRec.status !== 'pending_review') {
+            cfg.status = sRec.status;
+          }
+          if (sRec.marketplaceVisible !== undefined) {
+            cfg.marketplaceVisible = sRec.marketplaceVisible;
+          }
+          if (sRec.isApproved !== undefined) {
+            cfg.isApproved = sRec.isApproved;
+          }
+          if (sRec.isSetupComplete !== undefined) {
+            cfg.isSetupComplete = sRec.isSetupComplete;
+          }
+          if (sRec.isOpen !== undefined && cfg.settings) {
+            cfg.settings.isOpen = sRec.isOpen;
+          }
         }
       }
     } catch {}
@@ -608,13 +650,15 @@ async function syncMongoData() {
       console.error('Mongo dukandars sync error:', err.message);
     }
 
-    if (docs.length === 0) {
-      // MongoDB is completely fresh — seed all local stores into MongoDB Atlas!
-      console.log('🌱 [MongoDB Atlas] Empty database detected. Seeding local files into MongoDB Atlas...');
-      const localStoreIds = listStoreIds();
-      let seeded = 0;
+    // Seed any new local store directories that do not exist in MongoDB Atlas yet
+    const localStoreIds = listStoreIds();
+    const mongoStoreIds = new Set((docs || []).map(d => d.storeId));
+    let seeded = 0;
 
-      for (const storeId of localStoreIds) {
+    for (const storeId of localStoreIds) {
+      if (['churuone', 'platform', 'admin'].includes(storeId)) continue;
+      // If store is not in Mongo or has 0 docs in Mongo, seed it
+      if (!mongoStoreIds.has(storeId) || docs.length === 0) {
         const storeDir = getStorePath(storeId);
         if (!fs.existsSync(storeDir)) continue;
 
@@ -632,7 +676,10 @@ async function syncMongoData() {
             seeded++;
           } catch {}
         }
+        console.log(`🌱 [MongoDB Atlas] Seeded new store "${storeId}" into MongoDB Atlas.`);
       }
+    }
+    if (seeded > 0) {
       console.log(`✨ [MongoDB Atlas] Successfully seeded ${seeded} collection(s) to MongoDB Atlas.`);
     }
   } catch (err) {
