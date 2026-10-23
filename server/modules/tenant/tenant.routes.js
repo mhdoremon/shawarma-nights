@@ -6,6 +6,7 @@ export const platformRouter = Router();
 platformRouter.get('/marketplace', service.getMarketplaceFeed);
 platformRouter.get('/stores/marketplace-status', service.getStoreMarketplaceStatuses);
 platformRouter.post('/stores/:storeId/toggle-marketplace', service.toggleStoreMarketplaceVisibility);
+platformRouter.post('/stores/:storeId/status', service.updateStoreOperationalStatus);
 platformRouter.get('/products', service.getCityProducts);
 platformRouter.post('/products/:storeId/:itemId/toggle-marketplace', service.toggleProductMarketplaceVisibility);
 platformRouter.post('/stores/:storeId/toggle-review-permission', service.toggleStoreReviewPermission);

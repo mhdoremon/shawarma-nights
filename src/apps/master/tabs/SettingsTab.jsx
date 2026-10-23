@@ -29,7 +29,8 @@ import {
   Youtube,
   Share2,
   Scissors,
-  Image as ImageIcon
+  Image as ImageIcon,
+  AlertTriangle
 } from 'lucide-react';
 import { playOrderSound } from '../utils/soundHelper';
 import { parseTimeFromText } from '../../../utils/storeTimingHelper';
@@ -159,6 +160,47 @@ export default function SettingsTab() {
 
   const [defaultOpenTime, setDefaultOpenTime] = useState(initialOpenTime);
   const [defaultCloseTime, setDefaultCloseTime] = useState(initialCloseTime);
+
+  // Permanent Store Deactivation State
+  const [isDeactivatingStore, setIsDeactivatingStore] = useState(false);
+
+  const handleToggleStoreDeactivation = async (targetStatus) => {
+    try {
+      setIsDeactivatingStore(true);
+      const token = localStorage.getItem('churuone_master_token') || localStorage.getItem('churuone_token') || 'dukandar-portal-auth';
+      const res = await fetch(`${API_BASE}/api/platform/stores/${storeId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: targetStatus,
+          note: targetStatus === 'deactivated' ? 'Deactivated by merchant from settings' : 'Re-activated by merchant'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(
+          targetStatus === 'deactivated'
+            ? '🔴 Dukan successfully band (deactivate) kar di gayi hai. ChuruOne marketplace se hide kar di gayi hai.'
+            : '🟢 Dukan wapas activate ho gayi hai!',
+          targetStatus === 'deactivated' ? 'info' : 'success'
+        );
+        if (typeof refreshData === 'function') refreshData();
+        if (storeInfo) {
+          storeInfo.status = targetStatus;
+          storeInfo.isOpen = targetStatus === 'active';
+        }
+      } else {
+        showToast(data.message || 'Operation failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      setIsDeactivatingStore(false);
+    }
+  };
 
   // Free Delivery Threshold State
   const [freeDeliveryInput, setFreeDeliveryInput] = useState(
@@ -992,6 +1034,28 @@ export default function SettingsTab() {
         </div>
         )}
 
+        {/* Verified Allotted Mohalla & Landmark Information */}
+        <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-emerald-800 block mb-0.5">Verified Mohalla / Area</span>
+            <span className="font-black text-emerald-950 block truncate">
+              🏡 {storeInfo?.mohalla || user?.mohalla || user?.mohallaData?.areaName || storeInfo?.areaName || 'Churu Area'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-emerald-800 block mb-0.5">Nearest Landmark</span>
+            <span className="font-bold text-emerald-900 block truncate capitalize">
+              {String(storeInfo?.nearestLandmark || user?.nearestLandmark || 'Near Churu City Center').replace(/_/g, ' ')}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-emerald-800 block mb-0.5">Delivery Service Radius</span>
+            <span className="font-black text-emerald-950 block">
+              {storeInfo?.radiusKm || storeInfo?.settings?.deliveryRadius || user?.radiusKm || 1.2} km
+            </span>
+          </div>
+        </div>
+
         {/* Store Physical Address & Customer Helpline Phone */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -1801,6 +1865,53 @@ export default function SettingsTab() {
           <span>LOGOUT DUKANDAR ACCOUNT</span>
         </button>
       </div>
+
+      {/* CARD 9: DUKAN PERMANENTLY BAND / DEACTIVATE KAREIN */}
+      {!isMarketplace && (
+        <div className="bg-red-50/70 border-2 border-red-200 rounded-3xl p-6 sm:p-7 shadow-xl space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-red-950">
+                Dukan Permanently Band Karein (Deactivate Store)
+              </h3>
+              <p className="text-xs text-red-800/80 mt-1 leading-relaxed">
+                Agar aap apni dukan band karna chahte hain, toh yahan se deactivate kar sakte hain. Deactivate hone par aapki dukan ChuruOne marketplace aur customer search se turant hat jayegi aur Super Admin ke <strong>"Band Dukanein"</strong> section me chali jayegi.
+              </p>
+            </div>
+          </div>
+
+          {storeInfo?.status === 'deactivated' ? (
+            <div className="p-4 bg-red-100/90 border border-red-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-red-950 font-bold">
+              <span>🔴 Yeh dukan abhi BAND (Deactivated) hai. Customer feed me nahi dikh rahi hai.</span>
+              <button
+                type="button"
+                disabled={isDeactivatingStore}
+                onClick={() => handleToggleStoreDeactivation('active')}
+                className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 border-0"
+              >
+                {isDeactivatingStore ? 'Activating...' : '🟢 DUKAN WAPAS KHOLEN (RE-ACTIVATE)'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              disabled={isDeactivatingStore}
+              onClick={() => {
+                if (window.confirm('Kya aap sach me apni dukan ko BAND (Deactivate) karna chahte hain? Aapki dukan ChuruOne marketplace aur customer feed se hat jayegi.')) {
+                  handleToggleStoreDeactivation('deactivated');
+                }
+              }}
+              className="w-full py-3.5 rounded-full bg-red-700 hover:bg-red-800 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg transition-all border-0 disabled:opacity-50"
+            >
+              <Store className="w-4 h-4" />
+              <span>{isDeactivatingStore ? 'Dukan Band Ho Rahi Hai...' : 'DUKAN BAND KAREIN (DEACTIVATE STORE)'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
     </div>
   );

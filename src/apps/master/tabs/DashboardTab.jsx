@@ -901,6 +901,76 @@ export default function DashboardTab() {
         </div>
       </div>
 
+      {/* 📍 REGISTERED DUKAN LOCATION & HYPERLOCAL DELIVERY AREA */}
+      {!isMarketplace && (
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-xl border border-zinc-200/80 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black shrink-0">
+                <Store className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-zinc-950 uppercase tracking-tight">
+                  📍 Registered Dukan Location &amp; Allotted Delivery Area
+                </h3>
+                <p className="text-[11px] text-zinc-500">
+                  Yeh aapki dukan ki verified location hai jiske hisab se ChuruOne customers ko aapka saman show karta hai.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono uppercase font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full self-start sm:self-auto">
+              Verified Zone
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Mohalla / Area</span>
+              <span className="text-xs font-black text-emerald-900 block truncate">
+                🏡 {storeInfo?.mohalla || user?.mohalla || user?.mohallaData?.areaName || user?.mohallaData?.mohalla || storeInfo?.areaName || 'Churu Area'}
+              </span>
+            </div>
+
+            <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Nearest Landmark</span>
+              <span className="text-xs font-bold text-zinc-800 block truncate capitalize">
+                {String(storeInfo?.nearestLandmark || user?.nearestLandmark || user?.mohallaData?.nearestLandmark || 'Near Churu City Center').replace(/_/g, ' ')}
+              </span>
+            </div>
+
+            <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">Delivery Service Radius</span>
+              <span className="text-xs font-black text-emerald-800 block">
+                {storeInfo?.radiusKm || storeInfo?.settings?.deliveryRadius || user?.radiusKm || user?.mohallaData?.radiusKm || 1.2} km
+              </span>
+            </div>
+
+            <div className="p-3 bg-zinc-50 rounded-2xl border border-zinc-100">
+              <span className="text-[10px] uppercase font-bold text-zinc-400 block mb-0.5">GPS Coordinates</span>
+              {(() => {
+                const lat = storeInfo?.lat || user?.lat || user?.mohallaData?.lat;
+                const lng = storeInfo?.lng || user?.lng || user?.mohallaData?.lng;
+                if (lat && lng) {
+                  return (
+                    <a
+                      href={`https://www.google.com/maps?q=${lat},${lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-mono font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                      title="Open Google Maps"
+                    >
+                      <span>{lat}, {lng}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  );
+                }
+                return <span className="text-xs text-zinc-400 font-medium">Standard Landmark Pin</span>;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Onboarding & Setup Progress Wizard Card (shown when store is approved but not yet live) */}
       {(!storeInfo?.marketplaceVisible || !storeInfo?.isSetupComplete) && !isMarketplace && (
         <div className="bg-gradient-to-br from-emerald-900 via-stone-900 to-black text-white rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-emerald-500/30 relative overflow-hidden">

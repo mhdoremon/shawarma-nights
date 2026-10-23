@@ -212,6 +212,7 @@ export default function ChuruOneAuthPage() {
   const [dukanMohallaLat, setDukanMohallaLat] = useState('');
   const [dukanMohallaLng, setDukanMohallaLng] = useState('');
   const [dukanMohallaNearestLandmark, setDukanMohallaNearestLandmark] = useState('');
+  const [dukanMohallaAreaName, setDukanMohallaAreaName] = useState('');
   const [dukanMohallaRadius, setDukanMohallaRadius] = useState(1.2);
   const [dukanLocationStep, setDukanLocationStep] = useState(false); // true = in location sub-step
 
@@ -1203,6 +1204,8 @@ export default function ChuruOneAuthPage() {
             lat: parseFloat(dukanMohallaLat) || null,
             lng: parseFloat(dukanMohallaLng) || null,
             nearestLandmark: dukanMohallaNearestLandmark,
+            areaName: dukanMohallaAreaName.trim(),
+            mohalla: dukanMohallaAreaName.trim() || (dukanMohallaNearestLandmark === 'custom_other' ? 'Churu Area' : dukanMohallaNearestLandmark.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())),
             radiusKm: dukanMohallaRadius,
             isMohallaStore: true
           } : null
@@ -2829,7 +2832,10 @@ export default function ChuruOneAuthPage() {
                           );
                           setDukanMohallaLat(pos.coords.latitude.toFixed(6));
                           setDukanMohallaLng(pos.coords.longitude.toFixed(6));
-                          setSuccessMsg('GPS location detect ho gayi!');
+                          if (!dukanMohallaNearestLandmark) {
+                            setDukanMohallaNearestLandmark('custom_other');
+                          }
+                          setSuccessMsg('GPS location detect ho gayi! Kripya apne mohalle/area ka naam niche dalein.');
                         } catch {
                           setErrorMsg('GPS access nahi mila. Manual coordinates dalein ya landmark chunein.');
                         } finally {
@@ -2848,7 +2854,13 @@ export default function ChuruOneAuthPage() {
                       </label>
                       <select
                         value={dukanMohallaNearestLandmark}
-                        onChange={e => setDukanMohallaNearestLandmark(e.target.value)}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setDukanMohallaNearestLandmark(val);
+                          if (val && val !== 'custom_other' && !dukanMohallaAreaName) {
+                            setDukanMohallaAreaName(val.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                          }
+                        }}
                         className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
                       >
                         <option value="">-- Apna area chunein --</option>
@@ -2864,13 +2876,36 @@ export default function ChuruOneAuthPage() {
                         <option value="raj_colony">Raj Colony</option>
                         <option value="gandhi_nagar">Gandhi Nagar</option>
                         <option value="adarsh_nagar">Adarsh Nagar</option>
+                        <option value="custom_other">✍️ Mera Area List Me Nahi Hai (Custom Mohalla)</option>
                       </select>
                     </div>
 
                     {/* Show lat/lng if GPS detected */}
                     {dukanMohallaLat && dukanMohallaLng && (
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-mono">
-                        GPS: {dukanMohallaLat}, {dukanMohallaLng}
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-mono flex items-center justify-between">
+                        <span>📍 GPS: {dukanMohallaLat}, {dukanMohallaLng}</span>
+                        <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded">Captured</span>
+                      </div>
+                    )}
+
+                    {/* Mandatory Custom Mohalla/Area Name Input if GPS used or custom_other chosen */}
+                    {(dukanMohallaNearestLandmark === 'custom_other' || (dukanMohallaLat && dukanMohallaLng)) && (
+                      <div className="p-3.5 bg-emerald-50/70 border-2 border-emerald-400 rounded-2xl space-y-1.5">
+                        <label className="block text-xs font-bold text-emerald-950 uppercase tracking-wide flex items-center justify-between">
+                          <span>Apne Mohalle / Area Ka Naam *</span>
+                          <span className="text-[10px] text-red-600 font-black bg-white px-2 py-0.5 rounded-full border border-red-200">Mandatory</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Nayabass Ward 14, Purani Abadi, Gandhi Chowk..."
+                          value={dukanMohallaAreaName}
+                          onChange={e => setDukanMohallaAreaName(e.target.value)}
+                          className="w-full px-3.5 py-2 text-sm bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-700 font-bold text-zinc-950 placeholder:text-zinc-400"
+                          required
+                        />
+                        <p className="text-[11px] text-emerald-800 leading-tight">
+                          Yeh naam ChuruOne main frontend par customer ke delivery location selector me dikhaya jayega.
+                        </p>
                       </div>
                     )}
 
@@ -2897,17 +2932,23 @@ export default function ChuruOneAuthPage() {
                       Note: Final delivery area ChuruOne admin verify karke confirm karega. Aapki actual dukan location aur performance ke hisab se area milega.
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={!dukanMohallaNearestLandmark}
-                      onClick={() => {
-                        setDukanLocationStep(false);
-                        setDukanStep(3);
-                      }}
-                      className="w-full py-3 bg-zinc-950 hover:bg-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-40"
-                    >
-                      Confirm Location &amp; Continue <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {(() => {
+                      const isCustomAreaRequired = dukanMohallaNearestLandmark === 'custom_other' || Boolean(dukanMohallaLat && dukanMohallaLng);
+                      const isLocationReady = Boolean(dukanMohallaNearestLandmark) && (!isCustomAreaRequired || Boolean(dukanMohallaAreaName.trim()));
+                      return (
+                        <button
+                          type="button"
+                          disabled={!isLocationReady}
+                          onClick={() => {
+                            setDukanLocationStep(false);
+                            setDukanStep(3);
+                          }}
+                          className="w-full py-3 bg-zinc-950 hover:bg-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-40"
+                        >
+                          Confirm Location &amp; Continue <ArrowRight className="w-4 h-4" />
+                        </button>
+                      );
+                    })()}
                   </div>
                 )}
 

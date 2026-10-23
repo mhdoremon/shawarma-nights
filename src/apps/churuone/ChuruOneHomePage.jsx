@@ -348,6 +348,43 @@ export default function ChuruOneHomePage() {
     }
   }, []);
 
+  // ─── DYNAMIC LANDMARKS & REGISTERED MOHALLA AREAS ───────────────────
+  const dynamicLandmarks = useMemo(() => {
+    const list = [...CHURU_LANDMARKS];
+    const knownIds = new Set(list.map(l => l.id.toLowerCase()));
+    const knownNames = new Set(list.map(l => l.name.toLowerCase()));
+
+    (stores || []).forEach(s => {
+      const area = (s.mohalla || s.areaName || '').trim();
+      if (area && !knownNames.has(area.toLowerCase())) {
+        const id = area.toLowerCase().replace(/[^a-z0-9]/g, '_');
+        if (!knownIds.has(id)) {
+          knownIds.add(id);
+          knownNames.add(area.toLowerCase());
+          list.push({
+            id,
+            name: area,
+            lat: Number(s.lat || s.geo?.lat) || 28.2915,
+            lng: Number(s.lng || s.geo?.lng) || 74.9662,
+            label: `${area} (Mohalla Area)`,
+            isCustomMohalla: true
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [stores]);
+
+  const dynamicPopularLandmarks = useMemo(() => {
+    const names = new Set(CHURU_POPULAR_LANDMARKS);
+    (stores || []).forEach(s => {
+      const area = (s.mohalla || s.areaName || '').trim();
+      if (area) names.add(area);
+    });
+    return Array.from(names);
+  }, [stores]);
+
   // Unified ChuruOne SSO User State
   const [currentUser, setCurrentUser] = useState(null);
   const [authToken, setAuthToken] = useState('');
@@ -1927,7 +1964,7 @@ export default function ChuruOneHomePage() {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {CHURU_POPULAR_LANDMARKS.map(lm => (
+                    {dynamicPopularLandmarks.map(lm => (
                       <button
                         key={lm}
                         type="button"
@@ -2616,9 +2653,9 @@ export default function ChuruOneHomePage() {
                 <div className="flex-1 h-px bg-stone-200" />
               </div>
 
-              {/* Predefined Landmarks Grid */}
+              {/* Predefined & Registered Mohalla Landmarks Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {CHURU_LANDMARKS.map(lm => {
+                {dynamicLandmarks.map(lm => {
                   const isSelected = (customerLocation?.landmarkId === lm.id) || (customerLocation?.name === lm.name);
                   return (
                     <button
@@ -2628,12 +2665,19 @@ export default function ChuruOneHomePage() {
                       className={`p-3 rounded-2xl text-left border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                         isSelected
                           ? 'bg-emerald-50 border-emerald-500 shadow-xs'
-                          : 'bg-stone-50/80 hover:bg-stone-100 border-stone-200/80'
+                          : lm.isCustomMohalla
+                            ? 'bg-emerald-50/40 hover:bg-emerald-50 border-emerald-200/70'
+                            : 'bg-stone-50/80 hover:bg-stone-100 border-stone-200/80'
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-stone-900 truncate">
-                          {lm.name}
+                        <div className="text-xs font-bold text-stone-900 truncate flex items-center gap-1.5">
+                          <span>{lm.name}</span>
+                          {lm.isCustomMohalla && (
+                            <span className="text-[9px] bg-emerald-600 text-white font-bold px-1.5 py-0.2 rounded-full uppercase">
+                              🏡 Mohalla
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] text-stone-500 truncate">
                           {lm.label?.includes('(') ? lm.label.split('(')[1]?.replace(')', '') : 'Churu Area'}
@@ -2644,7 +2688,7 @@ export default function ChuruOneHomePage() {
                           <Check className="w-3 h-3 stroke-[3]" />
                         </div>
                       ) : (
-                        <MapPin className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                        <MapPin className={`w-3.5 h-3.5 shrink-0 ${lm.isCustomMohalla ? 'text-emerald-600' : 'text-stone-400'}`} />
                       )}
                     </button>
                   );

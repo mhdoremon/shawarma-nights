@@ -363,17 +363,76 @@ export const getMarketplaceFeed = (req, res) => {
             return true;
         });
 
+        // ─── DEDUPLICATE STORES BY CANONICAL IDENTITY & SLUG ───
+        const processedCanonicalKeys = new Set();
+        const deduplicatedStoreBatches = [];
+
+        for (const rawId of validStoreIds) {
+            const clean = String(rawId).toLowerCase().trim();
+            const regStore = registeredStores.find(s => 
+                String(s.id || '').toLowerCase() === clean || 
+                String(s.slug || '').toLowerCase() === clean
+            ) || {};
+            const config = DataLayer.getStoreConfig(clean) || {};
+            const storeInfo = DataLayer.read(clean, 'store_info') || {};
+
+            let canonicalSlug = (regStore.slug || config.slug || '').toLowerCase().trim();
+            if (!canonicalSlug) {
+                const match = registeredStores.find(s => String(s.id || '').toLowerCase() === clean || String(s.slug || '').toLowerCase() === clean);
+                if (match) canonicalSlug = String(match.slug || match.id).toLowerCase().trim();
+            }
+            if (!canonicalSlug) canonicalSlug = clean;
+
+            const storeNameClean = String(regStore.name || config.name || storeInfo.name || '').toLowerCase().trim();
+            const storePhoneClean = String(regStore.phone || config.phone || storeInfo.phone || '').trim();
+            const identityKey = (storeNameClean && storePhoneClean) ? `np_${storeNameClean}_${storePhoneClean}` : canonicalSlug;
+
+            const rawMenu = DataLayer.read(clean, 'menu') || [];
+            const menuItems = Array.isArray(rawMenu)
+                ? rawMenu
+                : (Array.isArray(rawMenu?.menu) ? rawMenu.menu : (Array.isArray(rawMenu?.items) ? rawMenu.items : []));
+
+            if (processedCanonicalKeys.has(canonicalSlug) || (identityKey && processedCanonicalKeys.has(identityKey))) {
+                // If duplicate, merge items to whichever directory had the actual inventory
+                const existingBatch = deduplicatedStoreBatches.find(b => b.canonicalSlug === canonicalSlug || b.identityKey === identityKey);
+                if (existingBatch && menuItems.length > existingBatch.menuItems.length) {
+                    existingBatch.sId = clean;
+                    existingBatch.menuItems = menuItems;
+                    existingBatch.config = { ...existingBatch.config, ...config };
+                    existingBatch.regStore = { ...existingBatch.regStore, ...regStore };
+                    existingBatch.storeInfo = { ...existingBatch.storeInfo, ...storeInfo };
+                }
+                continue;
+            }
+
+            processedCanonicalKeys.add(canonicalSlug);
+            if (identityKey) processedCanonicalKeys.add(identityKey);
+
+            deduplicatedStoreBatches.push({
+                sId: clean,
+                canonicalSlug,
+                identityKey,
+                config,
+                regStore,
+                storeInfo,
+                menuItems
+            });
+        }
+
         const marketplaceStores = [];
         const allItems = [];
         const allDeals = [];
 
-        for (const sId of validStoreIds) {
-            const config = DataLayer.getStoreConfig(sId) || {};
-            const storeInfo = DataLayer.read(sId, 'store_info') || {};
-            const rawMenu = DataLayer.read(sId, 'menu') || [];
-            const menuItems = Array.isArray(rawMenu)
-                ? rawMenu
-                : (Array.isArray(rawMenu?.menu) ? rawMenu.menu : (Array.isArray(rawMenu?.items) ? rawMenu.items : []));
+        for (const batch of deduplicatedStoreBatches) {
+            const { sId, config, regStore, storeInfo, menuItems } = batch;
+
+            const storeStatus = regStore.status || config.status || storeInfo.status || 'active';
+
+            // Customer feed completely hides closed/deactivated/suspended stores
+            if (!showAll && (storeStatus === 'deactivated' || storeStatus === 'suspended')) {
+                continue;
+            }
+
             const rawDeals = DataLayer.read(sId, 'deals') || [];
             const dealsList = Array.isArray(rawDeals)
                 ? rawDeals
@@ -384,8 +443,6 @@ export const getMarketplaceFeed = (req, res) => {
             if (!showAll && menuItems.length === 0 && !['shawarma', 'skyline', 'nash-studio'].includes(sId)) {
                 continue;
             }
-
-            const regStore = registeredStores.find(s => s.id === sId || s.slug === sId) || {};
             const rawVert = (regStore.vertical || config.vertical || storeInfo.vertical || (
                 sId.includes('nash') ? 'salon' :
                 sId.includes('skyline') ? 'fashion' : 'food'
@@ -786,6 +843,81 @@ export const getCityReviews = (req, res) => {
             platformReviews,
             storeReviews,
             permissions
+        });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+/**
+ * ─── STORE OPERATIONAL STATUS (Deactivate / Suspend / Restore) ───
+ */
+export const updateStoreOperationalStatus = (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const { status, note } = req.body; // 'active', 'deactivated', 'suspended'
+        if (!storeId || !status) {
+            return res.status(400).json({ success: false, message: 'storeId and status are required' });
+        }
+        if (!['active', 'deactivated', 'suspended'].includes(status)) {
+            return res.status(400).json({ success: false, message: 'Invalid status. Must be active, deactivated, or suspended.' });
+        }
+
+        const cleanId = String(storeId).toLowerCase().trim();
+        const isOpen = status === 'active';
+        const marketplaceVisible = status === 'active';
+
+        // 1. Update stores.json
+        const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+        const stores = storesData.stores || [];
+        const targetStore = stores.find(s => 
+            String(s.id || '').toLowerCase() === cleanId || 
+            String(s.slug || '').toLowerCase() === cleanId
+        );
+        if (targetStore) {
+            targetStore.status = status;
+            targetStore.isOpen = isOpen;
+            targetStore.marketplaceVisible = marketplaceVisible;
+            if (status !== 'active') targetStore.deactivatedAt = new Date().toISOString();
+            if (note) targetStore.statusNote = note;
+            DataLayer.writePlatform('stores', { stores });
+        }
+
+        // 2. Update dukandars.json
+        const dukandarsData = DataLayer.readJson('dukandars.json') || { dukandars: [] };
+        const dukandars = dukandarsData.dukandars || [];
+        const targetDukandar = dukandars.find(d => 
+            String(d.dukanId || '').toLowerCase() === cleanId || 
+            String(d.storeSlug || '').toLowerCase() === cleanId
+        );
+        if (targetDukandar) {
+            targetDukandar.status = status;
+            if (status !== 'active') targetDukandar.deactivatedAt = new Date().toISOString();
+            if (note) targetDukandar.statusNote = note;
+            DataLayer.writeJson('dukandars.json', { dukandars });
+        }
+
+        // 3. Update store config
+        const config = DataLayer.getStoreConfig(cleanId) || {};
+        config.status = status;
+        config.isOpen = isOpen;
+        config.marketplaceVisible = marketplaceVisible;
+        if (!config.settings) config.settings = {};
+        config.settings.isOpen = isOpen;
+        config.settings.marketplaceVisible = marketplaceVisible;
+        if (note) config.statusNote = note;
+        DataLayer.updateStoreConfig(cleanId, config);
+
+        if (targetStore && targetStore.id && targetStore.id.toLowerCase() !== cleanId) {
+            DataLayer.updateStoreConfig(targetStore.id.toLowerCase(), config);
+        }
+
+        return res.json({
+            success: true,
+            status,
+            message: status === 'active' 
+                ? `Store ${cleanId} has been successfully reactivated.` 
+                : (status === 'suspended' ? `Store ${cleanId} access has been blocked / terminated by Super Admin.` : `Store ${cleanId} is now deactivated.`)
         });
     } catch (err) {
         return res.status(500).json({ success: false, error: err.message });

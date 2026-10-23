@@ -2096,17 +2096,24 @@ export const reviewMohallaApplication = (req, res) => {
         const dukandar = dukandars[idx];
 
         if (action === 'approve') {
+            const resolvedMohalla = mohalla || dukandar.mohallaData?.areaName || dukandar.mohallaData?.mohalla || (dukandar.mohallaData?.nearestLandmark && dukandar.mohallaData.nearestLandmark !== 'custom_other' ? dukandar.mohallaData.nearestLandmark.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Churu');
+            const resolvedLandmark = nearestLandmark || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'subhash_chowk';
+            const resolvedLat = lat || dukandar.mohallaData?.lat || dukandar.lat || 28.2915;
+            const resolvedLng = lng || dukandar.mohallaData?.lng || dukandar.lng || 74.9662;
+            const resolvedRadius = Number(radiusKm || dukandar.mohallaData?.radiusKm || 1.2);
+
             const updatedDukandar = {
                 ...dukandar,
                 status: 'active',
                 isApproved: true,
                 isMohallaStore: true,
                 approvedAt: new Date().toISOString(),
-                mohalla: mohalla || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'Churu',
-                lat: lat || dukandar.mohallaData?.lat || dukandar.lat || 28.2915,
-                lng: lng || dukandar.mohallaData?.lng || dukandar.lng || 74.9662,
-                nearestLandmark: nearestLandmark || dukandar.mohallaData?.nearestLandmark || dukandar.nearestLandmark || 'subhash_chowk',
-                radiusKm: Number(radiusKm || dukandar.mohallaData?.radiusKm || 1.2),
+                mohalla: resolvedMohalla,
+                areaName: resolvedMohalla,
+                lat: resolvedLat,
+                lng: resolvedLng,
+                nearestLandmark: resolvedLandmark,
+                radiusKm: resolvedRadius,
                 adminNote: adminNote || '',
                 isSetupComplete: false
             };
@@ -2138,11 +2145,21 @@ export const reviewMohallaApplication = (req, res) => {
                 isFlagship: false,
                 ownerName: dukandar.ownerName,
                 phone: dukandar.phone,
-                mohalla: updatedDukandar.mohalla,
-                nearestLandmark: updatedDukandar.nearestLandmark,
-                lat: Number(updatedDukandar.lat),
-                lng: Number(updatedDukandar.lng),
-                radiusKm: Number(updatedDukandar.radiusKm),
+                mohalla: resolvedMohalla,
+                areaName: resolvedMohalla,
+                nearestLandmark: resolvedLandmark,
+                lat: Number(resolvedLat),
+                lng: Number(resolvedLng),
+                radiusKm: resolvedRadius,
+                expressDeliveryMins: 15,
+                approvedAt: new Date().toISOString(),
+                capabilities: {
+                    storeType: 'mohalla_kirana',
+                    catalog: { hasVegNonVeg: true, hasFoodAddons: false, hasSizes: false, hasColors: false, hasLookbook: false, hasServiceDuration: false, hasUnitWeights: true, hasMasterCatalogPicker: true, isMohallaStore: true },
+                    orders: { hasKotPrinting: false, hasRiderDispatch: true, hasAppointments: false, hasAdvanceToken: false, hasDeliveryOtp: true, isExpressDelivery: true },
+                    settings: { hasDeliveryRadius: true, hasFreeDeliveryThreshold: true, hasAdvanceTokenFee: false, hasTableBooking: false, hasMohallaGeoFence: true, hasLandmarkBinding: true }
+                }
+            };
                 expressDeliveryMins: 15,
                 approvedAt: new Date().toISOString(),
                 capabilities: {
@@ -2175,28 +2192,32 @@ export const reviewMohallaApplication = (req, res) => {
 
             // 4. Update store config in DataLayer so dukandar dashboard unlocks immediately
             try {
-                DataLayer.updateStoreConfig(storeSlug, {
+                const configPayload = {
                     status: 'active',
                     isApproved: true,
                     marketplaceVisible: false,
                     isOpen: false,
                     isSetupComplete: false,
+                    mohalla: updatedDukandar.mohalla,
+                    areaName: updatedDukandar.areaName,
+                    nearestLandmark: updatedDukandar.nearestLandmark,
+                    lat: Number(updatedDukandar.lat),
+                    lng: Number(updatedDukandar.lng),
+                    radiusKm: Number(updatedDukandar.radiusKm),
                     settings: {
                         isOpen: false,
                         marketplaceVisible: false,
                         name: dukandar.dukanName,
                         storeName: dukandar.dukanName,
-                        phone: dukandar.phone
+                        phone: dukandar.phone,
+                        mohalla: updatedDukandar.mohalla,
+                        areaName: updatedDukandar.areaName,
+                        deliveryRadius: Number(updatedDukandar.radiusKm)
                     }
-                });
+                };
+                DataLayer.updateStoreConfig(storeSlug, configPayload);
                 if (dukandar.dukanId && String(dukandar.dukanId).toLowerCase() !== storeSlug) {
-                    DataLayer.updateStoreConfig(String(dukandar.dukanId).toLowerCase(), {
-                        status: 'active',
-                        isApproved: true,
-                        marketplaceVisible: false,
-                        isOpen: false,
-                        isSetupComplete: false
-                    });
+                    DataLayer.updateStoreConfig(String(dukandar.dukanId).toLowerCase(), configPayload);
                 }
             } catch (cfgErr) {
                 console.warn('Config update on review error:', cfgErr.message);

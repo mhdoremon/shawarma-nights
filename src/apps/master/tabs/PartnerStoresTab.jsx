@@ -50,8 +50,43 @@ export default function PartnerStoresTab() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVertical, setSelectedVertical] = useState('all');
+  const [selectedStatusTab, setSelectedStatusTab] = useState('all'); // 'all', 'active', 'band'
   const [togglingId, setTogglingId] = useState(null);
   const [updatingRadiusId, setUpdatingRadiusId] = useState(null);
+  const [changingStatusId, setChangingStatusId] = useState(null);
+
+  // Super Admin Change Store Operational Status (Active / Suspended / Deactivated)
+  const handleUpdateStoreStatus = async (storeId, nextStatus, note = '') => {
+    try {
+      setChangingStatusId(storeId);
+      const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
+      const res = await fetch(`${API_BASE}/api/platform/stores/${storeId}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: nextStatus, note })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(
+          nextStatus === 'active'
+            ? `🟢 ${storeId.toUpperCase()} ko wapas ACTIVE kar diya gaya hai!`
+            : `🔴 ${storeId.toUpperCase()} ko BAND / SUSPEND kar diya gaya hai.`,
+          nextStatus === 'active' ? 'success' : 'info'
+        );
+        setStores(prev => prev.map(s => (s.id === storeId || s.slug === storeId) ? { ...s, status: nextStatus, isOpen: nextStatus === 'active', marketplaceVisible: nextStatus === 'active' } : s));
+        loadPlatformStores();
+      } else {
+        showToast(data.message || 'Status update failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      setChangingStatusId(null);
+    }
+  };
 
   // Super Admin Radius Reward & Expansion for Top Performing Mohalla Stores
   const handleUpdateRadius = async (storeId, delta) => {
@@ -304,16 +339,24 @@ export default function PartnerStoresTab() {
       st.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       st.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       st.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      st.address?.toLowerCase().includes(searchQuery.toLowerCase());
+      st.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      st.mohalla?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesVertical = selectedVertical === 'all' || st.vertical === selectedVertical;
 
-    return matchesQuery && matchesVertical;
+    const isBand = st.status === 'deactivated' || st.status === 'suspended';
+    const matchesStatus = 
+      selectedStatusTab === 'all' ? true :
+      selectedStatusTab === 'active' ? !isBand :
+      selectedStatusTab === 'band' ? isBand : true;
+
+    return matchesQuery && matchesVertical && matchesStatus;
   });
 
   const totalStores = stores.length;
-  const liveCount = stores.filter(s => s.marketplaceVisible !== false).length;
-  const hiddenCount = totalStores - liveCount;
+  const bandCount = stores.filter(s => s.status === 'deactivated' || s.status === 'suspended').length;
+  const liveCount = stores.filter(s => s.status !== 'deactivated' && s.status !== 'suspended' && s.marketplaceVisible !== false).length;
+  const hiddenCount = Math.max(0, totalStores - liveCount - bandCount);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto font-sans">
@@ -358,8 +401,8 @@ export default function PartnerStoresTab() {
           </div>
         </div>
 
-        {/* 3 Summary Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-6 pt-6 border-t border-stone-800/80">
+        {/* 4 Summary Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-6 pt-6 border-t border-stone-800/80">
           <div className="bg-stone-800/60 backdrop-blur-xs p-4 rounded-2xl border border-stone-700/60 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-stone-400 font-bold block">
@@ -391,7 +434,7 @@ export default function PartnerStoresTab() {
           <div className="bg-amber-950/40 backdrop-blur-xs p-4 rounded-2xl border border-amber-800/40 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold block">
-                Hidden / In Review
+                In Setup / Draft
               </span>
               <span className="text-2xl font-black text-amber-300 mt-0.5 block">
                 {hiddenCount} Stores
@@ -399,6 +442,20 @@ export default function PartnerStoresTab() {
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-900/60 text-amber-400 flex items-center justify-center font-black">
               <EyeOff className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-red-950/40 backdrop-blur-xs p-4 rounded-2xl border border-red-800/40 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-red-400 font-bold block">
+                Band Dukanein
+              </span>
+              <span className="text-2xl font-black text-red-300 mt-0.5 block">
+                {bandCount} Stores
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-red-900/60 text-red-400 flex items-center justify-center font-black">
+              <Lock className="w-5 h-5" />
             </div>
           </div>
         </div>
@@ -587,24 +644,65 @@ export default function PartnerStoresTab() {
         )}
       </div>
 
-      {/* 3. SEARCH & VERTICAL CATEGORY FILTER PILLS */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-lg border border-stone-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search partner store by name, id, category, or location..."
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-2xl bg-stone-50 border border-stone-200 focus:border-stone-900 outline-none transition-colors"
-          />
+      {/* 3. SEARCH & VERTICAL CATEGORY & STATUS FILTER PILLS */}
+      <div className="bg-white rounded-3xl p-4 sm:p-5 shadow-lg border border-stone-200/80 space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search partner store by name, id, category, or location..."
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-2xl bg-stone-50 border border-stone-200 focus:border-stone-900 outline-none transition-colors"
+            />
+          </div>
+
+          {/* Operational Status Filter Tabs (Active vs Band Dukanein) */}
+          <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-2xl self-start sm:self-auto shrink-0">
+            <button
+              type="button"
+              onClick={() => setSelectedStatusTab('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 ${
+                selectedStatusTab === 'all'
+                  ? 'bg-white text-stone-900 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Sabhi ({totalStores})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedStatusTab('active')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1 ${
+                selectedStatusTab === 'active'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <span>🟢 Active</span>
+              <span className="text-[10px] opacity-80">({totalStores - bandCount})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedStatusTab('band')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border-0 flex items-center gap-1 ${
+                selectedStatusTab === 'band'
+                  ? 'bg-red-600 text-white shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <span>🔴 Band Dukanein</span>
+              <span className="text-[10px] opacity-80">({bandCount})</span>
+            </button>
+          </div>
         </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-1 border-t border-stone-100">
           {[
-            { id: 'all', label: 'All Stores', icon: Layers },
+            { id: 'all', label: 'All Verticals', icon: Layers },
             { id: 'mohalla_kirana', label: 'Mohalla Kirana', icon: Store },
             { id: 'food', label: 'Food', icon: Utensils },
             { id: 'fashion', label: 'Fashion', icon: Shirt },
@@ -642,6 +740,8 @@ export default function PartnerStoresTab() {
             store.isCityWide || 
             ['shawarma', 'skyline', 'nash-studio'].includes(store.id || store.slug)
           );
+          const isBand = store.status === 'deactivated' || store.status === 'suspended';
+          const isSuspended = store.status === 'suspended';
 
           const verticalBadge = 
             isMohalla ? { label: 'Mohalla Kirana', bg: 'bg-emerald-100 text-emerald-900', icon: Store } :
@@ -655,32 +755,59 @@ export default function PartnerStoresTab() {
             <div
               key={store.id}
               className={`bg-white rounded-3xl p-5 shadow-xl border transition-all flex flex-col justify-between space-y-4 relative ${
-                isVisible ? 'border-stone-200/90 hover:border-stone-400' : 'border-red-200 bg-red-50/20 opacity-90'
+                isBand 
+                  ? 'border-red-300 bg-red-50/30' 
+                  : isVisible ? 'border-stone-200/90 hover:border-stone-400' : 'border-amber-200 bg-amber-50/20 opacity-90'
               }`}
             >
-              {/* Top Row: Vertical Badge + Marketplace Visibility Switch */}
+              {/* Top Row: Vertical Badge + Marketplace Visibility Switch / Band Badge */}
               <div className="flex items-center justify-between gap-2">
                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${verticalBadge.bg}`}>
                   <IconComponent className="w-3 h-3" />
                   <span>{verticalBadge.label}</span>
                 </div>
 
-                {/* 1-Click Visibility Toggle Button */}
-                <button
-                  type="button"
-                  disabled={isToggling}
-                  onClick={() => handleToggleVisibility(store.id, isVisible)}
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 shadow-2xs ${
-                    isVisible 
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                      : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
-                  }`}
-                  title={isVisible ? 'Click to hide from ChuruOne' : 'Click to make live on ChuruOne'}
-                >
-                  {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  <span>{isToggling ? 'Updating...' : (isVisible ? 'LIVE ON CHURUONE' : 'HIDDEN FROM CHURUONE')}</span>
-                </button>
+                {isBand ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-600 text-white">
+                    <Lock className="w-3 h-3" />
+                    <span>{isSuspended ? 'BLOCKED' : 'BAND'}</span>
+                  </span>
+                ) : (
+                  /* 1-Click Visibility Toggle Button */
+                  <button
+                    type="button"
+                    disabled={isToggling}
+                    onClick={() => handleToggleVisibility(store.id, isVisible)}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border-0 shadow-2xs ${
+                      isVisible 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                        : 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                    }`}
+                    title={isVisible ? 'Click to hide from ChuruOne' : 'Click to make live on ChuruOne'}
+                  >
+                    {isVisible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    <span>{isToggling ? 'Updating...' : (isVisible ? 'LIVE ON CHURUONE' : 'HIDDEN FROM CHURUONE')}</span>
+                  </button>
+                )}
               </div>
+
+              {/* Band Status Notice with 1-Click Re-activate */}
+              {isBand && (
+                <div className="p-3 bg-red-100/90 border border-red-300 rounded-2xl flex items-center justify-between text-xs font-bold text-red-950">
+                  <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                    <Lock className="w-3.5 h-3.5 text-red-700 shrink-0" />
+                    <span className="truncate">{isSuspended ? 'Super Admin dwara Blocked' : 'Dukandar dwara Deactivated'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={changingStatusId === store.id}
+                    onClick={() => handleUpdateStoreStatus(store.id, 'active')}
+                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0 shrink-0"
+                  >
+                    {changingStatusId === store.id ? 'Opening...' : '🟢 Wapas Kholen'}
+                  </button>
+                </div>
+              )}
 
               {/* Store Identity */}
               <div className="space-y-1.5">
@@ -708,57 +835,76 @@ export default function PartnerStoresTab() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-stone-400">Live Status:</span>
-                  <span className={`text-[11px] font-bold ${store.isOpen !== false ? 'text-emerald-700' : 'text-red-600'}`}>
-                    {store.isOpen !== false ? '🟢 Open Now' : '🔴 Closed'}
+                  <span className={`text-[11px] font-bold ${isBand ? 'text-red-600' : store.isOpen !== false ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {isBand ? '🔴 Band' : store.isOpen !== false ? '🟢 Open Now' : '🔴 Closed'}
                   </span>
                 </div>
+                
+                {/* Location Details: Mohalla, Landmark, Radius, GPS */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold text-stone-400">City Location:</span>
-                  <span className="text-[11px] font-medium text-stone-800 truncate max-w-[170px]" title={store.address}>
-                    {store.address || 'Churu, Rajasthan'}
+                  <span className="text-[10px] uppercase font-bold text-stone-400">Allotted Area:</span>
+                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 truncate max-w-[170px]">
+                    🏡 {store.mohalla || store.areaName || 'Churu Area'}
                   </span>
                 </div>
 
+                {store.nearestLandmark && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-stone-400">Landmark:</span>
+                    <span className="text-[11px] font-medium text-stone-700 capitalize">
+                      {store.nearestLandmark.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                )}
+
+                {store.lat && store.lng ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-emerald-900">GPS Pin:</span>
+                    <a
+                      href={`https://www.google.com/maps?q=${store.lat},${store.lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-mono font-bold text-emerald-700 hover:underline inline-flex items-center gap-1"
+                      title="View exact shop coordinates on Google Maps"
+                    >
+                      <Navigation className="w-3 h-3 text-emerald-600" />
+                      <span>{store.lat}, {store.lng} ↗</span>
+                    </a>
+                  </div>
+                ) : null}
+
                 {/* Mohalla Specific Delivery Radius & Reward Expansion Control */}
                 {isMohalla ? (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-stone-400">Mohalla Area:</span>
-                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        🏡 {store.mohalla || 'Naya Bass'}
+                  <div className="flex items-center justify-between pt-1 border-t border-stone-200">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-emerald-900">Delivery Radius:</span>
+                      <div className="text-[10px] text-stone-400">Reward top dukandar</div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                        {store.radiusKm || 1.5} km
                       </span>
+                      <button
+                        type="button"
+                        disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) <= 0.5}
+                        onClick={() => handleUpdateRadius(store.id, -0.5)}
+                        className="w-5 h-5 rounded bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs flex items-center justify-center cursor-pointer disabled:opacity-40 border-0"
+                        title="Decrease radius"
+                      >
+                        -
+                      </button>
+                      <button
+                        type="button"
+                        disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) >= 10.0}
+                        onClick={() => handleUpdateRadius(store.id, +0.5)}
+                        className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] flex items-center justify-center gap-0.5 cursor-pointer shadow-xs border-0 active:scale-95"
+                        title="Reward Top Performing Dukandar (+0.5 km radius)"
+                      >
+                        <span>+0.5km</span>
+                        <span>🏆</span>
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-stone-200">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-emerald-900">Delivery Radius:</span>
-                        <div className="text-[10px] text-stone-400">Reward top dukandar</div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
-                          {store.radiusKm || 1.5} km
-                        </span>
-                        <button
-                          type="button"
-                          disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) <= 0.5}
-                          onClick={() => handleUpdateRadius(store.id, -0.5)}
-                          className="w-5 h-5 rounded bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs flex items-center justify-center cursor-pointer disabled:opacity-40 border-0"
-                          title="Decrease radius"
-                        >
-                          -
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingRadiusId === store.id || (store.radiusKm || 1.5) >= 10.0}
-                          onClick={() => handleUpdateRadius(store.id, +0.5)}
-                          className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] flex items-center justify-center gap-0.5 cursor-pointer shadow-xs border-0 active:scale-95"
-                          title="Reward Top Performing Dukandar (+0.5 km radius)"
-                        >
-                          <span>+0.5km</span>
-                          <span>🏆</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 ) : isFlagship ? (
                   <div className="flex items-center justify-between pt-1 border-t border-stone-200">
                     <span className="text-[10px] uppercase font-bold text-amber-800">Coverage:</span>
@@ -776,7 +922,7 @@ export default function PartnerStoresTab() {
                 )}
               </div>
 
-              {/* Action Buttons: 1-Click Manage in Dukandar OS + View Website */}
+              {/* Action Buttons: 1-Click Manage in Dukandar OS + View Website + Super Admin Block Power */}
               <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
                 <button
                   type="button"
@@ -796,6 +942,23 @@ export default function PartnerStoresTab() {
                 >
                   <ExternalLink className="w-4 h-4" />
                 </a>
+
+                {/* Super Admin Block / Suspend Button */}
+                {!isBand && (
+                  <button
+                    type="button"
+                    disabled={changingStatusId === store.id}
+                    onClick={() => {
+                      if (window.confirm(`Kya aap "${store.name}" (${store.id}) ko Super Admin level par BLOCK / BAND karna chahte hain? Iska customer access ruk jayega.`)) {
+                        handleUpdateStoreStatus(store.id, 'suspended', 'Blocked by Super Admin from Partner Stores Tab');
+                      }
+                    }}
+                    className="p-2.5 rounded-xl border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Dukan Permanently Block / Band Karein (Super Admin Power)"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           );
