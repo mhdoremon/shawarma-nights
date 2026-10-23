@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import DataLayer from '../../core/DataLayer.js';
 import WebSocketHub from '../../core/WebSocketHub.js';
 import { generateId, generateUUID, now } from '../../utils/helpers.js';
@@ -80,10 +82,102 @@ export const updateStoreConfig = (req, res) => {
 
 export const deleteStore = (req, res) => {
     try {
+        const { storeId } = req.params;
+        if (!storeId) {
+            return res.status(400).json({ success: false, message: 'Store ID required' });
+        }
+        const cleanId = String(storeId).toLowerCase().trim();
+        const PROTECTED = ['churuone', 'shawarma', 'skyline', 'nash-studio'];
+        if (PROTECTED.includes(cleanId)) {
+            return res.status(403).json({ success: false, message: `System flagship store '${cleanId}' cannot be deleted!` });
+        }
+
+        // 1. Delete from stores.json / _platform
         const storesData = DataLayer.readPlatform('stores') || { stores: [] };
-        storesData.stores = storesData.stores.filter(s => s.id !== req.params.storeId);
+        let removedStoreSlug = null;
+        let removedDukanId = null;
+        storesData.stores = (storesData.stores || []).filter(s => {
+            const matches = String(s.id || '').toLowerCase() === cleanId ||
+                            String(s.slug || '').toLowerCase() === cleanId ||
+                            String(s.dukanId || '').toLowerCase() === cleanId;
+            if (matches) {
+                removedStoreSlug = s.slug || s.id;
+                removedDukanId = s.dukanId;
+                return false;
+            }
+            return true;
+        });
         DataLayer.writePlatform('stores', storesData);
-        return res.json({ success: true, message: 'Deleted' });
+
+        // Also update server/data/stores.json directly
+        try {
+            const rawStoresPath = path.join(process.cwd(), 'server', 'data', 'stores.json');
+            if (fs.existsSync(rawStoresPath)) {
+                const rawData = JSON.parse(fs.readFileSync(rawStoresPath, 'utf8'));
+                if (Array.isArray(rawData.stores)) {
+                    rawData.stores = rawData.stores.filter(s => 
+                        String(s.id || '').toLowerCase() !== cleanId &&
+                        String(s.slug || '').toLowerCase() !== cleanId &&
+                        String(s.dukanId || '').toLowerCase() !== cleanId
+                    );
+                    fs.writeFileSync(rawStoresPath, JSON.stringify(rawData, null, 2));
+                }
+            }
+        } catch (e) {
+            console.warn('Error syncing raw stores.json deletion:', e);
+        }
+
+        // Also sync smart-backend/data/stores.json
+        try {
+            const smartStoresPath = path.join(process.cwd(), 'smart-backend', 'data', 'stores.json');
+            if (fs.existsSync(smartStoresPath)) {
+                const smartData = JSON.parse(fs.readFileSync(smartStoresPath, 'utf8'));
+                if (Array.isArray(smartData.stores)) {
+                    smartData.stores = smartData.stores.filter(s => 
+                        String(s.id || '').toLowerCase() !== cleanId &&
+                        String(s.slug || '').toLowerCase() !== cleanId &&
+                        String(s.dukanId || '').toLowerCase() !== cleanId
+                    );
+                    fs.writeFileSync(smartStoresPath, JSON.stringify(smartData, null, 2));
+                }
+            }
+        } catch (e) {
+            console.warn('Error syncing smart-backend stores.json deletion:', e);
+        }
+
+        // 2. Delete from dukandars.json
+        try {
+            const dukandarsData = DataLayer.readJson('dukandars.json') || { dukandars: [] };
+            dukandarsData.dukandars = (dukandarsData.dukandars || []).filter(d => 
+                String(d.dukanId || '').toLowerCase() !== cleanId &&
+                String(d.storeSlug || '').toLowerCase() !== cleanId &&
+                (removedDukanId ? String(d.dukanId || '').toLowerCase() !== String(removedDukanId).toLowerCase() : true) &&
+                (removedStoreSlug ? String(d.storeSlug || '').toLowerCase() !== String(removedStoreSlug).toLowerCase() : true)
+            );
+            DataLayer.writeJson('dukandars.json', dukandarsData);
+
+            const smartDukandarsPath = path.join(process.cwd(), 'smart-backend', 'data', 'dukandars.json');
+            if (fs.existsSync(smartDukandarsPath)) {
+                fs.writeFileSync(smartDukandarsPath, JSON.stringify(dukandarsData, null, 2));
+            }
+        } catch (e) {
+            console.warn('Error deleting from dukandars.json:', e);
+        }
+
+        // 3. Remove store folder on disk
+        const targetsToDelete = new Set([cleanId, removedStoreSlug, removedDukanId].filter(Boolean));
+        targetsToDelete.forEach(slug => {
+            const serverDir = path.join(process.cwd(), 'server', 'data', 'stores', slug);
+            if (fs.existsSync(serverDir)) {
+                try { fs.rmSync(serverDir, { recursive: true, force: true }); } catch {}
+            }
+            const smartDir = path.join(process.cwd(), 'smart-backend', 'data', 'stores', slug);
+            if (fs.existsSync(smartDir)) {
+                try { fs.rmSync(smartDir, { recursive: true, force: true }); } catch {}
+            }
+        });
+
+        return res.json({ success: true, message: `Store '${cleanId}' has been completely deleted.` });
     } catch (e) {
         return res.status(500).json({ success: false, message: e.message });
     }
@@ -175,16 +269,24 @@ export const updateStoreSettings = (req, res) => {
             try {
                 const storesData = DataLayer.readPlatform('stores') || { stores: [] };
                 const stores = storesData.stores || [];
-                const targetStore = stores.find(s => (s.id || s.slug) === req.storeId);
+                const targetStore = stores.find(s => 
+                    (s.id || s.slug) === req.storeId || 
+                    s.slug === req.storeId || 
+                    (s.dukanId && s.dukanId.toLowerCase() === req.storeId.toLowerCase())
+                );
                 if (targetStore) {
                     targetStore.marketplaceVisible = mvBool;
+                    if (config.mohalla && !targetStore.mohalla) targetStore.mohalla = config.mohalla;
+                    if (config.nearestLandmark && !targetStore.nearestLandmark) targetStore.nearestLandmark = config.nearestLandmark;
                 } else {
                     stores.push({
                         id: req.storeId,
                         slug: req.storeId,
                         name: config.name || req.storeId,
                         status: 'active',
-                        marketplaceVisible: mvBool
+                        marketplaceVisible: mvBool,
+                        mohalla: config.mohalla || config.settings?.mohalla || '',
+                        nearestLandmark: config.nearestLandmark || config.settings?.nearestLandmark || ''
                     });
                 }
                 DataLayer.writePlatform('stores', { stores });
@@ -200,7 +302,11 @@ export const updateStoreSettings = (req, res) => {
             try {
                 const storesData = DataLayer.readPlatform('stores') || { stores: [] };
                 const stores = storesData.stores || [];
-                const targetStore = stores.find(s => (s.id || s.slug) === req.storeId);
+                const targetStore = stores.find(s => 
+                    (s.id || s.slug) === req.storeId || 
+                    s.slug === req.storeId || 
+                    (s.dukanId && s.dukanId.toLowerCase() === req.storeId.toLowerCase())
+                );
                 if (targetStore) {
                     targetStore.isSetupComplete = scBool;
                     DataLayer.writePlatform('stores', { stores });
@@ -499,8 +605,8 @@ export const getMarketplaceFeed = (req, res) => {
                 isMohallaStore,
                 isFlagshipBrand: isFlagship,
                 isCityWide: isFlagship,
-                mohalla: regStore.mohalla || config.mohalla || storeInfo.mohalla || 'Naya Bass',
-                nearestLandmark: regStore.nearestLandmark || config.nearestLandmark || 'naya_bass',
+                mohalla: regStore.mohalla || config.mohalla || config.settings?.mohalla || storeInfo.mohalla || 'Churu Area',
+                nearestLandmark: regStore.nearestLandmark || config.nearestLandmark || config.settings?.nearestLandmark || storeInfo.nearestLandmark || 'subhash_chowk',
                 lat: Number(regStore.lat || config.lat || config.settings?.coordinates?.lat || 28.2932),
                 lng: Number(regStore.lng || config.lng || config.settings?.coordinates?.lng || 74.9620),
                 radiusKm: Number(regStore.radiusKm || config.radiusKm || config.settings?.deliveryRadius || 1.5),

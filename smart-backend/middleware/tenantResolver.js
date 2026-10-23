@@ -79,6 +79,33 @@ export function tenantResolver(req, res, next) {
   // Sanitize storeId (alphanumeric + hyphens only)
   storeId = storeId.replace(/[^a-z0-9\-_]/g, '');
 
+  // Tenant aliases (e.g. nash, beared -> nash-studio)
+  if (storeId === 'nash' || storeId === 'beared' || storeId === 'beard') {
+    storeId = 'nash-studio';
+  }
+
+  // Resolve Dukan ID aliases (e.g. dkn-9458 -> test-2)
+  if (storeId && /^dkn-/i.test(storeId)) {
+    try {
+      const storesData = DataLayer.readPlatform('stores') || { stores: [] };
+      const sMatch = (storesData.stores || []).find(s => 
+        String(s.dukanId || '').toLowerCase() === storeId || 
+        String(s.id || '').toLowerCase() === storeId
+      );
+      if (sMatch && (sMatch.slug || sMatch.id)) {
+        storeId = String(sMatch.slug || sMatch.id).toLowerCase();
+      } else {
+        const dukandarsData = DataLayer.readJson('dukandars.json') || { dukandars: [] };
+        const dMatch = (dukandarsData.dukandars || []).find(d => 
+          String(d.dukanId || '').toLowerCase() === storeId
+        );
+        if (dMatch && dMatch.storeSlug) {
+          storeId = String(dMatch.storeSlug).toLowerCase();
+        }
+      }
+    } catch {}
+  }
+
   if (!storeId) {
     return res.status(400).json({
       success: false,

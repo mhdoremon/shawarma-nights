@@ -41,6 +41,7 @@ import {
   retryOtpViaMsg91, 
   isMsg91Ready 
 } from '../../utils/msg91OtpHelper';
+import { CHURU_LANDMARKS } from '../../utils/geoHelper';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
@@ -2857,25 +2858,19 @@ export default function ChuruOneAuthPage() {
                         onChange={e => {
                           const val = e.target.value;
                           setDukanMohallaNearestLandmark(val);
-                          if (val && val !== 'custom_other' && !dukanMohallaAreaName) {
-                            setDukanMohallaAreaName(val.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                          const matchedLm = CHURU_LANDMARKS.find(l => l.id === val);
+                          if (matchedLm && !dukanMohallaAreaName) {
+                            setDukanMohallaAreaName(matchedLm.name);
                           }
                         }}
                         className="w-full px-3.5 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-950 font-medium"
                       >
                         <option value="">-- Apna area chunein --</option>
-                        <option value="subhash_chowk">Subhash Chowk</option>
-                        <option value="station_road">Station Road</option>
-                        <option value="nai_sarak">Nai Sarak</option>
-                        <option value="naya_bass">Naya Bass</option>
-                        <option value="dharamstupa">Dharamstupa / Kotwali</option>
-                        <option value="collectorate_road">Collectorate Road</option>
-                        <option value="pankha_circle">Pankha Circle</option>
-                        <option value="lohiya_college">Lohiya College Area</option>
-                        <option value="purani_abadi">Purani Abadi</option>
-                        <option value="raj_colony">Raj Colony</option>
-                        <option value="gandhi_nagar">Gandhi Nagar</option>
-                        <option value="adarsh_nagar">Adarsh Nagar</option>
+                        {CHURU_LANDMARKS.map(lm => (
+                          <option key={lm.id} value={lm.id}>
+                            {lm.name} ({lm.label?.includes('(') ? lm.label.split('(')[1]?.replace(')', '') : lm.name})
+                          </option>
+                        ))}
                         <option value="custom_other">✍️ Mera Area List Me Nahi Hai (Custom Mohalla)</option>
                       </select>
                     </div>

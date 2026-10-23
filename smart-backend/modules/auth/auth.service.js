@@ -1605,6 +1605,13 @@ export const dukandarRegisterApply = async (req, res) => {
         const token = generateUUID();
         const resolvedModel = onboardingModel || (businessType === 'mohalla_kirana' ? 'mohalla' : 'brand');
 
+        const mData = req.body.mohallaData || {};
+        const regMohalla = mData.nearestLandmarkName || mData.areaName || mData.mohalla || '';
+        const regLandmark = mData.nearestLandmark || '';
+        const regLat = mData.lat ? Number(mData.lat) : null;
+        const regLng = mData.lng ? Number(mData.lng) : null;
+        const regRadius = mData.radiusKm ? Number(mData.radiusKm) : 1.2;
+
         // 1. Save Dukandar record
         const newDukandar = {
             dukanId: finalDukanId,
@@ -1623,6 +1630,12 @@ export const dukandarRegisterApply = async (req, res) => {
             description: resolvedModel === 'mohalla' ? 'Mohalla Kirana hyperlocal store' : (description || ''),
             status: 'pending_review',
             websiteUrl: '',
+            mohalla: regMohalla,
+            areaName: regMohalla,
+            nearestLandmark: regLandmark,
+            lat: regLat,
+            lng: regLng,
+            radiusKm: regRadius,
             mohallaData: req.body.mohallaData || null,
             isMohallaApplicant: resolvedModel === 'mohalla' || businessType === 'mohalla_kirana',
             contract: {
@@ -1657,6 +1670,13 @@ export const dukandarRegisterApply = async (req, res) => {
                 isSetupComplete: false,
                 marketplaceVisible: false,
                 subdomain: storeSlug,
+                isMohallaStore: resolvedModel === 'mohalla' || businessType === 'mohalla_kirana',
+                mohalla: regMohalla,
+                areaName: regMohalla,
+                nearestLandmark: regLandmark,
+                lat: regLat,
+                lng: regLng,
+                radiusKm: regRadius,
                 capabilities: resolveStoreCapabilities(storeSlug, { type: businessType })
             };
 
@@ -1683,10 +1703,9 @@ export const dukandarRegisterApply = async (req, res) => {
 
         // 3. Provision Store Config Directory (server/data/stores/{storeSlug}/config.json)
         try {
-            const targetDirs = Array.from(new Set([
-                path.join(process.cwd(), 'server', 'data', 'stores', storeSlug),
-                path.join(process.cwd(), 'server', 'data', 'stores', finalDukanId.toLowerCase())
-            ]));
+            const targetDirs = [
+                path.join(process.cwd(), 'server', 'data', 'stores', storeSlug)
+            ];
 
             const initialConfig = {
                 id: storeSlug,
@@ -1699,6 +1718,13 @@ export const dukandarRegisterApply = async (req, res) => {
                 isOpen: false,
                 isSetupComplete: false,
                 marketplaceVisible: false,
+                isMohallaStore: resolvedModel === 'mohalla' || businessType === 'mohalla_kirana',
+                mohalla: regMohalla,
+                areaName: regMohalla,
+                nearestLandmark: regLandmark,
+                lat: regLat,
+                lng: regLng,
+                radiusKm: regRadius,
                 owner: {
                     name: ownerName.trim(),
                     phone: cleanPhone,
@@ -1711,6 +1737,10 @@ export const dukandarRegisterApply = async (req, res) => {
                     storeName: dukanName.trim(),
                     phone: cleanPhone,
                     aboutText: description || '',
+                    mohalla: regMohalla,
+                    areaName: regMohalla,
+                    nearestLandmark: regLandmark,
+                    deliveryRadius: regRadius,
                     isOpen: false
                 },
                 createdAt: now()
@@ -1738,7 +1768,7 @@ export const dukandarRegisterApply = async (req, res) => {
         return res.json({
             success: true,
             token,
-            storeId: finalDukanId.toLowerCase(),
+            storeId: storeSlug,
             dukanId: finalDukanId,
             dukanName: dukanName.trim(),
             status: 'pending_review',
@@ -2123,12 +2153,7 @@ export const reviewMohallaApplication = (req, res) => {
             const STORES_FILE = path.join(process.cwd(), 'server', 'data', 'stores.json');
             const storesData = readJsonFile(STORES_FILE, { stores: [] });
             const storeSlug = dukandar.storeSlug || dukanId.toLowerCase();
-            const existingStoreIdx = (storesData.stores || []).findIndex(s => 
-                s.id === storeSlug || 
-                s.slug === storeSlug || 
-                (dukandar.dukanId && s.id === String(dukandar.dukanId).toLowerCase()) ||
-                (s.dukanId && s.dukanId === dukandar.dukanId)
-            );
+            const dukanIdLower = dukandar.dukanId ? String(dukandar.dukanId).toLowerCase() : '';
             const newStoreEntry = {
                 id: storeSlug,
                 slug: storeSlug,
@@ -2161,11 +2186,16 @@ export const reviewMohallaApplication = (req, res) => {
                 }
             };
 
-            if (existingStoreIdx >= 0) {
-                storesData.stores[existingStoreIdx] = { ...storesData.stores[existingStoreIdx], ...newStoreEntry };
-            } else {
-                storesData.stores.push(newStoreEntry);
-            }
+            // Filter out any existing entries for this store to prevent duplicate ghost stores
+            storesData.stores = (storesData.stores || []).filter(s => {
+                const sId = String(s.id || '').toLowerCase();
+                const sSlug = String(s.slug || '').toLowerCase();
+                const sDukan = String(s.dukanId || '').toLowerCase();
+                const isMatch = sId === storeSlug || sSlug === storeSlug || 
+                                (dukanIdLower && (sId === dukanIdLower || sSlug === dukanIdLower || sDukan === dukanIdLower));
+                return !isMatch;
+            });
+            storesData.stores.push(newStoreEntry);
             writeJsonFile(STORES_FILE, storesData);
             try {
                 DataLayer.writePlatform('stores', storesData);

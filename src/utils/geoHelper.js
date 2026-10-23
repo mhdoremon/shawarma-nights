@@ -13,13 +13,20 @@ export const CHURU_LANDMARKS = [
   { id: 'naya_bass', name: 'Naya Bass', lat: 28.2965, lng: 74.9590, label: 'Naya Bass (नया बास)' },
   { id: 'station_road', name: 'Station Road', lat: 28.2950, lng: 74.9690, label: 'Station Road (स्टेशन रोड)' },
   { id: 'nai_sarak', name: 'Nai Sarak', lat: 28.2930, lng: 74.9630, label: 'Nai Sarak (नई सड़क)' },
-  { id: 'kotwali', name: 'Dharamstupa / Kotwali', lat: 28.2920, lng: 74.9645, label: 'Dharamstupa / Kotwali (धर्मस्तूप)' },
-  { id: 'collectorate', name: 'Collectorate Road', lat: 28.2880, lng: 74.9610, label: 'Collectorate Circle (कलेक्ट्रेट)' },
+  { id: 'dharamstupa', name: 'Dharamstupa / Kotwali', lat: 28.2920, lng: 74.9645, label: 'Dharamstupa / Kotwali (धर्मस्तूप)' },
+  { id: 'collectorate_road', name: 'Collectorate Road', lat: 28.2880, lng: 74.9610, label: 'Collectorate Circle (कलेक्ट्रेट)' },
   { id: 'pankha_circle', name: 'Pankha Circle', lat: 28.2990, lng: 74.9720, label: 'Pankha Circle (पंखा सर्किल)' },
-  { id: 'lohiya_college', name: 'Lohiya College', lat: 28.2850, lng: 74.9580, label: 'Lohiya College (लोहिया कॉलेज)' },
+  { id: 'lohiya_college', name: 'Lohiya College Area', lat: 28.2850, lng: 74.9580, label: 'Lohiya College (लोहिया कॉलेज)' },
   { id: 'nature_park', name: 'Nature Park / Churu Club', lat: 28.2830, lng: 74.9620, label: 'Nature Park (नेचर पार्क)' },
-  { id: 'ramgarh_road', name: 'Ramgarh Road', lat: 28.3020, lng: 74.9640, label: 'Ramgarh Road (रामगढ़ रोड)' }
+  { id: 'ramgarh_road', name: 'Ramgarh Road', lat: 28.3020, lng: 74.9640, label: 'Ramgarh Road (रामगढ़ रोड)' },
+  { id: 'purani_abadi', name: 'Purani Abadi', lat: 28.2980, lng: 74.9650, label: 'Purani Abadi (पुरानी आबादी)' },
+  { id: 'raj_colony', name: 'Raj Colony', lat: 28.2890, lng: 74.9540, label: 'Raj Colony (राज कॉलोनी)' },
+  { id: 'gandhi_nagar', name: 'Gandhi Nagar', lat: 28.2840, lng: 74.9680, label: 'Gandhi Nagar (गांधी नगर)' },
+  { id: 'adarsh_nagar', name: 'Adarsh Nagar', lat: 28.2810, lng: 74.9650, label: 'Adarsh Nagar (आदर्श नगर)' },
+  { id: 'ghantaghar', name: 'Main Market / Ghantaghar', lat: 28.2925, lng: 74.9655, label: 'Ghantaghar (घंटाघर)' }
 ];
+
+export const CHURU_POPULAR_LANDMARKS = CHURU_LANDMARKS.map(l => l.name);
 
 /**
  * High-speed Haversine distance calculation in kilometers.
@@ -98,16 +105,29 @@ export function isStoreServingLocation(store, customerLat, customerLng, customer
   }
 
   // Fallback to landmark / mohalla match if GPS is absent
-  if (customerLandmarkId && store.serviceArea && Array.isArray(store.serviceArea)) {
-    if (store.serviceArea.includes(customerLandmarkId) || store.serviceArea.includes('all')) {
-      return { serving: true, distanceKm: 0.5, radiusKm: radius };
-    }
-  }
+  if (customerLandmarkId) {
+    const cleanCustLandmark = String(customerLandmarkId).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanStoreMohalla = String(store.mohalla || store.areaName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanStoreLandmark = String(store.nearestLandmark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  if (customerLandmarkId && store.mohalla) {
-    const cleanStoreMohalla = String(store.mohalla).toLowerCase().replace(/[^a-z]/g, '');
-    const cleanCustLandmark = String(customerLandmarkId).toLowerCase().replace(/[^a-z]/g, '');
-    if (cleanStoreMohalla.includes(cleanCustLandmark) || cleanCustLandmark.includes(cleanStoreMohalla)) {
+    if (store.serviceArea && Array.isArray(store.serviceArea)) {
+      if (store.serviceArea.includes(customerLandmarkId) || store.serviceArea.includes('all')) {
+        return { serving: true, distanceKm: 0.5, radiusKm: radius };
+      }
+    }
+
+    const aliases = {
+      kotwali: 'dharamstupa',
+      dharamstupa: 'kotwali',
+      collectorate: 'collectorateroad',
+      collectorateroad: 'collectorate'
+    };
+
+    if (
+      cleanStoreLandmark === cleanCustLandmark ||
+      aliases[cleanStoreLandmark] === cleanCustLandmark ||
+      (cleanStoreMohalla && (cleanStoreMohalla.includes(cleanCustLandmark) || cleanCustLandmark.includes(cleanStoreMohalla)))
+    ) {
       return { serving: true, distanceKm: 0.5, radiusKm: radius };
     }
   }

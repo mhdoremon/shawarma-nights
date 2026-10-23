@@ -29,7 +29,8 @@ import {
   XCircle,
   ThumbsUp,
   ThumbsDown,
-  Navigation
+  Navigation,
+  Trash2
 } from 'lucide-react';
 
 const API_BASE = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -85,6 +86,42 @@ export default function PartnerStoresTab() {
       showToast('Network error: ' + err.message, 'error');
     } finally {
       setChangingStatusId(null);
+    }
+  };
+
+  const [deletingStoreId, setDeletingStoreId] = useState(null);
+
+  // Super Admin Permanently Delete Store from Platform & Database
+  const handleDeleteStore = async (storeId, storeName) => {
+    const confirmation = window.prompt(
+      `⚠️ PERMANENT DELETE WARNING!\nKya aap sach me "${storeName || storeId}" ko poori tarah system aur database se delete karna chahte hain?\n\nConfirm karne ke liye type karein: DELETE`
+    );
+    if (!confirmation || confirmation.trim().toUpperCase() !== 'DELETE') {
+      if (confirmation) showToast('Deletion cancelled. "DELETE" type karna zaroori tha.', 'info');
+      return;
+    }
+
+    try {
+      setDeletingStoreId(storeId);
+      const token = localStorage.getItem('churuone_master_token') || 'super-admin-churuone-master-token-2026';
+      const res = await fetch(`${API_BASE}/api/platform/stores/${storeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`🗑️ Store "${storeName || storeId}" poori tarah delete ho gaya!`, 'success');
+        setStores(prev => prev.filter(s => s.id !== storeId && s.slug !== storeId && s.dukanId !== storeId));
+        loadPlatformStores();
+      } else {
+        showToast(data.message || 'Delete failed', 'error');
+      }
+    } catch (err) {
+      showToast('Error: ' + err.message, 'error');
+    } finally {
+      setDeletingStoreId(null);
     }
   };
 
@@ -552,7 +589,8 @@ export default function PartnerStoresTab() {
               const dId = app.dukanId || app.storeSlug;
               const isActing = actingAppId === dId;
               const requestedRadius = editRadius[dId] !== undefined ? editRadius[dId] : (app.mohallaData?.radiusKm || app.radiusKm || 1.2);
-              const landmark = app.mohallaData?.nearestLandmark || app.nearestLandmark || app.mohalla || 'Subhash Chowk';
+              const mohallaAreaName = app.mohallaData?.areaName || app.mohallaData?.mohalla || app.mohalla || (app.mohallaData?.nearestLandmark ? app.mohallaData.nearestLandmark.replace(/_/g, ' ') : 'Subhash Chowk');
+              const nearestLandmarkKey = app.mohallaData?.nearestLandmark || app.nearestLandmark || 'subhash_chowk';
               const hasGps = Boolean(app.mohallaData?.lat || app.lat);
 
               return (
@@ -586,7 +624,7 @@ export default function PartnerStoresTab() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-stone-400" />
-                        <span>Area: <strong className="capitalize">{landmark.replace(/_/g, ' ')}</strong></span>
+                        <span>Area: <strong className="capitalize">{mohallaAreaName}</strong></span>
                       </div>
                     </div>
 
@@ -619,7 +657,7 @@ export default function PartnerStoresTab() {
                       <button
                         type="button"
                         disabled={isActing}
-                        onClick={() => handleReviewApp(dId, 'approve', requestedRadius, landmark, landmark)}
+                        onClick={() => handleReviewApp(dId, 'approve', requestedRadius, mohallaAreaName, nearestLandmarkKey)}
                         className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer disabled:opacity-50"
                       >
                         <Check className="w-4 h-4 stroke-[3]" />
@@ -791,21 +829,34 @@ export default function PartnerStoresTab() {
                 )}
               </div>
 
-              {/* Band Status Notice with 1-Click Re-activate */}
+              {/* Band Status Notice with 1-Click Re-activate & Delete */}
               {isBand && (
-                <div className="p-3 bg-red-100/90 border border-red-300 rounded-2xl flex items-center justify-between text-xs font-bold text-red-950">
-                  <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                <div className="p-3 bg-red-100/90 border border-red-300 rounded-2xl flex items-center justify-between gap-2 text-xs font-bold text-red-950">
+                  <div className="flex items-center gap-1.5 min-w-0 pr-1">
                     <Lock className="w-3.5 h-3.5 text-red-700 shrink-0" />
                     <span className="truncate">{isSuspended ? 'Super Admin dwara Blocked' : 'Dukandar dwara Deactivated'}</span>
                   </div>
-                  <button
-                    type="button"
-                    disabled={changingStatusId === store.id}
-                    onClick={() => handleUpdateStoreStatus(store.id, 'active')}
-                    className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0 shrink-0"
-                  >
-                    {changingStatusId === store.id ? 'Opening...' : '🟢 Wapas Kholen'}
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      disabled={changingStatusId === store.id}
+                      onClick={() => handleUpdateStoreStatus(store.id, 'active')}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs border-0"
+                    >
+                      {changingStatusId === store.id ? 'Opening...' : '🟢 Wapas Kholen'}
+                    </button>
+                    {!isFlagship && (
+                      <button
+                        type="button"
+                        disabled={deletingStoreId === store.id}
+                        onClick={() => handleDeleteStore(store.id, store.name)}
+                        className="p-1 rounded-lg bg-red-200 hover:bg-red-300 text-red-800 transition-colors cursor-pointer border-0"
+                        title="Delete Store"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -922,42 +973,82 @@ export default function PartnerStoresTab() {
                 )}
               </div>
 
-              {/* Action Buttons: 1-Click Manage in Dukandar OS + View Website + Super Admin Block Power */}
-              <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={() => switchStoreId(store.id)}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-0"
-                >
-                  <Sliders className="w-3.5 h-3.5" />
-                  <span>Manage in 1-Click</span>
-                </button>
-
-                <a
-                  href={store.destination || `/${store.id}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2.5 rounded-xl border border-stone-200 hover:border-stone-900 text-stone-700 hover:text-stone-900 transition-colors"
-                  title="Open Store Website"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-
-                {/* Super Admin Block / Suspend Button */}
-                {!isBand && (
+              {/* Action Buttons: 1-Click Manage in Dukandar OS + View Website + Prominent Permanent Band / Delete */}
+              <div className="pt-2 border-t border-stone-100 space-y-2">
+                {/* Primary Row: Manage + Open Store Website */}
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={changingStatusId === store.id}
-                    onClick={() => {
-                      if (window.confirm(`Kya aap "${store.name}" (${store.id}) ko Super Admin level par BLOCK / BAND karna chahte hain? Iska customer access ruk jayega.`)) {
-                        handleUpdateStoreStatus(store.id, 'suspended', 'Blocked by Super Admin from Partner Stores Tab');
-                      }
-                    }}
-                    className="p-2.5 rounded-xl border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                    title="Dukan Permanently Block / Band Karein (Super Admin Power)"
+                    onClick={() => switchStoreId(store.id)}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-stone-900 hover:bg-black text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-0"
                   >
-                    <XCircle className="w-4 h-4" />
+                    <Sliders className="w-3.5 h-3.5" />
+                    <span>Manage in 1-Click</span>
                   </button>
+
+                  <a
+                    href={store.destination || `/${store.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2.5 rounded-xl border border-stone-200 hover:border-stone-900 text-stone-700 hover:text-stone-900 transition-colors shrink-0"
+                    title="Open Store Website"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+
+                {/* Secondary Row: Prominent Super Admin Controls (Permanent Band / Delete) */}
+                {!isFlagship && (
+                  <div className="flex items-center gap-2 pt-1">
+                    {isBand ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={changingStatusId === store.id}
+                          onClick={() => handleUpdateStoreStatus(store.id, 'active')}
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer border-0 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{changingStatusId === store.id ? 'Opening...' : '🟢 Dukan Wapas Kholen'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingStoreId === store.id}
+                          onClick={() => handleDeleteStore(store.id, store.name)}
+                          className="py-2 px-3 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer border border-red-300 disabled:opacity-50 shrink-0"
+                          title="Permanently Delete Store from Platform"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{deletingStoreId === store.id ? 'Deleting...' : 'Delete'}</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          disabled={changingStatusId === store.id}
+                          onClick={() => {
+                            if (window.confirm(`Kya aap "${store.name}" (${store.id}) ko PERMANENTLY BAND / BLOCK karna chahte hain? Iska customer access aur dukan login turant ruk jayega aur yeh 'Band Dukanein' me move ho jayegi.`)) {
+                              handleUpdateStoreStatus(store.id, 'suspended', 'Blocked by Super Admin from Partner Stores Tab');
+                            }
+                          }}
+                          className="flex-1 py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-300 text-red-700 hover:text-red-900 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-red-600" />
+                          <span>{changingStatusId === store.id ? 'Band Ho Rahi Hai...' : '🚫 Dukan Permanent Band Karein'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingStoreId === store.id}
+                          onClick={() => handleDeleteStore(store.id, store.name)}
+                          className="p-2 rounded-xl bg-stone-100 hover:bg-red-100 border border-stone-200 hover:border-red-300 text-stone-500 hover:text-red-700 transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                          title="Permanently Delete Store from Platform"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

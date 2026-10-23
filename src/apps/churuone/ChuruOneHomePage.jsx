@@ -68,18 +68,8 @@ import {
   saveCustomerLocation 
 } from '../../utils/geoHelper';
 
-// Popular Churu Landmarks for Fast Accurate City Delivery
-export const CHURU_POPULAR_LANDMARKS = [
-  'Subhash Chowk',
-  'Station Road',
-  'Nai Sarak',
-  'Dharamstupa / Kotwali',
-  'Collectorate Road',
-  'Pankha Circle',
-  'Lohiya College',
-  'Nature Park / Churu Club',
-  'Naya Bass'
-];
+// Popular Churu Landmarks for Fast Accurate City Delivery (Single source of truth from geoHelper)
+export const CHURU_POPULAR_LANDMARKS = CHURU_LANDMARKS.map(l => l.name);
 
 export const FALLBACK_STORE_IMAGE = 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?auto=format&fit=crop&w=600&q=80';
 export const FALLBACK_PRODUCT_IMAGE = 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80';
